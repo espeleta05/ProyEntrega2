@@ -1,0 +1,95 @@
+{% extends 'base_2daE.html' %}
+
+{% block title %}Personal - Sistema Clínico{% endblock %}
+
+{% block content %}
+
+<link rel="stylesheet" href="{{ url_for('static', filename='css/personal.css') }}">
+
+<!-- HEADER -->
+<div class="content-header">
+    <h2 class="title">Administración de personal</h2>
+
+    <a href="{{ url_for('add_user') }}" class="btn-agregar">
+        <i class="fa-solid fa-plus"></i>
+        Agregar usuario
+    </a>
+</div>
+
+<div class="subtitle">
+    Total de empleados: {{ total_workers }}
+</div>
+
+<!-- SEARCH -->
+<div class="search-bar-container section">
+    <i class="fa-solid fa-magnifying-glass"></i>
+    <input type="text" id="personalSearchInput" placeholder="Buscar empleado por nombre, correo, rol o id...">
+</div>
+
+<!-- SECCIONES POR ROL -->
+{% set roles = workers | groupby('role') %}
+{% for role, members in roles %}
+<div class="section">
+
+    <div class="section-header">
+        <h3>{{ role }}</h3>
+        <span class="role-count">{{ members | list | length }} empleados</span>
+    </div>
+
+    <div class="workers-grid">
+        {% for w in members %}
+        <div class="employee-card">
+
+            <div class="worker-avatar">
+                {{ w.name[0] | upper }}{{ w.lastname[0] | upper if w.lastname else '' }}
+            </div>
+
+            <div class="worker-info">
+                <p class="worker-name">{{ w.name }} {{ w.lastname }}</p>
+                <div class="worker-id">EMP{{ '%03d' % w.worker_id }} — {{ w.role }}</div>
+                {% if w.mail %}
+                <div class="worker-mail">
+                    <i class="fa-solid fa-envelope"></i>
+                    {{ w.mail }}
+                </div>
+                {% endif %}
+            </div>
+
+        </div>
+        {% endfor %}
+    </div>
+
+</div>
+{% else %}
+<p class="empty-state">No hay empleados registrados.</p>
+{% endfor %}
+
+<script>
+(() => {
+    const input = document.getElementById('personalSearchInput');
+    if (!input) return;
+
+    const cards = Array.from(document.querySelectorAll('.employee-card'));
+
+    function applyFilter(value) {
+        const term = (value || '').toLowerCase().trim();
+
+        cards.forEach(card => {
+            const text = card.innerText.toLowerCase();
+            card.style.display = (!term || text.includes(term)) ? 'flex' : 'none';
+        });
+    }
+
+    input.addEventListener('input', (e) => applyFilter(e.target.value));
+
+    // Si llega un parametro ?q=... desde la busqueda global, aplicarlo al abrir.
+    const params = new URLSearchParams(window.location.search);
+    const q = (params.get('q') || '').trim();
+    if (q) {
+        input.value = q;
+        applyFilter(q);
+    }
+})();
+</script>
+
+{% endblock %}

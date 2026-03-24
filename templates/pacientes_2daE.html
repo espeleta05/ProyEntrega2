@@ -1,0 +1,117 @@
+{% extends 'base_2daE.html' %}
+
+{% block title %}Pacientes - Sistema Clínico{% endblock %}
+
+{% block content %}
+
+<link rel="stylesheet" href="{{ url_for('static', filename='css/nuevoPaciente.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pacientes.css') }}">
+
+<div class="content-header">
+    <h2 class="title">Gestión de pacientes</h2>
+
+    <button class="btn-agregar" onclick="openPatientModal()">
+        <i class="fa-solid fa-plus"></i>
+        Agregar paciente
+    </button>
+</div>
+
+<div class="subtitle">
+    Total pacientes: {{ total_patients }}
+</div>
+
+<div class="search-bar-container section">
+    <i class="fa-solid fa-magnifying-glass"></i>
+    <input type="text" id="searchInput" placeholder="Buscar paciente por nombre o id...">
+</div>
+
+<div class="section" id="patientsContainer">
+
+    {% for p in patients %}
+        <div id="patient-card-{{ p.patient_id }}" class="patient-card-wrapper">
+            {% include 'components/patient_card_2daE.html' %}
+        </div>
+    {% else %}
+        <div class="card">
+            <div class="card-body">
+                <p>No hay pacientes registrados.</p>
+            </div>
+        </div>
+    {% endfor %}
+
+</div>
+
+{% include 'nuevoPaciente_2daE.html' %}
+
+<script>
+// Script de búsqueda (sin cambios)
+const container = document.getElementById('patientsContainer');
+const originalCards = container ? Array.from(container.querySelectorAll('.patient-card-wrapper')) : [];
+
+document.getElementById('searchInput').addEventListener('input', function() {
+    const searchTerm = this.value.toLowerCase().trim();
+
+    if (searchTerm === "") {
+        originalCards.forEach(card => card.style.display = 'block');
+        return;
+    }
+
+    originalCards.forEach(card => {
+        const patientId = card.id.replace('patient-card-', '');
+        const nameElement = card.querySelector('.card-header h3');
+        const patientName = nameElement ? nameElement.innerText.toLowerCase() : '';
+
+        if (patientId === searchTerm || patientName.includes(searchTerm)) {
+            card.style.display = 'block';
+            card.parentNode.insertBefore(card, card.parentNode.firstChild);
+        } else {
+            card.style.display = 'none';
+        }
+    });
+});
+
+// Si llega un parametro ?q=... desde la busqueda global, aplicarlo al abrir.
+(() => {
+    const params = new URLSearchParams(window.location.search);
+    const q = (params.get('q') || '').trim();
+    const searchInput = document.getElementById('searchInput');
+    if (!q || !searchInput) return;
+    searchInput.value = q;
+    searchInput.dispatchEvent(new Event('input'));
+})();
+
+document.querySelectorAll('.delete-patient-btn').forEach(btn => {
+    btn.addEventListener('click', async function () {
+        const patientId = this.dataset.patientId;
+        if (!patientId) return;
+
+        if (!confirm('Esta accion eliminara al paciente y sus registros relacionados. Continuar?')) {
+            return;
+        }
+
+        try {
+            const response = await fetch(`/delete_patient/${patientId}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' }
+            });
+            const result = await response.json();
+
+            if (!response.ok) {
+                alert(result.error || 'No se pudo eliminar el paciente');
+                return;
+            }
+
+            const card = document.getElementById(`patient-card-${patientId}`);
+            if (card) card.remove();
+            alert(result.message || 'Paciente eliminado correctamente');
+            window.location.reload();
+        } catch (err) {
+            alert('Error de conexion al eliminar paciente');
+            console.error(err);
+        }
+    });
+});
+</script>
+
+{% endblock %}
+

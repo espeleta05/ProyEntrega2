@@ -1,0 +1,66 @@
+﻿<div class="card">
+    {% set risk_value = (p.risk or 'bajo')|lower %}
+    {% if 'alto' in risk_value %}
+        {% set risk_class = 'high' %}
+    {% elif 'medio' in risk_value or 'moderado' in risk_value %}
+        {% set risk_class = 'mid' %}
+    {% else %}
+        {% set risk_class = 'low' %}
+    {% endif %}
+
+    <div class="card-header">
+        <div class="detail-info">
+            <div>
+                <h3>{{ p.full_name }}</h3>
+                <span class="id">ID: P{{ p.patient_id }}</span>
+            </div>
+    
+            <div class="risk {{ risk_class }}">
+                Riesgo: {{ p.risk or 'bajo' }}
+            </div>
+        </div>
+
+        {% if show_delete is not defined or show_delete %}
+            <button
+                type="button"
+                class="delete-patient-btn"
+                data-patient-id="{{ p.patient_id }}"
+                title="Eliminar paciente"
+                style="background:none;border:none;color:inherit;cursor:pointer;"
+            >
+                <i class="fa-solid fa-trash"></i>
+            </button>
+        {% endif %}
+    </div>
+    
+    <div class="card-body">
+        <div class="details">
+            <p>
+                <i class="fa-solid fa-calendar-days"></i>
+                Fecha:{{ p.birth_date }}
+            </p>
+    
+            <p>
+                <i class="fa-solid fa-user"></i>
+                Tutor: {{ p.guardian }}
+            </p>
+    
+            <p>
+                <i class="fa-solid fa-phone"></i>
+                Contacto: {{ p.contact }}
+            </p>
+        </div>
+    
+        <div class="extra">
+            <span class="blood A">
+                <i class="fa-solid fa-droplet"></i>
+                {{ p.blood_type }}
+            </span>
+    
+            <span class="allergy">
+                <i class="fa-solid fa-triangle-exclamation"></i>
+                Alergias: {{ p.allergies }}
+            </span>
+        </div>
+    </div>    
+</div>

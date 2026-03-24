@@ -1,0 +1,30 @@
+.regresar{
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    color: var(--gray-color);
+    text-align: left;
+    margin-bottom: 10px;
+    gap: 15px;
+}
+
+.regresar i{
+    color: var(--gray-color);
+}
+
+table {
+    border-collapse: collapse;
+    width: 100%;
+    border-radius: 20px;
+}
+  
+td, th {
+    border: 1px solid #dddddd;
+    text-align: left;
+    padding: 12px;
+    width: 20px;
+}
+  
+tr:nth-child(even) {
+    background-color: #dddddd;
+}

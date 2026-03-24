@@ -1,0 +1,608 @@
+*{
+    box-sizing:border-box;
+    margin:0;
+    padding:0;
+    font-family: 'Open Sans', sans-serif;
+}
+
+:root {
+    --primary-color: #6B007C;
+    --secondary-color: #4B1535;
+    --light-color: #FAD9FF;
+    --button-color: #E8ABCE;
+    --good-color: #1D7B00;
+    --good-background: #CFFFC0;
+    --bad-color: #C40000;
+    --bad-background: #FFB9B9;
+    --medium-color: #bb9f00;
+    --medium-background: #FFEEC0;
+    --gray-color: #636363;
+    --gray-stroke: #cecece;
+    --gray-background: #F2F2F2;
+    --card-shadow: 0 4px 12px rgba(0, 0, 0, 0.7);
+    --transition: all 0.3s ease;
+}
+    
+body{
+    background:#F2F2F2;
+}
+
+h1, h2, h3, h4, h5, h6{
+    font-family: 'Montserrat', sans-serif;
+    font-weight: bold 700;
+}
+
+button{
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    justify-content: center;
+    background-color: var(--button-color);
+    color: var(--secondary-color);
+    font-size: 15px;
+    font-weight: 600;
+    border:none;
+    padding:12px 20px;
+    border-radius:10px;
+    cursor:pointer;
+}
+
+.btn-agregar{
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    justify-content: center;
+    background-color: var(--button-color);
+    color: var(--secondary-color);
+    font-size: 15px;
+    font-weight: 600;
+    border:none;
+    padding:12px 20px;
+    border-radius:10px;
+    cursor:pointer;
+}
+    
+/* MAIN LAYOUT */
+    
+.main-layout{
+    display:grid;
+    grid-template-areas: 
+    "topbar topbar"
+    "sidebar content";
+    grid-template-columns: 250px 1fr; 
+    grid-template-rows: 80px 1fr;
+    min-height:100vh;
+}
+    
+/* TOPBAR */
+    
+.topbar{
+    grid-area: topbar;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    position:fixed;
+    top:0;
+    left:0;
+    width:100%;
+    height:100px;
+    background:white;
+    border-bottom:1px solid rgba(99,99,99,0.61);
+    padding:0 40px;
+    z-index:100;
+}
+
+/*sidebar*/
+.sidebar{
+    grid-area: sidebar;
+    position: fixed;
+    height: 100vh;
+    width:280px;
+    background:white;
+    border-right:1px solid var(--gray-stroke);
+    padding-top:100px;
+    display:flex;
+    flex-direction:column;
+}
+
+/* content */
+.content{
+    grid-area: content;
+    flex:1;
+    padding:50px;
+    
+}
+
+.content-info {
+    display: grid;
+    gap: 15px;
+    background: transparent;
+    box-shadow: none;
+}
+
+.clinic-title{
+    font-size: medium;
+    display: flex;
+    width: 1fr;
+    font-size: 1.5rem;
+    font-weight: 700;
+    color:#6B007C;
+}
+
+.search-bar-container {
+    width: 682px;
+    height: 56px;
+    background: #ECE6F0;
+    border-radius: 28px;
+    display: flex;
+    align-items: center;
+    padding: 0 20px;
+    color: #49454F;
+    font-size: 20px;
+}
+
+.global-search-wrapper {
+    position: relative;
+}
+
+.global-search-results {
+    position: absolute;
+    top: calc(100% + 8px);
+    left: 0;
+    right: 0;
+    background: #fff;
+    border: 1px solid #d8d8d8;
+    border-radius: 12px;
+    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.12);
+    max-height: 320px;
+    overflow-y: auto;
+    z-index: 200;
+    padding: 6px;
+}
+
+.search-item {
+    width: 100%;
+    text-align: left;
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 2px 10px;
+    padding: 10px;
+    border-radius: 10px;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+}
+
+.search-item:hover {
+    background: #f4f6fb;
+}
+
+.search-item.active {
+    background: #e8eefc;
+    outline: 1px solid #9db5ef;
+}
+
+.search-type {
+    grid-row: 1 / span 2;
+    align-self: center;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 4px 8px;
+    border-radius: 999px;
+}
+
+.search-type.paciente {
+    background: #eaf2ff;
+    color: #2458b5;
+}
+
+.search-type.vacuna {
+    background: #e8faef;
+    color: #17633d;
+}
+
+.search-type.personal {
+    background: #fff3e1;
+    color: #825700;
+}
+
+.search-main {
+    font-size: 14px;
+    font-weight: 700;
+    color: #2d2d2d;
+}
+
+.search-sub {
+    font-size: 12px;
+    color: #666;
+}
+
+.search-empty {
+    font-size: 13px;
+    color: #666;
+    padding: 12px;
+}
+
+.search-bar-container input {
+    border: none;
+    background: transparent;
+    font-size: 15px;
+    outline: none;
+    width: 100%;
+    margin-left: 10px;
+    color: var(--gray-color);
+}
+
+.search-bar-container i {
+    font-size: 1rem;
+    color: var(--gray-color);
+    width: 2px;
+    height: 2px;
+    margin-right: 10px;
+    margin-left: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+    
+ 
+.profile-circle{
+    width:50px;
+    height:50px;
+    background:#C08D00;
+    border-radius:50%;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    color:white;
+    font-weight:500;
+    font-size:22px;
+}
+
+    
+/* SIDEBAR */   
+.menu{
+    display:flex;
+    flex-direction:column;
+    margin-top: 15px;
+    margin-bottom: 15px;
+    padding-left:20px;
+    gap:5px;
+}
+    
+.menu-title{
+    padding-left: 15px;
+}
+.menu-item{
+    display:flex;
+    align-items:center;
+    gap:15px;
+    padding:10px;
+    border-radius:25px;
+    cursor:pointer;
+    color:#636363;
+    font-size:18px;
+}
+    
+.menu-item.active{
+    background:rgba(232,171,206,0.44);
+    width: 15rem;
+    color:#4B1535;
+}
+    
+.menu-item:hover{
+    background-color: var(--secondary-color);
+    color: white;
+    width: 15rem;
+}
+    
+    /* USER INFO */
+    
+.user-info{
+    display:flex;
+    align-items:center;
+    height: fit-content;
+    padding-top: 30px;
+    margin: 12px;
+    border-top: 1px solid var(--gray-stroke);
+    gap:15px;
+}
+
+.user-info i{
+    display: flex;
+    margin-left: 50px;
+    justify-content: flex-end;
+}
+    
+.profile-small{
+    width:40px;
+    height:40px;
+    background:#C08D00;
+    border-radius:50%;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    color:white;
+    font-weight:bold;
+}
+    
+.user-name{
+    font-size:18px;
+}
+    
+.user-role{
+    font-size:14px;
+    color:#636363;
+}
+    
+/* CONTENT */ 
+.date{
+    color:#636363;
+    margin-bottom:10px;
+}
+    
+.title{
+    font-size:38px;
+    color:#6B007C;
+}
+    
+.welcome{
+    font-size:32px;
+    color:#6B007C;
+    margin-bottom:40px;
+}
+    
+/* DASHBOARD CARDS */
+    
+.cards{
+    display:flex;
+    gap:40px;
+    margin-bottom:60px;
+}
+    
+.dash-card{
+    background:white;
+    width:200px;
+    height:200px;
+    border-radius:15px;
+    box-shadow:4px 4px 10px rgba(0,0,0,0.1);
+    padding:20px;
+    display:flex;
+    flex-direction:column;
+    justify-content:flex-start;
+    gap:10px;
+}
+
+    
+.dash-card h4{
+    font-size:20px;
+}
+    
+.dash-card p{
+    color:#636363;
+}
+
+.dash-card i {
+    font-size: 1.5rem;
+    color: var(--primary-color);
+    background-color: #FAD9FF;
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+ 
+/* PATIENTS */
+.section-header{
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    margin-left: 10px;
+    margin-bottom: 20px;
+    gap: 10px;
+}
+ 
+    /* TABLE */
+    
+.patients-table{
+    background:white;
+    border-radius:15px;
+    overflow:hidden;
+    box-shadow:4px 4px 10px rgba(0,0,0,0.1);
+}
+    
+.table-header{
+    display:grid;
+    grid-template-columns: 0.8fr 0.8fr 0.5fr 0.5fr 0.5fr 0.5fr;
+    background:#F9F9F9;
+    padding:15px;
+    font-weight:700;
+    color:#575757;
+}
+    
+.patient-row{
+    display:grid;
+    grid-template-columns:0.8fr 0.8fr 0.5fr 0.5fr 0.5fr 0.5fr;
+    padding:15px;
+    gap: 10px;
+    border-bottom:1px solid rgba(99,99,99,0.2);
+    align-items:center;
+}
+    
+.patient-info{
+    display:flex;
+    align-items:center;
+    gap:10px;
+}
+    
+
+.avatar i {
+    font-size: 1rem;
+    color: var(--gray-color);
+    background-color: var(--gray-stroke);
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.id{
+    color: var(--gray-color);
+    font-weight: 600;
+}
+    
+.blood.A{
+    background:#FFB9B9;
+    color: var(--bad-color);
+    padding:4px 10px;
+    border-radius:8px;
+    font-size:14px;
+}
+    
+.blood.O{
+    background:#B9DAFF;
+    color: rgb(0, 153, 255);
+    padding:4px 10px;
+    border-radius:8px;
+    font-size:14px;
+}
+
+.blood.B{
+    background:#e5b9ff;
+    color: #a200ff;
+    padding:4px 10px;
+    border-radius:8px;
+    font-size:14px;
+}
+    
+    /* STATUS */
+    
+    .status{
+    padding:6px 10px;
+    border-radius:20px;
+    font-size:14px;
+    text-align:center;
+    }
+    
+    .status.ok{
+    background:#CFFFC0;
+    color:#1D7B00;
+    }
+    
+    .status.warning{
+    background:#FFEEC0;
+    color:#7B6800;
+    }
+    
+    .patients-count{
+    margin-top:10px;
+    color:#636363;
+    }
+    
+    /* VACCINES */
+    
+.second-section{
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+}
+
+.section-card{
+    margin-top:25px;
+    background-color: white;
+    border-radius: 10px;
+    padding: 20px;
+    display:flex;
+    flex-direction:column;
+    gap:15px;
+    max-width:450px;
+    box-shadow:10px 10px 10px rgba(0,0,0,0.1);
+}
+
+iframe{
+    border-radius: 10px;
+}
+
+.card-detail{
+    display:flex;
+    align-items: center;
+    padding: 5px;
+    border-radius: 5px;
+    gap: 15px;
+    width: fit-content;
+    color: var(--secondary-color);
+    cursor:pointer;
+    text-align: end;
+}
+
+.card-detail.map{
+    color: var(--gray-color);
+    display: flex;
+    gap: 3px;
+}
+
+
+.risk-patients{
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    gap: 50px;
+}
+
+.card-detail.high-risk{
+    color:  var(--bad-color);
+    text-align: left;
+}
+
+.card-detail.high-risk i{
+    color: var(--bad-color);
+    background-color: var(--bad-background);
+    padding: 15px;
+    border-radius: 5px;
+}
+
+.card-detail.mid-risk{
+    color:  var(--medium-color);
+    text-align: left;
+}
+
+.card-detail.mid-risk i{
+    color: var(--medium-color);
+    background-color: var(--medium-background);
+    padding: 15px;
+    border-radius: 5px;
+}
+ 
+.vaccine-item{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    padding:15px 20px;
+    border-radius:30px;
+    border:1px solid #CED4DA;
+    background:white;
+}
+    
+.stock{
+    text-align:right;
+}
+    
+.high{
+    color:#1D7B00;
+}
+    
+.medium{
+    color:#7B6800;
+}
+    
+.low{
+    color:#C40000;
+}
+    

@@ -1,0 +1,102 @@
+<div class="card">
+
+    <!-- HEADER -->
+    <div class="card-header">
+        <div class="detail-info">
+            <div>
+                <h3>{{ v.name }}</h3>
+
+                <span class="id">
+                    {% if mode == 'application' %}
+                        ID: V{{ v.id }}
+                    {% else %}
+                        ID: V{{ v.id_vaccine }}
+                        {% if v.manufacturer %} - {{ v.manufacturer }}{% endif %}
+                    {% endif %}
+                </span>
+            </div>
+
+            {% if mode == 'application' %}
+                <div class="dose">
+                    {{ v.dose }} dosis
+                </div>
+            {% else %}
+                <div class="tag activa">
+                    Activa
+                </div>
+            {% endif %}
+        </div>
+
+        {% if show_delete is not defined or show_delete %}
+            <button
+                type="button"
+                class="delete-vaccine-btn"
+                data-vaccine-id="{{ v.id_vaccine }}"
+                title="Eliminar vacuna"
+                style="background:none;border:none;color:inherit;cursor:pointer;"
+            >
+                <i class="fa-solid fa-trash"></i>
+            </button>
+        {% endif %}
+    </div>
+
+    <!-- BODY -->
+    <div class="card-body">
+
+        {% if mode == 'application' %}
+        <div class="details">
+            {% if v.patient_name is defined and v.patient_name %}
+            <p>
+                <i class="fa-solid fa-user"></i>
+                Paciente: {{ v.patient_name }}
+            </p>
+            {% endif %}
+
+            <p>
+                <i class="fa-solid fa-calendar-days"></i>
+                Aplicada: {{ v.date }}
+            </p>
+
+
+            <p>
+                <i class="fa-solid fa-calendar"></i>
+                Próxima: {{ v.next_date or 'N/A' }}
+            </p>
+        </div>
+
+        <div class="extra">
+            <p>
+                <i class="fa-solid fa-user-doctor"></i>
+                {{ v.doctor }}
+            </p>
+            
+            <p class="observation">
+                {{ v.notes or 'Sin observaciones' }}
+            </p>
+        </div>
+
+        {% else %}
+        <div class="details">
+            <p><strong>{{ v.description or 'Sin descripción' }}</strong></p>
+
+            <p>
+                <i class="fa-solid fa-hourglass"></i>
+                Edad mínima: {{ v.min_age_months if v.min_age_months is not none else 'N/A' }} meses
+            </p>
+
+            <p>
+                <i class="fa-solid fa-calendar-days"></i>
+                Edad máxima: {{ v.max_age_months if v.max_age_months is not none else 'N/A' }} meses
+            </p>
+        </div>
+
+        <div class="extra">
+            <span class="stock">
+                <i class="fa-solid fa-boxes-stacked"></i>
+                Stock: {{ v.inventory or 0 }} dosis
+            </span>
+        </div>
+        {% endif %}
+
+    </div>
+</div>

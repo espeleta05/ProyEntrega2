@@ -1,0 +1,142 @@
+/* === OVERLAY === */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    display: none;
+    justify-content: center;
+    align-items: center;
+    z-index: 2000;
+}
+
+.modal-overlay.active {
+    display: flex;
+}
+
+/* === CONTENEDOR === */
+.modal-container {
+    width: 500px; /* Un poco más estrecho porque son menos campos */
+    background: #FFFFFF;
+    border-radius: 15px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    padding: 25px;
+    position: relative;
+    max-height: 85vh;
+    overflow-y: auto;
+}
+
+/* === HEADER === */
+.modal-header {
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+.modal-title {
+    font-family: 'SF Pro', sans-serif;
+    font-weight: 700;
+    font-size: 24px;
+    color: #000000;
+    margin: 0;
+}
+
+.modal-close-btn {
+    position: absolute;
+    top: 15px;
+    right: 20px;
+    background: none;
+    border: none;
+    font-size: 24px;
+    color: #888;
+    cursor: pointer;
+}
+
+/* === FORMULARIO === */
+.form-section {
+    margin-bottom: 20px;
+}
+
+.section-title {
+    font-family: 'SF Pro', sans-serif;
+    font-weight: 600;
+    font-size: 16px;
+    color: #000000;
+    margin-bottom: 10px;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 5px;
+}
+
+.form-row {
+    display: flex;
+    gap: 15px;
+    margin-bottom: 10px;
+}
+
+.form-group {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.form-group.full-width {
+    width: 100%;
+}
+
+.form-group label {
+    font-family: 'SF Pro', sans-serif;
+    font-weight: 500;
+    font-size: 14px;
+    color: #575757;
+    margin-bottom: 4px;
+}
+
+.form-group input {
+    box-sizing: border-box;
+    height: 38px;
+    background: #FFFFFF;
+    border: 1px solid #ced4da;
+    border-radius: 8px;
+    padding: 0 10px;
+    font-family: 'SF Pro', sans-serif;
+    font-size: 14px;
+    color: #333;
+}
+
+.form-group input:focus {
+    outline: none;
+    border-color: #8E00A4;
+}
+
+/* === FOOTER === */
+.modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 20px;
+    padding-top: 15px;
+    border-top: 1px solid #eee;
+}
+
+.btn-cancel {
+    padding: 8px 20px;
+    background: #FFFFFF;
+    border: 1px solid #4B1535;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    color: #4B1535;
+    cursor: pointer;
+}
+
+.btn-save {
+    padding: 8px 20px;
+    background: #E8ABCE;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    color: #4B1535;
+    cursor: pointer;
+}

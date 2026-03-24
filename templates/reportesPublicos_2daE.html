@@ -1,0 +1,329 @@
+﻿{% extends 'base_2daE.html' %}
+
+{% block title %}Reportes Publicos - Sistema Clinico{% endblock %}
+
+{% block content %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/reportesPublicos.css') }}">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<div class="report-shell">
+    <section class="report-header">
+        <div>
+            <h2>Reporte Publico de Vacunacion</h2>
+            <p>Panel agregado para organizaciones y gobierno. No contiene datos personales.</p>
+        </div>
+        <div class="filters">
+            <label>Desde
+                <input id="fromDate" type="date">
+            </label>
+            <label>Hasta
+                <input id="toDate" type="date">
+            </label>
+            <label>Grupo minimo
+                <input id="minGroup" type="number" min="1" step="1" value="1">
+            </label>
+            <button id="runReport" class="btn-run" type="button">
+                <i class="fa-solid fa-chart-column"></i>
+                Generar reporte
+            </button>
+        </div>
+        <p class="report-note">Cobertura = personas con al menos una dosis / poblacion objetivo. Retraso = dias promedio despues de la edad ideal del esquema.</p>
+        <div id="reportNoData" class="report-no-data" hidden>
+            No hay registros en el rango seleccionado. Ajusta fechas o verifica que existan aplicaciones cargadas.
+        </div>
+    </section>
+
+    <section class="kpi-grid" id="kpiGrid">
+        <article class="kpi-card">
+            <p>Dosis aplicadas</p>
+            <h3 id="kpiDoses">-</h3>
+        </article>
+        <article class="kpi-card">
+            <p>Poblacion objetivo</p>
+            <h3 id="kpiTarget">-</h3>
+        </article>
+        <article class="kpi-card">
+            <p>Personas con dosis</p>
+            <h3 id="kpiReached">-</h3>
+        </article>
+        <article class="kpi-card">
+            <p>Cobertura (%)</p>
+            <h3 id="kpiCoverage">-</h3>
+        </article>
+        <article class="kpi-card">
+            <p>Retraso promedio (dias)</p>
+            <h3 id="kpiDelay">-</h3>
+        </article>
+        <article class="kpi-card">
+            <p>Zonas activas</p>
+            <h3 id="kpiZones">-</h3>
+        </article>
+    </section>
+
+    <section class="charts-grid">
+        <article class="panel">
+            <h3>Tendencia mensual</h3>
+            <canvas id="monthlyChart"></canvas>
+        </article>
+        <article class="panel">
+            <h3>Top vacunas aplicadas</h3>
+            <canvas id="vaccineChart"></canvas>
+        </article>
+    </section>
+
+    <section class="charts-grid">
+        <article class="panel">
+            <h3>Detalle mensual</h3>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Mes</th>
+                            <th>Dosis aplicadas</th>
+                            <th>Personas atendidas</th>
+                        </tr>
+                    </thead>
+                    <tbody id="monthlyBody">
+                        <tr>
+                            <td colspan="3">Sin datos aun.</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </article>
+        <article class="panel">
+            <h3>Detalle por vacuna</h3>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Vacuna</th>
+                            <th>Dosis</th>
+                            <th>Personas</th>
+                            <th>% del total</th>
+                        </tr>
+                    </thead>
+                    <tbody id="vaccinesBody">
+                        <tr>
+                            <td colspan="4">Sin datos aun.</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </article>
+    </section>
+
+    <section class="panel">
+        <h3>Zonas con actividad (agregado)</h3>
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Zona</th>
+                        <th>Dosis</th>
+                        <th>Personas</th>
+                        <th>Riesgo</th>
+                    </tr>
+                </thead>
+                <tbody id="zonesBody">
+                    <tr>
+                        <td colspan="4">Sin datos aun.</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+</div>
+
+<script>
+(() => {
+    const fromInput = document.getElementById('fromDate');
+    const toInput = document.getElementById('toDate');
+    const minGroupInput = document.getElementById('minGroup');
+    const runButton = document.getElementById('runReport');
+    const zonesBody = document.getElementById('zonesBody');
+    const monthlyBody = document.getElementById('monthlyBody');
+    const vaccinesBody = document.getElementById('vaccinesBody');
+
+    const fmt = new Intl.NumberFormat('es-MX');
+    const fmtPct = new Intl.NumberFormat('es-MX', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+
+    const now = new Date();
+    const toISO = now.toISOString().slice(0, 10);
+    const fromDate = new Date(now);
+    fromDate.setFullYear(now.getFullYear() - 5);
+    const fromISO = fromDate.toISOString().slice(0, 10);
+
+    fromInput.value = fromISO;
+    toInput.value = toISO;
+    const noDataBox = document.getElementById('reportNoData');
+
+    let monthlyChart;
+    let vaccineChart;
+
+    function paintKpis(kpis) {
+        document.getElementById('kpiDoses').textContent = fmt.format(kpis.total_doses_applied || 0);
+        document.getElementById('kpiTarget').textContent = fmt.format(kpis.target_population || 0);
+        document.getElementById('kpiReached').textContent = fmt.format(kpis.reached_population || 0);
+        document.getElementById('kpiCoverage').textContent = fmtPct.format(kpis.coverage_percent || 0) + '%';
+        document.getElementById('kpiDelay').textContent = fmtPct.format(kpis.avg_delay_days || 0);
+        document.getElementById('kpiZones').textContent = fmt.format(kpis.active_zones || 0);
+    }
+
+    function paintMonthly(rows) {
+        const labels = rows.map(r => r.period_label);
+        const doses = rows.map(r => r.doses_applied);
+        const reached = rows.map(r => r.unique_patients);
+
+        if (monthlyChart) monthlyChart.destroy();
+        monthlyChart = new Chart(document.getElementById('monthlyChart'), {
+            type: 'line',
+            data: {
+                labels,
+                datasets: [
+                    {
+                        label: 'Dosis aplicadas',
+                        data: doses,
+                        borderColor: '#2F6FED',
+                        backgroundColor: 'rgba(47, 111, 237, 0.18)',
+                        borderWidth: 3,
+                        tension: 0.2,
+                        fill: true,
+                    },
+                    {
+                        label: 'Personas atendidas',
+                        data: reached,
+                        borderColor: '#0A7A4D',
+                        backgroundColor: 'rgba(10, 122, 77, 0.15)',
+                        borderWidth: 3,
+                        tension: 0.2,
+                        fill: false,
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                plugins: { legend: { position: 'bottom' } },
+            }
+        });
+
+        if (!rows.length) {
+            monthlyBody.innerHTML = '<tr><td colspan="3">Sin datos para el rango seleccionado.</td></tr>';
+            return;
+        }
+
+        monthlyBody.innerHTML = rows.map(r => `
+            <tr>
+                <td>${r.period_label}</td>
+                <td>${fmt.format(r.doses_applied || 0)}</td>
+                <td>${fmt.format(r.unique_patients || 0)}</td>
+            </tr>
+        `).join('');
+    }
+
+    function paintVaccines(rows) {
+        const labels = rows.map(r => r.vaccine_name);
+        const doses = rows.map(r => r.doses_applied);
+
+        if (vaccineChart) vaccineChart.destroy();
+        vaccineChart = new Chart(document.getElementById('vaccineChart'), {
+            type: 'bar',
+            data: {
+                labels,
+                datasets: [{
+                    label: 'Dosis aplicadas',
+                    data: doses,
+                    borderWidth: 1,
+                    backgroundColor: ['#2F6FED', '#26A69A', '#FF8A65', '#8D6E63', '#5C6BC0', '#66BB6A'],
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: { legend: { display: false } },
+            }
+        });
+
+        if (!rows.length) {
+            vaccinesBody.innerHTML = '<tr><td colspan="4">Sin datos para el rango seleccionado.</td></tr>';
+            return;
+        }
+
+        vaccinesBody.innerHTML = rows.map(r => `
+            <tr>
+                <td>${r.vaccine_name}</td>
+                <td>${fmt.format(r.doses_applied || 0)}</td>
+                <td>${fmt.format(r.unique_patients || 0)}</td>
+                <td>${fmtPct.format(r.share_percent || 0)}%</td>
+            </tr>
+        `).join('');
+    }
+
+    function paintZones(rows) {
+        if (!rows.length) {
+            zonesBody.innerHTML = '<tr><td colspan="4">Sin datos para el rango seleccionado.</td></tr>';
+            return;
+        }
+
+        zonesBody.innerHTML = rows.map(r => `
+            <tr>
+                <td>${r.zone_name}</td>
+                <td>${fmt.format(r.doses_applied || 0)}</td>
+                <td>${fmt.format(r.unique_patients || 0)}</td>
+                <td><span class="risk ${r.risk_level}">${r.risk_label}</span></td>
+            </tr>
+        `).join('');
+    }
+
+    async function loadReport() {
+        const params = new URLSearchParams({
+            from: fromInput.value,
+            to: toInput.value,
+            min_group: String(minGroupInput.value || 1),
+        });
+
+        runButton.disabled = true;
+        runButton.textContent = 'Generando...';
+
+        try {
+            const res = await fetch(`/api/reportes-publicos/resumen?${params.toString()}`);
+
+            const contentType = res.headers.get('content-type') || '';
+            const raw = await res.text();
+            let data = {};
+
+            if (contentType.includes('application/json')) {
+                data = raw ? JSON.parse(raw) : {};
+            } else {
+                throw new Error('El servidor no devolvio JSON. Verifica login o instalacion de SP en PostgreSQL local.');
+            }
+
+            if (!res.ok) {
+                throw new Error(data.error || 'No se pudo generar el reporte');
+            }
+
+            paintKpis(data.kpis || {});
+            paintMonthly(data.monthly || []);
+            paintVaccines(data.vaccines || []);
+            paintZones(data.zones || []);
+
+            const doses = (data.kpis || {}).total_doses_applied || 0;
+            if (noDataBox) {
+                noDataBox.hidden = doses > 0;
+            }
+        } catch (err) {
+            alert(err.message || 'Error generando reporte');
+            if (noDataBox) {
+                noDataBox.hidden = false;
+            }
+        } finally {
+            runButton.disabled = false;
+            runButton.innerHTML = '<i class="fa-solid fa-chart-column"></i> Generar reporte';
+        }
+    }
+
+    runButton.addEventListener('click', loadReport);
+    loadReport();
+})();
+</script>
+{% endblock %}
+

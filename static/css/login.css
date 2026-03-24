@@ -1,0 +1,122 @@
+/* MAIN CONTAINER */
+
+.login-container{
+    width:30%;
+    overflow: hidden;
+    margin: 40px;
+    display:flex;
+    flex-direction:column;
+    justify-content: center;
+    justify-self: center;
+    align-items:center;
+    text-align:center;
+}
+
+/* TITLE */
+
+.titulo-sistema{
+    font-size:50px;
+    color:var(--primary-color);
+    margin-bottom:20px;
+}
+
+/* ICON */
+
+.icon-group i{
+    font-size: 2rem;
+    color: var(--primary-color);
+    background-color: var(--light-color);
+    margin: 20px;
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* LOGIN TITLE */
+
+.login-title{
+    font-size:1.8rem;
+    font-weight:700;
+    margin-bottom:40px;
+}
+
+/* FORM */
+
+.login-form{
+    width:100%;
+    display:flex;
+    flex-direction:column;
+    gap:15px;
+}
+
+/* LABELS */
+
+label{
+    font-size:1.3rem;
+    text-align:left;
+}
+
+/* INPUT BOX */
+
+.input-box{
+    width:100%;
+}
+
+.input-box.password-box{
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.input-box i{
+    color: var(--gray-color);
+}
+
+.input-box input{
+    width:100%;
+    height:55px;
+
+    border:1px solid #636363;
+    border-radius:20px;
+
+    font-size:1.2rem;
+    padding-left:20px;
+}
+
+/* LOGIN BUTTON */
+
+.login-button{
+    margin-top:15px;
+
+    background:var(--primary-color);
+    color:white;
+
+    border:none;
+    border-radius:15px;
+
+    padding: 15px 0;
+    font-size:1.3rem;
+    font-weight:600;
+
+    cursor:pointer;
+}
+
+.login-button:hover{
+    background:#520060;
+}
+
+/* FORGOT PASSWORD */
+
+.forgot-password{
+    margin-top:20px;
+    color:#C40000;
+    font-size:1rem;
+    text-decoration:none;
+}
+
+.forgot-password:hover{
+    text-decoration:underline;
+}

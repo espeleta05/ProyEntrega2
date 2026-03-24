@@ -1,0 +1,111 @@
+<div class="modal-overlay" id="vaccineModal">
+    <div class="modal-container">
+        
+        <div class="modal-header">
+            <h3 class="modal-title">Nueva Vacuna</h3>
+            <button class="modal-close-btn" onclick="closeVaccineModal()">&times;</button>
+        </div>
+
+        <form id="formNewVaccine" onsubmit="submitNewVaccine(event)">
+            
+            <div class="form-section">
+                <h4 class="section-title">INFORMACIÓN DE LA VACUNA</h4>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Nombre de la vacuna *</label>
+                        <input type="text" id="v_name" placeholder="Ej: Pfizer-BioNTech" required>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Fabricante</label>
+                        <input type="text" id="v_manufacturer" placeholder="Ej: Pfizer">
+                    </div>
+                    <div class="form-group">
+                        <label>Inventario inicial</label>
+                        <input type="number" id="v_inventory" placeholder="0" min="0">
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Edad mínima (meses)</label>
+                        <input type="number" id="v_min_age" placeholder="Ej: 0" min="0">
+                    </div>
+                    <div class="form-group">
+                        <label>Edad máxima (meses)</label>
+                        <input type="number" id="v_max_age" placeholder="Ej: 12" min="0">
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group full-width">
+                        <label>Descripción / Lote</label>
+                        <input type="text" id="v_description" placeholder="Detalles adicionales">
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="btn-cancel" onclick="closeVaccineModal()">Cancelar</button>
+                <button type="submit" class="btn-save">Guardar vacuna</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    function openVaccineModal() {
+        document.getElementById('vaccineModal').classList.add('active');
+    }
+
+    function closeVaccineModal() {
+        document.getElementById('vaccineModal').classList.remove('active');
+        document.getElementById('formNewVaccine').reset();
+    }
+
+    document.getElementById('vaccineModal').addEventListener('click', function(e) {
+        if (e.target === this) {
+            closeVaccineModal();
+        }
+    });
+
+    async function submitNewVaccine(e) {
+        e.preventDefault();
+
+        const val = (id) => document.getElementById(id).value || null;
+
+        const data = {
+            name: val('v_name'),
+            manufacturer: val('v_manufacturer'),
+            inventory: val('v_inventory') !== null ? parseInt(val('v_inventory')) : 0,
+            description: val('v_description'),
+            min_age_months: val('v_min_age') !== null ? parseInt(val('v_min_age')) : null,
+            max_age_months: val('v_max_age') !== null ? parseInt(val('v_max_age')) : null
+        };
+
+        try {
+            const response = await fetch('/register_vaccine', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+
+            const result = await response.json();
+
+            if (response.ok) {
+                alert(result.message || "Vacuna registrada");
+                closeVaccineModal();
+                window.location.reload();
+            } else {
+                alert(result.error || "Ocurrió un error");
+            }
+        } catch (err) {
+            console.error(err);
+            alert("Error de conexión");
+        }
+    }
+</script>
+

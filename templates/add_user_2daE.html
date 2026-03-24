@@ -1,0 +1,104 @@
+{% extends 'base_2daE.html' %}
+
+{% block title %}Agregar Usuario - Sistema Clínico{% endblock %}
+
+{% block content %}
+
+
+<link rel="stylesheet" href="{{ url_for('static', filename='css/form.css') }}">
+
+<!-- HEADER -->
+<div class="content-header">
+    <a href="{{ url_for('personal') }}" class="back">
+        <i class="fa-solid fa-arrow-left"></i> Regresar
+    </a>
+</div>
+
+<div class="container">
+    <div class="card">
+
+        <h2 class="form-title">Agregar usuario</h2>
+
+        {% if error %}
+        <div class="form-error">
+            <i class="fa-solid fa-circle-exclamation"></i>
+            {{ error }}
+        </div>
+        {% endif %}
+
+        <h3 class="section-title">Datos personales</h3>
+
+        <form class="form" method="POST" action="{{ url_for('add_user') }}">
+
+            <div class="row">
+                <div class="input-group">
+                    <label>Nombre(s)</label>
+                    <input type="text" name="name" placeholder="Nombre(s)" value="{{ form.name or '' }}" required>
+                </div>
+
+                <div class="input-group">
+                    <label>Apellidos</label>
+                    <input type="text" name="lastname" placeholder="Apellidos paterno y materno" value="{{ form.lastname or '' }}" required>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="input-group">
+                    <label>Fecha de nacimiento</label>
+                    <input type="date" name="birth_date" value="{{ form.birth_date or '' }}" required>
+                </div>
+
+                <div class="input-group">
+                    <label>Rol</label>
+                    <select name="role" required>
+                        <option value="" disabled {% if not form.role %}selected{% endif %}>Seleccionar</option>
+                        <option value="Administrador" {% if form.role == 'Administrador' %}selected{% endif %}>Administrador</option>
+                        <option value="Enfermero"     {% if form.role == 'Enfermero' %}selected{% endif %}>Enfermero</option>
+                        <option value="Médico"        {% if form.role == 'Médico' %}selected{% endif %}>Médico</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="input-group full">
+                <label>CURP</label>
+                <input type="text" name="curp" placeholder="Clave Única de Registro de Población" value="{{ form.curp or '' }}" maxlength="18">
+            </div>
+
+            <div class="input-group full">
+                <label>Email / Usuario</label>
+                <input type="text" name="mail" placeholder="email@ejemplo.com o nombre de usuario" value="{{ form.mail or '' }}" required>
+            </div>
+
+            <div class="input-group full">
+                <label>Dirección</label>
+                <input type="text" name="address" placeholder="Calle, número, colonia" value="{{ form.address or '' }}">
+            </div>
+
+            <h3 class="section-title">Acceso al sistema</h3>
+
+            <div class="row">
+                <div class="input-group">
+                    <label>Contraseña</label>
+                    <input type="password" name="password" placeholder="••••••••" required>
+                </div>
+
+                <div class="input-group">
+                    <label>Confirmar contraseña</label>
+                    <input type="password" name="password_confirm" placeholder="••••••••" required>
+                </div>
+            </div>
+
+            <div class="buttons">
+                <a href="{{ url_for('personal') }}" class="btn cancel">Cancelar</a>
+                <button type="submit" class="btn submit">
+                    <i class="fa-solid fa-user-plus"></i>
+                    Agregar usuario
+                </button>
+            </div>
+
+        </form>
+
+    </div>
+</div>
+
+{% endblock %}

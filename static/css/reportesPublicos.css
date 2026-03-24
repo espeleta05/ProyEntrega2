@@ -1,0 +1,158 @@
+.report-shell {
+    display: grid;
+    gap: 18px;
+}
+
+.report-header {
+    background: linear-gradient(120deg, #fff 0%, #f5f9ff 100%);
+    border: 1px solid #d8e5ff;
+    border-radius: 16px;
+    padding: 18px;
+    display: grid;
+    gap: 14px;
+}
+
+.report-header h2 {
+    margin: 0;
+    color: #193568;
+}
+
+.report-header p {
+    margin-top: 6px;
+    color: #4f5f7d;
+}
+
+.report-note {
+    margin-top: 4px;
+    font-size: 13px;
+    color: #3f567f;
+    background: #eef4ff;
+    border: 1px solid #d3e0fb;
+    border-radius: 10px;
+    padding: 10px 12px;
+}
+
+.report-no-data {
+    margin-top: 2px;
+    background: #fff4d6;
+    border: 1px solid #f2d7a0;
+    color: #6d4e09;
+    border-radius: 10px;
+    padding: 10px 12px;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: end;
+}
+
+.filters label {
+    display: grid;
+    gap: 4px;
+    color: #35507e;
+    font-weight: 600;
+    font-size: 13px;
+}
+
+.filters input {
+    border: 1px solid #c9d6ef;
+    background: #fff;
+    border-radius: 10px;
+    padding: 8px 10px;
+    min-width: 140px;
+}
+
+.btn-run {
+    background: #2f6fed;
+    color: #fff;
+}
+
+.kpi-grid {
+    display: grid;
+    gap: 12px;
+    grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+}
+
+.kpi-card {
+    background: #fff;
+    border: 1px solid #e1e8f7;
+    border-radius: 14px;
+    padding: 14px;
+}
+
+.kpi-card p {
+    margin: 0;
+    color: #5c6a84;
+    font-size: 13px;
+}
+
+.kpi-card h3 {
+    margin-top: 6px;
+    color: #1f2f4a;
+    font-size: 24px;
+}
+
+.charts-grid {
+    display: grid;
+    gap: 12px;
+    grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+}
+
+.panel {
+    background: #fff;
+    border: 1px solid #e1e8f7;
+    border-radius: 14px;
+    padding: 14px;
+}
+
+.panel h3 {
+    margin-bottom: 12px;
+    color: #1d335f;
+}
+
+.table-wrap {
+    overflow-x: auto;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+th,
+td {
+    border-bottom: 1px solid #edf2fa;
+    padding: 10px;
+    text-align: left;
+    font-size: 14px;
+}
+
+th {
+    color: #305085;
+}
+
+.risk {
+    border-radius: 999px;
+    padding: 4px 10px;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.risk.high {
+    background: #ffe3df;
+    color: #9f2416;
+}
+
+.risk.medium {
+    background: #fff2d9;
+    color: #8d6208;
+}
+
+.risk.low {
+    background: #dff8ec;
+    color: #0e6b44;
+}

@@ -1,0 +1,120 @@
+
+/* MAP */
+.cards{
+    background:white;
+    border-radius:15px;
+    box-shadow:4px 4px 10px rgba(0,0,0,0.1);
+    padding:20px;
+    display:flex;
+    flex-direction:column;
+    justify-content:flex-start;
+    gap:10px;
+}
+
+.map {
+    height: 250px;
+    background: #D9D9D9;
+    border-radius: 15px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 40px;
+}
+
+/* LEGEND */
+.legend {
+    display: flex;
+    gap: 15px;
+    margin-top: 15px;
+    justify-content: space-between;
+    padding: 20px 30px;
+
+}
+
+
+.legend div {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    border-radius: 10px;
+    width: 230px;
+}
+
+.legend p{
+    margin: 0;
+    font-weight: 600;
+}
+
+.little{
+    font-size: 0.8rem;
+    color:  var(--gray-color);
+}
+
+.low { 
+    background: var(--good-background);
+    border: solid var(--good-color) 1px;
+    padding: 20px 30px;
+    color: var(--good-color);
+}
+
+.medium { 
+    background: var(--medium-background);
+    border: solid var(--medium-color) 1px;
+    padding: 20px 30px;
+    color: var(--medium-color);
+ }
+
+.high { 
+    background: var(--bad-background);
+    border: solid var(--bad-color) 1px; 
+    padding: 20px 30px;
+    color: var(--bad-color);
+}
+
+/* ZONES */
+.zones {
+    margin-top: 20px;
+    background: white;
+    padding: 20px;
+    border-radius: 20px;
+}
+
+.zones-header {
+    display: flex;
+    justify-content: space-between;
+}
+
+.badge {
+    display: flex;
+    align-items: center;
+    background: #E8ABCE;
+    padding: 10px;
+    border-radius: 10px;
+}
+
+.zone {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 15px;
+    padding: 20px;
+    border: solid gray 1px;
+    border-radius: 10px;
+}
+
+.tag {
+    padding: 8px 20px;
+    border-radius: 10px;
+}
+
+.risk-stat.total{
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 10px;
+}
+
+.tag.low { background: #CFFFC0; }
+.tag.medium { background: #FFEEC0; }
+.tag.high { background: #FFB9B9; }

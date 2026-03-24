@@ -1,0 +1,92 @@
+.content-info {
+    background-color: transparent !important;
+    box-shadow: none !important;
+}
+
+.container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 40px 0;
+}
+
+.card {
+    width: 630px;
+    background: #fff;
+    border-radius: 15px;
+    box-shadow: 4px 4px 10px rgba(0,0,0,0.2);
+    padding: 40px;
+}
+
+.form-title {
+    text-align: center;
+    font-size: 32px;
+    font-weight: 700;
+    margin-bottom: 20px;
+}
+
+.section-title {
+    font-size: 20px;
+    margin-bottom: 20px;
+}
+
+.form {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.row {
+    display: flex;
+    gap: 20px;
+}
+
+.input-group {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+}
+
+.input-group.full {
+    width: 100%;
+}
+
+.input-group label {
+    font-size: 16px;
+    margin-bottom: 5px;
+    color: #575757;
+}
+
+.input-group input,
+.input-group select {
+    height: 45px;
+    border-radius: 12px;
+    border: 1px solid #636363;
+    padding: 0 12px;
+    font-size: 16px;
+}
+
+.buttons {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 20px;
+}
+
+.btn {
+    padding: 12px 25px;
+    border-radius: 12px;
+    font-size: 16px;
+    cursor: pointer;
+}
+
+.btn.cancel {
+    background: transparent;
+    border: 1px solid #4B1535;
+    color: #4B1535;
+}
+
+.btn.submit {
+    background: #E8ABCE;
+    border: none;
+    color: #4B1535;
+}

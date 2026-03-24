@@ -1,0 +1,72 @@
+{% extends 'base_2daE.html' %}
+
+{% block title %}Registro de Aplicaciones - Sistema Clinico{% endblock %}
+
+{% block content %}
+
+<link rel="stylesheet" href="{{ url_for('static', filename='css/aplicaciones.css') }}">
+
+<div class="content-header">
+    <h2 class="title">Registro de aplicaciones</h2>
+
+    <a href="{{ url_for('agregar_aplicacion') }}" class="btn-agregar">
+        <i class="fa-solid fa-plus"></i>
+        Nueva aplicación
+    </a>
+</div>
+
+<div class="subtitle">
+    Total de aplicaciones registradas: {{ total_applications }}
+</div>
+
+<div class="search-bar-container section">
+    <i class="fa-solid fa-magnifying-glass"></i>
+    <input type="text" placeholder="Buscar aplicación por paciente, vacuna o id...">
+</div>
+
+<!-- STATS -->
+<div class="cards">
+
+    <div class="dash-card">
+        <i class="fa-solid fa-syringe"></i>
+        <h4>Total aplicaciones</h4>
+        <p>{{ total_applications }}</p>
+    </div>
+
+    <div class="dash-card">
+        <i class="fa-solid fa-user"></i>
+        <h4>Pacientes atendidos</h4>
+        <p>{{ total_patients_attended }}</p>
+    </div>
+
+    <div class="dash-card">
+        <i class="fa-solid fa-vial"></i>
+        <h4>Vacunas diferentes</h4>
+        <p>{{ total_unique_vaccines }}</p>
+    </div>
+
+    <div class="dash-card">
+        <i class="fa-regular fa-calendar-check"></i>
+        <h4>Aplicaciones hoy</h4>
+        <p>{{ applications_today }}</p>
+    </div>
+
+</div>
+
+<!-- LISTA DE APLICACIONES -->
+<div class="section">
+
+    {% set mode = 'application' %}
+    {% for v in applications %}
+        {% include 'components/vaccine_card_2daE.html' with context %}
+    {% else %}
+        <div class="card">
+            <div class="card-body">
+                <p>No hay aplicaciones registradas.</p>
+            </div>
+        </div>
+    {% endfor %}
+
+</div>
+
+{% endblock %}

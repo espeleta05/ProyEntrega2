@@ -1,0 +1,127 @@
+{% extends 'base_2daE.html' %}
+
+{% block title %}Vacunas - Sistema Clínico{% endblock %}
+
+{% block content %}
+
+<!-- 1. Mandamos a llamar el CSS del modal de vacunas -->
+<link rel="stylesheet" href="{{ url_for('static', filename='css/nuevaVacuna.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/vacunas.css') }}">
+
+<div class="content-header">
+    <h2 class="title">Inventario de vacunas</h2>
+
+    <!-- 2. Botón que abre el modal -->
+    <button class="btn-agregar" onclick="openVaccineModal()">
+        <i class="fa-solid fa-plus"></i>
+        Agregar vacuna
+    </button>
+</div>
+
+<div class="subtitle">
+    Total de vacunas registradas: {{ total_vaccines }}
+</div>
+
+<div class="search-bar-container section">
+    <i class="fa-solid fa-magnifying-glass"></i>
+    <input type="text" id="searchInput" placeholder="Buscar vacuna por nombre o id...">
+</div>
+
+<a href="{{ url_for('esquema_vacunacion') }}" class="btn-esquema">
+    <i class="fa-solid fa-clipboard-list"></i>
+    Ver esquema de vacunación
+</a>
+
+<!-- LISTA -->
+<div class="section" id="vaccinesContainer">
+    {% set mode = 'catalog' %}
+    {% for v in vaccines %}
+        <div id="vaccine-card-{{ v.id_vaccine }}" class="vaccine-card-wrapper">
+            {% include 'components/vaccine_card_2daE.html' %}
+        </div>
+    {% else %}
+        <div class="card">
+            <div class="card-body">
+                <p>No hay vacunas registradas.</p>
+            </div>
+        </div>
+    {% endfor %}
+</div>
+
+<!-- 3. Incluimos el archivo del modal -->
+{% include 'nuevaVacuna_2daE.html' %}
+
+<script>
+// === LÓGICA DE BÚSQUEDA ===
+const container = document.getElementById('vaccinesContainer');
+const originalCards = container ? Array.from(container.querySelectorAll('.vaccine-card-wrapper')) : [];
+
+document.getElementById('searchInput').addEventListener('input', function() {
+    const searchTerm = this.value.toLowerCase().trim();
+
+    if (searchTerm === "") {
+        originalCards.forEach(card => card.style.display = 'block');
+        return;
+    }
+
+    originalCards.forEach(card => {
+        const vaccineId = card.id.replace('vaccine-card-', '');
+        const nameElement = card.querySelector('.card-header h3');
+        const vaccineName = nameElement ? nameElement.innerText.toLowerCase() : '';
+
+        if (vaccineId === searchTerm || vaccineName.includes(searchTerm)) {
+            card.style.display = 'block';
+            card.parentNode.insertBefore(card, card.parentNode.firstChild);
+        } else {
+            card.style.display = 'none';
+        }
+    });
+});
+
+// Si llega un parametro ?q=... desde la busqueda global, aplicarlo al abrir.
+(() => {
+    const params = new URLSearchParams(window.location.search);
+    const q = (params.get('q') || '').trim();
+    const searchInput = document.getElementById('searchInput');
+    if (!q || !searchInput) return;
+    searchInput.value = q;
+    searchInput.dispatchEvent(new Event('input'));
+})();
+
+document.querySelectorAll('.delete-vaccine-btn').forEach(btn => {
+    btn.addEventListener('click', async function () {
+        const vaccineId = this.dataset.vaccineId;
+        if (!vaccineId) return;
+
+        if (!confirm('Esta accion eliminara la vacuna y sus registros relacionados. Continuar?')) {
+            return;
+        }
+
+        try {
+            const response = await fetch(`/delete_vaccine/${vaccineId}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' }
+            });
+            const result = await response.json();
+
+            if (!response.ok) {
+                alert(result.error || 'No se pudo eliminar la vacuna');
+                return;
+            }
+
+            const card = document.getElementById(`vaccine-card-${vaccineId}`);
+            if (card) card.remove();
+            alert(result.message || 'Vacuna eliminada correctamente');
+            window.location.reload();
+        } catch (err) {
+            alert('Error de conexion al eliminar vacuna');
+            console.error(err);
+        }
+    });
+});
+
+// NOTA: Se eliminó la función createVaccineFromPrompts, ahora usa openVaccineModal()
+</script>
+
+{% endblock %}
+

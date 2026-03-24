@@ -1,0 +1,87 @@
+
+
+.esquema{
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    margin: 30px;
+    text-decoration: underline;
+    letter-spacing: 1px;
+    width: 100%;
+    font-style: medium;
+    font-weight: 600;
+    color: var(--secondary-color);
+    cursor: pointer;
+}
+
+.btn-esquema {
+    display: inline-flex;
+    align-items: center;
+    justify-self: center;
+    gap: 0.5rem;
+    margin: 1rem 0 1.5rem;
+    padding: 0.55rem 1.2rem;
+    background: var(--secondary-color);
+    color: var( --light-color);
+    font-size: 0.88rem;
+    font-weight: 600;
+    border-radius: 8px;
+    text-decoration: none;
+  }
+  
+  .btn-esquema:hover { 
+    transition: background .2s;
+    background: #ffffff;
+    color: var(--secondary-color);
+  }
+
+/* VACCINE LIST */
+
+/* TAGS */
+
+.tag{
+
+padding:5px 12px;
+border-radius:15px;
+font-size:13px;
+
+}
+
+.tag.activa{
+background:#B9DAFF;
+color:#0073A4;
+}
+
+
+
+/* STOCK */
+
+.stock{
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    padding:6px 12px;
+    border-radius:15px;
+    font-size:14px;
+    width:fit-content;
+}
+
+.stock.text{
+padding: 0;
+}
+
+.stock.high{
+background:#CFFFC0;
+color:#1D7B00;
+}
+
+.stock.medium{
+background:#FFEEC0;
+color:#C08D00;
+}
+
+.stock.low{
+    background-color: var(--bad-background);
+    color: var(--bad-color);
+}

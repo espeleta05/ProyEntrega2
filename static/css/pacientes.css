@@ -1,0 +1,61 @@
+/* ===== TAGS ===== */
+.blood{
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    color: var(--gray-color);
+    background: var(--gray-background);
+    padding: 8px 10px;
+    border-radius: 10px;
+}
+
+.blood i{
+    color: var(--gray-color);
+}
+
+.blood.A{
+    background: var(--gray-background);
+}
+
+.blood.B{
+    background: var(--gray-background);
+}
+
+.blood.O{
+    background: var(--gray-background);
+}
+
+
+.allergy{
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    background:var(--gray-background);
+    color: var(--gray-color);
+    padding:8px 10px;
+    border-radius:10px;
+}
+
+/* ===== RISK TAG ===== */
+
+.risk{
+    padding:5px 10px;
+    border-radius:8px;
+    font-size:13px;
+    font-weight:600;
+}
+
+.risk.low{
+    background:var(--good-background);
+    color:var(--good-color);
+}
+
+.risk.high{
+    background:var(--bad-background);
+    color:var(--bad-color);
+}
+
+.risk.mid{
+    background:var(--medium-background);
+    color:var(--medium-color);
+}

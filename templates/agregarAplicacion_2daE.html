@@ -1,0 +1,114 @@
+{% extends 'base_2daE.html' %}
+
+{% block title %}Registrar Aplicacion - Sistema Clinico{% endblock %}
+
+{% block content %}
+
+<link rel="stylesheet" href="{{ url_for('static', filename='css/form.css') }}">
+
+<!-- HEADER -->
+<div class="content-header">
+    <a href="{{ url_for('aplicaciones') }}" class="back">
+        <i class="fa-solid fa-arrow-left"></i> Regresar
+    </a>
+</div>
+
+<div class="container">
+    <div class="card">
+
+        <h2 class="form-title">Registrar aplicacion de vacuna</h2>
+
+        {% if error %}
+        <div class="form-error">
+            <i class="fa-solid fa-circle-exclamation"></i>
+            {{ error }}
+        </div>
+        {% endif %}
+
+        <h3 class="section-title">Datos de la aplicacion</h3>
+
+        <form class="form" method="POST" action="{{ url_for('agregar_aplicacion') }}">
+
+            <div class="row">
+                <div class="input-group">
+                    <label>Paciente</label>
+                    <select name="patient_id" required>
+                        <option value="" disabled {% if not form.patient_id %}selected{% endif %}>Seleccionar paciente</option>
+                        {% for p in patients %}
+                        <option value="{{ p.patient_id }}"
+                            {% if form.patient_id | string == p.patient_id | string %}selected{% endif %}>
+                            {{ p.first_name }} {{ p.last_name }} — ID: P{{ p.patient_id }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="input-group">
+                    <label>Vacuna</label>
+                    <select name="vaccine_id" required>
+                        <option value="" disabled {% if not form.vaccine_id %}selected{% endif %}>Seleccionar vacuna</option>
+                        {% for v in vaccines %}
+                        <option value="{{ v.id_vaccine }}"
+                            {% if form.vaccine_id | string == v.id_vaccine | string %}selected{% endif %}>
+                            {{ v.name }}{% if v.inventory %} ({{ v.inventory }} dosis){% endif %}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="input-group">
+                    <label>Aplicado por</label>
+                    <select name="worker_id" required>
+                        <option value="" disabled {% if not form.worker_id %}selected{% endif %}>Seleccionar personal</option>
+                        {% for w in workers %}
+                        <option value="{{ w.worker_id }}"
+                            {% if form.worker_id | string == w.worker_id | string %}selected{% endif %}>
+                            {{ w.name }} {{ w.lastname }} — {{ w.role }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="input-group">
+                    <label>Numero de dosis</label>
+                    <input type="text" name="dose_applied" placeholder="Ej: Dosis #1, Refuerzo"
+                        value="{{ form.dose_applied or '' }}" required>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="input-group">
+                    <label>Fecha de aplicacion</label>
+                    <input type="date" name="applied_date"
+                        value="{{ form.applied_date or '' }}" required>
+                </div>
+
+                <div class="input-group">
+                    <label>Numero de lote <span class="optional">(opcional)</span></label>
+                    <input type="text" name="lot_number" placeholder="Ej: LOT-2024-001"
+                        value="{{ form.lot_number or '' }}">
+                </div>
+            </div>
+
+            <div class="input-group full">
+                <label>Ubicacion / Clinica <span class="optional">(opcional)</span></label>
+                <input type="text" name="clinic_location" placeholder="Ej: Clínica Norte, Consultorio 3"
+                    value="{{ form.clinic_location or '' }}">
+            </div>
+
+            <div class="buttons">
+                <a href="{{ url_for('aplicaciones') }}" class="btn cancel">Cancelar</a>
+                <button type="submit" class="btn submit">
+                    <i class="fa-solid fa-syringe"></i>
+                    Registrar aplicacion
+                </button>
+            </div>
+
+        </form>
+
+    </div>
+</div>
+
+{% endblock %}

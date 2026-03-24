@@ -1,0 +1,155 @@
+<div class="topbar">
+    <div class="clinic-title">ClínicaNuevoLeón</div>
+
+    <div class="search-bar-container global-search-wrapper">
+        <i class="fa-solid fa-magnifying-glass"></i>
+        <input type="text" id="globalSearchInput" placeholder="Buscar paciente, vacuna o trabajador..." autocomplete="off">
+        <div id="globalSearchResults" class="global-search-results" hidden></div>
+    </div>
+
+    <button class="btn-reporte" type="button" onclick="window.location.href='{{ url_for('reportes_publicos') }}'">
+        <i class="fa-solid fa-plus"></i>
+        Generar reporte
+    </button>
+
+    <div class="profile-circle">
+        <span>RG</span>
+    </div>
+</div>
+
+<script>
+(() => {
+    const input = document.getElementById('globalSearchInput');
+    const resultsBox = document.getElementById('globalSearchResults');
+    if (!input || !resultsBox) return;
+
+    let debounceTimer;
+    let activeIndex = -1;
+
+    const typeLabel = {
+        paciente: 'Paciente',
+        vacuna: 'Vacuna',
+        personal: 'Personal'
+    };
+
+    function closeResults() {
+        resultsBox.hidden = true;
+        resultsBox.innerHTML = '';
+        activeIndex = -1;
+    }
+
+    function getItems() {
+        return Array.from(resultsBox.querySelectorAll('.search-item'));
+    }
+
+    function setActive(index) {
+        const items = getItems();
+        items.forEach((item, i) => {
+            const isActive = i === index;
+            item.classList.toggle('active', isActive);
+            if (isActive) {
+                item.scrollIntoView({ block: 'nearest' });
+            }
+        });
+    }
+
+    function moveActive(delta) {
+        const items = getItems();
+        if (!items.length) return;
+        activeIndex = (activeIndex + delta + items.length) % items.length;
+        setActive(activeIndex);
+    }
+
+    function goToActiveOrFirst() {
+        const items = getItems();
+        if (!items.length) return;
+        const index = activeIndex >= 0 ? activeIndex : 0;
+        const url = items[index].dataset.url;
+        if (url) window.location.href = url;
+    }
+
+    function renderResults(items) {
+        if (!items.length) {
+            resultsBox.innerHTML = '<div class="search-empty">Sin coincidencias</div>';
+            resultsBox.hidden = false;
+            return;
+        }
+
+        resultsBox.innerHTML = items.map(item => `
+            <button type="button" class="search-item" data-url="${item.url}">
+                <span class="search-type ${item.type}">${typeLabel[item.type] || item.type}</span>
+                <span class="search-main">${item.title || ''}</span>
+                <span class="search-sub">${item.subtitle || ''}</span>
+            </button>
+        `).join('');
+
+        activeIndex = -1;
+        resultsBox.hidden = false;
+    }
+
+    async function fetchResults(query) {
+        try {
+            const res = await fetch(`/api/global-search?q=${encodeURIComponent(query)}`);
+            if (!res.ok) {
+                closeResults();
+                return;
+            }
+            const payload = await res.json();
+            renderResults(payload.results || []);
+        } catch (err) {
+            closeResults();
+        }
+    }
+
+    input.addEventListener('input', () => {
+        const q = input.value.trim();
+        clearTimeout(debounceTimer);
+
+        if (q.length < 1) {
+            closeResults();
+            return;
+        }
+
+        debounceTimer = setTimeout(() => fetchResults(q), 180);
+    });
+
+    resultsBox.addEventListener('click', (event) => {
+        const btn = event.target.closest('.search-item');
+        if (!btn) return;
+        const url = btn.dataset.url;
+        if (url) window.location.href = url;
+    });
+
+    document.addEventListener('click', (event) => {
+        if (!resultsBox.contains(event.target) && event.target !== input) {
+            closeResults();
+        }
+    });
+
+    input.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape') {
+            closeResults();
+            return;
+        }
+
+        if (resultsBox.hidden) return;
+
+        if (event.key === 'ArrowDown') {
+            event.preventDefault();
+            moveActive(1);
+            return;
+        }
+
+        if (event.key === 'ArrowUp') {
+            event.preventDefault();
+            moveActive(-1);
+            return;
+        }
+
+        if (event.key === 'Enter') {
+            event.preventDefault();
+            goToActiveOrFirst();
+        }
+    });
+})();
+</script>
