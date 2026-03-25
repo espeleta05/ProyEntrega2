@@ -547,7 +547,6 @@ def _blood_type_str(blood_type_id):
     bt = _cur_fetchone("blood_types", "blood_type_id", blood_type_id)
     return bt["blood_type"] if bt else "—"
 
-
 def _enrich_patient(p):
     """Agrega campos calculados y relacionados a un paciente."""
     item = dict(p)
