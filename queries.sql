@@ -96,12 +96,16 @@ ORDER BY deficit DESC;
 -- 7. Historial de ubicaciones de un paciente
 
 SELECT 
+    SELECT 
     p.first_name,
     p.last_name,
     gl.latitude,
     gl.longitude,
     gl.recorded_at,
-    LAG(gl.recorded_at) OVER (ORDER BY gl.recorded_at) AS previous_time
+    LAG(gl.recorded_at) OVER (
+        PARTITION BY p.patient_id 
+        ORDER BY gl.recorded_at
+    ) AS previous_time
 FROM gps_locations gl
 JOIN patients p ON gl.patient_id = p.patient_id
 WHERE p.patient_id = 1
