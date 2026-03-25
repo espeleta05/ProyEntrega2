@@ -99,7 +99,7 @@ CREATE TABLE patients (
     blood_type_id  INT          REFERENCES blood_types(blood_type_id),
     gender         CHAR(1)      CHECK (gender IN ('M','F','O')),
     nfc_token      VARCHAR(50)  UNIQUE,
-    curp           CHAR(18)     UNIQUE,
+    curp           VARCHAR(18)     UNIQUE,
     weight_kg      NUMERIC(5,2),
     premature      BOOLEAN      NOT NULL DEFAULT FALSE
 );

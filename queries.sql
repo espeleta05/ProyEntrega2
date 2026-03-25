@@ -110,3 +110,53 @@ ORDER BY gl.recorded_at DESC;
 -- Resultado esperado: historial de ubicaciones ordenado por fecha.
 
 
+-- 8. Calcular el porcentaje de avance de cada paciente respecto al esquema de vacunación vigente. Identifica qué pacientes tienen un esquema incompleto para enviar campañas de recordatorio.
+
+WITH esquema_actual AS (
+    SELECT sd.dose_id, sd.vaccine_id, v.name AS vacuna
+    FROM scheme_doses sd
+    JOIN vaccination_scheme vs ON sd.scheme_id = vs.scheme_id
+    JOIN vaccines v ON sd.vaccine_id = v.vaccine_id
+    WHERE vs.is_current = TRUE
+),
+dosis_aplicadas AS (
+    SELECT patient_id, vaccine_id, COUNT(*) as total_aplicadas
+    FROM vaccination_records
+    GROUP BY patient_id, vaccine_id
+)
+SELECT 
+    p.curp,
+    p.first_name || ' ' || p.last_name AS paciente,
+    COUNT(ea.dose_id) AS dosis_requeridas,
+    COALESCE(SUM(da.total_aplicadas), 0) AS dosis_totales_recibidas,
+    ROUND((COALESCE(SUM(da.total_aplicadas), 0) * 100.0 / COUNT(ea.dose_id)), 2) || '%' AS porcentaje_adherencia
+FROM patients p
+CROSS JOIN esquema_actual ea
+LEFT JOIN dosis_aplicadas da ON p.patient_id = da.patient_id AND ea.vaccine_id = da.vaccine_id
+GROUP BY p.patient_id, p.curp, p.first_name, p.last_name
+HAVING COUNT(ea.dose_id) > 0
+ORDER BY porcentaje_adherencia ASC;
+
+-- Resultado esperado: Un listado de todos los pacientes con su porcentaje de cumplimiento (ej. 100% para esquemas completos, 20% para quienes solo tienen la primera dosis de varias).
+
+
+-- 9. Métricas sobre el inventario para predecir cuándo se quedará la clínica sin vacunas, comparando lo recibido contra lo disponible actualmente.
+
+SELECT 
+    c.name AS clinica,
+    v.name AS vacuna,
+    vl.lot_number,
+    vl.quantity_received,
+    vl.quantity_available,
+    ROUND(((vl.quantity_received - vl.quantity_available) * 100.0 / vl.quantity_received), 2) AS porcentaje_consumo,
+    vl.expiration_date
+FROM vaccine_lots vl
+JOIN clinics c ON vl.clinic_id = c.clinic_id
+JOIN vaccines v ON vl.vaccine_id = v.vaccine_id
+WHERE vl.quantity_available < (vl.quantity_received * 0.2) -- Lotes con menos del 20% disponible
+   OR vl.expiration_date < CURRENT_DATE + INTERVAL '30 days'
+ORDER BY vl.expiration_date ASC, porcentaje_consumo DESC;
+
+-- Resultado esperado: Una lista de alerta roja que muestra lotes próximos a caducar o que están a punto de agotarse (stock crítico).
+
+-- 10. 

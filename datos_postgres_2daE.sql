@@ -142,12 +142,12 @@ INSERT INTO area_equipment (area_equipment_id, area_id, equipment_id, quantity, 
 
     -- Todos menores de 10 años (nacidos después de 2016-03-24)
     INSERT INTO patients (patient_id, first_name, last_name, birth_date, blood_type_id, gender, nfc_token, curp, weight_kg, premature) VALUES
-    (1,  'Sofía',      'Ramírez Torres',     '2024-01-15', 1, 'F', 'NFC001', 'RATS240115MNLMRS01', 4.2,  FALSE),
-    (2,  'Mateo',      'González Vega',      '2023-06-10', 3, 'M', 'NFC002', 'GOVM230610HNLNNG02', 9.5,  FALSE),
-    (3,  'Valentina',  'Hernández Cruz',     '2022-11-20', 2, 'F', 'NFC003', 'HECV221120MNLRRL03', 11.8, FALSE),
-    (4,  'Santiago',   'López Morales',      '2021-04-05', 5, 'M', 'NFC004', 'LOMS210405HNLPRG04', 14.3, FALSE),
-    (5,  'Isabella',   'Martínez Sánchez',   '2020-09-18', 7, 'F', 'NFC005', 'MASI200918MNLRRN05', 17.6, FALSE),
-    (6,  'Emiliano',   'Flores Reyes',       '2019-03-22', 4, 'M', 'NFC006', 'FOREM190322HNLLLM06',20.4, FALSE),
+    (1,  'Sofia',      'Ramirez Torres',     '2024-01-15', 1, 'F', 'NFC001', 'RATS240115MNLMRS01', 4.2,  FALSE)
+    (2,  'Mateo',      'González Vega',      '2023-06-10', 3, 'M', 'NFC002', 'GOVM230610HNLNNG02', 9.5,  FALSE)
+    (3,  'Valentina',  'Hernández Cruz',     '2022-11-20', 2, 'F', 'NFC003', 'HECV221120MNLRRL03', 11.8, FALSE)
+    (4,  'Santiago',   'López Morales',      '2021-04-05', 5, 'M', 'NFC004', 'LOMS210405HNLPRG04', 14.3, FALSE)
+    (5,  'Isabella',   'Martínez Sánchez',   '2020-09-18', 7, 'F', 'NFC005', 'MASI200918MNLRRN05', 17.6, FALSE)
+    (6,  'Emiliano',   'Flores Reyes',       '2019-03-22', 4, 'M', 'NFC006', 'FOREM190322HNLLL06',20.4, FALSE)
     (7,  'Camila',     'Díaz Ortega',        '2018-07-30', 6, 'F', 'NFC007', 'DIOC180730MNLXZM07', 22.1, TRUE),
     (8,  'Sebastián',  'Pérez Gutiérrez',    '2017-12-12', 8, 'M', 'NFC008', 'PEGS171212HNLRRB08', 24.8, FALSE),
     (9,  'Luciana',    'Vargas Jiménez',     '2016-08-03', 1, 'F', 'NFC009', 'VAJI160803MNLRGN09', 27.0, FALSE),
@@ -390,14 +390,14 @@ INSERT INTO area_equipment (area_equipment_id, area_id, equipment_id, quantity, 
 
     INSERT INTO manufacturers (manufacturer_id, name, country_id, contact_email) VALUES
     (1,  'Birmex',                    1, 'contacto@birmex.gob.mx'),
-    (2,  'Sanofi Pasteur',            3, 'contacto@sanofi.mx'),
-    (3,  'Merck Sharp & Dohme',       2, 'info@msd.com'),
-    (4,  'Pfizer',                    2, 'info@pfizer.com'),
-    (5,  'GlaxoSmithKline (GSK)',     5, 'info@gsk.com'),
+    (2,  'Sanofi Pasteur',            1, 'contacto@sanofi.mx'),
+    (3,  'Merck Sharp & Dohme',       1, 'info@msd.com'),
+    (4,  'Pfizer',                    1, 'info@pfizer.com'),
+    (5,  'GlaxoSmithKline (GSK)',     1, 'info@gsk.com'),
     (6,  'Serum Institute of India',  1, 'info@seruminstitute.com'),
-    (7,  'Janssen',                   5, 'info@janssen.com'),
-    (8,  'AstraZeneca',               2, 'info@astrazeneca.com'),
-    (9,  'Abbott',                    2, 'info@abbott.com'),
+    (7,  'Janssen',                   1, 'info@janssen.com'),
+    (8,  'AstraZeneca',               1, 'info@astrazeneca.com'),
+    (9,  'Abbott',                    1, 'info@abbott.com'),
     (10, 'Laboratorio Avi-Mex',       1, 'contacto@avimex.com');
 
     INSERT INTO vaccine_vias (via_id, via) VALUES

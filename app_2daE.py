@@ -7,7 +7,7 @@ app.secret_key = "segunda-entrega-demo"
 
 # DATOS HARDCODEADOS  (simulan lo que devolvería PostgreSQL)
 
-# --- COUNTRIES / STATES / MUNICIPALITIES / NEIGHBORHOODS / ADDRESSES 
+# --- ADDRESSES -----------------------------------------------------------
 COUNTRIES = [
     {"country_id": 1, "name": "México", "iso_code": "MX"},
 ]
@@ -22,73 +22,109 @@ MUNICIPALITIES = [
 ]
 
 NEIGHBORHOODS = [
-    {"neighborhood_id": 1, "municipality_id": 1, "name": "Centro",       "zip_code": "64000"},
-    {"neighborhood_id": 2, "municipality_id": 1, "name": "Obispado",     "zip_code": "64010"},
-    {"neighborhood_id": 3, "municipality_id": 2, "name": "Topo Chico",   "zip_code": "64260"},
+    {"neighborhood_id": 1, "municipality_id": 1, "name": "Centro",     "zip_code": "64000"},
+    {"neighborhood_id": 2, "municipality_id": 1, "name": "Obispado",   "zip_code": "64010"},
+    {"neighborhood_id": 3, "municipality_id": 2, "name": "Topo Chico", "zip_code": "64260"},
 ]
 
+# cross_street_2 fue eliminada del schema
 ADDRESSES = [
-    {"address_id": 1, "neighborhood_id": 1, "street": "Av. Constitución",  "ext_number": "100", "cross_street_1": "Juárez",   "cross_street_2": "Zaragoza", "latitude": 25.6700, "longitude": -100.3099},
-    {"address_id": 2, "neighborhood_id": 2, "street": "Calle Obispado",    "ext_number": "45",  "cross_street_1": "Hidalgo",  "cross_street_2": None,       "latitude": 25.6780, "longitude": -100.3200},
-    {"address_id": 3, "neighborhood_id": 3, "street": "Blvd. Díaz Ordaz",  "ext_number": "500", "cross_street_1": "Morones",  "cross_street_2": None,       "latitude": 25.7050, "longitude": -100.3500},
+    {"address_id": 1, "neighborhood_id": 1, "street": "Av. Constitución", "ext_number": "100", "cross_street_1": "Juárez",  "latitude": 25.6700, "longitude": -100.3099},
+    {"address_id": 2, "neighborhood_id": 2, "street": "Calle Obispado",   "ext_number": "45",  "cross_street_1": "Hidalgo", "latitude": 25.6780, "longitude": -100.3200},
+    {"address_id": 3, "neighborhood_id": 3, "street": "Blvd. Díaz Ordaz", "ext_number": "500", "cross_street_1": "Morones", "latitude": 25.7050, "longitude": -100.3500},
 ]
 
-# --- CLINICS
+# --- CLINICS -------------------------------------------------------------
+# clues fue eliminada del schema
 CLINICS = [
-    {"clinic_id": 1, "name": "Centro de Salud Centro",    "clues": "NLSSA001", "address_id": 1, "phone": "8112223344", "institution_type": "SSA",     "is_active": True},
-    {"clinic_id": 2, "name": "Unidad Médica Obispado",    "clues": "NLIMSS02", "address_id": 2, "phone": "8118887766", "institution_type": "IMSS",    "is_active": True},
-    {"clinic_id": 3, "name": "Clínica DIF Guadalupe",     "clues": "NLDIF003", "address_id": 3, "phone": "8191234567", "institution_type": "DIF",     "is_active": True},
+    {"clinic_id": 1, "name": "Centro de Salud Centro",  "address_id": 1, "phone": "8112223344", "institution_type": "SSA",  "is_active": True},
+    {"clinic_id": 2, "name": "Unidad Médica Obispado",  "address_id": 2, "phone": "8118887766", "institution_type": "IMSS", "is_active": True},
+    {"clinic_id": 3, "name": "Clínica DIF Guadalupe",   "address_id": 3, "phone": "8191234567", "institution_type": "DIF",  "is_active": True},
+]
+
+# area_type ahora es FK a area_types
+AREA_TYPES = [
+    {"area_type_id": 1, "area_type": "Recepcion"},
+    {"area_type_id": 2, "area_type": "Sala_Espera"},
+    {"area_type_id": 3, "area_type": "Consultorio"},
+    {"area_type_id": 4, "area_type": "Enfermeria"},
+    {"area_type_id": 5, "area_type": "Almacen"},
 ]
 
 CLINIC_AREAS = [
-    {"area_id": 1, "clinic_id": 1, "name": "Recepción",       "area_type": "Recepcion",   "floor": 1, "capacity": 20},
-    {"area_id": 2, "clinic_id": 1, "name": "Sala de Espera",  "area_type": "Sala_Espera", "floor": 1, "capacity": 40},
-    {"area_id": 3, "clinic_id": 1, "name": "Consultorio 1",   "area_type": "Consultorio", "floor": 1, "capacity": 5},
-    {"area_id": 4, "clinic_id": 2, "name": "Enfermería A",    "area_type": "Enfermeria",  "floor": 1, "capacity": 10},
-    {"area_id": 5, "clinic_id": 3, "name": "Almacén Central", "area_type": "Almacen",     "floor": 1, "capacity": None},
+    {"area_id": 1, "clinic_id": 1, "name": "Recepción",      "area_type_id": 1, "floor": 1, "capacity": 20},
+    {"area_id": 2, "clinic_id": 1, "name": "Sala de Espera", "area_type_id": 2, "floor": 1, "capacity": 40},
+    {"area_id": 3, "clinic_id": 1, "name": "Consultorio 1",  "area_type_id": 3, "floor": 1, "capacity": 5},
+    {"area_id": 4, "clinic_id": 2, "name": "Enfermería A",   "area_type_id": 4, "floor": 1, "capacity": 10},
+    {"area_id": 5, "clinic_id": 3, "name": "Almacén Central","area_type_id": 5, "floor": 1, "capacity": None},
 ]
 
-# --- ROLES / WORKERS 
-ROLES = [
-    {"role_id": 1, "name": "Administrador", "description": "Acceso total al sistema"},
-    {"role_id": 2, "name": "Médico",        "description": "Consulta y vacunación"},
-    {"role_id": 3, "name": "Enfermero",     "description": "Aplicación de vacunas"},
-    {"role_id": 4, "name": "Almacen",       "description": "Control de inventario"},
-    {"role_id": 5, "name": "Recepcionista", "description": "Registro de llegadas"},
+EQUIPMENT_CATALOG = [
+    {"equipment_id": 1, "name": "Refrigerador de vacunas", "category": "Refrigeración", "requires_calibration": True},
+    {"equipment_id": 2, "name": "Termómetro digital",      "category": "Medición",      "requires_calibration": True},
 ]
 
-WORKERS = [
-    {"worker_id": 1, "role_id": 1, "first_name": "Admin",  "last_name": "Demo",   "second_last": None,    "curp": "ADMD800101HNLMMS09", "email": "admin",             "phone": None,         "address_id": None, "birth_date": "1980-01-01", "hire_date": "2020-01-01", "is_active": True},
-    {"worker_id": 2, "role_id": 3, "first_name": "Elena",  "last_name": "Garza",  "second_last": "Leal",  "curp": "GALE900215MNLRZL05", "email": "elena@demo.local",  "phone": "8111122334", "address_id": 1,    "birth_date": "1990-02-15", "hire_date": "2021-03-10", "is_active": True},
-    {"worker_id": 3, "role_id": 4, "first_name": "Mario",  "last_name": "Ruiz",   "second_last": "Peña",  "curp": "RUPM850730HNLZÑR08", "email": "mario@demo.local",  "phone": "8199988776", "address_id": 2,    "birth_date": "1985-07-30", "hire_date": "2022-06-01", "is_active": True},
-    {"worker_id": 4, "role_id": 2, "first_name": "Sofía",  "last_name": "Torres", "second_last": "Vega",  "curp": "TOVS920410MNLRRG06", "email": "sofia@demo.local",  "phone": "8115566778", "address_id": 3,    "birth_date": "1992-04-10", "hire_date": "2023-01-15", "is_active": True},
-    {"worker_id": 5, "role_id": 5, "first_name": "Pedro",  "last_name": "Luna",   "second_last": None,    "curp": "LUMP781120HNLNND03", "email": "pedro@demo.local",  "phone": "8182233445", "address_id": 1,    "birth_date": "1978-11-20", "hire_date": "2020-09-05", "is_active": False},
+AREA_EQUIPMENT = [
+    {"area_equipment_id": 1, "area_id": 3, "equipment_id": 1, "quantity": 1, "serial_number": "SER-001", "condition": "Bueno"},
+    {"area_equipment_id": 2, "area_id": 4, "equipment_id": 2, "quantity": 2, "serial_number": None,      "condition": "Regular"},
 ]
 
-WORKER_PROFESSIONAL = [
-    {"worker_id": 4, "cedula_profesional": "CED-1234567", "specialty": "Pediatría",        "institution_title": "UANL",          "specialty_code": "PED"},
-    {"worker_id": 2, "cedula_profesional": "CED-9876543", "specialty": "Enfermería General","institution_title": "TecSalud NL",   "specialty_code": "ENF"},
+# --- PATIENTS ------------------------------------------------------------
+# Normalizado: second_last, address_id, risk_level, is_active, registered_at eliminados
+# blood_type_id ahora es FK; agregados weight_kg y premature
+BLOOD_TYPES = [
+    {"blood_type_id": 1, "blood_type": "O+"},
+    {"blood_type_id": 2, "blood_type": "A+"},
+    {"blood_type_id": 3, "blood_type": "B+"},
+    {"blood_type_id": 4, "blood_type": "AB+"},
+    {"blood_type_id": 5, "blood_type": "O-"},
+    {"blood_type_id": 6, "blood_type": "A-"},
+    {"blood_type_id": 7, "blood_type": "B-"},
+    {"blood_type_id": 8, "blood_type": "AB-"},
 ]
 
-WORKER_CLINIC_ASSIGNMENTS = [
-    {"assignment_id": 1, "worker_id": 1, "clinic_id": 1, "area_id": None, "start_date": "2020-01-01", "end_date": None,         "is_active": True},
-    {"assignment_id": 2, "worker_id": 2, "clinic_id": 1, "area_id": 3,    "start_date": "2021-03-10", "end_date": None,         "is_active": True},
-    {"assignment_id": 3, "worker_id": 3, "clinic_id": 1, "area_id": 5,    "start_date": "2022-06-01", "end_date": None,         "is_active": True},
-    {"assignment_id": 4, "worker_id": 4, "clinic_id": 2, "area_id": 4,    "start_date": "2023-01-15", "end_date": None,         "is_active": True},
-    {"assignment_id": 5, "worker_id": 5, "clinic_id": 3, "area_id": 1,    "start_date": "2020-09-05", "end_date": "2024-12-31", "is_active": False},
+PATIENTS = [
+    {"patient_id": 1, "first_name": "Ana",     "last_name": "Martínez", "curp": "MASA200515MNLRTN09", "birth_date": "2020-05-15", "gender": "F", "blood_type_id": 1, "nfc_token": "NFC001", "weight_kg": 12.5, "premature": False},
+    {"patient_id": 2, "first_name": "Carlos",  "last_name": "Sánchez",  "curp": "SARC190308HNLNRL05", "birth_date": "2019-03-08", "gender": "M", "blood_type_id": 2, "nfc_token": "NFC002", "weight_kg": 15.0, "premature": False},
+    {"patient_id": 3, "first_name": "Daniela", "last_name": "López",    "curp": "LOJD221003MNLPJN07", "birth_date": "2022-10-03", "gender": "F", "blood_type_id": 3, "nfc_token": "NFC003", "weight_kg": 10.2, "premature": True},
+    {"patient_id": 4, "first_name": "Miguel",  "last_name": "Flores",   "curp": "FOCM210720HNLLRG04", "birth_date": "2021-07-20", "gender": "M", "blood_type_id": 4, "nfc_token": "NFC004", "weight_kg": 13.8, "premature": False},
 ]
 
-WORKER_SCHEDULES = [
-    {"schedule_id": 1, "worker_id": 2, "clinic_id": 1, "day_of_week": 1, "entry_time": "08:00", "exit_time": "14:00", "shift_type": "Matutino"},
-    {"schedule_id": 2, "worker_id": 2, "clinic_id": 1, "day_of_week": 3, "entry_time": "08:00", "exit_time": "14:00", "shift_type": "Matutino"},
-    {"schedule_id": 3, "worker_id": 4, "clinic_id": 2, "day_of_week": 2, "entry_time": "14:00", "exit_time": "20:00", "shift_type": "Vespertino"},
+# allergies ahora es catálogo normalizado
+ALLERGIES = [
+    {"allergy_id": 1, "name": "Polen",      "allergy_type": "Ambiental"},
+    {"allergy_id": 2, "name": "Penicilina", "allergy_type": "Medicamento"},
+    {"allergy_id": 3, "name": "Látex",      "allergy_type": "Contacto"},
 ]
 
-# --- GUARDIANS 
+# patient_allergies ahora referencia allergy_id en vez de guardar allergen/reaction directo
+PATIENT_ALLERGIES = [
+    {"patient_allergy_id": 1, "patient_id": 2, "allergy_id": 1, "severity": "Leve",     "reaction_desc": "Rinitis"},
+    {"patient_allergy_id": 2, "patient_id": 3, "allergy_id": 2, "severity": "Moderada", "reaction_desc": "Urticaria – evitar derivados"},
+    {"patient_allergy_id": 3, "patient_id": 3, "allergy_id": 3, "severity": "Leve",     "reaction_desc": "Erupción"},
+]
+
+# --- GUARDIANS ----------------------------------------------------------
+# marital_status y occupation ahora son tablas normalizadas
+MARITAL_STATUS = [
+    {"marital_status_id": 1, "marital_status": "Casado"},
+    {"marital_status_id": 2, "marital_status": "Soltero"},
+    {"marital_status_id": 3, "marital_status": "Union_Libre"},
+    {"marital_status_id": 4, "marital_status": "Divorciado"},
+    {"marital_status_id": 5, "marital_status": "Viudo"},
+]
+
+OCCUPATIONS = [
+    {"occupation_id": 1, "occupation_name": "Profesora"},
+    {"occupation_id": 2, "occupation_name": "Contador"},
+    {"occupation_id": 3, "occupation_name": "Enfermera"},
+]
+
+# second_last eliminado; marital_status_id y occupation son FK int
 GUARDIANS = [
-    {"guardian_id": 1, "first_name": "María",  "last_name": "Martínez", "second_last": "Soto",   "curp": "MASM800501MNLRTRO8", "address_id": 1, "marital_status": "Casado",      "occupation": "Profesora",   "created_at": "2024-01-10"},
-    {"guardian_id": 2, "first_name": "Jorge",  "last_name": "Sánchez",  "second_last": "Reyes",  "curp": "SARJ790320HNLNYR02", "address_id": 2, "marital_status": "Soltero",     "occupation": "Contador",    "created_at": "2024-02-14"},
-    {"guardian_id": 3, "first_name": "Laura",  "last_name": "López",    "second_last": "Juárez", "curp": "LOJL850715MNLPJR05", "address_id": 3, "marital_status": "Union_Libre", "occupation": "Enfermera",   "created_at": "2024-03-20"},
+    {"guardian_id": 1, "first_name": "María", "last_name": "Martínez", "curp": "MASM800501MNLRTRO8", "address_id": 1, "marital_status_id": 1, "occupation": 1},
+    {"guardian_id": 2, "first_name": "Jorge", "last_name": "Sánchez",  "curp": "SARJ790320HNLNYR02", "address_id": 2, "marital_status_id": 2, "occupation": 2},
+    {"guardian_id": 3, "first_name": "Laura", "last_name": "López",    "curp": "LOJL850715MNLPJR05", "address_id": 3, "marital_status_id": 3, "occupation": 3},
 ]
 
 GUARDIAN_PHONES = [
@@ -105,121 +141,235 @@ GUARDIAN_EMAILS = [
     {"email_id": 3, "guardian_id": 3, "email": "laura.lopez@mail.com",    "is_primary": True},
 ]
 
-# --- PATIENTS 
-PATIENTS = [
-    {"patient_id": 1, "first_name": "Ana",     "last_name": "Martínez", "second_last": "Soto",   "curp": "MASA200515MNLRTN09", "birth_date": "2020-05-15", "gender": "F", "blood_type": "O+",  "nfc_token": "NFC001", "guardian_id": 1, "address_id": 1, "risk_level": "bajo",  "is_active": True, "registered_at": "2024-01-10"},
-    {"patient_id": 2, "first_name": "Carlos",  "last_name": "Sánchez",  "second_last": "Reyes",  "curp": "SARC190308HNLNRL05", "birth_date": "2019-03-08", "gender": "M", "blood_type": "A+",  "nfc_token": "NFC002", "guardian_id": 2, "address_id": 2, "risk_level": "medio", "is_active": True, "registered_at": "2024-02-14"},
-    {"patient_id": 3, "first_name": "Daniela", "last_name": "López",    "second_last": "Juárez", "curp": "LOJD221003MNLPJN07", "birth_date": "2022-10-03", "gender": "F", "blood_type": "B+",  "nfc_token": "NFC003", "guardian_id": 3, "address_id": 3, "risk_level": "alto",  "is_active": True, "registered_at": "2024-03-20"},
-    {"patient_id": 4, "first_name": "Miguel",  "last_name": "Flores",   "second_last": "Cruz",   "curp": "FOCM210720HNLLRG04", "birth_date": "2021-07-20", "gender": "M", "blood_type": "AB+", "nfc_token": "NFC004", "guardian_id": 1, "address_id": 1, "risk_level": "bajo",  "is_active": True, "registered_at": "2024-04-05"},
+# Tabla nueva: relación paciente-tutor normalizada (antes era guardian_id directo en patients)
+PATIENT_GUARDIAN_RELATIONS = [
+    {"relation_id": 1, "patient_id": 1, "guardian_id": 1, "relation_type": "Madre",  "is_primary": True,  "has_custody": True},
+    {"relation_id": 2, "patient_id": 2, "guardian_id": 2, "relation_type": "Padre",  "is_primary": True,  "has_custody": True},
+    {"relation_id": 3, "patient_id": 3, "guardian_id": 3, "relation_type": "Madre",  "is_primary": True,  "has_custody": True},
+    {"relation_id": 4, "patient_id": 4, "guardian_id": 1, "relation_type": "Madre",  "is_primary": True,  "has_custody": True},
 ]
 
-PATIENT_ALLERGIES = [
-    {"allergy_id": 1, "patient_id": 2, "allergen": "Polen",      "reaction": "Rinitis",    "severity": "Leve",     "notes": None},
-    {"allergy_id": 2, "patient_id": 3, "allergen": "Penicilina", "reaction": "Urticaria",  "severity": "Moderada", "notes": "Evitar derivados"},
-    {"allergy_id": 3, "patient_id": 3, "allergen": "Látex",      "reaction": "Erupción",   "severity": "Leve",     "notes": None},
+# --- WORKERS ------------------------------------------------------------
+# second_last, email, phone, is_active eliminados del workers principal
+# email y teléfono ahora en worker_emails / worker_phones
+# specialty normalizada en specialties / institutions
+ROLES = [
+    {"role_id": 1, "name": "Administrador", "description": "Acceso total al sistema"},
+    {"role_id": 2, "name": "Médico",        "description": "Consulta y vacunación"},
+    {"role_id": 3, "name": "Enfermero",     "description": "Aplicación de vacunas"},
+    {"role_id": 4, "name": "Almacen",       "description": "Control de inventario"},
+    {"role_id": 5, "name": "Recepcionista", "description": "Registro de llegadas"},
 ]
 
-# --- VACCINES / LOTS 
+SPECIALTIES = [
+    {"specialty_id": 1, "name": "Pediatría"},
+    {"specialty_id": 2, "name": "Enfermería General"},
+]
+
+INSTITUTIONS = [
+    {"institution_id": 1, "institution_name": "UANL",        "address_id": None},
+    {"institution_id": 2, "institution_name": "TecSalud NL", "address_id": None},
+]
+
+WORKERS = [
+    {"worker_id": 1, "role_id": 1, "first_name": "Admin",  "last_name": "Demo",   "curp": "ADMD800101HNLMMS09", "address_id": None, "birth_date": "1980-01-01", "hire_date": "2020-01-01", "password_hash": "hash:123"},
+    {"worker_id": 2, "role_id": 3, "first_name": "Elena",  "last_name": "Garza",  "curp": "GALE900215MNLRZL05", "address_id": 1,    "birth_date": "1990-02-15", "hire_date": "2021-03-10", "password_hash": "hash:elena"},
+    {"worker_id": 3, "role_id": 4, "first_name": "Mario",  "last_name": "Ruiz",   "curp": "RUPM850730HNLZXR08", "address_id": 2,    "birth_date": "1985-07-30", "hire_date": "2022-06-01", "password_hash": "hash:mario"},
+    {"worker_id": 4, "role_id": 2, "first_name": "Sofía",  "last_name": "Torres", "curp": "TOVS920410MNLRRG06", "address_id": 3,    "birth_date": "1992-04-10", "hire_date": "2023-01-15", "password_hash": "hash:sofia"},
+    {"worker_id": 5, "role_id": 5, "first_name": "Pedro",  "last_name": "Luna",   "curp": "LUMP781120HNLNND03", "address_id": 1,    "birth_date": "1978-11-20", "hire_date": "2020-09-05", "password_hash": "hash:pedro"},
+]
+
+WORKER_PHONES = [
+    {"phone_id": 1, "worker_id": 2, "phone": "8111122334", "phone_type": "Celular", "is_primary": True},
+    {"phone_id": 2, "worker_id": 3, "phone": "8199988776", "phone_type": "Celular", "is_primary": True},
+    {"phone_id": 3, "worker_id": 4, "phone": "8115566778", "phone_type": "Celular", "is_primary": True},
+    {"phone_id": 4, "worker_id": 5, "phone": "8182233445", "phone_type": "Celular", "is_primary": True},
+]
+
+WORKER_EMAILS = [
+    {"email_id": 1, "worker_id": 1, "email": "admin",             "is_primary": True},
+    {"email_id": 2, "worker_id": 2, "email": "elena@demo.local",  "is_primary": True},
+    {"email_id": 3, "worker_id": 3, "email": "mario@demo.local",  "is_primary": True},
+    {"email_id": 4, "worker_id": 4, "email": "sofia@demo.local",  "is_primary": True},
+    {"email_id": 5, "worker_id": 5, "email": "pedro@demo.local",  "is_primary": True},
+]
+
+# specialty ahora referencia specialty_id e institution_id (FKs)
+WORKER_PROFESSIONAL = [
+    {"worker_id": 4, "cedula_profesional": "CED-1234567", "specialty_id": 1, "institution_id": 1},
+    {"worker_id": 2, "cedula_profesional": "CED-9876543", "specialty_id": 2, "institution_id": 2},
+]
+
+# Renombrada: worker_clinic_assignments → worker_clinic_assignment (sin 's' final)
+WORKER_CLINIC_ASSIGNMENT = [
+    {"assignment_id": 1, "worker_id": 1, "clinic_id": 1, "area_id": None, "start_date": "2020-01-01", "end_date": None,         "is_active": True},
+    {"assignment_id": 2, "worker_id": 2, "clinic_id": 1, "area_id": 3,    "start_date": "2021-03-10", "end_date": None,         "is_active": True},
+    {"assignment_id": 3, "worker_id": 3, "clinic_id": 1, "area_id": 5,    "start_date": "2022-06-01", "end_date": None,         "is_active": True},
+    {"assignment_id": 4, "worker_id": 4, "clinic_id": 2, "area_id": 4,    "start_date": "2023-01-15", "end_date": None,         "is_active": True},
+    {"assignment_id": 5, "worker_id": 5, "clinic_id": 3, "area_id": 1,    "start_date": "2020-09-05", "end_date": "2024-12-31", "is_active": False},
+]
+
+WORKER_SCHEDULES = [
+    {"schedule_id": 1, "worker_id": 2, "clinic_id": 1, "day_of_week": 1, "entry_time": "08:00", "exit_time": "14:00", "shift_type": "Matutino"},
+    {"schedule_id": 2, "worker_id": 2, "clinic_id": 1, "day_of_week": 3, "entry_time": "08:00", "exit_time": "14:00", "shift_type": "Matutino"},
+    {"schedule_id": 3, "worker_id": 4, "clinic_id": 2, "day_of_week": 2, "entry_time": "14:00", "exit_time": "20:00", "shift_type": "Vespertino"},
+]
+
+# --- VACCINES -----------------------------------------------------------
+# manufacturer, disease_target, route etc. normalizados a tablas propias
+MANUFACTURERS = [
+    {"manufacturer_id": 1, "name": "Biofabrica MX", "country_id": 1, "contact_email": None},
+    {"manufacturer_id": 2, "name": "SaludVac",      "country_id": 1, "contact_email": None},
+    {"manufacturer_id": 3, "name": "GSK",           "country_id": None, "contact_email": None},
+    {"manufacturer_id": 4, "name": "MSD",           "country_id": None, "contact_email": None},
+    {"manufacturer_id": 5, "name": "Sanofi",        "country_id": None, "contact_email": None},
+]
+
+VACCINE_VIAS = [
+    {"via_id": 1, "via": "Intradérmica"},
+    {"via_id": 2, "via": "Intramuscular"},
+    {"via_id": 3, "via": "Oral"},
+    {"via_id": 4, "via": "Subcutánea"},
+]
+
+# Campos eliminados: disease_target, recommended_age_months, doses_required, interval_days, route, is_active
 VACCINES = [
-    {"vaccine_id": 1, "name": "BCG",           "disease_target": "Tuberculosis",           "manufacturer": "Biofabrica MX", "recommended_age_months": "0-12",   "doses_required": 1, "interval_days": None, "route": "Intradérmica",    "is_active": True},
-    {"vaccine_id": 2, "name": "Hepatitis B",   "disease_target": "Hepatitis B",             "manufacturer": "SaludVac",     "recommended_age_months": "0+",     "doses_required": 3, "interval_days": 30,   "route": "Intramuscular",   "is_active": True},
-    {"vaccine_id": 3, "name": "Pentavalente",  "disease_target": "Difteria/Tos/Tétanos",   "manufacturer": "GSK",          "recommended_age_months": "2-72",   "doses_required": 5, "interval_days": 60,   "route": "Intramuscular",   "is_active": True},
-    {"vaccine_id": 4, "name": "Rotavirus",     "disease_target": "Gastroenteritis",         "manufacturer": "MSD",          "recommended_age_months": "2-8",    "doses_required": 3, "interval_days": 60,   "route": "Oral",            "is_active": True},
-    {"vaccine_id": 5, "name": "Influenza",     "disease_target": "Influenza estacional",    "manufacturer": "Sanofi",       "recommended_age_months": "6+",     "doses_required": 1, "interval_days": 365,  "route": "Intramuscular",   "is_active": True},
+    {"vaccine_id": 1, "name": "BCG",          "commercial_name": None,             "manufacturer_id": 1, "via_id": 1, "ideal_age_months": 0,  "descripcion": "Tuberculosis"},
+    {"vaccine_id": 2, "name": "Hepatitis B",  "commercial_name": "Engerix-B",      "manufacturer_id": 2, "via_id": 2, "ideal_age_months": 0,  "descripcion": "Hepatitis B"},
+    {"vaccine_id": 3, "name": "Pentavalente", "commercial_name": None,             "manufacturer_id": 3, "via_id": 2, "ideal_age_months": 2,  "descripcion": "Difteria/Tos/Tétanos"},
+    {"vaccine_id": 4, "name": "Rotavirus",    "commercial_name": "RotaTeq",        "manufacturer_id": 4, "via_id": 3, "ideal_age_months": 2,  "descripcion": "Gastroenteritis"},
+    {"vaccine_id": 5, "name": "Influenza",    "commercial_name": "Vaxigrip Tetra", "manufacturer_id": 5, "via_id": 2, "ideal_age_months": 6,  "descripcion": "Influenza estacional"},
 ]
 
+# quantity_remaining → quantity_available; reception_date → received_date; is_active y received_by eliminados
 VACCINE_LOTS = [
-    {"lot_id": 1, "vaccine_id": 1, "clinic_id": 1, "lot_number": "LOT-BCG-2025-01",  "quantity_received": 200, "quantity_remaining": 120, "reception_date": "2025-01-05", "expiration_date": "2026-06-30", "is_active": True,  "received_by": 3},
-    {"lot_id": 2, "vaccine_id": 2, "clinic_id": 1, "lot_number": "LOT-HEB-2025-02",  "quantity_received": 150, "quantity_remaining": 95,  "reception_date": "2025-01-10", "expiration_date": "2025-12-31", "is_active": True,  "received_by": 3},
-    {"lot_id": 3, "vaccine_id": 3, "clinic_id": 1, "lot_number": "LOT-PEN-2025-03",  "quantity_received": 100, "quantity_remaining": 80,  "reception_date": "2025-02-01", "expiration_date": "2026-03-15", "is_active": True,  "received_by": 3},
-    {"lot_id": 4, "vaccine_id": 4, "clinic_id": 2, "lot_number": "LOT-ROT-2025-04",  "quantity_received": 60,  "quantity_remaining": 30,  "reception_date": "2025-02-15", "expiration_date": "2025-08-01", "is_active": True,  "received_by": 3},
-    {"lot_id": 5, "vaccine_id": 5, "clinic_id": 3, "lot_number": "LOT-INF-2024-09",  "quantity_received": 300, "quantity_remaining": 0,   "reception_date": "2024-09-01", "expiration_date": "2025-06-30", "is_active": False, "received_by": 3},
+    {"lot_id": 1, "vaccine_id": 1, "clinic_id": 1, "lot_number": "LOT-BCG-2025-01", "quantity_received": 200, "quantity_available": 120, "expiration_date": "2026-06-30", "received_date": "2025-01-05"},
+    {"lot_id": 2, "vaccine_id": 2, "clinic_id": 1, "lot_number": "LOT-HEB-2025-02", "quantity_received": 150, "quantity_available": 95,  "expiration_date": "2025-12-31", "received_date": "2025-01-10"},
+    {"lot_id": 3, "vaccine_id": 3, "clinic_id": 1, "lot_number": "LOT-PEN-2025-03", "quantity_received": 100, "quantity_available": 80,  "expiration_date": "2026-03-15", "received_date": "2025-02-01"},
+    {"lot_id": 4, "vaccine_id": 4, "clinic_id": 2, "lot_number": "LOT-ROT-2025-04", "quantity_received": 60,  "quantity_available": 30,  "expiration_date": "2025-08-01", "received_date": "2025-02-15"},
+    {"lot_id": 5, "vaccine_id": 5, "clinic_id": 3, "lot_number": "LOT-INF-2024-09", "quantity_received": 300, "quantity_available": 0,   "expiration_date": "2025-06-30", "received_date": "2024-09-01"},
 ]
 
-# --- VACCINATION RECORDS (APPLICATIONS) 
-APPLICATIONS = [
-    {"record_id": 1, "patient_id": 1, "vaccine_id": 1, "lot_id": 1, "clinic_id": 1, "applied_by": 2, "applied_date": "2025-01-10", "dose_applied": "1", "next_dose_date": "2025-03-10", "clinic_location": "Consultorio 1", "notes": "Sin reacciones"},
-    {"record_id": 2, "patient_id": 2, "vaccine_id": 2, "lot_id": 2, "clinic_id": 1, "applied_by": 2, "applied_date": "2025-02-15", "dose_applied": "1", "next_dose_date": "2025-04-15", "clinic_location": "Consultorio 1", "notes": "Control en 2 meses"},
-    {"record_id": 3, "patient_id": 1, "vaccine_id": 3, "lot_id": 3, "clinic_id": 1, "applied_by": 1, "applied_date": "2025-03-20", "dose_applied": "2", "next_dose_date": "2025-05-20", "clinic_location": "Enfermería A",  "notes": "Reforzar hidratación"},
-    {"record_id": 4, "patient_id": 3, "vaccine_id": 2, "lot_id": 2, "clinic_id": 2, "applied_by": 4, "applied_date": "2025-03-01", "dose_applied": "1", "next_dose_date": "2025-05-01", "clinic_location": "Enfermería A",  "notes": "Primera dosis"},
-    {"record_id": 5, "patient_id": 4, "vaccine_id": 4, "lot_id": 4, "clinic_id": 2, "applied_by": 2, "applied_date": "2025-03-22", "dose_applied": "1", "next_dose_date": None,          "clinic_location": "Consultorio 1", "notes": "Sin incidencias"},
+# --- OFFICIAL SCHEME ----------------------------------------------------
+VACCINATION_SCHEME = [
+    {"scheme_id": 1, "name": "Esquema Nacional de Vacunación", "issuing_body": "SS México", "year": 2024, "is_current": True},
 ]
 
-# --- SCHEME (vaccination schedule) 
-SCHEME = [
-    ({"ideal_age_months": 0,  "dose_number": "Dosis 1"}, {"name": "BCG"}),
-    ({"ideal_age_months": 0,  "dose_number": "Dosis 1"}, {"name": "Hepatitis B"}),
-    ({"ideal_age_months": 2,  "dose_number": "Dosis 1"}, {"name": "Pentavalente"}),
-    ({"ideal_age_months": 2,  "dose_number": "Dosis 1"}, {"name": "Rotavirus"}),
-    ({"ideal_age_months": 4,  "dose_number": "Dosis 2"}, {"name": "Pentavalente"}),
-    ({"ideal_age_months": 6,  "dose_number": "Dosis 1"}, {"name": "Influenza"}),
-    ({"ideal_age_months": 6,  "dose_number": "Dosis 3"}, {"name": "Hepatitis B"}),
-    ({"ideal_age_months": 12, "dose_number": "Dosis 1"}, {"name": "SRP"}),
+SCHEME_DOSES = [
+    {"dose_id": 1, "scheme_id": 1, "vaccine_id": 1, "dose_number": 1, "dose_label": "Dosis 1", "ideal_age_months": 0,  "min_interval_days": None},
+    {"dose_id": 2, "scheme_id": 1, "vaccine_id": 2, "dose_number": 1, "dose_label": "Dosis 1", "ideal_age_months": 0,  "min_interval_days": None},
+    {"dose_id": 3, "scheme_id": 1, "vaccine_id": 3, "dose_number": 1, "dose_label": "Dosis 1", "ideal_age_months": 2,  "min_interval_days": None},
+    {"dose_id": 4, "scheme_id": 1, "vaccine_id": 4, "dose_number": 1, "dose_label": "Dosis 1", "ideal_age_months": 2,  "min_interval_days": None},
+    {"dose_id": 5, "scheme_id": 1, "vaccine_id": 3, "dose_number": 2, "dose_label": "Dosis 2", "ideal_age_months": 4,  "min_interval_days": 60},
+    {"dose_id": 6, "scheme_id": 1, "vaccine_id": 5, "dose_number": 1, "dose_label": "Dosis 1", "ideal_age_months": 6,  "min_interval_days": None},
+    {"dose_id": 7, "scheme_id": 1, "vaccine_id": 2, "dose_number": 3, "dose_label": "Dosis 3", "ideal_age_months": 6,  "min_interval_days": 30},
 ]
 
-SCHEME_COMPLETION_ALERTS = [
-    {"alert_id": 1, "patient_id": 3, "vaccine_id": 3, "expected_date": "2023-12-03", "status": "Pendiente",  "generated_at": "2024-01-01", "resolved_at": None,         "resolved_by": None, "notes": "Esquema incompleto – Pentavalente"},
-    {"alert_id": 2, "patient_id": 2, "vaccine_id": 5, "expected_date": "2025-03-08", "status": "Enviada",    "generated_at": "2025-03-09", "resolved_at": None,         "resolved_by": None, "notes": "Influenza pendiente"},
-    {"alert_id": 3, "patient_id": 1, "vaccine_id": 2, "expected_date": "2025-04-15", "status": "Resuelta",   "generated_at": "2025-03-10", "resolved_at": "2025-04-16", "resolved_by": 2,    "notes": "Hepatitis B dosis 2 aplicada"},
-]
-
-# --- APPOINTMENTS 
+# --- APPOINTMENTS -------------------------------------------------------
+# vaccine_id eliminado; agregados area_id, duration_min, reason
+# status → appointment_status; notes → appointment_notes
 APPOINTMENTS = [
-    {"appointment_id": 1, "patient_id": 1, "clinic_id": 1, "worker_id": 2, "vaccine_id": 2, "scheduled_at": "2025-06-10 09:00", "status": "Programada",  "notes": "Segunda dosis Hep B"},
-    {"appointment_id": 2, "patient_id": 2, "clinic_id": 1, "worker_id": 2, "vaccine_id": 3, "scheduled_at": "2025-04-15 10:30", "status": "Programada",  "notes": "Pentavalente refuerzo"},
-    {"appointment_id": 3, "patient_id": 3, "clinic_id": 2, "worker_id": 4, "vaccine_id": 5, "scheduled_at": "2025-05-20 08:00", "status": "Cancelada",   "notes": "Paciente no asistió"},
-    {"appointment_id": 4, "patient_id": 4, "clinic_id": 1, "worker_id": 2, "vaccine_id": 1, "scheduled_at": "2025-03-22 11:00", "status": "Completada",  "notes": "BCG aplicada sin incidentes"},
+    {"appointment_id": 1, "patient_id": 1, "clinic_id": 1, "area_id": 3, "worker_id": 2, "scheduled_at": "2025-06-10 09:00", "duration_min": 15, "reason": "Segunda dosis Hep B",      "appointment_status": "Programada", "appointment_notes": None},
+    {"appointment_id": 2, "patient_id": 2, "clinic_id": 1, "area_id": 3, "worker_id": 2, "scheduled_at": "2025-04-15 10:30", "duration_min": 15, "reason": "Pentavalente refuerzo",    "appointment_status": "Programada", "appointment_notes": None},
+    {"appointment_id": 3, "patient_id": 3, "clinic_id": 2, "area_id": 4, "worker_id": 4, "scheduled_at": "2025-05-20 08:00", "duration_min": 20, "reason": "Influenza",                "appointment_status": "Cancelada",  "appointment_notes": "Paciente no asistió"},
+    {"appointment_id": 4, "patient_id": 4, "clinic_id": 1, "area_id": 3, "worker_id": 2, "scheduled_at": "2025-03-22 11:00", "duration_min": 15, "reason": "BCG",                      "appointment_status": "Completada", "appointment_notes": "Aplicada sin incidentes"},
 ]
 
-# --- NFC CARDS & SCAN EVENTS 
+# --- VACCINATION RECORDS ------------------------------------------------
+# Antes llamada APPLICATIONS; campos eliminados: dose_applied, next_dose_date, clinic_location, notes
+# Nuevos campos: scheme_dose_id, application_site_id, patient_temp_c, had_reaction
+APPLICATION_SITES = [
+    {"application_site_id": 1, "application_site": "Deltoides_Izquierdo"},
+    {"application_site_id": 2, "application_site": "Deltoides_Derecho"},
+    {"application_site_id": 3, "application_site": "Muslo_Izquierdo"},
+    {"application_site_id": 4, "application_site": "Muslo_Derecho"},
+    {"application_site_id": 5, "application_site": "Oral"},
+]
+
+VACCINATION_RECORDS = [
+    {"record_id": 1, "patient_id": 1, "vaccine_id": 1, "worker_id": 2, "clinic_id": 1, "lot_id": 1, "scheme_dose_id": 1, "applied_date": "2025-01-10", "application_site_id": 3, "patient_temp_c": 36.5, "had_reaction": False},
+    {"record_id": 2, "patient_id": 2, "vaccine_id": 2, "worker_id": 2, "clinic_id": 1, "lot_id": 2, "scheme_dose_id": 2, "applied_date": "2025-02-15", "application_site_id": 1, "patient_temp_c": 36.8, "had_reaction": False},
+    {"record_id": 3, "patient_id": 1, "vaccine_id": 3, "worker_id": 1, "clinic_id": 1, "lot_id": 3, "scheme_dose_id": 3, "applied_date": "2025-03-20", "application_site_id": 4, "patient_temp_c": 37.0, "had_reaction": False},
+    {"record_id": 4, "patient_id": 3, "vaccine_id": 2, "worker_id": 4, "clinic_id": 2, "lot_id": 2, "scheme_dose_id": 2, "applied_date": "2025-03-01", "application_site_id": 2, "patient_temp_c": 36.6, "had_reaction": False},
+    {"record_id": 5, "patient_id": 4, "vaccine_id": 4, "worker_id": 2, "clinic_id": 2, "lot_id": 4, "scheme_dose_id": 4, "applied_date": "2025-03-22", "application_site_id": 5, "patient_temp_c": 36.9, "had_reaction": False},
+]
+
+POST_VACCINE_REACTIONS = []  # vacío en demo
+
+# --- SCHEME COMPLETION ALERTS -------------------------------------------
+# vaccine_id → scheme_dose_id; resolved_at, resolved_by, notes, generated_at eliminados
+# expected_date → due_date; agregado notified_at
+SCHEME_COMPLETION_ALERTS = [
+    {"alert_id": 1, "patient_id": 3, "scheme_dose_id": 3, "due_date": "2023-12-03", "status": "Pendiente", "notified_at": None},
+    {"alert_id": 2, "patient_id": 2, "scheme_dose_id": 6, "due_date": "2025-03-08", "status": "Enviada",   "notified_at": "2025-03-09 08:00"},
+    {"alert_id": 3, "patient_id": 1, "scheme_dose_id": 2, "due_date": "2025-04-15", "status": "Resuelta",  "notified_at": "2025-03-10 09:00"},
+]
+
+# --- NFC ----------------------------------------------------------------
+# notes → nfc_card_notes
 NFC_CARDS = [
-    {"nfc_card_id": 1, "patient_id": 1, "uid": "NFC001AA", "card_type": "Tarjeta",  "issued_date": "2024-01-10", "issued_by": 1, "status": "Activa",       "last_scanned_at": "2025-03-20 09:15", "notes": None},
-    {"nfc_card_id": 2, "patient_id": 2, "uid": "NFC002BB", "card_type": "Pulsera",  "issued_date": "2024-02-14", "issued_by": 1, "status": "Activa",       "last_scanned_at": "2025-02-15 10:05", "notes": None},
-    {"nfc_card_id": 3, "patient_id": 3, "uid": "NFC003CC", "card_type": "Llavero",  "issued_date": "2024-03-20", "issued_by": 1, "status": "Desactivada",  "last_scanned_at": None,               "notes": "Reportado extraviado"},
-    {"nfc_card_id": 4, "patient_id": 4, "uid": "NFC004DD", "card_type": "Tarjeta",  "issued_date": "2024-04-05", "issued_by": 1, "status": "Activa",       "last_scanned_at": "2025-03-22 11:00", "notes": None},
+    {"nfc_card_id": 1, "patient_id": 1, "uid": "NFC001AA", "card_type": "Tarjeta", "issued_date": "2024-01-10", "issued_by": 1, "status": "Activa",      "last_scanned_at": "2025-03-20 09:15", "nfc_card_notes": None},
+    {"nfc_card_id": 2, "patient_id": 2, "uid": "NFC002BB", "card_type": "Pulsera", "issued_date": "2024-02-14", "issued_by": 1, "status": "Activa",      "last_scanned_at": "2025-02-15 10:05", "nfc_card_notes": None},
+    {"nfc_card_id": 3, "patient_id": 3, "uid": "NFC003CC", "card_type": "Llavero", "issued_date": "2024-03-20", "issued_by": 1, "status": "Desactivada", "last_scanned_at": None,               "nfc_card_notes": "Reportado extraviado"},
+    {"nfc_card_id": 4, "patient_id": 4, "uid": "NFC004DD", "card_type": "Tarjeta", "issued_date": "2024-04-05", "issued_by": 1, "status": "Activa",      "last_scanned_at": "2025-03-22 11:00", "nfc_card_notes": None},
 ]
 
+NFC_DEVICES = [
+    {"device_id": "DEV-001", "clinic_id": 1, "area_id": 3, "device_name": "Lector Consultorio 1", "model": "ACR122U", "serial_number": "SN-ACR-001", "nfc_device_status": "Activo", "registered_at": "2024-01-01"},
+]
+
+# result → nfc_scan_result; agregado device_id
 NFC_SCAN_EVENTS = [
-    {"scan_event_id": 1, "nfc_card_id": 1, "scanned_by": 2, "clinic_id": 1, "area_id": 3, "scanned_at": "2025-03-20 09:15", "action_triggered": "Abrir_Expediente",    "result": "Expediente abierto correctamente"},
-    {"scan_event_id": 2, "nfc_card_id": 2, "scanned_by": 2, "clinic_id": 1, "area_id": 3, "scanned_at": "2025-02-15 10:05", "action_triggered": "Confirmar_Vacunacion", "result": "Vacunación registrada"},
-    {"scan_event_id": 3, "nfc_card_id": 4, "scanned_by": 2, "clinic_id": 1, "area_id": 1, "scanned_at": "2025-03-22 11:00", "action_triggered": "Registrar_Llegada",    "result": "Llegada registrada"},
+    {"scan_event_id": 1, "nfc_card_id": 1, "scanned_by": 2, "clinic_id": 1, "area_id": 3, "scanned_at": "2025-03-20 09:15", "action_triggered": "Abrir_Expediente",    "device_id": "DEV-001", "nfc_scan_result": "Expediente abierto correctamente"},
+    {"scan_event_id": 2, "nfc_card_id": 2, "scanned_by": 2, "clinic_id": 1, "area_id": 3, "scanned_at": "2025-02-15 10:05", "action_triggered": "Confirmar_Vacunacion", "device_id": "DEV-001", "nfc_scan_result": "Vacunación registrada"},
+    {"scan_event_id": 3, "nfc_card_id": 4, "scanned_by": 2, "clinic_id": 1, "area_id": 1, "scanned_at": "2025-03-22 11:00", "action_triggered": "Registrar_Llegada",    "device_id": None,      "nfc_scan_result": "Llegada registrada"},
 ]
 
-# --- GPS DEVICES & LOCATIONS 
+# --- GPS ----------------------------------------------------------------
+# status → gps_device_status
 GPS_DEVICES = [
-    {"gps_device_id": 1, "patient_id": 3, "device_type": "Pulsera_GPS", "model": "GarminKid3", "imei": "352099001761481", "assigned_date": "2024-03-20", "assigned_by": 1, "battery_pct": 72, "status": "Activo"},
-    {"gps_device_id": 2, "patient_id": 2, "device_type": "App_Tutor",   "model": "AppSalud v2", "imei": None,             "assigned_date": "2024-02-14", "assigned_by": 1, "battery_pct": 95, "status": "Activo"},
+    {"gps_device_id": 1, "patient_id": 3, "device_type": "Pulsera_GPS", "model": "GarminKid3",  "imei": "352099001761481", "assigned_date": "2024-03-20", "assigned_by": 1, "battery_pct": 72, "gps_device_status": "Activo"},
+    {"gps_device_id": 2, "patient_id": 2, "device_type": "App_Tutor",   "model": "AppSalud v2", "imei": None,             "assigned_date": "2024-02-14", "assigned_by": 1, "battery_pct": 95, "gps_device_status": "Activo"},
 ]
 
-GPS_RISK_ALERTS = [
-    {"alert_id": 1, "patient_id": 3, "gps_device_id": 1, "alert_type": "Salida_Zona_Segura", "triggered_at": "2025-03-10 14:35", "location_lat": 25.6850, "location_lng": -100.3150, "resolved_at": "2025-03-10 14:50", "resolved_by": 2,    "notes": "Tutor confirmó ubicación"},
-    {"alert_id": 2, "patient_id": 2, "gps_device_id": 2, "alert_type": "Bateria_Baja",       "triggered_at": "2025-03-20 07:00", "location_lat": None,    "location_lng": None,       "resolved_at": None,               "resolved_by": None, "notes": "Pendiente de respuesta"},
-]
+GPS_LOCATIONS = []  # vacío en demo; se llenaría con pings en tiempo real
 
 GPS_SAFE_ZONES = [
-    {"zone_id": 1, "patient_id": 3, "guardian_id": 3, "zone_name": "Casa",       "center_lat": 25.7050, "center_lng": -100.3500, "radius_m": 150, "is_active": True},
-    {"zone_id": 2, "patient_id": 3, "guardian_id": 3, "zone_name": "Clínica",    "center_lat": 25.6700, "center_lng": -100.3099, "radius_m": 200, "is_active": True},
-    {"zone_id": 3, "patient_id": 2, "guardian_id": 2, "zone_name": "Escuela",    "center_lat": 25.6780, "center_lng": -100.3200, "radius_m": 100, "is_active": True},
+    {"zone_id": 1, "patient_id": 3, "guardian_id": 3, "zone_name": "Casa",    "center_lat": 25.7050, "center_lng": -100.3500, "radius_m": 150, "is_active": True},
+    {"zone_id": 2, "patient_id": 3, "guardian_id": 3, "zone_name": "Clínica", "center_lat": 25.6700, "center_lng": -100.3099, "radius_m": 200, "is_active": True},
+    {"zone_id": 3, "patient_id": 2, "guardian_id": 2, "zone_name": "Escuela", "center_lat": 25.6780, "center_lng": -100.3200, "radius_m": 100, "is_active": True},
 ]
 
-# --- SUPPLY / INVENTORY 
+# notes → risk_notes
+GPS_RISK_ALERTS = [
+    {"alert_id": 1, "patient_id": 3, "gps_device_id": 1, "alert_type": "Salida_Zona_Segura", "triggered_at": "2025-03-10 14:35", "location_lat": 25.6850, "location_lng": -100.3150, "resolved_at": "2025-03-10 14:50", "resolved_by": 2,    "risk_notes": "Tutor confirmó ubicación"},
+    {"alert_id": 2, "patient_id": 2, "gps_device_id": 2, "alert_type": "Bateria_Baja",       "triggered_at": "2025-03-20 07:00", "location_lat": None,    "location_lng": None,       "resolved_at": None,               "resolved_by": None, "risk_notes": "Pendiente de respuesta"},
+]
+
+# --- SUPPLY / INVENTORY -------------------------------------------------
+# supply_catalog: eliminado description; clinic_inventory: eliminado updated_by; last_updated solo DATE
 SUPPLY_CATALOG = [
-    {"supply_id": 1, "name": "Jeringa 1mL",         "unit": "pieza",   "category": "Jeringa",      "description": "Jeringa desechable 1mL"},
-    {"supply_id": 2, "name": "Jeringa 5mL",         "unit": "pieza",   "category": "Jeringa",      "description": "Jeringa desechable 5mL"},
-    {"supply_id": 3, "name": "Algodón estéril",     "unit": "paquete", "category": "Desechable",   "description": "Paquete 100 piezas"},
-    {"supply_id": 4, "name": "Guantes nitrilo M",   "unit": "caja",    "category": "Desechable",   "description": "Caja 100 guantes talla M"},
-    {"supply_id": 5, "name": "Paracetamol 500mg",   "unit": "tableta", "category": "Medicamento",  "description": "Analgésico/antipirético"},
+    {"supply_id": 1, "name": "Jeringa 1mL",       "unit": "pieza",   "category": "Jeringa"},
+    {"supply_id": 2, "name": "Jeringa 5mL",       "unit": "pieza",   "category": "Jeringa"},
+    {"supply_id": 3, "name": "Algodón estéril",   "unit": "paquete", "category": "Desechable"},
+    {"supply_id": 4, "name": "Guantes nitrilo M", "unit": "caja",    "category": "Desechable"},
+    {"supply_id": 5, "name": "Paracetamol 500mg", "unit": "tableta", "category": "Medicamento"},
 ]
 
 CLINIC_INVENTORY = [
-    {"inventory_id": 1, "clinic_id": 1, "supply_id": 1, "quantity": 500,  "min_stock": 50,  "last_updated": "2025-03-01", "updated_by": 3},
-    {"inventory_id": 2, "clinic_id": 1, "supply_id": 3, "quantity": 30,   "min_stock": 20,  "last_updated": "2025-03-01", "updated_by": 3},
-    {"inventory_id": 3, "clinic_id": 1, "supply_id": 4, "quantity": 8,    "min_stock": 10,  "last_updated": "2025-03-10", "updated_by": 3},  # bajo stock
-    {"inventory_id": 4, "clinic_id": 2, "supply_id": 2, "quantity": 200,  "min_stock": 30,  "last_updated": "2025-02-20", "updated_by": 3},
-    {"inventory_id": 5, "clinic_id": 3, "supply_id": 5, "quantity": 1000, "min_stock": 100, "last_updated": "2025-01-15", "updated_by": 3},
+    {"inventory_id": 1, "clinic_id": 1, "supply_id": 1, "quantity": 500,  "min_stock": 50,  "last_updated": "2025-03-01"},
+    {"inventory_id": 2, "clinic_id": 1, "supply_id": 3, "quantity": 30,   "min_stock": 20,  "last_updated": "2025-03-01"},
+    {"inventory_id": 3, "clinic_id": 1, "supply_id": 4, "quantity": 8,    "min_stock": 10,  "last_updated": "2025-03-10"},  # bajo stock
+    {"inventory_id": 4, "clinic_id": 2, "supply_id": 2, "quantity": 200,  "min_stock": 30,  "last_updated": "2025-02-20"},
+    {"inventory_id": 5, "clinic_id": 3, "supply_id": 5, "quantity": 1000, "min_stock": 100, "last_updated": "2025-01-15"},
 ]
 
-# --- RISK ZONES (mapa) 
+# Tablas nuevas del schema
+BEACONS = []
+SCAN_LOGS = []
+AUDIT_LOG = []
+
+# --- RISK ZONES (mapa) --------------------------------------------------
 ZONES = [
     {"name": "Zona Centro",   "cases": 4, "risk": "high"},
     {"name": "Zona Norte",    "cases": 2, "risk": "medium"},
@@ -228,65 +378,84 @@ ZONES = [
     {"name": "Zona Poniente", "cases": 1, "risk": "low"},
 ]
 
-# --- USERS (login) 
+# --- USERS (login) -------------------------------------------------------
 USERS = {
     "admin": {"password": "123", "worker_id": 1, "name": "Admin", "lastname": "Demo", "role": "Administrador"},
 }
 
 
-# 
+# =============================================================================
 # HELPERS — simulan el cursor de psycopg2
 # =============================================================================
 
 def _cur_fetchall(table):
-    """Devuelve todos los registros de una tabla (simula cur.fetchall())."""
     tables = {
-        "countries":               COUNTRIES,
-        "states":                  STATES,
-        "municipalities":          MUNICIPALITIES,
-        "neighborhoods":           NEIGHBORHOODS,
-        "addresses":               ADDRESSES,
-        "clinics":                 CLINICS,
-        "clinic_areas":            CLINIC_AREAS,
-        "roles":                   ROLES,
-        "workers":                 WORKERS,
-        "worker_professional":     WORKER_PROFESSIONAL,
-        "worker_clinic_assignments": WORKER_CLINIC_ASSIGNMENTS,
-        "worker_schedules":        WORKER_SCHEDULES,
-        "guardians":               GUARDIANS,
-        "guardian_phones":         GUARDIAN_PHONES,
-        "guardian_emails":         GUARDIAN_EMAILS,
-        "patients":                PATIENTS,
-        "patient_allergies":       PATIENT_ALLERGIES,
-        "vaccines":                VACCINES,
-        "vaccine_lots":            VACCINE_LOTS,
-        "applications":            APPLICATIONS,
-        "scheme":                  SCHEME,
-        "scheme_completion_alerts": SCHEME_COMPLETION_ALERTS,
-        "appointments":            APPOINTMENTS,
-        "nfc_cards":               NFC_CARDS,
-        "nfc_scan_events":         NFC_SCAN_EVENTS,
-        "gps_devices":             GPS_DEVICES,
-        "gps_risk_alerts":         GPS_RISK_ALERTS,
-        "gps_safe_zones":          GPS_SAFE_ZONES,
-        "supply_catalog":          SUPPLY_CATALOG,
-        "clinic_inventory":        CLINIC_INVENTORY,
-        "zones":                   ZONES,
+        "countries":                  COUNTRIES,
+        "states":                     STATES,
+        "municipalities":             MUNICIPALITIES,
+        "neighborhoods":              NEIGHBORHOODS,
+        "addresses":                  ADDRESSES,
+        "clinics":                    CLINICS,
+        "area_types":                 AREA_TYPES,
+        "clinic_areas":               CLINIC_AREAS,
+        "equipment_catalog":          EQUIPMENT_CATALOG,
+        "area_equipment":             AREA_EQUIPMENT,
+        "blood_types":                BLOOD_TYPES,
+        "patients":                   PATIENTS,
+        "allergies":                  ALLERGIES,
+        "patient_allergies":          PATIENT_ALLERGIES,
+        "marital_status":             MARITAL_STATUS,
+        "occupations":                OCCUPATIONS,
+        "guardians":                  GUARDIANS,
+        "guardian_phones":            GUARDIAN_PHONES,
+        "guardian_emails":            GUARDIAN_EMAILS,
+        "patient_guardian_relations": PATIENT_GUARDIAN_RELATIONS,
+        "roles":                      ROLES,
+        "specialties":                SPECIALTIES,
+        "institutions":               INSTITUTIONS,
+        "workers":                    WORKERS,
+        "worker_phones":              WORKER_PHONES,
+        "worker_emails":              WORKER_EMAILS,
+        "worker_professional":        WORKER_PROFESSIONAL,
+        "worker_clinic_assignment":   WORKER_CLINIC_ASSIGNMENT,
+        "worker_schedules":           WORKER_SCHEDULES,
+        "manufacturers":              MANUFACTURERS,
+        "vaccine_vias":               VACCINE_VIAS,
+        "vaccines":                   VACCINES,
+        "vaccine_lots":               VACCINE_LOTS,
+        "vaccination_scheme":         VACCINATION_SCHEME,
+        "scheme_doses":               SCHEME_DOSES,
+        "appointments":               APPOINTMENTS,
+        "application_sites":          APPLICATION_SITES,
+        "vaccination_records":        VACCINATION_RECORDS,
+        "post_vaccine_reactions":     POST_VACCINE_REACTIONS,
+        "scheme_completion_alerts":   SCHEME_COMPLETION_ALERTS,
+        "nfc_cards":                  NFC_CARDS,
+        "nfc_devices":                NFC_DEVICES,
+        "nfc_scan_events":            NFC_SCAN_EVENTS,
+        "gps_devices":                GPS_DEVICES,
+        "gps_locations":              GPS_LOCATIONS,
+        "gps_safe_zones":             GPS_SAFE_ZONES,
+        "gps_risk_alerts":            GPS_RISK_ALERTS,
+        "supply_catalog":             SUPPLY_CATALOG,
+        "clinic_inventory":           CLINIC_INVENTORY,
+        "beacons":                    BEACONS,
+        "scan_logs":                  SCAN_LOGS,
+        "audit_log":                  AUDIT_LOG,
+        "zones":                      ZONES,
     }
     return list(tables.get(table, []))
 
 
 def _cur_fetchone(table, pk_field, pk_value):
-    """Devuelve el primer registro que coincida con la PK (simula cur.fetchone())."""
     return next((row for row in _cur_fetchall(table) if row.get(pk_field) == pk_value), None)
 
 
 def _cur_fetchall_where(table, field, value):
-    """Devuelve todos los registros filtrados por un campo (simula WHERE simple)."""
     return [row for row in _cur_fetchall(table) if row.get(field) == value]
 
 
-# 
+# =============================================================================
 # HELPERS — sesión, formateo, ids
 # =============================================================================
 
@@ -302,11 +471,11 @@ def _session_vars():
     last  = session.get("user_lastname", "")
     initials = ((first[:1] + last[:1]).upper()) or "AD"
     return {
-        "name":     first,
-        "lastname": last,
-        "role":     session.get("role", "Administrador"),
+        "name":      first,
+        "lastname":  last,
+        "role":      session.get("role", "Administrador"),
         "worker_id": session.get("worker_id"),
-        "initials": initials,
+        "initials":  initials,
     }
 
 
@@ -329,7 +498,7 @@ def _next_id(items, key):
 
 
 def _patient_full_name(patient):
-    parts = [patient.get("first_name", ""), patient.get("last_name", ""), patient.get("second_last") or ""]
+    parts = [patient.get("first_name", ""), patient.get("last_name", "")]
     return " ".join(p for p in parts if p).strip()
 
 
@@ -340,11 +509,11 @@ def _worker_full_name(worker_id):
     return f"{w['first_name']} {w['last_name']}".strip()
 
 
-def _guardian_full_name(guardian_id):
-    g = _cur_fetchone("guardians", "guardian_id", guardian_id)
-    if not g:
-        return "Tutor no registrado"
-    return f"{g['first_name']} {g['last_name']}".strip()
+def _worker_email(worker_id):
+    """Devuelve el email primario del trabajador desde worker_emails."""
+    emails = _cur_fetchall_where("worker_emails", "worker_id", worker_id)
+    primary = next((e for e in emails if e.get("is_primary")), None)
+    return (primary or emails[0])["email"] if emails else "—"
 
 
 def _guardian_primary_phone(guardian_id):
@@ -353,38 +522,80 @@ def _guardian_primary_phone(guardian_id):
     return (primary or phones[0])["phone"] if phones else "—"
 
 
+def _patient_primary_guardian(patient_id):
+    """Devuelve el guardian_id del tutor primario via patient_guardian_relations."""
+    rels = _cur_fetchall_where("patient_guardian_relations", "patient_id", patient_id)
+    primary_rel = next((r for r in rels if r.get("is_primary")), None)
+    if not primary_rel and rels:
+        primary_rel = rels[0]
+    return primary_rel["guardian_id"] if primary_rel else None
+
+
+def _guardian_full_name(guardian_id):
+    g = _cur_fetchone("guardians", "guardian_id", guardian_id)
+    if not g:
+        return "Tutor no registrado"
+    return f"{g['first_name']} {g['last_name']}".strip()
+
+
 def _vaccine_name(vaccine_id):
     v = _cur_fetchone("vaccines", "vaccine_id", vaccine_id)
     return v["name"] if v else "Vacuna desconocida"
 
 
+def _blood_type_str(blood_type_id):
+    bt = _cur_fetchone("blood_types", "blood_type_id", blood_type_id)
+    return bt["blood_type"] if bt else "—"
+
+
 def _enrich_patient(p):
     """Agrega campos calculados y relacionados a un paciente."""
     item = dict(p)
-    item["full_name"]  = _patient_full_name(p)
-    item["age"]        = _age_years(p["birth_date"])
-    item["guardian"]   = _guardian_full_name(p["guardian_id"])
-    item["contact"]    = _guardian_primary_phone(p["guardian_id"])
-    item["allergies"]  = ", ".join(
-        a["allergen"] for a in _cur_fetchall_where("patient_allergies", "patient_id", p["patient_id"])
-    ) or "Ninguna"
-    item["risk"]       = p.get("risk_level", "bajo")
+    item["full_name"]   = _patient_full_name(p)
+    item["age"]         = _age_years(p["birth_date"])
+    item["blood_type"]  = _blood_type_str(p.get("blood_type_id"))
+
+    # Guardian via patient_guardian_relations (normalizado)
+    g_id = _patient_primary_guardian(p["patient_id"])
+    item["guardian"]    = _guardian_full_name(g_id) if g_id else "Sin tutor"
+    item["contact"]     = _guardian_primary_phone(g_id) if g_id else "—"
+
+    # Alergias via tabla allergies normalizada
+    pa_rows = _cur_fetchall_where("patient_allergies", "patient_id", p["patient_id"])
+    allergy_names = []
+    for pa in pa_rows:
+        allergy = _cur_fetchone("allergies", "allergy_id", pa["allergy_id"])
+        if allergy:
+            allergy_names.append(allergy["name"])
+    item["allergies"] = ", ".join(allergy_names) or "Ninguna"
+
+    # risk_level ya no existe en patients; se calcula o se omite
+    item["risk"] = "N/A"
     return item
 
 
-def _enrich_application(a):
-    """Agrega nombres legibles a un registro de vacunación."""
-    item = dict(a)
-    item["patient_name"] = _patient_full_name(
-        _cur_fetchone("patients", "patient_id", a["patient_id"]) or {}
-    )
-    item["name"]   = _vaccine_name(a["vaccine_id"])
-    item["doctor"] = _worker_full_name(a["applied_by"])
-    item["date"]   = a["applied_date"]
-    item["next_date"] = a.get("next_dose_date")
-    item["dose"]   = a["dose_applied"]
-    item["notes"]  = a.get("notes", "")
-    item["id"]     = a["record_id"]
+def _enrich_record(r):
+    """Agrega nombres legibles a un registro de vacunación (vaccination_records)."""
+    item = dict(r)
+    patient = _cur_fetchone("patients", "patient_id", r["patient_id"])
+    item["patient_name"] = _patient_full_name(patient) if patient else "—"
+    item["name"]         = _vaccine_name(r["vaccine_id"])
+    item["doctor"]       = _worker_full_name(r["worker_id"])
+    item["date"]         = r["applied_date"]
+    item["id"]           = r["record_id"]
+
+    # Dosis desde scheme_doses
+    dose = _cur_fetchone("scheme_doses", "dose_id", r.get("scheme_dose_id"))
+    item["dose"]      = dose["dose_label"] if dose else "—"
+    item["next_date"] = None  # ya no existe next_dose_date; se calcula por esquema si se requiere
+
+    # Sitio de aplicación
+    site = _cur_fetchone("application_sites", "application_site_id", r.get("application_site_id"))
+    item["application_site"] = site["application_site"] if site else "—"
+
+    item["had_reaction"]   = r.get("had_reaction", False)
+    item["patient_temp_c"] = r.get("patient_temp_c")
+    item["notes"]          = "Con reacción" if r.get("had_reaction") else "Sin reacciones"
     return item
 
 
@@ -436,19 +647,15 @@ def dashboard():
     if locked:
         return locked
 
-    # cur.fetchall() simulado
     patients_raw  = _cur_fetchall("patients")
     vaccines_raw  = _cur_fetchall("vaccines")
-    apps_raw      = _cur_fetchall("applications")
+    records_raw   = _cur_fetchall("vaccination_records")
     alerts_raw    = _cur_fetchall("gps_risk_alerts")
     inventory_raw = _cur_fetchall("clinic_inventory")
 
-    # Estadísticas de inventario bajo
-    low_stock = [i for i in inventory_raw if i["quantity"] < i["min_stock"]]
-
+    low_stock    = [i for i in inventory_raw if i["quantity"] < i["min_stock"]]
     top_patients = [_enrich_patient(p) for p in patients_raw[:3]]
 
-    # KPIs de sesión
     session["last_visit"] = date.today().isoformat()
 
     ctx = {
@@ -457,7 +664,7 @@ def dashboard():
         "total_patients":     len(patients_raw),
         "total_vaccines":     len(vaccines_raw),
         "applications_today": sum(
-            1 for a in apps_raw if a["applied_date"] == date.today().isoformat()
+            1 for r in records_raw if r["applied_date"] == date.today().isoformat()
         ),
         "pending_alerts":     len([al for al in alerts_raw if al["resolved_at"] is None]),
         "low_stock_count":    len(low_stock),
@@ -474,7 +681,6 @@ def pacientes():
     if locked:
         return locked
 
-    # cur.fetchall() simulado
     patients_raw = _cur_fetchall("patients")
     patients     = [_enrich_patient(p) for p in patients_raw]
 
@@ -500,18 +706,16 @@ def register_patient():
     if not first_name or not last_name:
         return jsonify({"error": "Nombre y apellido son requeridos"}), 400
 
-    # Simular INSERT en guardians
+    # Simular INSERT en guardians (sin second_last, marital_status/occupation como FK int)
     new_guardian_id = _next_id(GUARDIANS, "guardian_id")
     GUARDIANS.append({
-        "guardian_id":   new_guardian_id,
-        "first_name":    (tutor.get("name")     or "Tutor").strip(),
-        "last_name":     (tutor.get("lastname")  or "Demo").strip(),
-        "second_last":   None,
-        "curp":          None,
-        "address_id":    None,
-        "marital_status": None,
-        "occupation":    None,
-        "created_at":    date.today().isoformat(),
+        "guardian_id":       new_guardian_id,
+        "first_name":        (tutor.get("name")    or "Tutor").strip(),
+        "last_name":         (tutor.get("lastname") or "Demo").strip(),
+        "curp":              None,
+        "address_id":        None,
+        "marital_status_id": None,
+        "occupation":        None,
     })
     if tutor.get("number"):
         GUARDIAN_PHONES.append({
@@ -522,23 +726,29 @@ def register_patient():
             "is_primary":  True,
         })
 
-    # Simular INSERT en patients
+    # Simular INSERT en patients (sin second_last, address_id, risk_level, is_active, registered_at)
     new_pid = _next_id(PATIENTS, "patient_id")
     PATIENTS.append({
         "patient_id":   new_pid,
         "first_name":   first_name,
         "last_name":    last_name,
-        "second_last":  None,
         "curp":         payload.get("curp"),
         "birth_date":   payload.get("birth_date") or "2021-01-01",
         "gender":       payload.get("gender") or "M",
-        "blood_type":   payload.get("blood_type") or "O+",
+        "blood_type_id": 1,  # O+ por default
         "nfc_token":    f"NFC{new_pid:03d}",
-        "guardian_id":  new_guardian_id,
-        "address_id":   None,
-        "risk_level":   "bajo",
-        "is_active":    True,
-        "registered_at": date.today().isoformat(),
+        "weight_kg":    payload.get("weight_kg"),
+        "premature":    bool(payload.get("premature", False)),
+    })
+
+    # Simular INSERT en patient_guardian_relations
+    PATIENT_GUARDIAN_RELATIONS.append({
+        "relation_id":   _next_id(PATIENT_GUARDIAN_RELATIONS, "relation_id"),
+        "patient_id":    new_pid,
+        "guardian_id":   new_guardian_id,
+        "relation_type": "Tutor",
+        "is_primary":    True,
+        "has_custody":   True,
     })
 
     flash(f"Paciente {first_name} {last_name} registrado correctamente.", "success")
@@ -551,7 +761,6 @@ def delete_patient(id):
     if locked:
         return jsonify({"error": "No autenticado"}), 401
 
-    # cur.fetchone() simulado
     patient = _cur_fetchone("patients", "patient_id", id)
     if not patient:
         return jsonify({"error": "Paciente no encontrado"}), 404
@@ -559,8 +768,11 @@ def delete_patient(id):
     PATIENTS.remove(patient)
     nombre = _patient_full_name(patient)
 
-    for a in _cur_fetchall_where("applications", "patient_id", id):
-        APPLICATIONS.remove(a)
+    for r in _cur_fetchall_where("vaccination_records", "patient_id", id):
+        VACCINATION_RECORDS.remove(r)
+
+    for rel in _cur_fetchall_where("patient_guardian_relations", "patient_id", id):
+        PATIENT_GUARDIAN_RELATIONS.remove(rel)
 
     flash(f"Paciente {nombre} eliminado.", "warning")
     return jsonify({"message": "Paciente eliminado (demo)"})
@@ -575,19 +787,17 @@ def historial():
 
     patients_raw = _cur_fetchall("patients")
     patient      = _enrich_patient(patients_raw[0]) if patients_raw else None
-    apps_raw     = _cur_fetchall_where("applications", "patient_id", patient["patient_id"]) if patient else []
-    apps         = [_enrich_application(a) for a in apps_raw]
+    records_raw  = _cur_fetchall_where("vaccination_records", "patient_id", patient["patient_id"]) if patient else []
+    records      = [_enrich_record(r) for r in records_raw]
 
-    next_vaccines = [
-        {"name": "Hepatitis B", "dose": "2", "date": "2025-06-10"},
-        {"name": "Pentavalente", "dose": "3", "date": "2025-07-20"},
-    ]
+    next_vaccines = _build_next_vaccines(patient["patient_id"]) if patient else []
+
     return render_template(
         "historial_2daE.html",
         **_session_vars(),
         patients=[_enrich_patient(p) for p in patients_raw],
         patient=patient,
-        applications=apps,
+        applications=records,
         next_vaccines=next_vaccines,
     )
 
@@ -598,20 +808,15 @@ def historial_paciente(id):
     if locked:
         return locked
 
-    # cur.fetchone() + cur.fetchall() simulados
     patient_raw = _cur_fetchone("patients", "patient_id", id)
     if not patient_raw:
         flash("Paciente no encontrado.", "danger")
         return redirect(url_for("historial"))
 
-    patient  = _enrich_patient(patient_raw)
-    apps_raw = _cur_fetchall_where("applications", "patient_id", id)
-    apps     = [_enrich_application(a) for a in apps_raw]
+    patient     = _enrich_patient(patient_raw)
+    records_raw = _cur_fetchall_where("vaccination_records", "patient_id", id)
+    records     = [_enrich_record(r) for r in records_raw]
 
-    next_vaccines = [
-        {"name": "Refuerzo Pentavalente", "dose": "3", "date": "2025-08-15"},
-        {"name": "Influenza",             "dose": "1", "date": "2025-09-01"},
-    ]
     session["last_patient_viewed"] = id
 
     return render_template(
@@ -619,9 +824,28 @@ def historial_paciente(id):
         **_session_vars(),
         patients=[_enrich_patient(p) for p in _cur_fetchall("patients")],
         patient=patient,
-        applications=apps,
-        next_vaccines=next_vaccines,
+        applications=records,
+        next_vaccines=_build_next_vaccines(id),
     )
+
+
+def _build_next_vaccines(patient_id):
+    """Construye las próximas vacunas pendientes desde scheme_doses vs vaccination_records."""
+    applied_dose_ids = {
+        r["scheme_dose_id"]
+        for r in _cur_fetchall_where("vaccination_records", "patient_id", patient_id)
+        if r.get("scheme_dose_id")
+    }
+    pending = []
+    for dose in _cur_fetchall("scheme_doses"):
+        if dose["dose_id"] not in applied_dose_ids:
+            vaccine = _cur_fetchone("vaccines", "vaccine_id", dose["vaccine_id"])
+            pending.append({
+                "name": vaccine["name"] if vaccine else "—",
+                "dose": dose["dose_label"],
+                "date": f"A los {dose['ideal_age_months']} meses" if dose.get("ideal_age_months") is not None else "—",
+            })
+    return pending[:3]
 
 
 # ── ESQUEMA PACIENTE ──────────────────────────────────────────────────────────
@@ -636,21 +860,17 @@ def esquema_paciente(id):
         flash("Paciente no encontrado.", "danger")
         return redirect(url_for("historial"))
 
-    patient  = _enrich_patient(patient_raw)
-    apps_raw = _cur_fetchall_where("applications", "patient_id", id)
-    apps     = [_enrich_application(a) for a in apps_raw]
-    next_vaccines = [
-        {"name": "Hepatitis B",  "dose": "Dosis 2", "date": "2025-06-10"},
-        {"name": "Pentavalente", "dose": "Dosis 3",  "date": "2025-07-20"},
-    ]
+    patient     = _enrich_patient(patient_raw)
+    records_raw = _cur_fetchall_where("vaccination_records", "patient_id", id)
+    records     = [_enrich_record(r) for r in records_raw]
 
     return render_template(
         "esquemaPaciente_2daE.html",
         **_session_vars(),
         patient=patient,
         patient_name=patient["full_name"],
-        applications=apps,
-        next_vaccines=next_vaccines,
+        applications=records,
+        next_vaccines=_build_next_vaccines(id),
     )
 
 
@@ -661,10 +881,16 @@ def esquema_vacunacion():
     if locked:
         return locked
 
+    # Construir datos del esquema para la plantilla
+    scheme_data = []
+    for dose in _cur_fetchall("scheme_doses"):
+        vaccine = _cur_fetchone("vaccines", "vaccine_id", dose["vaccine_id"])
+        scheme_data.append((dose, vaccine or {}))
+
     return render_template(
         "esquemaVacunacion_2daE.html",
         **_session_vars(),
-        esquema=_cur_fetchall("scheme"),
+        esquema=scheme_data,
     )
 
 
@@ -678,12 +904,16 @@ def vacunas_page():
     vaccines = _cur_fetchall("vaccines")
     lots     = _cur_fetchall("vaccine_lots")
 
-    # Agregar stock total por vacuna desde lotes activos
+    # Enriquecer vacunas con fabricante, vía y stock (quantity_available)
     for v in vaccines:
-        v["inventory"] = sum(
-            l["quantity_remaining"]
+        mfr = _cur_fetchone("manufacturers", "manufacturer_id", v.get("manufacturer_id"))
+        via = _cur_fetchone("vaccine_vias",  "via_id",          v.get("via_id"))
+        v["manufacturer"] = mfr["name"] if mfr else "—"
+        v["route"]        = via["via"]  if via  else "—"
+        v["inventory"]    = sum(
+            l["quantity_available"]
             for l in lots
-            if l["vaccine_id"] == v["vaccine_id"] and l["is_active"]
+            if l["vaccine_id"] == v["vaccine_id"]
         )
 
     return render_template(
@@ -708,15 +938,13 @@ def register_vaccine():
 
     new_vid = _next_id(VACCINES, "vaccine_id")
     VACCINES.append({
-        "vaccine_id":             new_vid,
-        "name":                   name,
-        "disease_target":         payload.get("disease_target") or "No especificado",
-        "manufacturer":           payload.get("manufacturer") or "Sin fabricante",
-        "recommended_age_months": payload.get("recommended_age_months"),
-        "doses_required":         int(payload.get("doses_required") or 1),
-        "interval_days":          payload.get("interval_days"),
-        "route":                  payload.get("route") or "Intramuscular",
-        "is_active":              True,
+        "vaccine_id":       new_vid,
+        "name":             name,
+        "commercial_name":  payload.get("commercial_name"),
+        "manufacturer_id":  payload.get("manufacturer_id"),
+        "via_id":           payload.get("via_id"),
+        "ideal_age_months": payload.get("ideal_age_months"),
+        "descripcion":      payload.get("descripcion") or "No especificado",
     })
     flash(f"Vacuna '{name}' registrada.", "success")
     return jsonify({"message": "Vacuna registrada (demo)", "vaccine_id": new_vid})
@@ -737,29 +965,29 @@ def delete_vaccine(id):
     return jsonify({"message": "Vacuna eliminada (demo)"})
 
 
-# ── APLICACIONES ──────────────────────────────────────────────────────────────
+# ── APLICACIONES (VACCINATION RECORDS) ───────────────────────────────────────
 @app.route("/aplicaciones")
 def aplicaciones():
     locked = _require_login()
     if locked:
         return locked
 
-    apps_raw          = _cur_fetchall("applications")
-    apps              = [_enrich_application(a) for a in apps_raw]
-    unique_patients   = len(set(a["patient_id"] for a in apps_raw))
-    unique_vaccines   = len(set(a["vaccine_id"] for a in apps_raw))
+    records_raw       = _cur_fetchall("vaccination_records")
+    records           = [_enrich_record(r) for r in records_raw]
+    unique_patients   = len(set(r["patient_id"] for r in records_raw))
+    unique_vaccines   = len(set(r["vaccine_id"] for r in records_raw))
     applications_today = sum(
-        1 for a in apps_raw if a["applied_date"] == date.today().isoformat()
+        1 for r in records_raw if r["applied_date"] == date.today().isoformat()
     )
 
     return render_template(
         "aplicaciones_2daE.html",
         **_session_vars(),
-        total_applications=len(apps),
+        total_applications=len(records),
         total_patients_attended=unique_patients,
         total_unique_vaccines=unique_vaccines,
         applications_today=applications_today,
-        applications=apps,
+        applications=records,
     )
 
 
@@ -775,32 +1003,35 @@ def agregar_aplicacion():
     if request.method == "POST":
         form = dict(request.form)
         try:
-            patient_id = int(request.form.get("patient_id", "0"))
-            vaccine_id = int(request.form.get("vaccine_id", "0"))
-            worker_id  = int(request.form.get("worker_id",  "0"))
+            patient_id     = int(request.form.get("patient_id", "0"))
+            vaccine_id     = int(request.form.get("vaccine_id", "0"))
+            worker_id      = int(request.form.get("worker_id",  "0"))
+            scheme_dose_id = request.form.get("scheme_dose_id")
+            scheme_dose_id = int(scheme_dose_id) if scheme_dose_id else None
+            app_site_id    = request.form.get("application_site_id")
+            app_site_id    = int(app_site_id) if app_site_id else None
         except ValueError:
             error = "IDs inválidos"
         else:
-            # cur.fetchone() simulado
             patient = _cur_fetchone("patients", "patient_id", patient_id)
             vaccine = _cur_fetchone("vaccines",  "vaccine_id", vaccine_id)
             if not patient or not vaccine:
                 error = "Paciente o vacuna no encontrados"
             else:
                 new_record = {
-                    "record_id":      _next_id(APPLICATIONS, "record_id"),
-                    "patient_id":     patient_id,
-                    "vaccine_id":     vaccine_id,
-                    "lot_id":         None,
-                    "clinic_id":      1,
-                    "applied_by":     worker_id or session.get("worker_id", 1),
-                    "applied_date":   request.form.get("applied_date") or date.today().isoformat(),
-                    "dose_applied":   request.form.get("dose_applied") or "1",
-                    "next_dose_date": None,
-                    "clinic_location": request.form.get("clinic_location") or "Consultorio",
-                    "notes":          request.form.get("notes") or "",
+                    "record_id":           _next_id(VACCINATION_RECORDS, "record_id"),
+                    "patient_id":          patient_id,
+                    "vaccine_id":          vaccine_id,
+                    "worker_id":           worker_id or session.get("worker_id", 1),
+                    "clinic_id":           1,
+                    "lot_id":              None,
+                    "scheme_dose_id":      scheme_dose_id,
+                    "applied_date":        request.form.get("applied_date") or date.today().isoformat(),
+                    "application_site_id": app_site_id,
+                    "patient_temp_c":      request.form.get("patient_temp_c") or None,
+                    "had_reaction":        request.form.get("had_reaction") == "true",
                 }
-                APPLICATIONS.insert(0, new_record)
+                VACCINATION_RECORDS.insert(0, new_record)
                 flash(
                     f"Aplicación de {vaccine['name']} registrada para "
                     f"{_patient_full_name(patient)}.",
@@ -814,6 +1045,8 @@ def agregar_aplicacion():
         patients=_cur_fetchall("patients"),
         vaccines=_cur_fetchall("vaccines"),
         workers=_cur_fetchall("workers"),
+        scheme_doses=_cur_fetchall("scheme_doses"),
+        application_sites=_cur_fetchall("application_sites"),
         form=form,
         error=error,
     )
@@ -826,16 +1059,16 @@ def personal():
     if locked:
         return locked
 
-    # cur.fetchall() simulado con join roles
     workers_raw = _cur_fetchall("workers")
     workers = []
     for w in workers_raw:
-        row = dict(w)
+        row  = dict(w)
         role = _cur_fetchone("roles", "role_id", w["role_id"])
         row["role"]     = role["name"] if role else "Sin rol"
         row["name"]     = w["first_name"]
         row["lastname"] = w["last_name"]
-        row["mail"]     = w["email"]
+        # email desde worker_emails
+        row["mail"]     = _worker_email(w["worker_id"])
         workers.append(row)
 
     return render_template(
@@ -862,33 +1095,49 @@ def add_user():
         confirm  = request.form.get("password_confirm") or ""
         mail     = (request.form.get("mail") or "").strip()
 
+        # Verificar email en worker_emails
+        email_exists = any(
+            (e.get("email") or "").lower() == mail.lower()
+            for e in _cur_fetchall("worker_emails")
+        )
+
         if password != confirm:
             error = "Las contraseñas no coinciden"
             flash(error, "danger")
-        elif any((w.get("email") or "").lower() == mail.lower() for w in WORKERS):
+        elif email_exists:
             error = "El email ya existe en el sistema"
             flash(error, "danger")
         else:
             role_id = int(request.form.get("role_id") or 3)
             new_wid = _next_id(WORKERS, "worker_id")
             WORKERS.append({
-                "worker_id":   new_wid,
-                "role_id":     role_id,
-                "first_name":  request.form.get("name", ""),
-                "last_name":   request.form.get("lastname", ""),
-                "second_last": None,
-                "curp":        None,
-                "email":       mail,
-                "phone":       request.form.get("phone"),
-                "address_id":  None,
-                "birth_date":  None,
-                "hire_date":   date.today().isoformat(),
-                "is_active":   True,
+                "worker_id":     new_wid,
+                "role_id":       role_id,
+                "first_name":    request.form.get("name", ""),
+                "last_name":     request.form.get("lastname", ""),
+                "curp":          None,
+                "address_id":    None,
+                "birth_date":    None,
+                "hire_date":     date.today().isoformat(),
                 "password_hash": f"hash:{password}",
-                "created_at":  datetime.now().isoformat(),
-                "updated_at":  datetime.now().isoformat(),
             })
-            # Guardar en sesión el último trabajador registrado
+            # Insertar email en worker_emails
+            WORKER_EMAILS.append({
+                "email_id":  _next_id(WORKER_EMAILS, "email_id"),
+                "worker_id": new_wid,
+                "email":     mail,
+                "is_primary": True,
+            })
+            # Insertar teléfono si viene
+            phone = request.form.get("phone")
+            if phone:
+                WORKER_PHONES.append({
+                    "phone_id":  _next_id(WORKER_PHONES, "phone_id"),
+                    "worker_id": new_wid,
+                    "phone":     phone,
+                    "phone_type": "Celular",
+                    "is_primary": True,
+                })
             session["last_registered_worker"] = new_wid
             flash(
                 f"Usuario {request.form.get('name', '')} registrado correctamente.",
@@ -919,7 +1168,6 @@ def mapa_riesgo():
     medium = sum(1 for z in zones if z["risk"] == "medium")
     low    = sum(1 for z in zones if z["risk"] == "low")
 
-    # Alertas GPS activas (sin resolver)
     active_gps_alerts = [a for a in alerts if a["resolved_at"] is None]
 
     return render_template(
@@ -953,14 +1201,14 @@ def inventario():
     inventory_raw = _cur_fetchall("clinic_inventory")
     inventory = []
     for row in inventory_raw:
-        item    = dict(row)
-        supply  = _cur_fetchone("supply_catalog", "supply_id", row["supply_id"])
-        clinic  = _cur_fetchone("clinics",        "clinic_id", row["clinic_id"])
-        item["supply_name"]    = supply["name"]    if supply else "—"
-        item["supply_unit"]    = supply["unit"]    if supply else "—"
+        item   = dict(row)
+        supply = _cur_fetchone("supply_catalog", "supply_id", row["supply_id"])
+        clinic = _cur_fetchone("clinics",        "clinic_id", row["clinic_id"])
+        item["supply_name"]     = supply["name"]     if supply else "—"
+        item["supply_unit"]     = supply["unit"]     if supply else "—"
         item["supply_category"] = supply["category"] if supply else "—"
-        item["clinic_name"]    = clinic["name"]    if clinic else "—"
-        item["low_stock"]      = row["quantity"] < row["min_stock"]
+        item["clinic_name"]     = clinic["name"]     if clinic else "—"
+        item["low_stock"]       = row["quantity"] < row["min_stock"]
         inventory.append(item)
 
     if any(i["low_stock"] for i in inventory):
@@ -985,18 +1233,22 @@ def citas():
     appointments_raw = _cur_fetchall("appointments")
     appointments = []
     for ap in appointments_raw:
-        item = dict(ap)
+        item    = dict(ap)
         patient = _cur_fetchone("patients", "patient_id", ap["patient_id"])
         worker  = _cur_fetchone("workers",  "worker_id",  ap["worker_id"])
-        vaccine = _cur_fetchone("vaccines", "vaccine_id", ap["vaccine_id"])
         clinic  = _cur_fetchone("clinics",  "clinic_id",  ap["clinic_id"])
+        area    = _cur_fetchone("clinic_areas", "area_id", ap.get("area_id")) if ap.get("area_id") else None
         item["patient_name"] = _patient_full_name(patient) if patient else "—"
         item["worker_name"]  = f"{worker['first_name']} {worker['last_name']}" if worker else "—"
-        item["vaccine_name"] = vaccine["name"] if vaccine else "—"
-        item["clinic_name"]  = clinic["name"]  if clinic  else "—"
+        item["clinic_name"]  = clinic["name"] if clinic else "—"
+        item["area_name"]    = area["name"]   if area   else "—"
+        # vaccine_id ya no existe en appointments; se muestra el motivo
+        item["vaccine_name"] = ap.get("reason") or "—"
+        # normalizar nombres de campos para la plantilla
+        item["status"]       = ap.get("appointment_status", "—")
+        item["notes"]        = ap.get("appointment_notes", "")
         appointments.append(item)
 
-    # Guardar en sesión la última vista
     session["last_section"] = "citas"
 
     return render_template(
@@ -1024,16 +1276,20 @@ def nfc():
         item    = dict(c)
         patient = _cur_fetchone("patients", "patient_id", c["patient_id"])
         item["patient_name"] = _patient_full_name(patient) if patient else "—"
+        # nfc_card_notes → notas en plantilla
+        item["notes"] = c.get("nfc_card_notes")
         cards.append(item)
 
     scan_events_raw = _cur_fetchall("nfc_scan_events")
     scans = []
     for s in scan_events_raw:
         item = dict(s)
-        item["worker_name"] = _worker_full_name(s["scanned_by"])
+        item["worker_name"] = _worker_full_name(s["scanned_by"]) if s.get("scanned_by") else "—"
         card    = _cur_fetchone("nfc_cards", "nfc_card_id", s["nfc_card_id"])
         patient = _cur_fetchone("patients", "patient_id", card["patient_id"]) if card else None
         item["patient_name"] = _patient_full_name(patient) if patient else "—"
+        # nfc_scan_result → result en plantilla
+        item["result"] = s.get("nfc_scan_result")
         scans.append(item)
 
     return render_template(
@@ -1059,6 +1315,8 @@ def gps():
         item    = dict(d)
         patient = _cur_fetchone("patients", "patient_id", d["patient_id"])
         item["patient_name"] = _patient_full_name(patient) if patient else "—"
+        # gps_device_status → status en plantilla
+        item["status"] = d.get("gps_device_status")
         devices.append(item)
 
     alerts_raw = _cur_fetchall("gps_risk_alerts")
@@ -1067,7 +1325,9 @@ def gps():
         item    = dict(a)
         patient = _cur_fetchone("patients", "patient_id", a["patient_id"])
         item["patient_name"]  = _patient_full_name(patient) if patient else "—"
-        item["resolved_name"] = _worker_full_name(a["resolved_by"]) if a["resolved_by"] else "Pendiente"
+        item["resolved_name"] = _worker_full_name(a["resolved_by"]) if a.get("resolved_by") else "Pendiente"
+        # risk_notes → notes en plantilla
+        item["notes"] = a.get("risk_notes")
         alerts.append(item)
 
     active_alerts = [a for a in alerts if a["resolved_at"] is None]
@@ -1097,11 +1357,19 @@ def clinicas():
         item    = dict(c)
         address = _cur_fetchone("addresses", "address_id", c["address_id"])
         if address:
-            nbhd   = _cur_fetchone("neighborhoods", "neighborhood_id", address["neighborhood_id"])
+            nbhd = _cur_fetchone("neighborhoods", "neighborhood_id", address["neighborhood_id"])
             item["address_str"] = f"{address['street']} {address['ext_number'] or ''}, {nbhd['name'] if nbhd else ''}".strip(", ")
         else:
             item["address_str"] = "—"
-        item["areas"] = _cur_fetchall_where("clinic_areas", "clinic_id", c["clinic_id"])
+        # Enriquecer áreas con nombre del tipo
+        areas_raw = _cur_fetchall_where("clinic_areas", "clinic_id", c["clinic_id"])
+        areas = []
+        for a in areas_raw:
+            area_item = dict(a)
+            atype = _cur_fetchone("area_types", "area_type_id", a["area_type_id"])
+            area_item["area_type"] = atype["area_type"] if atype else "—"
+            areas.append(area_item)
+        item["areas"] = areas
         clinics.append(item)
 
     return render_template(
@@ -1141,9 +1409,8 @@ def api_global_search():
     for v in _cur_fetchall("vaccines"):
         if q in v["name"].lower() or q in str(v["vaccine_id"]):
             lot_stock = sum(
-                l["quantity_remaining"]
+                l["quantity_available"]  # actualizado desde quantity_remaining
                 for l in _cur_fetchall_where("vaccine_lots", "vaccine_id", v["vaccine_id"])
-                if l["is_active"]
             )
             results.append({
                 "type":     "vacuna",
@@ -1153,8 +1420,9 @@ def api_global_search():
             })
 
     for w in _cur_fetchall("workers"):
-        name = f"{w['first_name']} {w['last_name']}".strip()
-        if q in name.lower() or q in (w.get("email") or "").lower():
+        name  = f"{w['first_name']} {w['last_name']}".strip()
+        email = _worker_email(w["worker_id"])
+        if q in name.lower() or q in email.lower():
             role = _cur_fetchone("roles", "role_id", w["role_id"])
             results.append({
                 "type":     "personal",
@@ -1172,12 +1440,12 @@ def api_reportes_publicos_resumen():
     if locked:
         return jsonify({"error": "No autenticado"}), 401
 
-    apps_raw        = _cur_fetchall("applications")
-    patients_raw    = _cur_fetchall("patients")
-    total_doses     = len(apps_raw)
-    reached_pop     = len(set(a["patient_id"] for a in apps_raw))
-    target_pop      = max(len(patients_raw), 1)
-    coverage        = (reached_pop / target_pop) * 100
+    records_raw  = _cur_fetchall("vaccination_records")
+    patients_raw = _cur_fetchall("patients")
+    total_doses  = len(records_raw)
+    reached_pop  = len(set(r["patient_id"] for r in records_raw))
+    target_pop   = max(len(patients_raw), 1)
+    coverage     = (reached_pop / target_pop) * 100
 
     monthly = [
         {"period_label": "2026-01", "doses_applied": 1, "unique_patients": 1},
@@ -1187,10 +1455,10 @@ def api_reportes_publicos_resumen():
 
     vax_count  = {}
     vax_people = {}
-    for a in apps_raw:
-        vname = _vaccine_name(a["vaccine_id"])
+    for r in records_raw:
+        vname = _vaccine_name(r["vaccine_id"])
         vax_count[vname]  = vax_count.get(vname, 0) + 1
-        vax_people.setdefault(vname, set()).add(a["patient_id"])
+        vax_people.setdefault(vname, set()).add(r["patient_id"])
 
     vaccines_summary = [
         {
@@ -1205,11 +1473,11 @@ def api_reportes_publicos_resumen():
     zones_raw = _cur_fetchall("zones")
     zones_summary = [
         {
-            "zone_name":      z["name"],
-            "doses_applied":  z["cases"],
+            "zone_name":       z["name"],
+            "doses_applied":   z["cases"],
             "unique_patients": z["cases"],
-            "risk_level":     z["risk"],
-            "risk_label":     {"high": "Alto", "medium": "Medio", "low": "Bajo"}.get(z["risk"], "—"),
+            "risk_level":      z["risk"],
+            "risk_label":      {"high": "Alto", "medium": "Medio", "low": "Bajo"}.get(z["risk"], "—"),
         }
         for z in zones_raw
     ]
@@ -1230,7 +1498,6 @@ def api_reportes_publicos_resumen():
     return jsonify(payload)
 
 
-# ── Alertas de esquema incompleto (API) ───────────────────────────────────────
 @app.route("/api/alertas-esquema")
 def api_alertas_esquema():
     locked = _require_login()
@@ -1241,10 +1508,16 @@ def api_alertas_esquema():
     result = []
     for al in alerts_raw:
         patient = _cur_fetchone("patients", "patient_id", al["patient_id"])
+        dose    = _cur_fetchone("scheme_doses", "dose_id", al["scheme_dose_id"])
+        vaccine_name = "—"
+        if dose:
+            v = _cur_fetchone("vaccines", "vaccine_id", dose["vaccine_id"])
+            vaccine_name = v["name"] if v else "—"
         result.append({
             **al,
-            "patient_name":  _patient_full_name(patient) if patient else "—",
-            "vaccine_name":  _vaccine_name(al["vaccine_id"]),
+            "patient_name": _patient_full_name(patient) if patient else "—",
+            "vaccine_name": vaccine_name,
+            "dose_label":   dose["dose_label"] if dose else "—",
         })
     return jsonify(result)
 
