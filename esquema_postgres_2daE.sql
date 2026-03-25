@@ -2,6 +2,7 @@
 --  Base de datos: sistemaVacunacion
 -- ============================================================
 
+
 --  MÓDULO: ADDRESSES
 
 CREATE TABLE countries (
