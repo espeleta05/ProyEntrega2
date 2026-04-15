@@ -238,3 +238,42 @@ WHERE vr.record_id IS NULL
   AND a.appointment_id IS NULL;
 
 -- Resultado esperado: Pacientes que probablemente se registraron pero abandonaron el seguimiento
+
+
+-- query 1
+CREATE OR REPLACE FUNCTION sp_promedio_atencion_por_clinica()
+RETURNS TABLE (clinic_name VARCHAR, avg_duration NUMERIC)
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    RETURN QUERY
+    SELECT
+        c.name,
+        AVG(a.duration_min)
+    FROM appointments a
+    JOIN clinics c ON a.clinic_id = c.clinic_id
+    WHERE a.duration_min IS NOT NULL
+    GROUP BY c.name
+    HAVING AVG(a.duration_min) > 0;
+END;
+$$;
+
+
+-- query 5
+CREATE OR REPLACE FUNCTION sp_reacciones_por_vacuna()
+RETURNS TABLE (vaccine VARCHAR, total_reactions BIGINT)
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    RETURN QUERY
+    SELECT
+        v.name,
+        COUNT(pvr.reaction_id)
+    FROM post_vaccine_reactions pvr
+    JOIN vaccination_records vr ON pvr.record_id = vr.record_id
+    JOIN vaccines v ON vr.vaccine_id = v.vaccine_id
+    GROUP BY v.name
+    HAVING COUNT(pvr.reaction_id) > 0
+    ORDER BY COUNT(pvr.reaction_id) DESC;
+END;
+$$;
