@@ -4,7 +4,6 @@
 
 
 --  MÓDULO: ADDRESSES
-
 CREATE TABLE countries (
     country_id   SERIAL PRIMARY KEY,
     name         VARCHAR(100) NOT NULL,
@@ -43,7 +42,6 @@ CREATE TABLE addresses (
 
 
 --  MÓDULO: CLINICS
-
 CREATE TABLE clinics (
     clinic_id         SERIAL PRIMARY KEY,
     name              VARCHAR(200) NOT NULL,
@@ -85,7 +83,6 @@ CREATE TABLE area_equipment (
 
 
 --  MÓDULO: PATIENTS
-
 CREATE TABLE blood_types (
     blood_type_id  SERIAL PRIMARY KEY,
     blood_type     VARCHAR(5) NOT NULL UNIQUE
@@ -115,15 +112,15 @@ CREATE TABLE patient_allergies (
     patient_id          INT          NOT NULL REFERENCES patients(patient_id),
     allergy_id          INT          NOT NULL REFERENCES allergies(allergy_id),
     severity            VARCHAR(50),
-    reaction_desc       TEXT
+    reaction_desc       TEXT,
+    UNIQUE(patient_id, allergy_id)
 );
 
 
 --  MÓDULO: GUARDIANS
-
 CREATE TABLE marital_status (
     marital_status_id  SERIAL PRIMARY KEY,
-    marital_status     VARCHAR(50) NOT NULL UNIQUE
+    marital_status     VARCHAR(50) NOT NULL UNIQUE CHECK (marital_status IN ('Soltero','Casado','Divorciado','Viudo'))
 );
 
 CREATE TABLE occupations (
@@ -167,7 +164,6 @@ CREATE TABLE patient_guardian_relations (
 
 
 --  MÓDULO: WORKERS
-
 CREATE TABLE roles (
     role_id      SERIAL PRIMARY KEY,
     name         VARCHAR(100) NOT NULL UNIQUE,
@@ -242,7 +238,6 @@ CREATE TABLE worker_schedules (
 
 
 --  MÓDULO: VACCINES
-
 CREATE TABLE manufacturers (
     manufacturer_id  SERIAL PRIMARY KEY,
     name             VARCHAR(200) NOT NULL,
@@ -278,7 +273,6 @@ CREATE TABLE vaccine_lots (
 
 
 --  MÓDULO: OFFICIAL SCHEME
-
 CREATE TABLE vaccination_scheme (
     scheme_id     SERIAL PRIMARY KEY,
     name          VARCHAR(200) NOT NULL,
@@ -294,12 +288,12 @@ CREATE TABLE scheme_doses (
     dose_number        SMALLINT     NOT NULL,
     dose_label         VARCHAR(100),
     ideal_age_months   SMALLINT,
-    min_interval_days  SMALLINT
+    min_interval_days  SMALLINT,
+    UNIQUE(scheme_id, vaccine_id, dose_number)
 );
 
 
 --  MÓDULO: APPOINTMENTS
-
 CREATE TABLE appointments (
     appointment_id      SERIAL PRIMARY KEY,
     patient_id          INT           NOT NULL REFERENCES patients(patient_id),
@@ -309,13 +303,12 @@ CREATE TABLE appointments (
     scheduled_at        TIMESTAMP     NOT NULL,
     duration_min        SMALLINT,
     reason              TEXT,
-    appointment_status  VARCHAR(50),
+    appointment_status  VARCHAR(50) CHECK (appointment_status IN ('Programada','Completada','Cancelada','No Show')),
     appointment_notes   TEXT
 );
 
 
 --  MÓDULO: VACCINATION RECORD
-
 CREATE TABLE application_sites (
     application_site_id  SERIAL PRIMARY KEY,
     application_site     VARCHAR(50) NOT NULL UNIQUE
@@ -348,7 +341,6 @@ CREATE TABLE post_vaccine_reactions (
 
 
 --  MÓDULO: NFC
-
 CREATE TABLE nfc_cards (
     nfc_card_id      SERIAL PRIMARY KEY,
     patient_id       INT          NOT NULL REFERENCES patients(patient_id),
@@ -356,7 +348,7 @@ CREATE TABLE nfc_cards (
     card_type        VARCHAR(30),
     issued_date      DATE,
     issued_by        INT          REFERENCES workers(worker_id),
-    status           VARCHAR(20)  NOT NULL DEFAULT 'Activa',
+    status           VARCHAR(20)  NOT NULL DEFAULT 'Activa' CHECK (status IN ('Activa','Inactiva','Perdida','Robada')),
     last_scanned_at  TIMESTAMP,
     nfc_card_notes   TEXT
 );
@@ -368,7 +360,7 @@ CREATE TABLE nfc_devices (
     device_name        VARCHAR(100),
     model              VARCHAR(50),
     serial_number      VARCHAR(50),
-    nfc_device_status  VARCHAR(20) NOT NULL DEFAULT 'Activo',
+    nfc_device_status  VARCHAR(20) NOT NULL DEFAULT 'Activo' CHECK (nfc_device_status IN ('Activo','Inactivo','Mantenimiento')),
     registered_at      DATE
 );
 
@@ -384,66 +376,13 @@ CREATE TABLE nfc_scan_events (
     nfc_scan_result   VARCHAR(100)
 );
 
-
---  MÓDULO: GPS
-
-CREATE TABLE gps_devices (
-    gps_device_id     SERIAL PRIMARY KEY,
-    patient_id        INT          NOT NULL REFERENCES patients(patient_id),
-    device_type       VARCHAR(50),
-    model             VARCHAR(50),
-    imei              VARCHAR(20)  UNIQUE,
-    assigned_date     DATE,
-    assigned_by       INT          REFERENCES workers(worker_id),
-    battery_pct       SMALLINT,
-    gps_device_status VARCHAR(20)  NOT NULL DEFAULT 'Activo'
-);
-
-CREATE TABLE gps_locations (
-    location_id    SERIAL PRIMARY KEY,
-    gps_device_id  INT           NOT NULL REFERENCES gps_devices(gps_device_id),
-    patient_id     INT           NOT NULL REFERENCES patients(patient_id),
-    latitude       NUMERIC(9,6)  NOT NULL,
-    longitude      NUMERIC(9,6)  NOT NULL,
-    accuracy_m     SMALLINT,
-    recorded_at    TIMESTAMP     NOT NULL,
-    speed_kmh      NUMERIC(5,2),
-    altitude_m     NUMERIC(7,2)
-);
-
-CREATE TABLE gps_safe_zones (
-    zone_id      SERIAL PRIMARY KEY,
-    patient_id   INT           NOT NULL REFERENCES patients(patient_id),
-    guardian_id  INT           NOT NULL REFERENCES guardians(guardian_id),
-    zone_name    VARCHAR(100),
-    center_lat   NUMERIC(9,6)  NOT NULL,
-    center_lng   NUMERIC(9,6)  NOT NULL,
-    radius_m     SMALLINT      NOT NULL,
-    is_active    BOOLEAN       NOT NULL DEFAULT TRUE
-);
-
-CREATE TABLE gps_risk_alerts (
-    alert_id       SERIAL PRIMARY KEY,
-    patient_id     INT          NOT NULL REFERENCES patients(patient_id),
-    gps_device_id  INT          REFERENCES gps_devices(gps_device_id),
-    alert_type     VARCHAR(50)  NOT NULL,
-    triggered_at   TIMESTAMP    NOT NULL,
-    location_lat   NUMERIC(9,6),
-    location_lng   NUMERIC(9,6),
-    resolved_at    TIMESTAMP,
-    resolved_by    INT          REFERENCES workers(worker_id),
-    risk_notes     TEXT
-);
-
-
 --  MÓDULO: ALERTS AND AUDITS
-
 CREATE TABLE scheme_completion_alerts (
     alert_id        SERIAL PRIMARY KEY,
     patient_id      INT          NOT NULL REFERENCES patients(patient_id),
     scheme_dose_id  INT          NOT NULL REFERENCES scheme_doses(dose_id),
     due_date        DATE         NOT NULL,
-    status          VARCHAR(30)  NOT NULL DEFAULT 'Pendiente',
+    status          VARCHAR(30)  NOT NULL DEFAULT 'Pendiente' CHECK (status IN ('Pendiente','Enviada','Completada','Cancelada')),
     notified_at     TIMESTAMP
 );
 
@@ -470,7 +409,7 @@ CREATE TABLE beacons (
     minor          SMALLINT,
     area_id        INT          REFERENCES clinic_areas(area_id),
     clinic_id      INT          REFERENCES clinics(clinic_id),
-    beacon_status  VARCHAR(20)  NOT NULL DEFAULT 'Online',
+    beacon_status  VARCHAR(20)  NOT NULL DEFAULT 'Online' CHECK (beacon_status IN ('Online','Offline','Mantenimiento')),
     last_ping      TIMESTAMP
 );
 
@@ -501,6 +440,5 @@ CREATE INDEX idx_patients_nfc_token        ON patients(nfc_token);
 CREATE INDEX idx_vaccination_records_pat   ON vaccination_records(patient_id);
 CREATE INDEX idx_vaccination_records_date  ON vaccination_records(applied_date);
 CREATE INDEX idx_appointments_pat_date     ON appointments(patient_id, scheduled_at);
-CREATE INDEX idx_gps_locations_device      ON gps_locations(gps_device_id, recorded_at);
 CREATE INDEX idx_nfc_scan_events_card      ON nfc_scan_events(nfc_card_id, scanned_at);
 CREATE INDEX idx_audit_log_table_record    ON audit_log(table_name, record_id);

@@ -35,7 +35,7 @@ AND (
 
 -- Resultado esperado: pacientes que están fuera de su zona segura con su ubicación actual.
 
--- 3. Adherencia terapéutica por periodo
+-- 3. Adherencia terapéutica por periodo -- CORREGIR
 
 SELECT 
     DATE_TRUNC('month', vr.applied_date) AS month,
@@ -93,23 +93,6 @@ ORDER BY deficit DESC;
 
 -- Resultado esperado: lista de insumos que están por debajo del mínimo.
 
--- 7. Historial de ubicaciones de un paciente
-
-SELECT 
-    SELECT 
-    p.first_name,
-    p.last_name,
-    gl.latitude,
-    gl.longitude,
-    gl.recorded_at,
-    LAG(gl.recorded_at) OVER (
-        PARTITION BY p.patient_id 
-        ORDER BY gl.recorded_at
-    ) AS previous_time
-FROM gps_locations gl
-JOIN patients p ON gl.patient_id = p.patient_id
-WHERE p.patient_id = 1
-ORDER BY gl.recorded_at DESC;
 
 -- Resultado esperado: historial de ubicaciones ordenado por fecha.
 
@@ -213,7 +196,7 @@ LIMIT 3;
 
 -- Resultado esperado: Una lista con las 3 vacunas que tienen más reportes de síntomas post-vacunación.
 
--- 11. Cuál es el enfermero o doctor que más vacunas ha aplicado este mes en cada clínica
+-- 11. Cuál es el enfermero o doctor que más vacunas ha aplicado este mes en cada clínica -- CORREGIR 
 SELECT 
     c.name AS clinica,
     w.first_name || ' ' || w.last_name AS trabajador,
