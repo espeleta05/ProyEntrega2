@@ -142,7 +142,6 @@ ORDER BY porcentaje_adherencia ASC;
 -- Resultado esperado: Un listado de todos los pacientes con su porcentaje de cumplimiento (ej. 100% para esquemas completos, 20% para quienes solo tienen la primera dosis de varias).
 
 -- 9. Calcular el nivel de riesgo de cada paciente
-
 WITH conteo_alergias AS (
     -- Cuenta alergias de severidad Alta o Crítica por paciente
     SELECT 
