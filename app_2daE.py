@@ -1,8 +1,487 @@
 from datetime import date, datetime
+import os
+import re
+from threading import Lock
 from flask import Flask, flash, jsonify, redirect, render_template, request, session, url_for
+
+try:
+    import bcrypt
+except ImportError:  # pragma: no cover
+    bcrypt = None
+
+try:
+    import psycopg2
+    from psycopg2.extras import RealDictCursor
+except ImportError:  # pragma: no cover
+    psycopg2 = None
+    RealDictCursor = None
 
 app = Flask(__name__)
 app.secret_key = "segunda-entrega-demo"
+
+# Estado en memoria para puente NFC (ultima lectura + historial corto)
+NFC_BRIDGE_LOCK = Lock()
+NFC_BRIDGE_STATE = {
+    "latest": None,
+    "events": [],
+    "event_seq": 0,
+}
+
+# Vinculacion UID -> entidad (medico/paciente) para acciones automaticas.
+NFC_BINDINGS = [
+    {"uid": "NFCMED01", "entity_type": "worker", "entity_id": 2, "label": "Gafete Elena"},
+    {"uid": "NFCMED02", "entity_type": "worker", "entity_id": 4, "label": "Gafete Sofia"},
+    {"uid": "NFCPAC01", "entity_type": "patient", "entity_id": 1, "label": "Tarjeta Ana"},
+    {"uid": "NFCPAC02", "entity_type": "patient", "entity_id": 2, "label": "Tarjeta Carlos"},
+]
+
+
+def _nfc_bridge_token():
+    """Token compartido para proteger el endpoint publico de ingesta NFC."""
+    return os.getenv("NFC_BRIDGE_TOKEN", "demo-nfc-token")
+
+
+def _extract_nfc_uid(payload):
+    """Intenta extraer UID desde nombres de campos comunes enviados por apps NFC."""
+    if not isinstance(payload, dict):
+        return None
+    candidates = [
+        "uid", "id", "tag_id", "nfc_id", "NFC_ID", "serial", "identifier", "value",
+        "TAG_UID", "tagUid", "nfcUid",
+    ]
+    for key in candidates:
+        value = payload.get(key)
+        if value is not None and str(value).strip():
+            return str(value).strip().upper()
+    return None
+
+
+def _record_nfc_event(uid, source):
+    now = datetime.now().isoformat(timespec="seconds")
+    normalized_uid = str(uid).strip().upper()
+    event = {
+        "uid": normalized_uid,
+        "source": source,
+        "timestamp": now,
+    }
+    with NFC_BRIDGE_LOCK:
+        NFC_BRIDGE_STATE["event_seq"] += 1
+        event["event_id"] = NFC_BRIDGE_STATE["event_seq"]
+        NFC_BRIDGE_STATE["latest"] = event
+        NFC_BRIDGE_STATE["events"].insert(0, event)
+        NFC_BRIDGE_STATE["events"] = NFC_BRIDGE_STATE["events"][:30]
+    return event
+
+
+def _normalize_uid(uid):
+    raw = str(uid or "").strip().upper()
+    # Igualar tags aunque lleguen con separadores ({}, :, -, espacios).
+    return re.sub(r"[^A-Z0-9]", "", raw)
+
+
+def _looks_like_placeholder_uid(uid):
+    raw = str(uid or "").strip().upper()
+    normalized = _normalize_uid(raw)
+    placeholders = {
+        "UID", "UIDTAG", "TAGUID", "TAGID", "NFCTAG", "UIDAQUI", "UIDDELTAG",
+    }
+    return (
+        raw in {"{UID_TAG}", "{UID}", "UID_TAG", "UID"}
+        or normalized in placeholders
+        or "UID_TAG" in raw
+    )
+
+
+def _db_configured():
+    return bool(psycopg2 is not None and (
+        os.getenv("DATABASE_URL")
+        or (
+            os.getenv("PGHOST")
+            and os.getenv("PGDATABASE")
+            and os.getenv("PGUSER")
+            and os.getenv("PGPASSWORD")
+        )
+    ))
+
+
+def _db_connect():
+    if not _db_configured():
+        return None
+
+    dsn = os.getenv("DATABASE_URL")
+    if dsn:
+        return psycopg2.connect(dsn, cursor_factory=RealDictCursor)
+
+    return psycopg2.connect(
+        host=os.getenv("PGHOST"),
+        port=int(os.getenv("PGPORT", "5432")),
+        dbname=os.getenv("PGDATABASE"),
+        user=os.getenv("PGUSER"),
+        password=os.getenv("PGPASSWORD"),
+        cursor_factory=RealDictCursor,
+    )
+
+
+def _db_query_one(sql, params=None):
+    conn = _db_connect()
+    if not conn:
+        return None
+    try:
+        with conn:
+            with conn.cursor() as cursor:
+                cursor.execute(sql, params or ())
+                row = cursor.fetchone()
+                return dict(row) if row else None
+    finally:
+        conn.close()
+
+
+def _db_query_all(sql, params=None):
+    conn = _db_connect()
+    if not conn:
+        return []
+    try:
+        with conn:
+            with conn.cursor() as cursor:
+                cursor.execute(sql, params or ())
+                rows = cursor.fetchall()
+                return [dict(row) for row in rows]
+    finally:
+        conn.close()
+
+
+def _db_execute(sql, params=None):
+    conn = _db_connect()
+    if not conn:
+        return
+    try:
+        with conn:
+            with conn.cursor() as cursor:
+                cursor.execute(sql, params or ())
+    finally:
+        conn.close()
+
+
+def _db_sync_serial_sequence(table_name, id_column):
+    """Alinea la secuencia SERIAL con el MAX(id) actual para evitar PK duplicada."""
+    conn = _db_connect()
+    if not conn:
+        return
+    try:
+        with conn:
+            with conn.cursor() as cursor:
+                cursor.execute("SELECT pg_get_serial_sequence(%s, %s) AS seq", (table_name, id_column))
+                row = cursor.fetchone()
+                seq = row.get("seq") if row else None
+                if not seq:
+                    return
+                cursor.execute(
+                    f"SELECT setval(%s, COALESCE((SELECT MAX({id_column}) FROM {table_name}), 1), true)",
+                    (seq,),
+                )
+    finally:
+        conn.close()
+
+
+def _db_password_matches(stored_hash, password):
+    if not stored_hash:
+        return False
+    if stored_hash.startswith("$2"):
+        if bcrypt is None:
+            return False
+        return bcrypt.checkpw(password.encode("utf-8"), stored_hash.encode("utf-8"))
+    if stored_hash.startswith("hash:"):
+        return stored_hash == f"hash:{password}"
+    return stored_hash == password
+
+
+def _password_hash_for_storage(password):
+    if bcrypt is not None:
+        return bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
+    return f"hash:{password}"
+
+
+def _db_authenticate_worker(login_value, password):
+    row = _db_query_one(
+        """
+        SELECT w.worker_id, w.first_name, w.last_name, w.password_hash, r.name AS role_name
+        FROM workers w
+        LEFT JOIN worker_emails we
+            ON we.worker_id = w.worker_id AND we.is_primary = TRUE
+        LEFT JOIN roles r
+            ON r.role_id = w.role_id
+        WHERE LOWER(we.email) = LOWER(%s)
+           OR LOWER(w.curp) = LOWER(%s)
+           OR LOWER(w.first_name) = LOWER(%s)
+        ORDER BY we.is_primary DESC
+        LIMIT 1
+        """,
+        (login_value, login_value, login_value),
+    )
+    if row and _db_password_matches(row.get("password_hash"), password):
+        return {
+            "worker_id": row["worker_id"],
+            "name": row["first_name"],
+            "lastname": row["last_name"],
+            "role": row.get("role_name") or "Personal",
+        }
+    return None
+
+
+def _db_list_workers_for_binding():
+    return _db_query_all(
+        """
+        SELECT w.worker_id, w.first_name, w.last_name, r.name AS role_name,
+               COALESCE(we.email, '') AS email
+        FROM workers w
+        LEFT JOIN worker_emails we
+            ON we.worker_id = w.worker_id AND we.is_primary = TRUE
+        LEFT JOIN roles r
+            ON r.role_id = w.role_id
+        ORDER BY w.worker_id
+        """
+    )
+
+
+def _db_list_patients_for_binding():
+    return _db_query_all(
+        """
+        SELECT patient_id, first_name, last_name
+        FROM patients
+        ORDER BY patient_id
+        """
+    )
+
+
+def _db_worker_by_id(worker_id):
+    return _db_query_one(
+        """
+        SELECT w.worker_id, w.first_name, w.last_name, r.name AS role_name
+        FROM workers w
+        LEFT JOIN roles r ON r.role_id = w.role_id
+        WHERE w.worker_id = %s
+        LIMIT 1
+        """,
+        (worker_id,),
+    )
+
+
+def _db_patient_by_id(patient_id):
+    return _db_query_one(
+        """
+        SELECT patient_id, first_name, last_name
+        FROM patients
+        WHERE patient_id = %s
+        LIMIT 1
+        """,
+        (patient_id,),
+    )
+
+
+def _db_role_id_by_name(role_name):
+    row = _db_query_one("SELECT role_id FROM roles WHERE LOWER(name) = LOWER(%s) LIMIT 1", (role_name,))
+    return row["role_id"] if row else None
+
+
+def _db_blood_type_id(blood_type):
+    row = _db_query_one("SELECT blood_type_id FROM blood_types WHERE blood_type = %s LIMIT 1", (blood_type,))
+    return row["blood_type_id"] if row else None
+
+
+def _db_list_patients_for_page():
+    rows = _db_query_all(
+        """
+        SELECT
+            p.patient_id,
+            p.first_name,
+            p.last_name,
+            p.birth_date::text AS birth_date,
+            COALESCE(bt.blood_type, '—') AS blood_type,
+            COALESCE(g.first_name || ' ' || g.last_name, 'Sin tutor') AS guardian,
+            COALESCE(gp.phone, '—') AS contact,
+            COALESCE(string_agg(DISTINCT a.name, ', '), 'Ninguna') AS allergies
+        FROM patients p
+        LEFT JOIN blood_types bt
+            ON bt.blood_type_id = p.blood_type_id
+        LEFT JOIN LATERAL (
+            SELECT r.guardian_id
+            FROM patient_guardian_relations r
+            WHERE r.patient_id = p.patient_id
+            ORDER BY r.is_primary DESC, r.relation_id
+            LIMIT 1
+        ) rel ON TRUE
+        LEFT JOIN guardians g
+            ON g.guardian_id = rel.guardian_id
+        LEFT JOIN LATERAL (
+            SELECT phone
+            FROM guardian_phones
+            WHERE guardian_id = g.guardian_id
+            ORDER BY is_primary DESC, phone_id
+            LIMIT 1
+        ) gp ON TRUE
+        LEFT JOIN patient_allergies pa
+            ON pa.patient_id = p.patient_id
+        LEFT JOIN allergies a
+            ON a.allergy_id = pa.allergy_id
+        GROUP BY p.patient_id, p.first_name, p.last_name, p.birth_date, bt.blood_type, g.first_name, g.last_name, gp.phone
+        ORDER BY p.patient_id
+        """
+    )
+    out = []
+    for row in rows:
+        item = dict(row)
+        item["full_name"] = f"{item.get('first_name', '')} {item.get('last_name', '')}".strip()
+        item["risk"] = "N/A"
+        out.append(item)
+    return out
+
+
+def _db_list_workers_for_page():
+    return _db_query_all(
+        """
+        SELECT
+            w.worker_id,
+            w.first_name AS name,
+            w.last_name AS lastname,
+            COALESCE(r.name, 'Sin rol') AS role,
+            COALESCE(we.email, '') AS mail
+        FROM workers w
+        LEFT JOIN roles r
+            ON r.role_id = w.role_id
+        LEFT JOIN LATERAL (
+            SELECT email
+            FROM worker_emails
+            WHERE worker_id = w.worker_id
+            ORDER BY is_primary DESC, email_id
+            LIMIT 1
+        ) we ON TRUE
+        ORDER BY w.worker_id
+        """
+    )
+
+
+def _db_ensure_nfc_bindings_table():
+    """Crea la tabla de vinculaciones NFC si no existe."""
+    _db_execute(
+        """
+        CREATE TABLE IF NOT EXISTS nfc_bindings (
+            binding_id    SERIAL PRIMARY KEY,
+            uid           VARCHAR(50)  NOT NULL,
+            uid_norm      VARCHAR(50)  NOT NULL UNIQUE,
+            entity_type   VARCHAR(20)  NOT NULL CHECK (entity_type IN ('worker', 'patient')),
+            entity_id     INT          NOT NULL,
+            worker_id     INT          REFERENCES workers(worker_id),
+            label         VARCHAR(150),
+            created_at    TIMESTAMP    NOT NULL DEFAULT NOW(),
+            updated_at    TIMESTAMP    NOT NULL DEFAULT NOW()
+        )
+        """
+    )
+    _db_execute("ALTER TABLE nfc_bindings ADD COLUMN IF NOT EXISTS worker_id INT REFERENCES workers(worker_id)")
+    _db_execute("UPDATE nfc_bindings SET worker_id = entity_id WHERE entity_type = 'worker' AND worker_id IS NULL")
+    _db_execute(
+        """
+        CREATE INDEX IF NOT EXISTS idx_nfc_bindings_entity
+        ON nfc_bindings(entity_type, entity_id)
+        """
+    )
+
+
+def _db_list_nfc_bindings():
+    if not _db_configured():
+        return []
+
+    _db_ensure_nfc_bindings_table()
+    rows = _db_query_all(
+        """
+        SELECT uid, entity_type, entity_id, worker_id, COALESCE(label, '') AS label
+        FROM nfc_bindings
+        ORDER BY binding_id
+        """
+    )
+
+    # Migracion suave: si la tabla esta vacia, migra los defaults en memoria.
+    if not rows and NFC_BINDINGS:
+        for b in NFC_BINDINGS:
+            uid = str(b.get("uid") or "").strip().upper()
+            uid_norm = _normalize_uid(uid)
+            if not uid_norm:
+                continue
+            _db_upsert_nfc_binding(uid, uid_norm, b.get("entity_type"), int(b.get("entity_id") or 0), b.get("label", ""))
+        rows = _db_query_all(
+            """
+            SELECT uid, entity_type, entity_id, worker_id, COALESCE(label, '') AS label
+            FROM nfc_bindings
+            ORDER BY binding_id
+            """
+        )
+
+    return rows
+
+
+def _db_upsert_nfc_binding(uid, uid_norm, entity_type, entity_id, label):
+    if not _db_configured():
+        return None
+    _db_ensure_nfc_bindings_table()
+    worker_id = entity_id if entity_type == "worker" else None
+    _db_execute(
+        """
+        INSERT INTO nfc_bindings (uid, uid_norm, entity_type, entity_id, worker_id, label, updated_at)
+        VALUES (%s, %s, %s, %s, %s, %s, NOW())
+        ON CONFLICT (uid_norm)
+        DO UPDATE SET
+            uid = EXCLUDED.uid,
+            entity_type = EXCLUDED.entity_type,
+            entity_id = EXCLUDED.entity_id,
+            worker_id = EXCLUDED.worker_id,
+            label = EXCLUDED.label,
+            updated_at = NOW()
+        """,
+        (uid, uid_norm, entity_type, entity_id, worker_id, label),
+    )
+    return _db_query_one(
+        """
+        SELECT uid, entity_type, entity_id, worker_id, COALESCE(label, '') AS label
+        FROM nfc_bindings
+        WHERE uid_norm = %s
+        LIMIT 1
+        """,
+        (uid_norm,),
+    )
+
+
+def _db_delete_nfc_binding(uid_norm):
+    if not _db_configured():
+        return 0
+    _db_ensure_nfc_bindings_table()
+    row = _db_query_one("DELETE FROM nfc_bindings WHERE uid_norm = %s RETURNING binding_id", (uid_norm,))
+    return 1 if row else 0
+
+
+def _db_delete_nfc_bindings_for_entity(entity_type, entity_id):
+    if not _db_configured():
+        return
+    _db_ensure_nfc_bindings_table()
+    _db_execute("DELETE FROM nfc_bindings WHERE entity_type = %s AND entity_id = %s", (entity_type, entity_id))
+
+
+def _dedupe_nfc_bindings():
+    """Normaliza y deduplica bindings por UID, conservando el mas reciente."""
+    dedup = {}
+    for b in NFC_BINDINGS:
+        key = _normalize_uid(b.get("uid"))
+        if not key:
+            continue
+        dedup[key] = {
+            "uid": str(b.get("uid") or "").strip().upper(),
+            "entity_type": b.get("entity_type"),
+            "entity_id": b.get("entity_id"),
+            "label": b.get("label", ""),
+        }
+    NFC_BINDINGS[:] = list(dedup.values())
+
+
+_dedupe_nfc_bindings()
 
 
 # DATOS HARDCODEADOS  (simulan lo que devolvería PostgreSQL)
@@ -503,6 +982,10 @@ def _patient_full_name(patient):
 
 
 def _worker_full_name(worker_id):
+    if _db_configured():
+        worker = _db_worker_by_id(worker_id)
+        if worker:
+            return f"{worker['first_name']} {worker['last_name']}".strip()
     w = _cur_fetchone("workers", "worker_id", worker_id)
     if not w:
         return "Personal demo"
@@ -511,9 +994,147 @@ def _worker_full_name(worker_id):
 
 def _worker_email(worker_id):
     """Devuelve el email primario del trabajador desde worker_emails."""
+    if _db_configured():
+        row = _db_query_one(
+            """
+            SELECT email
+            FROM worker_emails
+            WHERE worker_id = %s AND is_primary = TRUE
+            ORDER BY email_id
+            LIMIT 1
+            """,
+            (worker_id,),
+        )
+        if row:
+            return row["email"]
     emails = _cur_fetchall_where("worker_emails", "worker_id", worker_id)
     primary = next((e for e in emails if e.get("is_primary")), None)
     return (primary or emails[0])["email"] if emails else "—"
+
+
+def _role_name(role_id):
+    if _db_configured():
+        row = _db_query_one("SELECT name FROM roles WHERE role_id = %s LIMIT 1", (role_id,))
+        if row:
+            return row["name"]
+    role = _cur_fetchone("roles", "role_id", role_id)
+    return role["name"] if role else "Personal"
+
+
+def _find_nfc_binding(uid):
+    needle = _normalize_uid(uid)
+
+    # Comando especial para iniciar sesion por worker_id sin UID NFC fisico.
+    if needle.startswith("WORKERID"):
+        worker_digits = needle.replace("WORKERID", "", 1)
+        if worker_digits.isdigit():
+            wid = int(worker_digits)
+            worker = _db_worker_by_id(wid) if _db_configured() else _cur_fetchone("workers", "worker_id", wid)
+            if worker:
+                return {
+                    "uid": f"WORKER_ID:{wid}",
+                    "entity_type": "worker",
+                    "entity_id": wid,
+                    "worker_id": wid,
+                    "label": "Comando worker_id",
+                }
+
+    if _db_configured():
+        _db_ensure_nfc_bindings_table()
+        return _db_query_one(
+            """
+            SELECT uid, entity_type, entity_id, worker_id, COALESCE(label, '') AS label
+            FROM nfc_bindings
+            WHERE uid_norm = %s
+            LIMIT 1
+            """,
+            (needle,),
+        )
+    for binding in reversed(NFC_BINDINGS):
+        if _normalize_uid(binding.get("uid")) == needle:
+            return binding
+    return None
+
+
+def _binding_command(binding):
+    if not binding:
+        return None
+
+    entity_type = binding.get("entity_type")
+    entity_id = binding.get("worker_id") or binding.get("entity_id")
+
+    if entity_type == "worker":
+        return {
+            "type": "worker_login",
+            "worker_id": int(entity_id),
+            "entity_type": "worker",
+            "entity_id": int(entity_id),
+        }
+
+    if entity_type == "patient":
+        return {
+            "type": "open_patient",
+            "patient_id": int(entity_id),
+            "entity_type": "patient",
+            "entity_id": int(entity_id),
+        }
+
+    return None
+
+
+def _nfc_match_from_input(raw_value):
+    value = str(raw_value or "").strip()
+    if not value:
+        return None
+
+    if value.isdigit():
+        worker_id = int(value)
+        worker = _db_worker_by_id(worker_id) if _db_configured() else _cur_fetchone("workers", "worker_id", worker_id)
+        if worker:
+            return {
+                "uid": f"WORKER_ID:{worker_id}",
+                "entity_type": "worker",
+                "entity_id": worker_id,
+                "worker_id": worker_id,
+                "label": "Comando worker_id",
+            }
+
+    if value.upper().startswith("WORKER_ID:"):
+        worker_digits = value.split(":", 1)[1].strip()
+        if worker_digits.isdigit():
+            worker_id = int(worker_digits)
+            worker = _db_worker_by_id(worker_id) if _db_configured() else _cur_fetchone("workers", "worker_id", worker_id)
+            if worker:
+                return {
+                    "uid": f"WORKER_ID:{worker_id}",
+                    "entity_type": "worker",
+                    "entity_id": worker_id,
+                    "worker_id": worker_id,
+                    "label": "Comando worker_id",
+                }
+
+    return _find_nfc_binding(value)
+
+
+def _set_session_from_worker(worker_id):
+    if _db_configured():
+        worker = _db_worker_by_id(worker_id)
+        if not worker:
+            return False
+        session["user_name"] = worker.get("first_name") or "Personal"
+        session["user_lastname"] = worker.get("last_name") or ""
+        session["role"] = worker.get("role_name") or "Personal"
+        session["worker_id"] = worker["worker_id"]
+        return True
+
+    worker = _cur_fetchone("workers", "worker_id", worker_id)
+    if not worker:
+        return False
+    session["user_name"] = worker.get("first_name") or "Personal"
+    session["user_lastname"] = worker.get("last_name") or ""
+    session["role"] = _role_name(worker.get("role_id"))
+    session["worker_id"] = worker["worker_id"]
+    return True
 
 
 def _guardian_primary_phone(guardian_id):
@@ -616,9 +1237,15 @@ def login():
     if request.method == "POST":
         mail     = (request.form.get("mail") or "").strip()
         password = request.form.get("password") or ""
-        user     = USERS.get(mail)
+        user = None
 
-        if user and user["password"] == password:
+        if _db_configured():
+            user = _db_authenticate_worker(mail, password)
+
+        if not user:
+            user = USERS.get(mail)
+
+        if user and (("password" in user and user["password"] == password) or "password" not in user):
             session["user_name"]     = user["name"]
             session["user_lastname"] = user["lastname"]
             session["role"]          = user["role"]
@@ -626,7 +1253,7 @@ def login():
             flash(f"Bienvenido, {user['name']}.", "success")
             return redirect(url_for("dashboard"))
 
-        flash("Credenciales inválidas. Usa admin / 123", "danger")
+        flash("Credenciales inválidas. Usa tu email de worker y la contraseña real del seed SQL, o admin / 123.", "danger")
 
     return render_template("login_2daE.html")
 
@@ -680,8 +1307,11 @@ def pacientes():
     if locked:
         return locked
 
-    patients_raw = _cur_fetchall("patients")
-    patients     = [_enrich_patient(p) for p in patients_raw]
+    if _db_configured():
+        patients = _db_list_patients_for_page()
+    else:
+        patients_raw = _cur_fetchall("patients")
+        patients = [_enrich_patient(p) for p in patients_raw]
 
     return render_template(
         "pacientes_2daE.html",
@@ -704,6 +1334,110 @@ def register_patient():
     last_name  = (payload.get("last_name")  or "").strip()
     if not first_name or not last_name:
         return jsonify({"error": "Nombre y apellido son requeridos"}), 400
+
+    if _db_configured():
+        try:
+            _db_sync_serial_sequence("guardians", "guardian_id")
+            _db_sync_serial_sequence("guardian_phones", "phone_id")
+            _db_sync_serial_sequence("guardian_emails", "email_id")
+            _db_sync_serial_sequence("patients", "patient_id")
+            _db_sync_serial_sequence("patient_guardian_relations", "relation_id")
+            _db_sync_serial_sequence("allergies", "allergy_id")
+            _db_sync_serial_sequence("patient_allergies", "patient_allergy_id")
+
+            blood_type_id = _db_blood_type_id(payload.get("blood_type") or "O+") or 1
+            raw_gender = (payload.get("gender") or "M").strip().upper()
+            gender_map = {"MASCULINO": "M", "FEMENINO": "F"}
+            gender = gender_map.get(raw_gender, raw_gender[:1] if raw_gender else "M")
+            if gender not in {"M", "F", "O"}:
+                gender = "O"
+
+            tutor_name = (tutor.get("name") or "Tutor").strip()
+            tutor_lastname = (tutor.get("lastname") or "Demo").strip()
+            guardian = _db_query_one(
+                """
+                INSERT INTO guardians (first_name, last_name, curp)
+                VALUES (%s, %s, %s)
+                RETURNING guardian_id
+                """,
+                (tutor_name, tutor_lastname, (tutor.get("curp") or None)),
+            )
+            guardian_id = guardian["guardian_id"]
+
+            if tutor.get("number"):
+                _db_execute(
+                    """
+                    INSERT INTO guardian_phones (guardian_id, phone, phone_type, is_primary)
+                    VALUES (%s, %s, 'Celular', TRUE)
+                    """,
+                    (guardian_id, tutor.get("number")),
+                )
+
+            if tutor.get("mail"):
+                _db_execute(
+                    """
+                    INSERT INTO guardian_emails (guardian_id, email, is_primary)
+                    VALUES (%s, %s, TRUE)
+                    """,
+                    (guardian_id, tutor.get("mail")),
+                )
+
+            patient = _db_query_one(
+                """
+                INSERT INTO patients (first_name, last_name, birth_date, blood_type_id, gender, curp, weight_kg, premature)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                RETURNING patient_id
+                """,
+                (
+                    first_name,
+                    last_name,
+                    payload.get("birth_date") or date.today().isoformat(),
+                    blood_type_id,
+                    gender,
+                    payload.get("curp") or None,
+                    payload.get("weight_kg") or None,
+                    bool(payload.get("premature", False)),
+                ),
+            )
+            new_pid = patient["patient_id"]
+
+            _db_execute(
+                "UPDATE patients SET nfc_token = %s WHERE patient_id = %s",
+                (f"NFC{new_pid:03d}", new_pid),
+            )
+
+            _db_execute(
+                """
+                INSERT INTO patient_guardian_relations (patient_id, guardian_id, relation_type, is_primary, has_custody)
+                VALUES (%s, %s, 'Tutor', TRUE, TRUE)
+                """,
+                (new_pid, guardian_id),
+            )
+
+            allergies_raw = (payload.get("allergies") or "").strip()
+            if allergies_raw:
+                for allergy_name in [a.strip() for a in allergies_raw.split(",") if a.strip()]:
+                    allergy = _db_query_one(
+                        "SELECT allergy_id FROM allergies WHERE LOWER(name) = LOWER(%s) LIMIT 1",
+                        (allergy_name,),
+                    )
+                    if not allergy:
+                        allergy = _db_query_one(
+                            "INSERT INTO allergies (name, allergy_type) VALUES (%s, 'General') RETURNING allergy_id",
+                            (allergy_name,),
+                        )
+                    _db_execute(
+                        """
+                        INSERT INTO patient_allergies (patient_id, allergy_id, severity, reaction_desc)
+                        VALUES (%s, %s, %s, %s)
+                        """,
+                        (new_pid, allergy["allergy_id"], "Leve", None),
+                    )
+        except Exception as exc:  # pragma: no cover - depende del estado de BD
+            return jsonify({"error": f"No se pudo registrar en PostgreSQL: {exc}"}), 500
+
+        flash(f"Paciente {first_name} {last_name} registrado correctamente.", "success")
+        return jsonify({"message": "Paciente registrado en PostgreSQL", "patient_id": new_pid})
 
     # Simular INSERT en guardians (sin second_last, marital_status/occupation como FK int)
     new_guardian_id = _next_id(GUARDIANS, "guardian_id")
@@ -760,6 +1494,51 @@ def delete_patient(id):
     if locked:
         return jsonify({"error": "No autenticado"}), 401
 
+    if _db_configured():
+        patient = _db_query_one(
+            "SELECT patient_id, first_name, last_name FROM patients WHERE patient_id = %s LIMIT 1",
+            (id,),
+        )
+        if not patient:
+            return jsonify({"error": "Paciente no encontrado"}), 404
+
+        try:
+            _db_execute(
+                "DELETE FROM scan_logs WHERE patient_id = %s",
+                (id,),
+            )
+            _db_execute(
+                "DELETE FROM nfc_scan_events WHERE nfc_card_id IN (SELECT nfc_card_id FROM nfc_cards WHERE patient_id = %s)",
+                (id,),
+            )
+            _db_execute(
+                "DELETE FROM nfc_cards WHERE patient_id = %s",
+                (id,),
+            )
+            _db_execute(
+                "DELETE FROM gps_locations WHERE patient_id = %s OR gps_device_id IN (SELECT gps_device_id FROM gps_devices WHERE patient_id = %s)",
+                (id, id),
+            )
+            _db_execute(
+                "DELETE FROM gps_risk_alerts WHERE patient_id = %s OR gps_device_id IN (SELECT gps_device_id FROM gps_devices WHERE patient_id = %s)",
+                (id, id),
+            )
+            _db_execute("DELETE FROM gps_safe_zones WHERE patient_id = %s", (id,))
+            _db_execute("DELETE FROM gps_devices WHERE patient_id = %s", (id,))
+            _db_execute("DELETE FROM scheme_completion_alerts WHERE patient_id = %s", (id,))
+            _db_execute("DELETE FROM patient_allergies WHERE patient_id = %s", (id,))
+            _db_execute("DELETE FROM appointments WHERE patient_id = %s", (id,))
+            _db_execute("DELETE FROM vaccination_records WHERE patient_id = %s", (id,))
+            _db_execute("DELETE FROM patient_guardian_relations WHERE patient_id = %s", (id,))
+            _db_execute("DELETE FROM patients WHERE patient_id = %s", (id,))
+            _db_delete_nfc_bindings_for_entity("patient", id)
+        except Exception as exc:  # pragma: no cover - depende del estado de BD
+            return jsonify({"error": f"No se pudo eliminar en PostgreSQL: {exc}"}), 500
+
+        nombre = f"{patient['first_name']} {patient['last_name']}".strip()
+        flash(f"Paciente {nombre} eliminado.", "warning")
+        return jsonify({"message": "Paciente eliminado en PostgreSQL"})
+
     patient = _cur_fetchone("patients", "patient_id", id)
     if not patient:
         return jsonify({"error": "Paciente no encontrado"}), 404
@@ -772,6 +1551,11 @@ def delete_patient(id):
 
     for rel in _cur_fetchall_where("patient_guardian_relations", "patient_id", id):
         PATIENT_GUARDIAN_RELATIONS.remove(rel)
+
+    NFC_BINDINGS[:] = [
+        b for b in NFC_BINDINGS
+        if not (b.get("entity_type") == "patient" and int(b.get("entity_id") or -1) == id)
+    ]
 
     flash(f"Paciente {nombre} eliminado.", "warning")
     return jsonify({"message": "Paciente eliminado (demo)"})
@@ -1058,17 +1842,19 @@ def personal():
     if locked:
         return locked
 
-    workers_raw = _cur_fetchall("workers")
-    workers = []
-    for w in workers_raw:
-        row  = dict(w)
-        role = _cur_fetchone("roles", "role_id", w["role_id"])
-        row["role"]     = role["name"] if role else "Sin rol"
-        row["name"]     = w["first_name"]
-        row["lastname"] = w["last_name"]
-        # email desde worker_emails
-        row["mail"]     = _worker_email(w["worker_id"])
-        workers.append(row)
+    if _db_configured():
+        workers = _db_list_workers_for_page()
+    else:
+        workers_raw = _cur_fetchall("workers")
+        workers = []
+        for w in workers_raw:
+            row = dict(w)
+            role = _cur_fetchone("roles", "role_id", w["role_id"])
+            row["role"] = role["name"] if role else "Sin rol"
+            row["name"] = w["first_name"]
+            row["lastname"] = w["last_name"]
+            row["mail"] = _worker_email(w["worker_id"])
+            workers.append(row)
 
     return render_template(
         "personal_2daE.html",
@@ -1094,11 +1880,17 @@ def add_user():
         confirm  = request.form.get("password_confirm") or ""
         mail     = (request.form.get("mail") or "").strip()
 
-        # Verificar email en worker_emails
-        email_exists = any(
-            (e.get("email") or "").lower() == mail.lower()
-            for e in _cur_fetchall("worker_emails")
-        )
+        if _db_configured():
+            existing = _db_query_one(
+                "SELECT 1 FROM worker_emails WHERE LOWER(email) = LOWER(%s) LIMIT 1",
+                (mail,),
+            )
+            email_exists = bool(existing)
+        else:
+            email_exists = any(
+                (e.get("email") or "").lower() == mail.lower()
+                for e in _cur_fetchall("worker_emails")
+            )
 
         if password != confirm:
             error = "Las contraseñas no coinciden"
@@ -1107,36 +1899,66 @@ def add_user():
             error = "El email ya existe en el sistema"
             flash(error, "danger")
         else:
-            role_id = int(request.form.get("role_id") or 3)
-            new_wid = _next_id(WORKERS, "worker_id")
-            WORKERS.append({
-                "worker_id":     new_wid,
-                "role_id":       role_id,
-                "first_name":    request.form.get("name", ""),
-                "last_name":     request.form.get("lastname", ""),
-                "curp":          None,
-                "address_id":    None,
-                "birth_date":    None,
-                "hire_date":     date.today().isoformat(),
-                "password_hash": f"hash:{password}",
-            })
-            # Insertar email en worker_emails
-            WORKER_EMAILS.append({
-                "email_id":  _next_id(WORKER_EMAILS, "email_id"),
-                "worker_id": new_wid,
-                "email":     mail,
-                "is_primary": True,
-            })
-            # Insertar teléfono si viene
-            phone = request.form.get("phone")
-            if phone:
-                WORKER_PHONES.append({
-                    "phone_id":  _next_id(WORKER_PHONES, "phone_id"),
+            selected_role = (request.form.get("role") or "").strip()
+
+            if _db_configured():
+                role_id = _db_role_id_by_name(selected_role) or 3
+                try:
+                    _db_sync_serial_sequence("workers", "worker_id")
+                    _db_sync_serial_sequence("worker_emails", "email_id")
+
+                    new_worker = _db_query_one(
+                        """
+                        INSERT INTO workers (role_id, first_name, last_name, curp, birth_date, hire_date, password_hash)
+                        VALUES (%s, %s, %s, %s, %s, %s, %s)
+                        RETURNING worker_id
+                        """,
+                        (
+                            role_id,
+                            request.form.get("name", ""),
+                            request.form.get("lastname", ""),
+                            request.form.get("curp") or None,
+                            request.form.get("birth_date") or None,
+                            date.today().isoformat(),
+                            _password_hash_for_storage(password),
+                        ),
+                    )
+                    new_wid = new_worker["worker_id"]
+                    _db_execute(
+                        "INSERT INTO worker_emails (worker_id, email, is_primary) VALUES (%s, %s, TRUE)",
+                        (new_wid, mail),
+                    )
+                except Exception as exc:  # pragma: no cover - depende del estado de BD
+                    error = f"No se pudo registrar en PostgreSQL: {exc}"
+                    flash(error, "danger")
+                    return render_template(
+                        "add_user_2daE.html",
+                        **_session_vars(),
+                        form=form,
+                        error=error,
+                        roles=_cur_fetchall("roles"),
+                    )
+            else:
+                role_id = int(request.form.get("role_id") or 3)
+                new_wid = _next_id(WORKERS, "worker_id")
+                WORKERS.append({
                     "worker_id": new_wid,
-                    "phone":     phone,
-                    "phone_type": "Celular",
+                    "role_id": role_id,
+                    "first_name": request.form.get("name", ""),
+                    "last_name": request.form.get("lastname", ""),
+                    "curp": None,
+                    "address_id": None,
+                    "birth_date": None,
+                    "hire_date": date.today().isoformat(),
+                    "password_hash": f"hash:{password}",
+                })
+                WORKER_EMAILS.append({
+                    "email_id": _next_id(WORKER_EMAILS, "email_id"),
+                    "worker_id": new_wid,
+                    "email": mail,
                     "is_primary": True,
                 })
+
             session["last_registered_worker"] = new_wid
             flash(
                 f"Usuario {request.form.get('name', '')} registrado correctamente.",
@@ -1153,32 +1975,71 @@ def add_user():
     )
 
 
-# ── MAPA DE RIESGO ────────────────────────────────────────────────────────────
-@app.route("/mapa-riesgo")
-def mapa_riesgo():
+@app.route("/personal/delete/<int:id>", methods=["POST"])
+def delete_user(id):
     locked = _require_login()
     if locked:
-        return locked
+        return jsonify({"error": "No autenticado"}), 401
 
-    zones  = _cur_fetchall("zones")
-    alerts = _cur_fetchall("gps_risk_alerts")
+    if session.get("worker_id") == id:
+        return jsonify({"error": "No puedes eliminar tu propio usuario activo"}), 400
 
-    high   = sum(1 for z in zones if z["risk"] == "high")
-    medium = sum(1 for z in zones if z["risk"] == "medium")
-    low    = sum(1 for z in zones if z["risk"] == "low")
+    if _db_configured():
+        worker = _db_query_one(
+            "SELECT worker_id, first_name, last_name FROM workers WHERE worker_id = %s LIMIT 1",
+            (id,),
+        )
+        if not worker:
+            return jsonify({"error": "Trabajador no encontrado"}), 404
 
-    active_gps_alerts = [a for a in alerts if a["resolved_at"] is None]
+        refs = _db_query_one("SELECT COUNT(*) AS total FROM vaccination_records WHERE worker_id = %s", (id,))
+        if refs and refs.get("total", 0) > 0:
+            return jsonify({"error": "No se puede eliminar: tiene aplicaciones de vacunas registradas"}), 409
 
-    return render_template(
-        "mapaRiesgo_2daE.html",
-        **_session_vars(),
-        high_risk_count=high,
-        medium_risk_count=medium,
-        low_risk_count=low,
-        zones=zones,
-        gps_alerts=active_gps_alerts,
-        safe_zones=_cur_fetchall("gps_safe_zones"),
-    )
+        try:
+            _db_execute("UPDATE appointments SET worker_id = NULL WHERE worker_id = %s", (id,))
+            _db_execute("UPDATE post_vaccine_reactions SET reported_by = NULL WHERE reported_by = %s", (id,))
+            _db_execute("UPDATE nfc_scan_events SET scanned_by = NULL WHERE scanned_by = %s", (id,))
+            _db_execute("UPDATE nfc_cards SET issued_by = NULL WHERE issued_by = %s", (id,))
+            _db_execute("UPDATE gps_devices SET assigned_by = NULL WHERE assigned_by = %s", (id,))
+            _db_execute("UPDATE gps_risk_alerts SET resolved_by = NULL WHERE resolved_by = %s", (id,))
+            _db_execute("UPDATE audit_log SET worker_id = NULL WHERE worker_id = %s", (id,))
+
+            _db_execute("DELETE FROM worker_schedules WHERE worker_id = %s", (id,))
+            _db_execute("DELETE FROM worker_clinic_assignment WHERE worker_id = %s", (id,))
+            _db_execute("DELETE FROM worker_professional WHERE worker_id = %s", (id,))
+            _db_execute("DELETE FROM worker_phones WHERE worker_id = %s", (id,))
+            _db_execute("DELETE FROM worker_emails WHERE worker_id = %s", (id,))
+            _db_execute("DELETE FROM workers WHERE worker_id = %s", (id,))
+            _db_delete_nfc_bindings_for_entity("worker", id)
+        except Exception as exc:  # pragma: no cover - depende del estado de BD
+            return jsonify({"error": f"No se pudo eliminar en PostgreSQL: {exc}"}), 500
+
+        NFC_BINDINGS[:] = [
+            b for b in NFC_BINDINGS
+            if not (b.get("entity_type") == "worker" and int(b.get("entity_id") or -1) == id)
+        ]
+        nombre = f"{worker['first_name']} {worker['last_name']}".strip()
+        flash(f"Trabajador {nombre} eliminado.", "warning")
+        return jsonify({"message": "Trabajador eliminado en PostgreSQL"})
+
+    worker = _cur_fetchone("workers", "worker_id", id)
+    if not worker:
+        return jsonify({"error": "Trabajador no encontrado"}), 404
+
+    WORKERS.remove(worker)
+    for e in list(_cur_fetchall_where("worker_emails", "worker_id", id)):
+        WORKER_EMAILS.remove(e)
+    for p in list(_cur_fetchall_where("worker_phones", "worker_id", id)):
+        WORKER_PHONES.remove(p)
+    NFC_BINDINGS[:] = [
+        b for b in NFC_BINDINGS
+        if not (b.get("entity_type") == "worker" and int(b.get("entity_id") or -1) == id)
+    ]
+
+    nombre = f"{worker['first_name']} {worker['last_name']}".strip()
+    flash(f"Trabajador {nombre} eliminado.", "warning")
+    return jsonify({"message": "Trabajador eliminado (demo)"})
 
 
 # ── REPORTES PÚBLICOS ─────────────────────────────────────────────────────────
@@ -1188,6 +2049,27 @@ def reportes_publicos():
     if locked:
         return locked
     return render_template("reportesPublicos_2daE.html", **_session_vars())
+
+
+# ── NFC BRIDGE (ANDROID -> WEB) ─────────────────────────────────────────────
+@app.route("/nfc-bridge")
+def nfc_bridge_page():
+    """Página para administrar vinculaciones NFC - registrar nuevos tags."""
+    locked = _require_login()
+    if locked:
+        return locked
+    return render_template("nfc_bridge_2daE.html", **_session_vars())
+
+
+@app.route("/nfc-station")
+def nfc_station():
+    """Pantalla que espera escaneo NFC y ejecuta acciones automaticas en esta sesion."""
+    return render_template(
+        "nfcStation_2daE.html",
+        logged_in="user_name" in session,
+        user_name=session.get("user_name", ""),
+        role=session.get("role", ""),
+    )
 
 
 # ── INVENTARIO ────────────────────────────────────────────────────────────────
@@ -1497,6 +2379,289 @@ def api_reportes_publicos_resumen():
     return jsonify(payload)
 
 
+@app.route("/api/nfc/ingest", methods=["GET", "POST"])
+def api_nfc_ingest():
+    """Recibe lecturas NFC desde Android (NFC Tools / atajos HTTP)."""
+    token = (request.headers.get("X-NFC-Token") or request.args.get("token") or "").strip()
+    if token != _nfc_bridge_token():
+        return jsonify({"ok": False, "error": "Token invalido"}), 401
+
+    payload = request.get_json(silent=True) or {}
+
+    # Compatibilidad con integraciones que solo envian query string.
+    if not payload:
+        payload = {
+            "uid": request.args.get("uid") or request.args.get("nfc_id") or request.args.get("NFC_ID") or request.args.get("id") or request.args.get("tag"),
+            "source": request.args.get("source"),
+        }
+
+    uid = _extract_nfc_uid(payload)
+    if not uid:
+        worker_id_input = payload.get("worker_id") or request.args.get("worker_id")
+        if worker_id_input is not None and str(worker_id_input).strip().isdigit():
+            uid = f"WORKER_ID:{int(worker_id_input)}"
+
+    if not uid:
+        raw_uid = request.data.decode("utf-8", errors="ignore").strip()
+        if raw_uid:
+            uid = raw_uid.upper()
+
+    if not uid:
+        return jsonify({"ok": False, "error": "No se encontro UID en la solicitud"}), 400
+
+    if _looks_like_placeholder_uid(uid):
+        return jsonify({
+            "ok": False,
+            "error": "El telefono envio un placeholder ({UID_TAG}) en vez del UID real. Revisa la variable del flujo Android.",
+            "received_uid": uid,
+        }), 400
+
+    source = (payload.get("source") or request.user_agent.string or "android").strip()
+    event = _record_nfc_event(uid=uid, source=source)
+    binding = _find_nfc_binding(uid)
+    command = _binding_command(binding)
+    return jsonify({"ok": True, "event": event, "binding": binding, "command": command})
+
+
+@app.route("/api/nfc/latest")
+def api_nfc_latest():
+    """Devuelve la ultima lectura NFC capturada por /api/nfc/ingest."""
+    with NFC_BRIDGE_LOCK:
+        latest = NFC_BRIDGE_STATE.get("latest")
+        recent_events = NFC_BRIDGE_STATE.get("events", [])[:10]
+    return jsonify({"ok": True, "latest": latest, "events": recent_events})
+
+
+@app.route("/api/nfc/bindings")
+def api_nfc_bindings():
+    locked = _require_login()
+    if locked:
+        return jsonify({"ok": False, "error": "No autenticado"}), 401
+
+    binding_source = _db_list_nfc_bindings() if _db_configured() else NFC_BINDINGS
+    bindings = []
+    for b in binding_source:
+        row = dict(b)
+        if b["entity_type"] == "worker":
+            if _db_configured():
+                worker = _db_worker_by_id(b["entity_id"])
+                row["entity_name"] = f"{worker['first_name']} {worker['last_name']}".strip() if worker else "Personal no encontrado"
+            else:
+                row["entity_name"] = _worker_full_name(b["entity_id"])
+        else:
+            if _db_configured():
+                patient = _db_patient_by_id(b["entity_id"])
+                row["entity_name"] = f"{patient['first_name']} {patient['last_name']}".strip() if patient else "Paciente no encontrado"
+            else:
+                patient = _cur_fetchone("patients", "patient_id", b["entity_id"])
+                row["entity_name"] = _patient_full_name(patient) if patient else "Paciente no encontrado"
+        bindings.append(row)
+    return jsonify({"ok": True, "bindings": bindings})
+
+
+@app.route("/api/nfc/bind", methods=["POST"])
+def api_nfc_bind():
+    locked = _require_login()
+    if locked:
+        return jsonify({"ok": False, "error": "No autenticado"}), 401
+
+    payload = request.get_json(silent=True) or {}
+    worker_id_payload = payload.get("worker_id")
+    raw_uid = str(payload.get("uid") or payload.get("nfc_id") or payload.get("NFC_ID") or "").strip().upper()
+    if not raw_uid and worker_id_payload is not None and str(worker_id_payload).strip().isdigit():
+        raw_uid = f"WORKER_ID:{int(worker_id_payload)}"
+    uid_norm = _normalize_uid(raw_uid)
+    entity_type = (payload.get("entity_type") or "").strip().lower()
+    if not entity_type and worker_id_payload is not None:
+        entity_type = "worker"
+    label = (payload.get("label") or "").strip()
+
+    if not uid_norm:
+        return jsonify({"ok": False, "error": "UID requerido"}), 400
+    if entity_type not in {"worker", "patient"}:
+        return jsonify({"ok": False, "error": "entity_type debe ser worker o patient"}), 400
+
+    try:
+        if worker_id_payload is not None and str(worker_id_payload).strip().isdigit():
+            entity_id = int(worker_id_payload)
+        else:
+            entity_id = int(payload.get("entity_id"))
+    except (TypeError, ValueError):
+        return jsonify({"ok": False, "error": "entity_id invalido"}), 400
+
+    if entity_type == "worker":
+        entity = _db_worker_by_id(entity_id) if _db_configured() else _cur_fetchone("workers", "worker_id", entity_id)
+    else:
+        entity = _db_patient_by_id(entity_id) if _db_configured() else _cur_fetchone("patients", "patient_id", entity_id)
+
+    if not entity:
+        return jsonify({"ok": False, "error": "Entidad no encontrada"}), 404
+
+    if _db_configured():
+        binding = _db_upsert_nfc_binding(raw_uid, uid_norm, entity_type, entity_id, label)
+    else:
+        existing_by_uid = _find_nfc_binding(raw_uid)
+        if existing_by_uid:
+            existing_by_uid["uid"] = raw_uid
+            existing_by_uid["entity_type"] = entity_type
+            existing_by_uid["entity_id"] = entity_id
+            existing_by_uid["label"] = label
+            binding = existing_by_uid
+        else:
+            NFC_BINDINGS.append({
+                "uid": raw_uid,
+                "entity_type": entity_type,
+                "entity_id": entity_id,
+                "label": label,
+            })
+            binding = NFC_BINDINGS[-1]
+
+        # Evita que quede mas de un binding por UID normalizado.
+        seen = False
+        cleaned = []
+        for b in reversed(NFC_BINDINGS):
+            if _normalize_uid(b.get("uid")) != uid_norm:
+                cleaned.append(b)
+                continue
+            if not seen:
+                cleaned.append(b)
+                seen = True
+        NFC_BINDINGS[:] = list(reversed(cleaned))
+
+    return jsonify({"ok": True, "binding": binding})
+
+
+@app.route("/api/nfc/bind", methods=["DELETE"])
+def api_nfc_unbind():
+    locked = _require_login()
+    if locked:
+        return jsonify({"ok": False, "error": "No autenticado"}), 401
+
+    payload = request.get_json(silent=True) or {}
+    raw_uid = str(payload.get("uid") or payload.get("nfc_id") or payload.get("NFC_ID") or "").strip().upper()
+    uid_norm = _normalize_uid(raw_uid)
+    if not uid_norm:
+        return jsonify({"ok": False, "error": "UID requerido para borrar"}), 400
+
+    if _db_configured():
+        removed = _db_delete_nfc_binding(uid_norm)
+    else:
+        before = len(NFC_BINDINGS)
+        NFC_BINDINGS[:] = [b for b in NFC_BINDINGS if _normalize_uid(b.get("uid")) != uid_norm]
+        removed = before - len(NFC_BINDINGS)
+    if removed <= 0:
+        return jsonify({"ok": False, "error": "No se encontro vinculacion para ese UID"}), 404
+
+    return jsonify({"ok": True, "removed": removed, "uid": raw_uid})
+
+
+@app.route("/api/nfc/command/login-worker", methods=["GET", "POST"])
+def api_nfc_command_login_worker():
+    return api_nfc_command_resolve()
+
+
+@app.route("/api/nfc/command/resolve", methods=["GET", "POST"])
+def api_nfc_command_resolve():
+    """Resuelve un identificador NFC o worker_id y devuelve un command para trabajador o paciente."""
+    token = (request.headers.get("X-NFC-Token") or request.args.get("token") or "").strip()
+    if token != _nfc_bridge_token():
+        return jsonify({"ok": False, "error": "Token invalido"}), 401
+
+    payload = request.get_json(silent=True) or {}
+    raw_input = (
+        payload.get("worker_id")
+        or payload.get("uid")
+        or payload.get("nfc_id")
+        or payload.get("NFC_ID")
+        or request.args.get("worker_id")
+        or request.args.get("uid")
+        or request.args.get("nfc_id")
+        or request.args.get("NFC_ID")
+    )
+    match = _nfc_match_from_input(raw_input)
+    if not match:
+        return jsonify({"ok": False, "error": "Identificador no encontrado"}), 404
+
+    event = _record_nfc_event(uid=match["uid"], source="command-resolve")
+    command = _binding_command(match)
+    if not command:
+        return jsonify({"ok": False, "error": "No se pudo construir el command"}), 500
+
+    return jsonify({"ok": True, "event": event, "binding": match, "command": command})
+
+
+@app.route("/api/nfc/station/poll")
+def api_nfc_station_poll():
+    """Consume el ultimo evento NFC nuevo y devuelve accion para esta sesion de navegador."""
+    since = request.args.get("since", "0")
+    try:
+        since_id = int(since)
+    except ValueError:
+        since_id = 0
+
+    with NFC_BRIDGE_LOCK:
+        next_event = next(
+            (ev for ev in NFC_BRIDGE_STATE.get("events", []) if ev.get("event_id", 0) > since_id),
+            None,
+        )
+
+    if not next_event:
+        return jsonify({"ok": True, "action": "none", "last_event_id": since_id})
+
+    uid = next_event.get("uid")
+    binding = _find_nfc_binding(uid)
+    if not binding:
+        return jsonify({
+            "ok": True,
+            "action": "unlinked",
+            "last_event_id": next_event.get("event_id", since_id),
+            "uid": uid,
+            "message": "UID sin vincular. Vinculalo en NFC Bridge.",
+            "command": None,
+        })
+
+    if binding["entity_type"] == "worker":
+        ok = _set_session_from_worker(binding["entity_id"])
+        if not ok:
+            return jsonify({
+                "ok": True,
+                "action": "error",
+                "last_event_id": next_event.get("event_id", since_id),
+                "message": "No se pudo cargar el medico vinculado.",
+            })
+
+        command = _binding_command(binding)
+        return jsonify({
+            "ok": True,
+            "action": "worker_login",
+            "last_event_id": next_event.get("event_id", since_id),
+            "message": f"Sesion iniciada: {_worker_full_name(binding['entity_id'])}",
+            "redirect_url": url_for("dashboard"),
+            "command": command,
+        })
+
+    # Patient tag
+    if "user_name" not in session:
+        return jsonify({
+            "ok": True,
+            "action": "need_worker_login",
+            "last_event_id": next_event.get("event_id", since_id),
+            "message": "Escanea primero un gafete de medico para iniciar sesion.",
+            "command": _binding_command(binding),
+        })
+
+    patient = _cur_fetchone("patients", "patient_id", binding["entity_id"])
+    patient_name = _patient_full_name(patient) if patient else "Paciente"
+    return jsonify({
+        "ok": True,
+        "action": "open_patient",
+        "last_event_id": next_event.get("event_id", since_id),
+        "message": f"Abriendo expediente: {patient_name}",
+        "redirect_url": url_for("historial_paciente", id=binding["entity_id"]),
+        "command": _binding_command(binding),
+    })
+
+
 @app.route("/api/alertas-esquema")
 def api_alertas_esquema():
     locked = _require_login()
@@ -1519,6 +2684,57 @@ def api_alertas_esquema():
             "dose_label":   dose["dose_label"] if dose else "—",
         })
     return jsonify(result)
+
+
+@app.route("/api/workers-list")
+def api_workers_list():
+    """Devuelve lista de trabajadores para el puente NFC."""
+    locked = _require_login()
+    if locked:
+        return jsonify({"ok": False, "error": "No autenticado"}), 401
+
+    if _db_configured():
+        workers_raw = _db_list_workers_for_page() or []
+    else:
+        workers_raw = _cur_fetchall("workers") or []
+    
+    workers = []
+    for w in workers_raw:
+        # Handle both DB and non-DB field names
+        first_name = w.get("first_name") or w.get("name", "")
+        last_name = w.get("last_name") or w.get("lastname", "")
+        workers.append({
+            "worker_id": w["worker_id"],
+            "first_name": first_name,
+            "last_name": last_name,
+            "full_name": f"{first_name} {last_name}".strip(),
+        })
+    return jsonify({"ok": True, "workers": workers})
+
+
+@app.route("/api/patients-list")
+def api_patients_list():
+    """Devuelve lista de pacientes para el puente NFC."""
+    locked = _require_login()
+    if locked:
+        return jsonify({"ok": False, "error": "No autenticado"}), 401
+
+    if _db_configured():
+        patients_raw = _db_list_patients_for_page() or []
+    else:
+        patients_raw = _cur_fetchall("patients") or []
+    
+    patients = []
+    for p in patients_raw:
+        first_name = p.get("first_name", "")
+        last_name = p.get("last_name", "")
+        patients.append({
+            "patient_id": p["patient_id"],
+            "first_name": first_name,
+            "last_name": last_name,
+            "full_name": f"{first_name} {last_name}".strip(),
+        })
+    return jsonify({"ok": True, "patients": patients})
 
 
 if __name__ == "__main__":

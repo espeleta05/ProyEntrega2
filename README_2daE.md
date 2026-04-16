@@ -1,10 +1,22 @@
-# Segunda Entrega (Demo sin Base de Datos)
+# Segunda Entrega (Flask + PostgreSQL)
 
-Esta carpeta contiene una version funcional visual del sistema en Flask + HTML, sin conexion a base de datos.
+Esta carpeta contiene el sistema en Flask + HTML con soporte para PostgreSQL.
 
 ## Credenciales demo
 - Usuario: `admin`
 - Contrasena: `123`
+
+## Credenciales PostgreSQL
+Si configuras PostgreSQL, el login usa la tabla `workers` y `worker_emails`.
+La contrasena del seed SQL debe coincidir con la que tengas cargada en tu base; usa ese valor real al iniciar sesion.
+
+## Variables de entorno
+Configura una de estas opciones antes de ejecutar Flask:
+- `DATABASE_URL=postgresql://usuario:contrasena@host:5432/sistemaVacunacion`
+- o `PGHOST`, `PGPORT`, `PGDATABASE`, `PGUSER`, `PGPASSWORD`
+
+## NFC
+El modulo NFC usa `nfc_id` y permite vincular y borrar uniones desde la pantalla `NFC Bridge`.
 
 ## Que incluye
 - Backend Flask con datos hardcodeados en memoria.
@@ -22,4 +34,4 @@ Esta carpeta contiene una version funcional visual del sistema en Flask + HTML, 
    - `http://127.0.0.1:5000`
 
 ## Nota
-Los registros se guardan solo en memoria del proceso. Al reiniciar Flask, vuelven a los valores de ejemplo.
+Si no configuras PostgreSQL, el sistema sigue funcionando con datos demo en memoria.

@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Estacion NFC</title>
+<style>
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    font-family: "Montserrat", sans-serif;
+    background: radial-gradient(circle at top left, #eaf4ff 0%, #f9fcff 40%, #f4f8ff 100%);
+    color: #1c3557;
+    padding: 0;
+}
+
+.station-wrap {
+    width: 100%;
+    max-width: 100%;
+    margin: 0;
+    background: #ffffff;
+    border: none;
+    border-radius: 0;
+    padding: 15px;
+    box-shadow: none;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+h1 {
+    margin: 0;
+    font-size: 1.6em;
+}
+
+.subtitle {
+    margin-top: 8px;
+    margin-bottom: 15px;
+    color: #4c6383;
+    font-size: 0.9em;
+    line-height: 1.4;
+}
+
+.status-box {
+    margin-top: 0;
+    margin-bottom: 15px;
+    padding: 12px 14px;
+    border-radius: 8px;
+    border: 1px solid #cfe2ff;
+    background: #eef6ff;
+    color: #11477d;
+    font-weight: 700;
+    font-size: 0.9em;
+}
+
+.status-box.ok {
+    background: #e9fce9;
+    border-color: #b7e6b7;
+    color: #226b22;
+}
+
+.status-box.warn {
+    background: #fff7e7;
+    border-color: #ffe1a8;
+    color: #8f6100;
+}
+
+.status-box.error {
+    background: #ffeded;
+    border-color: #ffc4c4;
+    color: #982929;
+}
+
+.panel-grid {
+    margin-top: 0;
+    margin-bottom: 15px;
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 10px;
+}
+
+@media (min-width: 600px) {
+    .panel-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+.panel {
+    border: 1px solid #d8e6ff;
+    border-radius: 8px;
+    padding: 10px;
+    background: #f8fbff;
+}
+
+.panel h3 {
+    margin: 0 0 6px;
+    font-size: 0.95em;
+}
+
+.panel p {
+    margin: 0;
+    color: #4f6380;
+    font-size: 0.85em;
+}
+
+.hint {
+    margin-top: 0;
+    margin-bottom: 15px;
+    color: #496283;
+    font-size: 0.85em;
+    line-height: 1.4;
+}
+
+.hint strong {
+    display: block;
+    margin-top: 6px;
+    font-size: 0.8em;
+    word-break: break-all;
+}
+
+.actions {
+    margin-top: auto;
+    margin-bottom: 0;
+    display: flex;
+    gap: 8px;
+    flex-direction: column;
+}
+
+@media (min-width: 480px) {
+    .actions {
+        flex-direction: row;
+        flex-wrap: wrap;
+    }
+}
+
+.btn {
+    display: inline-block;
+    text-decoration: none;
+    background: #0f66c6;
+    color: #ffffff;
+    border-radius: 6px;
+    padding: 10px 12px;
+    font-weight: 700;
+    font-size: 0.85em;
+    text-align: center;
+    border: none;
+    cursor: pointer;
+    flex: 1;
+}
+
+@media (min-width: 480px) {
+    .btn {
+        flex: auto;
+    }
+}
+
+.btn:hover {
+    opacity: 0.9;
+}
+
+.btn.secondary {
+    background: #607891;
+}
+</style>
+</head>
+<body>
+<div class="station-wrap">
+    <h1>Estacion NFC</h1>
+    <p class="subtitle">
+        Deja esta pantalla abierta. Cuando llegue un UID desde Android:
+        si pertenece a medico inicia sesion, si pertenece a paciente abre su expediente.
+    </p>
+
+    <div id="statusBox" class="status-box">Esperando lectura NFC...</div>
+
+    <div class="panel-grid">
+        <div class="panel">
+            <h3>Sesion actual</h3>
+            <p id="sessionInfo">
+                {% if logged_in %}
+                    Activa: {{ user_name }} ({{ role }})
+                {% else %}
+                    Sin sesion iniciada
+                {% endif %}
+            </p>
+        </div>
+
+        <div class="panel">
+            <h3>Ultimo evento procesado</h3>
+            <p id="eventInfo">Ninguno</p>
+        </div>
+    </div>
+
+    <div class="hint">
+        Configura tu app Android para enviar a:
+        <strong>/api/nfc/ingest?token=TU_TOKEN&uid=UID</strong>
+    </div>
+
+    <div class="actions">
+        <a href="{{ url_for('nfc_bridge_page') }}" class="btn">Administrar vinculos NFC</a>
+        <a href="{{ url_for('login') }}" class="btn secondary">Ir a login tradicional</a>
+    </div>
+</div>
+
+<script>
+(() => {
+    const statusBox = document.getElementById('statusBox');
+    const eventInfo = document.getElementById('eventInfo');
+    let lastEventId = 0;
+    let stationArmed = false;
+
+    function setStatus(text, type) {
+        statusBox.textContent = text;
+        statusBox.classList.remove('ok', 'warn', 'error');
+        if (type) {
+            statusBox.classList.add(type);
+        }
+    }
+
+    async function pollStation() {
+        if (!stationArmed) return;
+        try {
+            const res = await fetch(`/api/nfc/station/poll?since=${lastEventId}`, { cache: 'no-store' });
+            if (!res.ok) {
+                setStatus('No se pudo consultar el estado NFC.', 'error');
+                return;
+            }
+
+            const payload = await res.json();
+            lastEventId = payload.last_event_id || lastEventId;
+            eventInfo.textContent = `Evento #${lastEventId}`;
+
+            if (payload.action === 'none') {
+                return;
+            }
+
+            if (payload.action === 'worker_login') {
+                setStatus(payload.message || 'Sesion iniciada por NFC.', 'ok');
+                if (payload.redirect_url) {
+                    window.location.href = payload.redirect_url;
+                }
+                return;
+            }
+
+            if (payload.action === 'open_patient') {
+                setStatus(payload.message || 'Abriendo expediente por NFC.', 'ok');
+                if (payload.redirect_url) {
+                    window.location.href = payload.redirect_url;
+                }
+                return;
+            }
+
+            if (payload.action === 'need_worker_login' || payload.action === 'unlinked') {
+                setStatus(payload.message || 'Evento NFC recibido.', 'warn');
+                return;
+            }
+
+            setStatus(payload.message || 'Evento NFC procesado.', 'error');
+        } catch (error) {
+            setStatus('Error de red en estacion NFC.', 'error');
+        }
+    }
+
+    async function armStationFromLatest() {
+        try {
+            const res = await fetch('/api/nfc/latest', { cache: 'no-store' });
+            if (res.ok) {
+                const payload = await res.json();
+                const latest = payload.latest;
+                if (latest && latest.event_id) {
+                    lastEventId = latest.event_id;
+                    eventInfo.textContent = `Evento #${lastEventId}`;
+                }
+            }
+            stationArmed = true;
+            setStatus('Estacion lista. Esperando nuevo escaneo NFC...', 'ok');
+        } catch (error) {
+            stationArmed = true;
+            setStatus('Estacion lista (sincronizacion parcial). Esperando NFC...', 'warn');
+        }
+    }
+
+    armStationFromLatest();
+    setInterval(pollStation, 900);
+})();
+</script>
+</body>
+</html>

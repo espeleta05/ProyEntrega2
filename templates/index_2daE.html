@@ -77,8 +77,8 @@
 
     <div class="dash-card">
         <i class="fa-solid fa-triangle-exclamation"></i>
-        <h4>Pacientes en riesgo</h4>
-        <p>N/A</p>
+        <h4>Alertas pendientes</h4>
+        <p>{{ pending_alerts }}</p>
     </div>
 
 </div>
@@ -168,29 +168,6 @@
 
     </section>
 
-    <section class="section-card map">
-        <div class="section-header">
-            <h2>Mapa de pacientes en riesgo</h2>
-            <div class="card-detail map">
-                <i class="fa-solid fa-triangle-exclamation"></i>
-                <strong>Zonas en riesgo</strong>
-            </div>
-        </div>
-
-        <div class="risk-patients">
-            <div class="card-detail high-risk">
-                <i class="fa-solid fa-triangle-exclamation"></i>
-                2 pacientes en alto riesgo
-            </div>
-
-            <div class="card-detail mid-risk">
-                <i class="fa-solid fa-triangle-exclamation"></i>
-                1 paciente en medio riesgo
-            </div>
-        </div>
-
-        <iframe src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d57721.90674671802!2d-100.06210255327815!3d25.283393290552432!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x867d2cf1bcb7c1b1%3A0xe44fe0da3ea4c389!2s67350%20Cdad.%20de%20Allende%2C%20N.L.!5e0!3m2!1ses!2smx!4v1773602186939!5m2!1ses!2smx" width="100%" height="350" style="border:0; border-radius: 10px;" allowfullscreen="" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
-    </section>
 </div>
 
 {% include 'nuevoPaciente_2daE.html' %}

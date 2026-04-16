@@ -55,6 +55,16 @@
                 {% endif %}
             </div>
 
+            <button
+                type="button"
+                class="delete-worker-btn"
+                data-worker-id="{{ w.worker_id }}"
+                title="Eliminar trabajador"
+                style="background:none;border:none;color:#b00020;cursor:pointer;font-size:16px;"
+            >
+                <i class="fa-solid fa-trash"></i>
+            </button>
+
         </div>
         {% endfor %}
     </div>
@@ -89,6 +99,34 @@
         input.value = q;
         applyFilter(q);
     }
+
+    document.querySelectorAll('.delete-worker-btn').forEach((btn) => {
+        btn.addEventListener('click', async () => {
+            const workerId = btn.dataset.workerId;
+            if (!workerId) return;
+
+            if (!confirm('Esta accion eliminara al trabajador. Continuar?')) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`/personal/delete/${workerId}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                });
+                const result = await response.json();
+                if (!response.ok) {
+                    alert(result.error || 'No se pudo eliminar el trabajador');
+                    return;
+                }
+                alert(result.message || 'Trabajador eliminado');
+                window.location.reload();
+            } catch (error) {
+                alert('Error de conexion al eliminar trabajador');
+                console.error(error);
+            }
+        });
+    });
 })();
 </script>
 

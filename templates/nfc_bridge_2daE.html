@@ -1,0 +1,679 @@
+{% extends "base_2daE.html" %}
+
+{% block title %}Puente NFC - Registrador de Etiquetas{% endblock %}
+
+{% block extra_css %}
+<style>
+    .nfc-bridge-container {
+        width: 100%;
+        padding: 0;
+        max-height: 100%;
+        overflow-y: auto;
+    }
+
+    .nfc-header {
+        margin-bottom: 20px;
+    }
+
+    .nfc-header h1 {
+        font-size: 1.6em;
+        color: var(--primary-color);
+        margin-bottom: 5px;
+        font-family: 'Montserrat', sans-serif;
+    }
+
+    .nfc-header p {
+        font-size: 0.9em;
+        color: var(--gray-color);
+    }
+
+    .nfc-section {
+        background: white;
+        border-radius: 12px;
+        padding: 15px;
+        margin-bottom: 15px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    }
+
+    .nfc-section h2 {
+        color: var(--primary-color);
+        margin-bottom: 12px;
+        font-size: 1.1em;
+        border-bottom: 3px solid var(--button-color);
+        padding-bottom: 6px;
+        font-family: 'Montserrat', sans-serif;
+    }
+
+    .register-button {
+        background: linear-gradient(135deg, var(--button-color), var(--secondary-color));
+        color: white;
+        padding: 8px 16px;
+        border: none;
+        border-radius: 8px;
+        font-size: 0.9em;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s;
+        margin-bottom: 12px;
+        width: 100%;
+    }
+
+    .register-button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(107, 0, 124, 0.3);
+    }
+
+    .bindings-list {
+        margin-top: 12px;
+    }
+
+    .binding-card {
+        background: var(--gray-background);
+        border-left: 5px solid var(--button-color);
+        padding: 10px;
+        margin-bottom: 10px;
+        border-radius: 8px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        transition: all 0.3s;
+        gap: 8px;
+    }
+
+    .binding-card:hover {
+        background: #f0f0f0;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    }
+
+    .binding-info {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .binding-type {
+        display: inline-block;
+        padding: 3px 8px;
+        border-radius: 20px;
+        font-size: 0.75em;
+        font-weight: 600;
+        margin-right: 6px;
+        margin-bottom: 3px;
+    }
+
+    .binding-type.worker {
+        background: #e3f2fd;
+        color: var(--primary-color);
+    }
+
+    .binding-type.patient {
+        background: #fff3e0;
+        color: #e65100;
+    }
+
+    .binding-name {
+        font-size: 0.9em;
+        color: var(--primary-color);
+        font-weight: 600;
+        margin: 3px 0;
+        word-break: break-word;
+    }
+
+    .binding-uid {
+        font-size: 0.75em;
+        color: var(--gray-color);
+        font-family: monospace;
+        word-break: break-all;
+    }
+
+    .binding-delete {
+        background: var(--bad-color);
+        color: white;
+        border: none;
+        padding: 5px 10px;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: all 0.3s;
+        font-size: 0.8em;
+        white-space: nowrap;
+        flex-shrink: 0;
+    }
+
+    .binding-delete:hover {
+        background: #a00000;
+        transform: scale(1.05);
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 20px;
+        color: var(--gray-color);
+    }
+
+    .empty-state-icon {
+        font-size: 2.5em;
+        margin-bottom: 8px;
+        opacity: 0.6;
+    }
+
+    /* Modal Styles */
+    .modal-overlay {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.7);
+        z-index: 1000;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .modal-overlay.active {
+        display: flex;
+    }
+
+    .modal-content {
+        background: white;
+        border-radius: 12px;
+        padding: 20px;
+        max-width: 450px;
+        width: 95%;
+        max-height: 90vh;
+        overflow-y: auto;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+        animation: slideIn 0.3s ease;
+    }
+
+    @keyframes slideIn {
+        from {
+            transform: translateY(-30px);
+            opacity: 0;
+        }
+        to {
+            transform: translateY(0);
+            opacity: 1;
+        }
+    }
+
+    .modal-header {
+        font-size: 1.1em;
+        color: var(--primary-color);
+        margin-bottom: 12px;
+        font-weight: 600;
+        font-family: 'Montserrat', sans-serif;
+    }
+
+    .modal-form {
+        margin-bottom: 15px;
+    }
+
+    .form-group {
+        margin-bottom: 10px;
+    }
+
+    .form-group label {
+        display: block;
+        margin-bottom: 4px;
+        color: var(--primary-color);
+        font-weight: 600;
+        font-size: 0.9em;
+    }
+
+    .form-group select,
+    .form-group input {
+        width: 100%;
+        padding: 8px;
+        border: 1px solid var(--gray-stroke);
+        border-radius: 6px;
+        font-size: 0.9em;
+        box-sizing: border-box;
+        font-family: 'Open Sans', sans-serif;
+    }
+
+    .form-group select:focus,
+    .form-group input:focus {
+        outline: none;
+        border-color: var(--button-color);
+        box-shadow: 0 0 5px rgba(232, 171, 206, 0.3);
+    }
+
+    .nfc-status {
+        background: var(--gray-background);
+        border-radius: 8px;
+        padding: 10px;
+        margin-bottom: 10px;
+        text-align: center;
+    }
+
+    .nfc-status.waiting {
+        background: #fff3cd;
+        border-left: 4px solid var(--medium-color);
+    }
+
+    .nfc-status.detected {
+        background: var(--good-background);
+        border-left: 4px solid var(--good-color);
+    }
+
+    .nfc-status.error {
+        background: var(--bad-background);
+        border-left: 4px solid var(--bad-color);
+    }
+
+    .nfc-status-icon {
+        font-size: 1.6em;
+        margin-bottom: 5px;
+    }
+
+    .nfc-status-text {
+        color: #333;
+        font-weight: 600;
+        font-size: 0.9em;
+    }
+
+    .pulse {
+        animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.5; }
+    }
+
+    .modal-buttons {
+        display: flex;
+        gap: 6px;
+        justify-content: flex-end;
+        margin-top: 12px;
+        flex-wrap: wrap;
+    }
+
+    .btn-primary,
+    .btn-secondary {
+        padding: 7px 12px;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 0.85em;
+        font-weight: 600;
+        transition: all 0.3s;
+        flex: 1;
+        min-width: 80px;
+    }
+
+    .btn-primary {
+        background: var(--button-color);
+        color: var(--secondary-color);
+    }
+
+    .btn-primary:hover {
+        background: var(--primary-color);
+        color: white;
+    }
+
+    .btn-primary:disabled {
+        background: var(--gray-stroke);
+        cursor: not-allowed;
+        color: var(--gray-color);
+    }
+
+    .btn-secondary {
+        background: var(--gray-stroke);
+        color: var(--gray-color);
+    }
+
+    .btn-secondary:hover {
+        background: var(--gray-color);
+        color: white;
+    }
+
+    .alert {
+        padding: 8px 10px;
+        border-radius: 6px;
+        margin-bottom: 10px;
+        display: none;
+        border-left: 4px solid;
+        font-size: 0.9em;
+    }
+
+    .alert.success {
+        background: var(--good-background);
+        color: var(--good-color);
+        border-left-color: var(--good-color);
+        display: block;
+    }
+
+    .alert.error {
+        background: var(--bad-background);
+        color: var(--bad-color);
+        border-left-color: var(--bad-color);
+        display: block;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="nfc-bridge-container">
+    <div class="nfc-header">
+        <h1>🏥 Puente NFC</h1>
+        <p>Administra las etiquetas NFC vinculadas a trabajadores y pacientes</p>
+    </div>
+
+    <!-- Alert messages -->
+    <div id="alertBox" class="alert"></div>
+
+    <!-- Bindings Section -->
+    <div class="nfc-section">
+        <h2>Etiquetas Registradas</h2>
+        <button class="register-button" onclick="openRegisterModal()">+ Registrar Nueva Etiqueta</button>
+        <div id="bindingsList" class="bindings-list">
+            <div class="empty-state">
+                <div class="empty-state-icon">📋</div>
+                <p>Cargando etiquetas...</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Registration Modal -->
+<div id="registerModal" class="modal-overlay">
+    <div class="modal-content">
+        <div class="modal-header">📱 Registrar Nueva Etiqueta NFC</div>
+
+        <div id="modalPhase1" class="modal-form">
+            <div class="form-group">
+                <label for="entityType">Tipo de Entidad:</label>
+                <select id="entityType" onchange="updateEntityOptions()">
+                    <option value="">-- Selecciona --</option>
+                    <option value="worker">👨‍⚕️ Trabajador</option>
+                    <option value="patient">👤 Paciente</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="entitySelect">Selecciona:</label>
+                <select id="entitySelect">
+                    <option value="">-- Cargando --</option>
+                </select>
+            </div>
+
+            <div class="nfc-status">
+                <div class="nfc-status-icon">👆</div>
+                <div class="nfc-status-text">Listo para registrar. Haz clic en "Comenzar Lectura"</div>
+            </div>
+
+            <div class="modal-buttons">
+                <button class="btn-secondary" onclick="closeRegisterModal()">Cancelar</button>
+                <button class="btn-primary" onclick="startNFCDetection()" id="startDetectionBtn">Comenzar Lectura</button>
+            </div>
+        </div>
+
+        <div id="modalPhase2" style="display: none;">
+            <div class="nfc-status waiting">
+                <div class="nfc-status-icon pulse">📡</div>
+                <div class="nfc-status-text">Acerca la etiqueta NFC...</div>
+            </div>
+
+            <div class="modal-buttons">
+                <button class="btn-secondary" onclick="cancelNFCDetection()">Cancelar</button>
+            </div>
+        </div>
+
+        <div id="modalPhase3" style="display: none;">
+            <div class="nfc-status detected">
+                <div class="nfc-status-icon">✅</div>
+                <div class="nfc-status-text">Etiqueta detectada! Vinculando...</div>
+                <small id="detectedUID" style="font-family: monospace; color: #555;"></small>
+            </div>
+
+            <div style="margin-top: 10px; padding: 10px; background: #f0f0f0; border-radius: 5px;">
+                <strong id="bindingInfo"></strong>
+            </div>
+
+            <div class="modal-buttons" style="margin-top: 20px;">
+                <button class="btn-secondary" onclick="closeRegisterModal()">Cerrar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    let currentDetectionSession = null;
+    let detectionLastEventId = 0;
+
+    // Load bindings on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        loadBindings();
+    });
+
+    function loadBindings() {
+        fetch('/api/nfc/bindings')
+            .then(r => r.json())
+            .then(data => {
+                if (data.ok && data.bindings) {
+                    displayBindings(data.bindings);
+                }
+            })
+            .catch(err => console.error('Error loading bindings:', err));
+    }
+
+    function displayBindings(bindings) {
+        const list = document.getElementById('bindingsList');
+        
+        if (bindings.length === 0) {
+            list.innerHTML = `
+                <div class="empty-state">
+                    <div class="empty-state-icon">🔗</div>
+                    <p>No hay etiquetas registradas aún. ¡Crea una nueva!</p>
+                </div>
+            `;
+            return;
+        }
+
+        list.innerHTML = bindings.map(b => `
+            <div class="binding-card">
+                <div class="binding-info">
+                    <div>
+                        <span class="binding-type ${b.entity_type}">
+                            ${b.entity_type === 'worker' ? '👨‍⚕️ TRABAJADOR' : '👤 PACIENTE'}
+                        </span>
+                    </div>
+                    <div class="binding-name">${b.entity_name || 'Sin nombre'}</div>
+                    <div class="binding-uid">UID: ${b.uid}</div>
+                    ${b.label ? `<div style="font-size: 0.85em; color: #7f8c8d; margin-top: 5px;">Etiqueta: ${b.label}</div>` : ''}
+                </div>
+                <button class="binding-delete" onclick="deleteBinding('${b.uid}')">🗑️ Eliminar</button>
+            </div>
+        `).join('');
+    }
+
+    function deleteBinding(uid) {
+        if (!confirm('¿Estás seguro de que quieres eliminar esta etiqueta?')) return;
+
+        fetch('/api/nfc/bind', {
+            method: 'DELETE',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({uid: uid})
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.ok) {
+                showAlert('Etiqueta eliminada correctamente', 'success');
+                loadBindings();
+            } else {
+                showAlert(data.error || 'Error al eliminar', 'error');
+            }
+        })
+        .catch(err => {
+            console.error(err);
+            showAlert('Error de conexión', 'error');
+        });
+    }
+
+    function openRegisterModal() {
+        document.getElementById('registerModal').classList.add('active');
+        resetModal();
+    }
+
+    function closeRegisterModal() {
+        document.getElementById('registerModal').classList.remove('active');
+        cancelNFCDetection();
+        loadBindings();
+    }
+
+    function resetModal() {
+        document.getElementById('modalPhase1').style.display = 'block';
+        document.getElementById('modalPhase2').style.display = 'none';
+        document.getElementById('modalPhase3').style.display = 'none';
+        document.getElementById('entityType').value = '';
+        document.getElementById('entitySelect').innerHTML = '<option value="">-- Selecciona tipo primero --</option>';
+        detectionLastEventId = 0;
+        currentDetectionSession = null;
+    }
+
+    function updateEntityOptions() {
+        const entityType = document.getElementById('entityType').value;
+        const select = document.getElementById('entitySelect');
+        
+        if (!entityType) {
+            select.innerHTML = '<option value="">-- Selecciona tipo --</option>';
+            return;
+        }
+
+        if (entityType === 'worker') {
+            fetch('/api/workers-list')
+                .then(r => r.json())
+                .then(data => {
+                    if (data.workers) {
+                        select.innerHTML = '<option value="">-- Selecciona un trabajador --</option>' + 
+                            data.workers.map(w => 
+                                `<option value="${w.worker_id}">${w.first_name} ${w.last_name}</option>`
+                            ).join('');
+                    }
+                })
+                .catch(() => select.innerHTML = '<option value="">Error cargando trabajadores</option>');
+        } else if (entityType === 'patient') {
+            fetch('/api/patients-list')
+                .then(r => r.json())
+                .then(data => {
+                    if (data.patients) {
+                        select.innerHTML = '<option value="">-- Selecciona un paciente --</option>' + 
+                            data.patients.map(p => 
+                                `<option value="${p.patient_id}">${p.first_name} ${p.last_name}</option>`
+                            ).join('');
+                    }
+                })
+                .catch(() => select.innerHTML = '<option value="">Error cargando pacientes</option>');
+        }
+    }
+
+    function startNFCDetection() {
+        const entityType = document.getElementById('entityType').value;
+        const entityId = document.getElementById('entitySelect').value;
+
+        if (!entityType || !entityId) {
+            showAlert('Por favor selecciona un tipo y una entidad', 'error');
+            return;
+        }
+
+        currentDetectionSession = {entityType, entityId};
+        detectionLastEventId = 0;
+
+        document.getElementById('modalPhase1').style.display = 'none';
+        document.getElementById('modalPhase2').style.display = 'block';
+
+        pollForNFC();
+    }
+
+    function pollForNFC() {
+        if (!currentDetectionSession) return;
+
+        fetch(`/api/nfc/station/poll?since=${detectionLastEventId}`)
+            .then(r => r.json())
+            .then(data => {
+                if (!currentDetectionSession) return; // Cancelled
+
+                if (data.ok && data.action && data.action !== 'none') {
+                    // Got an event
+                    detectionLastEventId = data.last_event_id || 0;
+
+                    if (data.action === 'unlinked') {
+                        // Perfect! Detected an NFC without binding
+                        onNFCDetected(data.uid);
+                    } else {
+                        // Got some other action, try again
+                        setTimeout(pollForNFC, 500);
+                    }
+                } else {
+                    // No events yet, keep polling
+                    setTimeout(pollForNFC, 500);
+                }
+            })
+            .catch(err => {
+                console.error('Poll error:', err);
+                if (currentDetectionSession) {
+                    setTimeout(pollForNFC, 1000);
+                }
+            });
+    }
+
+    function onNFCDetected(uid) {
+        const entityType = currentDetectionSession.entityType;
+        const entityId = currentDetectionSession.entityId;
+
+        // Bind the UID to the selected entity
+        fetch('/api/nfc/bind', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                uid: uid,
+                entity_type: entityType,
+                entity_id: parseInt(entityId),
+                label: `Registered ${new Date().toLocaleString()}`
+            })
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.ok) {
+                showNFCSuccess(uid, data.binding);
+            } else {
+                showAlert(`Error al vincular: ${data.error}`, 'error');
+                resetModal();
+            }
+        })
+        .catch(err => {
+            console.error(err);
+            showAlert('Error de conexión', 'error');
+            resetModal();
+        });
+    }
+
+    function showNFCSuccess(uid, binding) {
+        document.getElementById('modalPhase2').style.display = 'none';
+        document.getElementById('modalPhase3').style.display = 'block';
+
+        document.getElementById('detectedUID').textContent = `UID: ${uid}`;
+        const entityName = binding.entity_name || 'Sin nombre';
+        const entityType = binding.entity_type === 'worker' ? '👨‍⚕️ Trabajador' : '👤 Paciente';
+        document.getElementById('bindingInfo').textContent = 
+            `✅ Vinculado exitosamente a ${entityName} (${entityType})`;
+
+        currentDetectionSession = null;
+    }
+
+    function cancelNFCDetection() {
+        currentDetectionSession = null;
+        resetModal();
+    }
+
+    function showAlert(message, type) {
+        const box = document.getElementById('alertBox');
+        box.innerHTML = message;
+        box.className = `alert ${type}`;
+        setTimeout(() => {
+            box.className = 'alert';
+        }, 5000);
+    }
+</script>
+{% endblock %}

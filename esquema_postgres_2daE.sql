@@ -376,6 +376,18 @@ CREATE TABLE nfc_scan_events (
     nfc_scan_result   VARCHAR(100)
 );
 
+CREATE TABLE nfc_bindings (
+    binding_id    SERIAL PRIMARY KEY,
+    uid           VARCHAR(50)  NOT NULL,
+    uid_norm      VARCHAR(50)  NOT NULL UNIQUE,
+    entity_type   VARCHAR(20)  NOT NULL CHECK (entity_type IN ('worker', 'patient')),
+    entity_id     INT          NOT NULL,
+    worker_id     INT          REFERENCES workers(worker_id),
+    label         VARCHAR(150),
+    created_at    TIMESTAMP    NOT NULL DEFAULT NOW(),
+    updated_at    TIMESTAMP    NOT NULL DEFAULT NOW()
+);
+
 --  MÓDULO: ALERTS AND AUDITS
 CREATE TABLE scheme_completion_alerts (
     alert_id        SERIAL PRIMARY KEY,
@@ -441,4 +453,5 @@ CREATE INDEX idx_vaccination_records_pat   ON vaccination_records(patient_id);
 CREATE INDEX idx_vaccination_records_date  ON vaccination_records(applied_date);
 CREATE INDEX idx_appointments_pat_date     ON appointments(patient_id, scheduled_at);
 CREATE INDEX idx_nfc_scan_events_card      ON nfc_scan_events(nfc_card_id, scanned_at);
+CREATE INDEX idx_nfc_bindings_entity       ON nfc_bindings(entity_type, entity_id);
 CREATE INDEX idx_audit_log_table_record    ON audit_log(table_name, record_id);

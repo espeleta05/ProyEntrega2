@@ -29,14 +29,14 @@
             <span>Aplicaciones</span>
         </a>
 
-        <a href="{{ url_for('mapa_riesgo') }}" class="menu-item {% if request.endpoint=='mapa_riesgo' %}active{% endif %}">
-            <i class="fa-solid fa-map"></i>
-            <span>Mapa de riesgo</span>
-        </a>
-
         <a href="{{ url_for('personal') }}" class="menu-item {% if request.endpoint=='personal' %}active{% endif %}">
             <i class="fa-solid fa-user-doctor"></i>
             <span>Personal</span>
+        </a>
+
+        <a href="{{ url_for('nfc_bridge_page') }}" class="menu-item {% if request.endpoint=='nfc_bridge_page' %}active{% endif %}">
+            <i class="fa-solid fa-wifi"></i>
+            <span>NFC Bridge</span>
         </a>
 
     </nav>
