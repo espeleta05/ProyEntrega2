@@ -18,7 +18,7 @@
     <table>
         <thead>
             <tr>
-                <th colspan="2">Vacuna</th>
+                <th>Vacuna</th>
                 <th>Edad recomendada</th>
                 <th>Dosis</th>
             </tr>
@@ -33,10 +33,7 @@
                     {# Volcar grupo anterior #}
                     {% if ns.current_vaccine is not none %}
                     <tr class="vaccine-row {{ 'bg-even' if ns.is_even else 'bg-odd' }}">
-                        <td class="color-bar-cell">
-                            <span class="color-bar bar-{{ (ns.color_index - 1) % 12 }}"></span>
-                        </td>
-                        <td class="name-cell">
+                        <td class="name-cell bar-{{ (ns.color_index - 1) % 12 }}">
                             <span class="vaccine-name">{{ ns.current_vaccine }}</span>
                             {% if ns.disease %}
                                 <span class="vaccine-disease">{{ ns.disease }}</span>
@@ -79,10 +76,7 @@
             {# Volcar último grupo #}
             {% if ns.current_vaccine is not none %}
             <tr class="vaccine-row {{ 'bg-even' if ns.is_even else 'bg-odd' }}">
-                <td class="color-bar-cell">
-                    <span class="color-bar bar-{{ (ns.color_index - 1) % 12 }}"></span>
-                </td>
-                <td class="name-cell">
+                <td class="name-cell bar-{{ (ns.color_index - 1) % 12 }}">
                     <span class="vaccine-name">{{ ns.current_vaccine }}</span>
                     {% if ns.disease %}
                         <span class="vaccine-disease">{{ ns.disease }}</span>

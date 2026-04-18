@@ -25,35 +25,36 @@
     </p>
 </div>
 
-<!-- -- Vaccination history table -- -->
 <section class="patients">
-        <table>
-            <thead>
-                <tr>
-                    <th>Vacuna</th>
-                    <th>Dosis</th>
-                    <th>Fecha aplicada</th>
-                    <th>Aplicada por</th>
-                    <th>Estado</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for app in applications %}
-                <tr>
-                    <td><strong>{{ app.name }}</strong></td>
-                    <td>{{ app.dose }}</td>
-                    <td>{{ app.date }}</td>
-                    <td>{{ app.doctor }}</td>
-                    <td><span class="status ok"><i class="fa-solid fa-check"></i> Aplicada</span></td>
-                </tr>
-                {% else %}
-                <tr>
-                    <td colspan="5" class="empty-state">Sin registros de vacunación aún.</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-</section>
+    <div class="vax-table-wrapper">
+      <table class="vax-table-individual">
+        <thead>
+          <tr>
+            <th>Vacuna</th>
+            <th>Dosis</th>
+            <th>Fecha aplicada</th>
+            <th>Aplicada por</th>
+            <th>Estado</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for app in applications %}
+          <tr class="{{ 'row-even' if loop.index is even else 'row-odd' }} bar-{{ loop.index0 % 9 }}">
+            <td class="name-td"><strong>{{ app.name }}</strong></td>
+            <td><span class="dose-pill">{{ app.dose }}</span></td>
+            <td class="muted-td">{{ app.date }}</td>
+            <td class="muted-td">{{ app.doctor }}</td>
+            <td><span class="status ok"><i class="fa-solid fa-check"></i> Aplicada</span></td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="5" class="empty-state">Sin registros de vacunación aún.</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
  
 <!-- -- Summary cards -- -->
 {% set total_applied  = applications | length %}

@@ -2,34 +2,29 @@
 
 /* ── Variables ── */
 :root {
-    --header-bg:   #3a3a3a;
-    --border:      #dde3f0;
+    --header-bg:   #2f3640;
+    --border:      #e6eaf2;
     --row-odd:     #ffffff;
-    --row-even:    #f4f6fb;
+    --row-even:    #f7f9fc;
     --text-main:   #1e2230;
     --text-muted:  #6b7280;
-    --radius:      14px;
-    --shadow:      0 4px 24px rgba(30,34,64,.10);
-    --font:        'Nunito', sans-serif;
+    --primary:     #4f46e5;
 }
 
-/* ── Back link ── */
 .back {
     display: inline-flex;
     align-items: center;
     gap: 8px;
     color: var(--text-muted);
-    font-family: var(--font);
     font-weight: 600;
-    font-size: .92rem;
+    font-size: 1rem;
     text-decoration: none;
     margin-bottom: 18px;
     transition: color .2s;
 }
-.back:hover { color: var(--text-main); }
+.back:hover { color: var(--secondary-color); }
 .back i { font-size: .85rem; }
 
-/* ── Page header ── */
 .content-header { 
     display:flex;
     align-items: center;
@@ -44,149 +39,131 @@
     letter-spacing: -.3px;
 }
 
-/* ── Table wrapper ── */
 .content-info {
-    overflow: hidden;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    box-shadow: none;
+    box-shadow: none !important;
 }
 
-/* ── Table ── */
+/* ── Tabla ── */
 table {
+    width: 90%;
+    margin: auto;
     border-collapse: collapse;
-    width: 80%;
-    font-size: .9rem;
-    margin-left: auto;
-    margin-right: auto;
+    table-layout: fixed;
 }
 
-/* Header */
-thead tr { background: var(--header-bg); }
+/* ── Header ── */
 thead th {
-    color: #fff;
+    background: var(--header-bg);
+    color: white;
+    font-size: 0.9rem;
     font-weight: 700;
-    font-size: .82rem;
-    text-transform: uppercase;
-    letter-spacing: .6px;
-    padding: 14px 18px;
-    border: none;
+    letter-spacing: .8px;
+    padding: 12px 16px;
     text-align: left;
 }
+thead th:nth-child(1) { width: 28%; }
+thead th:nth-child(2) { width: 40%; }
+thead th:nth-child(3) { width: 12%; text-align: center; }
 
-/* ── Vaccine group rows ── */
-tr.vaccine-row td {
-    padding: 0;
-    border: none;
-    vertical-align: middle;
-}
+/* ── Filas ── */
 tr.vaccine-row {
     border-bottom: 1px solid var(--border);
+    transition: background .15s ease;
 }
-tr.vaccine-row:last-child { border-bottom: none; }
 tr.vaccine-row.bg-odd  { background: var(--row-odd); }
 tr.vaccine-row.bg-even { background: var(--row-even); }
-tr.vaccine-row:hover   { background: #eef2ff; transition: background .15s; }
+tr.vaccine-row:hover   { background: #eef2ff; }
 
-/* ── Color bar cell ── */
-td.color-bar-cell {
-    width: 10px !important;
-    min-width: 10px;
-    max-width: 10px;
-    padding: 0 !important;
-}
-.color-bar {
-    display: block;
-    width: 10px;
-    min-height: 100%;
-    height: 52px;
-}
-
-/* ── Bar colors (12 rotates) ── */
-.bar-0  { background: #4CAF7D; }
-.bar-1  { background: #5B8DD9; }
-.bar-2  { background: #29B6C5; }
-.bar-3  { background: #F4A84A; }
-.bar-4  { background: #E8C94A; }
-.bar-5  { background: #A0C94A; }
-.bar-6  { background: #E05252; }
-.bar-7  { background: #AB6BD6; }
-.bar-8  { background: #FF8A65; }
-.bar-9  { background: #78909C; }
-.bar-10 { background: #26A69A; }
-.bar-11 { background: #EC407A; }
-
-/* ── Vaccine name + disease cell ── */
+/* ── Nombre vacuna con barra izquierda integrada ── */
 td.name-cell {
     padding: 14px 18px !important;
-    width: 20%;
     vertical-align: middle !important;
-}
-.vaccine-name {
-    font-weight: 800;
-    font-size: .98rem;
-    color: var(--text-main);
-    white-space: nowrap;
-    display: block;
-    margin-bottom: 4px;
-}
-.vaccine-disease {
-    font-size: .78rem;
-    font-weight: 600;
-    color: var(--text-muted);
-    line-height: 1.35;
-    display: block;
+    border-left: 6px solid transparent; /* fallback */
 }
 
-/* ── Doses block ── */
-td.doses-cell {
-    padding: 0 !important;
-    vertical-align: top !important;
+/* La barra de color ES el border-left de esta celda */
+td.name-cell.bar-0  { border-left-color: #4CAF7D; }
+td.name-cell.bar-1  { border-left-color: #5B8DD9; }
+td.name-cell.bar-2  { border-left-color: #29B6C5; }
+td.name-cell.bar-3  { border-left-color: #F4A84A; }
+td.name-cell.bar-4  { border-left-color: #E8C94A; }
+td.name-cell.bar-5  { border-left-color: #A0C94A; }
+td.name-cell.bar-6  { border-left-color: #E05252; }
+td.name-cell.bar-7  { border-left-color: #AB6BD6; }
+td.name-cell.bar-8  { border-left-color: #FF8A65; }
+td.name-cell.bar-9  { border-left-color: #78909C; }
+td.name-cell.bar-10 { border-left-color: #26A69A; }
+td.name-cell.bar-11 { border-left-color: #EC407A; }
+
+.vaccine-name {
+    font-size: .95rem;
+    font-weight: 800;
+    color: var(--text-main);
+    display: block;
+    line-height: 1.2;
 }
+
+.vaccine-disease {
+    font-size: .75rem;
+    color: var(--text-muted);
+    margin-top: 3px;
+    display: block;
+    line-height: 1.3;
+}
+
+/* ── Dosis ── */
+td.doses-cell {
+    padding: 8px 12px 8px 0;
+    vertical-align: middle;
+}
+
 .doses-inner {
     display: flex;
     flex-direction: column;
-    width: 100%;
+    gap: 5px;
 }
+
 .dose-row {
     display: flex;
+    justify-content: space-between;
     align-items: center;
-    width: 100%;
-    min-height: 52px;
-    padding: 10px 18px;
-    border-bottom: 1px dashed #e8ecf4;
-    box-sizing: border-box;
-    gap: 20px;
+    padding: 6px 12px;
+    border-radius: 8px;
+    background: #f8fafc;
+    border: 1px solid #e5e9f2;
+    transition: all .15s ease;
 }
-.dose-row:last-child { border-bottom: none; }
 
-.dose-age  { flex: 1; display: flex; align-items: center; }
+.dose-row:hover {
+    background: #eef2ff;
+    border-color: #c7d2fe;
+}
+
+.dose-age { font-size: .8rem; }
+
 .dose-number {
-    min-width: 60px;
-    text-align: left;
     font-weight: 800;
-    font-size: 1rem;
-    color: var(--text-muted);
+    font-size: .9rem;
+    color: var(--primary);
+    min-width: 24px;
+    text-align: right;
 }
 
-/* ── Age badges ── */
+/* ── Badges ── */
 .badge-birth,
 .badge-age {
-    display: inline-block;
-    padding: 5px 14px;
-    border-radius: 20px;
-    font-size: .8rem;
+    padding: 3px 20px;
+    border-radius: 999px;
+    font-size: .75rem;
     font-weight: 700;
-    white-space: nowrap;
 }
+
 .badge-birth {
-    background: #e8f5e9;
-    color: #2e7d32;
-    border: 1.5px solid #a5d6a7;
+    background: #e6f4ea;
+    color: #1b5e20;
 }
+
 .badge-age {
     background: #e3f2fd;
-    color: #1565c0;
-    border: 1.5px solid #90caf9;
+    color: #0d47a1;
 }

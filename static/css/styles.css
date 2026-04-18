@@ -285,6 +285,8 @@ button{
     cursor:pointer;
     color:#636363;
     font-size:1rem;
+    text-decoration: none;
+
 }
     
 .menu-item.active{
@@ -298,6 +300,20 @@ button{
     color: white;
     width: 15rem;
 }
+
+.back {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--text-muted);
+    font-weight: 600;
+    font-size: 1rem;
+    text-decoration: none;
+    margin-bottom: 18px;
+    transition: color .2s;
+}
+.back:hover { color: var(--secondary-color); }
+.back i { font-size: .85rem; }
 
     
 /* USER INFO */  
@@ -315,6 +331,7 @@ button{
     display: flex;
     margin-left: 50px;
     justify-content: flex-end;
+
 }
     
 .profile-small{
@@ -361,13 +378,14 @@ button{
 .cards{
     display:flex;
     gap:40px;
+    
     margin-bottom:60px;
 }
     
 .dash-card{
     background:white;
     border-bottom: 4px solid var(--primary-color);
-    width:200px;
+    width:240px;
     height:170px;
     border-radius:15px;
     box-shadow:4px 4px 10px rgba(0,0,0,0.1);

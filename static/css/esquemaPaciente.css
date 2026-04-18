@@ -1,23 +1,101 @@
 /* ── Header ── */
-.scheme-header {
-    margin-bottom: 1.5rem;
-}
-.scheme-header .back {
-    font-size: 0.85rem;
-    color: var(--accent, #4f8ef7);
-    text-decoration: none;
-    display: inline-flex;
-    align-items: center;
-    gap: 0.3rem;
-    margin-bottom: 0.75rem;
-}
-.scheme-header .back:hover { text-decoration: underline; }
-.scheme-header h2 { margin: 0 0 0.2rem; }
-.scheme-header .patient-sub {
-    font-size: 0.9rem;
-    opacity: 0.6;
+.vax-table-wrapper {
+    border: 0.5px solid #e6eaf2;
+    border-radius: 12px;
+    overflow: hidden;
 }
 
+.vax-table-individual {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: fixed;
+}
+
+.vax-table-individual thead th {
+    background: #2f3640;
+    color: #fff;
+    font-size: .75rem;
+    font-weight: 700;
+    letter-spacing: .7px;
+    text-transform: uppercase;
+    padding: 12px 16px;
+    text-align: left;
+    border: none;
+}
+.vax-table-individual thead th:last-child { text-align: center; }
+
+.vax-table-individual tbody tr {
+    border-bottom: 1px solid #e6eaf2;
+    transition: background .12s;
+}
+.vax-table-individual tbody tr:last-child { border-bottom: none; }
+.vax-table-individual tbody tr.row-odd  { background: #ffffff; }
+.vax-table-individual tbody tr.row-even { background: #f7f9fc; }
+.vax-table-individual tbody tr:hover    { background: #eef2ff; }
+
+.vax-table-individual td {
+    padding: 13px 16px;
+    font-size: .88rem;
+    color: #1e2230;
+    vertical-align: middle;
+    border: none;
+}
+
+/* Barra de color izquierda en la celda del nombre */
+.vax-table-individual td.name-td {
+    padding-left: 14px;
+    border-left: 5px solid transparent;
+    font-weight: 700;
+}
+
+.vax-table-individual tr.bar-0 td.name-td { border-left-color: #4CAF7D; }
+.vax-table-individual tr.bar-1 td.name-td { border-left-color: #5B8DD9; }
+.vax-table-individual tr.bar-2 td.name-td { border-left-color: #29B6C5; }
+.vax-table-individual tr.bar-3 td.name-td { border-left-color: #F4A84A; }
+.vax-table-individual tr.bar-4 td.name-td { border-left-color: #E8C94A; }
+.vax-table-individual tr.bar-5 td.name-td { border-left-color: #A0C94A; }
+.vax-table-individual tr.bar-6 td.name-td { border-left-color: #E05252; }
+.vax-table-individual tr.bar-7 td.name-td { border-left-color: #AB6BD6; }
+.vax-table-individual tr.bar-8 td.name-td { border-left-color: #FF8A65; }
+
+.vax-table-individual td.muted-td {
+    font-size: .82rem;
+    color: #6b7280;
+}
+
+.dose-pill {
+    padding: 3px 15px;
+    border-radius: 999px;
+    font-size: .75rem;
+    font-weight: 700;
+    background: #e3f2fd;
+    color: #0d47a1;
+}
+
+.status.ok {
+    display: inline-flex;
+    width: 90px;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 12px;
+    border-radius: 999px;
+    font-size: .75rem;
+    font-weight: 700;
+    background: #e6f4ea;
+    color: #1b5e20;
+}
+
+.status.pending { 
+    background: #fdebd0; 
+    color: #b05e00; 
+}
+
+.empty-state {
+    text-align: center;
+    padding: 40px 16px;
+    font-size: .88rem;
+    color: #6b7280;
+}
 /* ── Summary cards (same style as dash-card) ── */
 .cards {
     display: flex;
@@ -109,17 +187,6 @@
   font-size: 0.88rem;
 }
 .patient-row:last-child { border-bottom: none; }
-.status {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.3rem;
-  font-size: 0.78rem;
-  font-weight: 600;
-  padding: 0.25rem 0.7rem;
-  border-radius: 99px;
-}
-.status.ok      { background: #d4f5e4; color: #1a7a4a; }
-.status.pending { background: #fdebd0; color: #b05e00; }
 
 /* ── Bottom two-column section ── */
 .second-section {
