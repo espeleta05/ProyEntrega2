@@ -19,7 +19,7 @@
 <div class="scheme-header">
     <a href="{{ url_for('historial') }}" class="back"><i class="fa-solid fa-arrow-left"></i> Regresar</a>
     <h2 class="title">Esquema de vacunación</h2>
-    <p class="patient-sub">
+    <p class="subtitle">
         {{ patient.full_name }} &nbsp;·&nbsp; ID: P{{ patient.patient_id }}
         &nbsp;·&nbsp; {{ patient.age if patient.age is defined else '' }} años
     </p>

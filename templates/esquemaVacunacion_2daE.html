@@ -15,96 +15,98 @@
 </div>
 
 <div class="content-info">
-    <table>
-        <thead>
-            <tr>
-                <th>Vacuna</th>
-                <th>Edad recomendada</th>
-                <th>Dosis</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% set ns = namespace(current_vaccine=None, color_index=0, group_rows=[], is_even=false, disease='') %}
-
-            {% for esquema_item, vacuna_item in esquema %}
-
-                {% if vacuna_item.name != ns.current_vaccine %}
-
-                    {# Volcar grupo anterior #}
-                    {% if ns.current_vaccine is not none %}
-                    <tr class="vaccine-row {{ 'bg-even' if ns.is_even else 'bg-odd' }}">
-                        <td class="name-cell bar-{{ (ns.color_index - 1) % 12 }}">
-                            <span class="vaccine-name">{{ ns.current_vaccine }}</span>
-                            {% if ns.disease %}
-                                <span class="vaccine-disease">{{ ns.disease }}</span>
-                            {% endif %}
-                        </td>
-                        <td class="doses-cell" colspan="2">
-                            <div class="doses-inner">
-                                {% for dose_age, dose_num in ns.group_rows %}
-                                <div class="dose-row">
-                                    <div class="dose-age">
-                                        {% if dose_age == 0 %}
-                                            <span class="badge-birth">Al nacer</span>
-                                        {% elif dose_age >= 12 %}
-                                            <span class="badge-age">{{ dose_age // 12 }} años</span>
-                                        {% else %}
-                                            <span class="badge-age">{{ dose_age }} meses</span>
-                                        {% endif %}
-                                    </div>
-                                    <div class="dose-number">{{ dose_num }}</div>
-                                </div>
-                                {% endfor %}
-                            </div>
-                        </td>
-                    </tr>
-                    {% endif %}
-
-                    {# Iniciar nuevo grupo #}
-                    {% set ns.current_vaccine = vacuna_item.name %}
-                    {% set ns.disease = vacuna_item.disease_prevented or '' %}
-                    {% set ns.group_rows = [(esquema_item.ideal_age_months, esquema_item.dose_number)] %}
-                    {% set ns.is_even = not ns.is_even %}
-                    {% set ns.color_index = ns.color_index + 1 %}
-
-                {% else %}
-                    {% set ns.group_rows = ns.group_rows + [(esquema_item.ideal_age_months, esquema_item.dose_number)] %}
-                {% endif %}
-
-            {% endfor %}
-
-            {# Volcar último grupo #}
-            {% if ns.current_vaccine is not none %}
-            <tr class="vaccine-row {{ 'bg-even' if ns.is_even else 'bg-odd' }}">
-                <td class="name-cell bar-{{ (ns.color_index - 1) % 12 }}">
-                    <span class="vaccine-name">{{ ns.current_vaccine }}</span>
-                    {% if ns.disease %}
-                        <span class="vaccine-disease">{{ ns.disease }}</span>
-                    {% endif %}
-                </td>
-                <td class="doses-cell" colspan="2">
-                    <div class="doses-inner">
-                        {% for dose_age, dose_num in ns.group_rows %}
-                        <div class="dose-row">
-                            <div class="dose-age">
-                                {% if dose_age == 0 %}
-                                    <span class="badge-birth">Al nacer</span>
-                                {% elif dose_age >= 12 %}
-                                    <span class="badge-age">{{ dose_age // 12 }} años</span>
-                                {% else %}
-                                    <span class="badge-age">{{ dose_age }} meses</span>
+    <div class="inv-table-wrapper">
+        <table class="inv-table">
+            <thead>
+                <tr>
+                    <th>Vacuna</th>
+                    <th>Edad recomendada</th>
+                    <th>Dosis</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% set ns = namespace(current_vaccine=None, color_index=0, group_rows=[], is_even=false, disease='') %}
+    
+                {% for esquema_item, vacuna_item in esquema %}
+    
+                    {% if vacuna_item.name != ns.current_vaccine %}
+    
+                        {# Volcar grupo anterior #}
+                        {% if ns.current_vaccine is not none %}
+                        <tr class="vaccine-row {{ 'bg-even' if ns.is_even else 'bg-odd' }}">
+                            <td class="name-cell bar-{{ (ns.color_index - 1) % 12 }}">
+                                <span class="vaccine-name">{{ ns.current_vaccine }}</span>
+                                {% if ns.disease %}
+                                    <span class="vaccine-disease">{{ ns.disease }}</span>
                                 {% endif %}
+                            </td>
+                            <td class="doses-cell" colspan="2">
+                                <div class="doses-inner">
+                                    {% for dose_age, dose_num in ns.group_rows %}
+                                    <div class="dose-row">
+                                        <div class="dose-age">
+                                            {% if dose_age == 0 %}
+                                                <span class="badge-birth">Al nacer</span>
+                                            {% elif dose_age >= 12 %}
+                                                <span class="badge-age">{{ dose_age // 12 }} años</span>
+                                            {% else %}
+                                                <span class="badge-age">{{ dose_age }} meses</span>
+                                            {% endif %}
+                                        </div>
+                                        <div class="dose-number">{{ dose_num }}</div>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% endif %}
+    
+                        {# Iniciar nuevo grupo #}
+                        {% set ns.current_vaccine = vacuna_item.name %}
+                        {% set ns.disease = vacuna_item.disease_prevented or '' %}
+                        {% set ns.group_rows = [(esquema_item.ideal_age_months, esquema_item.dose_number)] %}
+                        {% set ns.is_even = not ns.is_even %}
+                        {% set ns.color_index = ns.color_index + 1 %}
+    
+                    {% else %}
+                        {% set ns.group_rows = ns.group_rows + [(esquema_item.ideal_age_months, esquema_item.dose_number)] %}
+                    {% endif %}
+    
+                {% endfor %}
+    
+                {# Volcar último grupo #}
+                {% if ns.current_vaccine is not none %}
+                <tr class="vaccine-row {{ 'bg-even' if ns.is_even else 'bg-odd' }}">
+                    <td class="name-cell bar-{{ (ns.color_index - 1) % 12 }}">
+                        <span class="vaccine-name">{{ ns.current_vaccine }}</span>
+                        {% if ns.disease %}
+                            <span class="vaccine-disease">{{ ns.disease }}</span>
+                        {% endif %}
+                    </td>
+                    <td class="doses-cell" colspan="2">
+                        <div class="doses-inner">
+                            {% for dose_age, dose_num in ns.group_rows %}
+                            <div class="dose-row">
+                                <div class="dose-age">
+                                    {% if dose_age == 0 %}
+                                        <span class="badge-birth">Al nacer</span>
+                                    {% elif dose_age >= 12 %}
+                                        <span class="badge-age">{{ dose_age // 12 }} años</span>
+                                    {% else %}
+                                        <span class="badge-age">{{ dose_age }} meses</span>
+                                    {% endif %}
+                                </div>
+                                <div class="dose-number">{{ dose_num }}</div>
                             </div>
-                            <div class="dose-number">{{ dose_num }}</div>
+                            {% endfor %}
                         </div>
-                        {% endfor %}
-                    </div>
-                </td>
-            </tr>
-            {% endif %}
-
-        </tbody>
-    </table>
+                    </td>
+                </tr>
+                {% endif %}
+    
+            </tbody>
+        </table>
+    </div>
 </div>
 
 </main>

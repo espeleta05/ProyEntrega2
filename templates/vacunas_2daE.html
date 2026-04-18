@@ -4,14 +4,11 @@
 
 {% block content %}
 
-<!-- 1. Mandamos a llamar el CSS del modal de vacunas -->
 <link rel="stylesheet" href="{{ url_for('static', filename='css/nuevaVacuna.css') }}">
 <link rel="stylesheet" href="{{ url_for('static', filename='css/vacunas.css') }}">
 
 <div class="content-header">
     <h2 class="title">Inventario de vacunas</h2>
-
-    <!-- 2. Botón que abre el modal -->
     <button class="btn-agregar" onclick="openVaccineModal()">
         <i class="fa-solid fa-plus"></i>
         Agregar vacuna
@@ -24,104 +21,100 @@
 
 <div class="search-bar-container section">
     <i class="fa-solid fa-magnifying-glass"></i>
-    <input type="text" id="searchInput" placeholder="Buscar vacuna por nombre o id...">
+    <input type="text" id="searchInput" placeholder="Buscar vacuna por nombre...">
 </div>
 
-<a href="{{ url_for('esquema_vacunacion') }}" class="btn-esquema">
-    <i class="fa-solid fa-clipboard-list"></i>
-    Ver esquema de vacunación
-</a>
-
-<!-- LISTA -->
-<div class="section" id="vaccinesContainer">
-    {% set mode = 'catalog' %}
-    {% for v in vaccines %}
-        <div id="vaccine-card-{{ v.id_vaccine }}" class="vaccine-card-wrapper">
-            {% include 'components/vaccine_card_2daE.html' %}
-        </div>
-    {% else %}
-        <div class="card">
-            <div class="card-body">
-                <p>No hay vacunas registradas.</p>
-            </div>
-        </div>
-    {% endfor %}
+<div class="btn-container">
+    <a href="{{ url_for('esquema_vacunacion') }}" class="btn-esquema">
+        <i class="fa-solid fa-clipboard-list"></i>
+        Ver esquema de vacunación
+    </a>
 </div>
 
-<!-- 3. Incluimos el archivo del modal -->
+<!-- TABLA DE INVENTARIO -->
+<div class="inv-table-wrapper" id="vaccinesContainer">
+    <table class="inv-table">
+        <thead>
+            <tr>
+                <th>Tipo de vacuna</th>
+                <th>Lote</th>
+                <th>Fecha vencimiento</th>
+                <th class="num">Saldo inicial</th>
+                <th class="num">Dosis recibidas</th>
+                <th class="num">Dosis aplicadas</th>
+                <th class="num">Saldo final (Stock)</th>
+            </tr>
+        </thead>
+        <tbody id="tableBody">
+            {# Construimos una fila por cada lote, cruzando con la vacuna correspondiente #}
+            {% set ns = namespace(color_index=0, last_vaccine_id=None) %}
+            {% for lot in lots %}
+                {# Buscar la vacuna de este lote #}
+                {% set vaccine = vaccines | selectattr('vaccine_id', 'equalto', lot.vaccine_id) | first %}
+                {% if vaccine %}
+                    {% if lot.vaccine_id != ns.last_vaccine_id %}
+                        {% set ns.color_index = ns.color_index + 1 %}
+                        {% set ns.last_vaccine_id = lot.vaccine_id %}
+                    {% endif %}
+                    {% set dosis_aplicadas = lot.quantity_received - lot.quantity_available %}
+                    <tr class="inv-row bar-{{ ns.color_index % 12 }}"
+                        data-name="{{ vaccine.name | lower }}"
+                        data-lot="{{ lot.lot_number | lower }}">
+                        <td class="name-td">
+                            <span class="vax-name">{{ vaccine.name }}</span>
+                        </td>
+                        <td class="lot-td">{{ lot.lot_number }}</td>
+                        <td class="date-td">
+                            {% set exp = lot.expiration_date | string %}
+                            {% if lot.expiration_date %}
+                                <span class="exp-badge {{ 'exp-ok' if exp > today else 'exp-warn' }}">
+                                    {{ lot.expiration_date }}
+                                </span>
+                            {% else %}
+                                —
+                            {% endif %}
+                        </td>
+                        <td class="num">{{ lot.quantity_received }}</td>
+                        <td class="num">{{ lot.quantity_received }}</td>
+                        <td class="num">{{ dosis_aplicadas }}</td>
+                        <td class="num stock-td">
+                            <span class="stock-pill {{ 'stock-low' if lot.quantity_available <= 10 else 'stock-ok' }}">
+                                {{ lot.quantity_available }}
+                            </span>
+                        </td>
+                    </tr>
+                {% endif %}
+            {% else %}
+                <tr>
+                    <td colspan="7" class="empty-state">No hay lotes de vacunas registrados.</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
 {% include 'nuevaVacuna_2daE.html' %}
 
 <script>
-// === LÓGICA DE BÚSQUEDA ===
-const container = document.getElementById('vaccinesContainer');
-const originalCards = container ? Array.from(container.querySelectorAll('.vaccine-card-wrapper')) : [];
+const rows = Array.from(document.querySelectorAll('#tableBody tr[data-name]'));
 
-document.getElementById('searchInput').addEventListener('input', function() {
-    const searchTerm = this.value.toLowerCase().trim();
-
-    if (searchTerm === "") {
-        originalCards.forEach(card => card.style.display = 'block');
-        return;
-    }
-
-    originalCards.forEach(card => {
-        const vaccineId = card.id.replace('vaccine-card-', '');
-        const nameElement = card.querySelector('.card-header h3');
-        const vaccineName = nameElement ? nameElement.innerText.toLowerCase() : '';
-
-        if (vaccineId === searchTerm || vaccineName.includes(searchTerm)) {
-            card.style.display = 'block';
-            card.parentNode.insertBefore(card, card.parentNode.firstChild);
-        } else {
-            card.style.display = 'none';
-        }
+document.getElementById('searchInput').addEventListener('input', function () {
+    const term = this.value.toLowerCase().trim();
+    rows.forEach(row => {
+        const name = row.dataset.name || '';
+        const lot  = row.dataset.lot  || '';
+        row.style.display = (!term || name.includes(term) || lot.includes(term)) ? '' : 'none';
     });
 });
 
-// Si llega un parametro ?q=... desde la busqueda global, aplicarlo al abrir.
 (() => {
     const params = new URLSearchParams(window.location.search);
     const q = (params.get('q') || '').trim();
-    const searchInput = document.getElementById('searchInput');
-    if (!q || !searchInput) return;
-    searchInput.value = q;
-    searchInput.dispatchEvent(new Event('input'));
+    const input = document.getElementById('searchInput');
+    if (!q || !input) return;
+    input.value = q;
+    input.dispatchEvent(new Event('input'));
 })();
-
-document.querySelectorAll('.delete-vaccine-btn').forEach(btn => {
-    btn.addEventListener('click', async function () {
-        const vaccineId = this.dataset.vaccineId;
-        if (!vaccineId) return;
-
-        if (!confirm('Esta accion eliminara la vacuna y sus registros relacionados. Continuar?')) {
-            return;
-        }
-
-        try {
-            const response = await fetch(`/delete_vaccine/${vaccineId}`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' }
-            });
-            const result = await response.json();
-
-            if (!response.ok) {
-                alert(result.error || 'No se pudo eliminar la vacuna');
-                return;
-            }
-
-            const card = document.getElementById(`vaccine-card-${vaccineId}`);
-            if (card) card.remove();
-            alert(result.message || 'Vacuna eliminada correctamente');
-            window.location.reload();
-        } catch (err) {
-            alert('Error de conexion al eliminar vacuna');
-            console.error(err);
-        }
-    });
-});
-
-// NOTA: Se eliminó la función createVaccineFromPrompts, ahora usa openVaccineModal()
 </script>
 
 {% endblock %}
-

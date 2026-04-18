@@ -3,6 +3,8 @@
     border: 0.5px solid #e6eaf2;
     border-radius: 12px;
     overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0,0,0,.06);
+    margin-bottom: 30px;
 }
 
 .vax-table-individual {
@@ -12,7 +14,7 @@
 }
 
 .vax-table-individual thead th {
-    background: #2f3640;
+    background: #4f2c55;
     color: #fff;
     font-size: .75rem;
     font-weight: 700;
@@ -161,13 +163,6 @@
 .stat.blue   { background: #dceeff; color: #1a4fa0; }
 
 /* ── Vaccination table ── */
-.patients {
-  background: var(--card-bg, #fff);
-  border-radius: 12px;
-  padding: 1rem 1rem;
-  margin-bottom: 1.75rem;
-  box-shadow: 0 2px 8px rgba(0,0,0,.06);
-}
 .table-header, .patient-row {
   display: grid;
   grid-template-columns: 2fr 1fr 1.5fr 1.2fr;

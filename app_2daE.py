@@ -921,6 +921,7 @@ def vacunas_page():
         total_vaccines=len(vaccines),
         vaccines=vaccines,
         lots=lots,
+        today=date.today().isoformat(),
     )
 
 

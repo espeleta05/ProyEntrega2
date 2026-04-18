@@ -56,10 +56,12 @@
         {% set show_delete = false %}
         {% include 'components/patient_card_2daE.html' %}
 
-        <a href="{{ url_for('esquema_paciente', id=patient.patient_id) }}" class="btn-esquema">
-            <i class="fa-solid fa-clipboard-list"></i>
-            Ver esquema de vacunación
-        </a>
+        <div class="btn-container">
+            <a href="{{ url_for('esquema_paciente', id=patient.patient_id) }}" class="btn-esquema">
+                <i class="fa-solid fa-clipboard-list"></i>
+                Ver esquema de vacunación
+            </a>
+        </div>
 
         <!-- HISTORIAL -->
         <h2 class="title">Historial de vacunación</h2>

@@ -2,13 +2,12 @@
 
 /* ── Variables ── */
 :root {
-    --header-bg:   #2f3640;
-    --border:      #e6eaf2;
-    --row-odd:     #ffffff;
-    --row-even:    #f7f9fc;
-    --text-main:   #1e2230;
-    --text-muted:  #6b7280;
-    --primary:     #4f46e5;
+    --header-bg:  #4f2c55;
+    --border:     #f1e6f2;
+    --row-odd:    #ffffff;
+    --row-even:   #fbf7fc;
+    --text-main:  #1e2230;
+    --text-muted: #6b7280;
 }
 
 .back {
@@ -43,10 +42,26 @@
     box-shadow: none !important;
 }
 
+.inv-table-wrapper {
+    background: #fff;
+    border: 0.5px solid var(--border);
+    border-radius: 14px;
+    overflow: hidden;
+    box-shadow: 0 4px 24px rgba(30,34,64,.08);
+}
+
+.inv-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: .88rem;
+    table-layout: fixed;
+}
+
 /* ── Tabla ── */
 table {
     width: 90%;
     margin: auto;
+    border-radius: 14px;
     border-collapse: collapse;
     table-layout: fixed;
 }
