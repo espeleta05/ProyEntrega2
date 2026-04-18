@@ -268,7 +268,7 @@ CREATE TABLE vaccines (
     manufacturer_id   INT          REFERENCES manufacturers(manufacturer_id),
     via_id            INT          REFERENCES vaccine_vias(via_id),
     ideal_age_months  SMALLINT,
-    descripcion       TEXT
+    disease_prevented TEXT
 );
 
 CREATE TABLE vaccine_lots (

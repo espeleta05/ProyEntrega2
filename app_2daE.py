@@ -234,11 +234,11 @@ VACCINE_VIAS = [
 
 # Campos eliminados: disease_target, recommended_age_months, doses_required, interval_days, route, is_active
 VACCINES = [
-    {"vaccine_id": 1, "name": "BCG",          "commercial_name": None,             "manufacturer_id": 1, "via_id": 1, "ideal_age_months": 0,  "descripcion": "Tuberculosis"},
-    {"vaccine_id": 2, "name": "Hepatitis B",  "commercial_name": "Engerix-B",      "manufacturer_id": 2, "via_id": 2, "ideal_age_months": 0,  "descripcion": "Hepatitis B"},
-    {"vaccine_id": 3, "name": "Pentavalente", "commercial_name": None,             "manufacturer_id": 3, "via_id": 2, "ideal_age_months": 2,  "descripcion": "Difteria/Tos/Tétanos"},
-    {"vaccine_id": 4, "name": "Rotavirus",    "commercial_name": "RotaTeq",        "manufacturer_id": 4, "via_id": 3, "ideal_age_months": 2,  "descripcion": "Gastroenteritis"},
-    {"vaccine_id": 5, "name": "Influenza",    "commercial_name": "Vaxigrip Tetra", "manufacturer_id": 5, "via_id": 2, "ideal_age_months": 6,  "descripcion": "Influenza estacional"},
+    {"vaccine_id": 1, "name": "BCG",          "commercial_name": None,             "manufacturer_id": 1, "via_id": 1, "ideal_age_months": 0,  "disease_prevented": "Tuberculosis"},
+    {"vaccine_id": 2, "name": "Hepatitis B",  "commercial_name": "Engerix-B",      "manufacturer_id": 2, "via_id": 2, "ideal_age_months": 0,  "disease_prevented": "Hepatitis B"},
+    {"vaccine_id": 3, "name": "Pentavalente", "commercial_name": None,             "manufacturer_id": 3, "via_id": 2, "ideal_age_months": 2,  "disease_prevented": "Difteria/Tos/Tétanos"},
+    {"vaccine_id": 4, "name": "Rotavirus",    "commercial_name": "RotaTeq",        "manufacturer_id": 4, "via_id": 3, "ideal_age_months": 2,  "disease_prevented": "Gastroenteritis"},
+    {"vaccine_id": 5, "name": "Influenza",    "commercial_name": "Vaxigrip Tetra", "manufacturer_id": 5, "via_id": 2, "ideal_age_months": 6,  "disease_prevented": "Influenza estacional"},
 ]
 
 # quantity_remaining → quantity_available; reception_date → received_date; is_active y received_by eliminados
@@ -258,11 +258,11 @@ VACCINATION_SCHEME = [
 SCHEME_DOSES = [
     {"dose_id": 1, "scheme_id": 1, "vaccine_id": 1, "dose_number": 1, "dose_label": "Dosis 1", "ideal_age_months": 0,  "min_interval_days": None},
     {"dose_id": 2, "scheme_id": 1, "vaccine_id": 2, "dose_number": 1, "dose_label": "Dosis 1", "ideal_age_months": 0,  "min_interval_days": None},
-    {"dose_id": 3, "scheme_id": 1, "vaccine_id": 3, "dose_number": 1, "dose_label": "Dosis 1", "ideal_age_months": 2,  "min_interval_days": None},
-    {"dose_id": 4, "scheme_id": 1, "vaccine_id": 4, "dose_number": 1, "dose_label": "Dosis 1", "ideal_age_months": 2,  "min_interval_days": None},
+    {"dose_id": 3, "scheme_id": 1, "vaccine_id": 2, "dose_number": 2, "dose_label": "Dosis 3", "ideal_age_months": 6,  "min_interval_days": 30},
+    {"dose_id": 4, "scheme_id": 1, "vaccine_id": 3, "dose_number": 1, "dose_label": "Dosis 1", "ideal_age_months": 2,  "min_interval_days": None},
     {"dose_id": 5, "scheme_id": 1, "vaccine_id": 3, "dose_number": 2, "dose_label": "Dosis 2", "ideal_age_months": 4,  "min_interval_days": 60},
-    {"dose_id": 6, "scheme_id": 1, "vaccine_id": 5, "dose_number": 1, "dose_label": "Dosis 1", "ideal_age_months": 6,  "min_interval_days": None},
-    {"dose_id": 7, "scheme_id": 1, "vaccine_id": 2, "dose_number": 3, "dose_label": "Dosis 3", "ideal_age_months": 6,  "min_interval_days": 30},
+    {"dose_id": 6, "scheme_id": 1, "vaccine_id": 4, "dose_number": 1, "dose_label": "Dosis 1", "ideal_age_months": 2,  "min_interval_days": None},
+    {"dose_id": 7, "scheme_id": 1, "vaccine_id": 5, "dose_number": 1, "dose_label": "Dosis 1", "ideal_age_months": 6,  "min_interval_days": None},
 ]
 
 # --- APPOINTMENTS -------------------------------------------------------

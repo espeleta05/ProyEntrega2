@@ -268,21 +268,23 @@ button{
     margin-top: 15px;
     margin-bottom: 15px;
     padding-left:20px;
-    gap:5px;
+    gap:2px;
 }
     
 .menu-title{
     padding-left: 15px;
+    margin-top: 15px;
 }
 .menu-item{
     display:flex;
-    align-items:center;
+    align-items:flex-start;
+    justify-content: flex-start;
     gap:15px;
     padding:10px;
     border-radius:25px;
     cursor:pointer;
     color:#636363;
-    font-size:18px;
+    font-size:1rem;
 }
     
 .menu-item.active{
@@ -296,9 +298,9 @@ button{
     color: white;
     width: 15rem;
 }
+
     
-    /* USER INFO */
-    
+/* USER INFO */  
 .user-info{
     display:flex;
     align-items:center;
@@ -328,11 +330,11 @@ button{
 }
     
 .user-name{
-    font-size:18px;
+    font-size:1rem;
 }
     
 .user-role{
-    font-size:14px;
+    font-size:0.8rem;
     color:#636363;
 }
     
@@ -352,6 +354,7 @@ button{
     color:#6B007C;
     margin-bottom:40px;
 }
+
     
 /* DASHBOARD CARDS */
     
@@ -363,8 +366,9 @@ button{
     
 .dash-card{
     background:white;
+    border-bottom: 4px solid var(--primary-color);
     width:200px;
-    height:200px;
+    height:170px;
     border-radius:15px;
     box-shadow:4px 4px 10px rgba(0,0,0,0.1);
     padding:20px;
@@ -374,17 +378,22 @@ button{
     gap:10px;
 }
 
-    
+.dash-card.scnd-color{
+    border-bottom-color: var(--secondary-color);
+}
+ 
 .dash-card h4{
     font-size:20px;
+    text-align: center;
 }
     
 .dash-card p{
     color:#636363;
+    text-align: center;
 }
 
 .dash-card i {
-    font-size: 1.5rem;
+    font-size: 20px;
     color: var(--primary-color);
     background-color: #FAD9FF;
     width: 50px;
@@ -394,6 +403,11 @@ button{
     align-items: center;
     justify-content: center;
 }
+
+.dash-card.scnd-color i{
+    color: var(--secondary-color);
+}
+
 
  
 /* PATIENTS */
