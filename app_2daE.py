@@ -1,8 +1,9 @@
 from datetime import date, datetime
+import json
 import os
 import re
 from threading import Lock
-from flask import Flask, flash, jsonify, redirect, render_template, request, session, url_for
+from flask import Flask, flash, g, jsonify, redirect, render_template, request, session, url_for
 
 try:
     import bcrypt
@@ -160,6 +161,179 @@ def _db_execute(sql, params=None):
                 cursor.execute(sql, params or ())
     finally:
         conn.close()
+
+
+ACTION_LOG_TABLE_READY = False
+ACTION_LOG_LOCK = Lock()
+SENSITIVE_KEYS = {
+    "password", "password_confirm", "pass", "token", "nfc_bridge_token",
+    "authorization", "x-nfc-token",
+}
+
+
+def _db_ensure_action_log_table():
+    global ACTION_LOG_TABLE_READY
+    if ACTION_LOG_TABLE_READY or not _db_configured():
+        return
+
+    with ACTION_LOG_LOCK:
+        if ACTION_LOG_TABLE_READY:
+            return
+        _db_execute(
+            """
+            CREATE TABLE IF NOT EXISTS action_log (
+                action_id       SERIAL PRIMARY KEY,
+                module          VARCHAR(20)  NOT NULL,
+                action_type     VARCHAR(20)  NOT NULL,
+                http_method     VARCHAR(10)  NOT NULL,
+                route_path      VARCHAR(255) NOT NULL,
+                entity_id       INT,
+                worker_id       INT          REFERENCES workers(worker_id),
+                status_code     INT          NOT NULL,
+                request_payload TEXT,
+                ip_address      VARCHAR(45),
+                created_at      TIMESTAMP    NOT NULL DEFAULT NOW()
+            )
+            """
+        )
+        _db_execute(
+            """
+            CREATE INDEX IF NOT EXISTS idx_action_log_module_created
+            ON action_log(module, created_at DESC)
+            """
+        )
+        ACTION_LOG_TABLE_READY = True
+
+
+def _audit_module_from_path(path):
+    route = (path or "").lower()
+    if route.startswith("/api/nfc") or route.startswith("/nfc"):
+        return "nfc"
+
+    patient_prefixes = (
+        "/pacientes", "/register_patient", "/delete_patient", "/historial", "/esquema_paciente", "/api/patients-list",
+    )
+    if route.startswith(patient_prefixes):
+        return "patients"
+
+    worker_prefixes = (
+        "/personal", "/api/workers-list",
+    )
+    if route.startswith(worker_prefixes):
+        return "workers"
+
+    return None
+
+
+def _sanitize_payload(value):
+    if isinstance(value, dict):
+        cleaned = {}
+        for key, item in value.items():
+            key_l = str(key).lower()
+            if key_l in SENSITIVE_KEYS:
+                cleaned[key] = "***"
+            else:
+                cleaned[key] = _sanitize_payload(item)
+        return cleaned
+    if isinstance(value, list):
+        return [_sanitize_payload(item) for item in value]
+    return value
+
+
+def _collect_request_payload():
+    payload = {}
+    if request.args:
+        payload["query"] = _sanitize_payload(request.args.to_dict(flat=True))
+
+    if request.method in {"POST", "PUT", "PATCH", "DELETE"}:
+        json_body = request.get_json(silent=True)
+        if isinstance(json_body, dict):
+            payload["json"] = _sanitize_payload(json_body)
+        elif request.form:
+            payload["form"] = _sanitize_payload(request.form.to_dict(flat=True))
+
+    if not payload:
+        return None
+    return payload
+
+
+def _extract_entity_id(module_name):
+    candidates = []
+    if request.view_args:
+        candidates.extend(request.view_args.values())
+
+    for key in ("patient_id", "worker_id", "entity_id", "id"):
+        value = request.args.get(key)
+        if value is not None:
+            candidates.append(value)
+        value = request.form.get(key)
+        if value is not None:
+            candidates.append(value)
+
+    json_body = request.get_json(silent=True)
+    if isinstance(json_body, dict):
+        for key in ("patient_id", "worker_id", "entity_id", "id"):
+            if json_body.get(key) is not None:
+                candidates.append(json_body.get(key))
+        if module_name == "nfc":
+            entity_type = str(json_body.get("entity_type") or "").lower()
+            if entity_type == "worker" and json_body.get("entity_id") is not None:
+                candidates.append(json_body.get("entity_id"))
+
+    for value in candidates:
+        text = str(value).strip()
+        if text.isdigit():
+            return int(text)
+    return None
+
+
+def _action_type_from_method(method):
+    method_u = (method or "").upper()
+    if method_u == "POST":
+        return "CREATE"
+    if method_u in {"PUT", "PATCH"}:
+        return "UPDATE"
+    if method_u == "DELETE":
+        return "DELETE"
+    if method_u == "GET":
+        return "READ"
+    return "OTHER"
+
+
+def _db_insert_action_log(module_name, action_type, entity_id, status_code, payload):
+    if _db_configured():
+        _db_ensure_action_log_table()
+        _db_execute(
+            """
+            INSERT INTO action_log (
+                module, action_type, http_method, route_path, entity_id,
+                worker_id, status_code, request_payload, ip_address
+            )
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+            """,
+            (
+                module_name,
+                action_type,
+                request.method,
+                request.path,
+                entity_id,
+                session.get("worker_id"),
+                int(status_code or 0),
+                json.dumps(payload, ensure_ascii=True) if payload is not None else None,
+                request.headers.get("X-Forwarded-For") or request.remote_addr,
+            ),
+        )
+        return
+
+    AUDIT_LOG.append({
+        "audit_id": _next_id(AUDIT_LOG, "audit_id"),
+        "table_name": module_name,
+        "record_id": entity_id or 0,
+        "action": action_type,
+        "worker_id": session.get("worker_id"),
+        "changed_at": datetime.now().isoformat(timespec="seconds"),
+        "ip_address": request.headers.get("X-Forwarded-For") or request.remote_addr,
+    })
 
 
 def _db_sync_serial_sequence(table_name, id_column):
@@ -1217,6 +1391,36 @@ def _enrich_record(r):
     item["patient_temp_c"] = r.get("patient_temp_c")
     item["notes"]          = "Con reacción" if r.get("had_reaction") else "Sin reacciones"
     return item
+
+
+@app.before_request
+def _capture_action_context():
+    module_name = _audit_module_from_path(request.path)
+    if not module_name:
+        return
+    g.audit_module_name = module_name
+    g.audit_payload = _collect_request_payload()
+    g.audit_entity_id = _extract_entity_id(module_name)
+
+
+@app.after_request
+def _persist_action_log(response):
+    module_name = getattr(g, "audit_module_name", None)
+    if not module_name:
+        return response
+
+    try:
+        _db_insert_action_log(
+            module_name=module_name,
+            action_type=_action_type_from_method(request.method),
+            entity_id=getattr(g, "audit_entity_id", None),
+            status_code=response.status_code,
+            payload=getattr(g, "audit_payload", None),
+        )
+    except Exception:
+        # La auditoria no debe romper el flujo principal.
+        pass
+    return response
 
 
 # =============================================================================
