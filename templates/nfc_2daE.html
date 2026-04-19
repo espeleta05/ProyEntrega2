@@ -5,6 +5,7 @@
 {% block content %}
 
 <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/tables.css') }}">   
 
 <div class="section-header">
     <h2 class="clinic-title">Sistema NFC - Tarjetas de Identificación</h2>
@@ -30,20 +31,20 @@
 </div>
 
 <!-- SECCIÓN 1: TARJETAS NFC -->
-<div class="section-card" style="margin-bottom: 40px;">
+<div class="section-card">
     <h3 class="section-header" style="margin-bottom: 20px;">
         <div>Tarjetas NFC Registradas</div>
     </h3>
 
     <!-- Búsqueda -->
-    <div class="search-bar-container" style="margin-bottom: 20px;">
+    <div class="search-bar-container section">
         <i class="fa-solid fa-magnifying-glass"></i>
         <input type="text" id="searchCardsInput" placeholder="Buscar por UID o paciente...">
     </div>
 
     <!-- Tabla de tarjetas -->
-    <div class="inv-table-wrapper">
-        <table class="inv-table">
+    <div class="tbl-wrapper">
+        <table class="tbl">
             <thead>
                 <tr>
                     <th>UID</th>
@@ -57,29 +58,29 @@
             </thead>
             <tbody id="cardsTable">
                 {% for card in cards %}
-                <tr class="inv-row" data-uid="{{ card.uid }}" data-patient="{{ card.patient_name }}">
+                <tr class="tbl-row" data-uid="{{ card.uid }}" data-patient="{{ card.patient_name }}">
                     <td><code style="background: #f0f0f0; padding: 3px 6px; border-radius: 4px;">{{ card.uid }}</code></td>
                     <td><strong>{{ card.patient_name }}</strong></td>
                     <td>{{ card.card_type }}</td>
                     <td>
                         {% if card.status == 'Activa' %}
-                        <span class="status ok" style="background: #CFFFC0; color: #1D7B00;">
+                        <span class="status-ok">
                             <i class="fa-solid fa-check"></i> Activa
                         </span>
                         {% else %}
-                        <span class="status" style="background: #FFB9B9; color: #C40000;">
+                        <span class="status-late">
                             <i class="fa-solid fa-times"></i> Inactiva
                         </span>
                         {% endif %}
                     </td>
                     <td>{{ card.issued_date }}</td>
-                    <td>
-                        <span style="font-size: 0.85rem; color: #636363;">
+                    <td class="muted-td">
+                        <span>
                             {{ card.last_scanned_at[:10] if card.last_scanned_at else '—' }}
                         </span>
                     </td>
-                    <td>
-                        <span style="font-size: 0.8rem; color: #8b8b8b;">
+                    <td class="muted-td">
+                        <span>
                             {{ card.notes[:30] if card.notes else '—' }}
                         </span>
                     </td>
@@ -97,14 +98,14 @@
     </h3>
 
     <!-- Búsqueda -->
-    <div class="search-bar-container" style="margin-bottom: 20px;">
+    <div class="search-bar-container section">
         <i class="fa-solid fa-magnifying-glass"></i>
         <input type="text" id="searchScansInput" placeholder="Buscar por paciente o trabajador...">
     </div>
 
     <!-- Tabla de escaneos -->
-    <div class="inv-table-wrapper">
-        <table class="inv-table">
+    <div class="tbl-wrapper">
+        <table class="tbl">
             <thead>
                 <tr>
                     <th>Fecha y Hora</th>
@@ -116,9 +117,9 @@
             </thead>
             <tbody id="scansTable">
                 {% for scan in scans %}
-                <tr class="inv-row" data-patient="{{ scan.patient_name }}" data-worker="{{ scan.worker_name }}">
+                <tr class="tbl-row" data-patient="{{ scan.patient_name }}" data-worker="{{ scan.worker_name }}">
                     <td>
-                        <span style="font-size: 0.9rem;">
+                        <span>
                             {{ scan.scanned_at[:10] if scan.scanned_at else '—' }}<br>
                             <strong>{{ scan.scanned_at[11:16] if scan.scanned_at else '—' }}</strong>
                         </span>
@@ -128,15 +129,15 @@
                     <td>{{ scan.action_triggered }}</td>
                     <td>
                         {% if scan.result == 'Éxito' or scan.result == 'Exitoso' %}
-                        <span class="status ok" style="background: #CFFFC0; color: #1D7B00;">
+                        <span class="status-ok">
                             <i class="fa-solid fa-check"></i> {{ scan.result }}
                         </span>
                         {% elif scan.result == 'Error' %}
-                        <span class="status warning" style="background: #FFB9B9; color: #C40000;">
+                        <span class="status-late">
                             <i class="fa-solid fa-exclamation"></i> {{ scan.result }}
                         </span>
                         {% else %}
-                        <span style="color: #636363;">{{ scan.result or '—' }}</span>
+                        <span class="muted-td">{{ scan.result or '—' }}</span>
                         {% endif %}
                     </td>
                 </tr>

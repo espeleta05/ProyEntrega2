@@ -61,6 +61,7 @@ button{
     padding:9px 18px;
     border-radius:10px;
     cursor:pointer;
+    text-decoration: none;
     transition: background .15s;
 }
 
@@ -128,12 +129,13 @@ button{
 /*sidebar*/
 .sidebar{
     grid-area: sidebar;
-    position: fixed;
+    position:sticky;
+    top: 0;
+    margin-top: 20px;
     height: 100vh;
     width:280px;
     background:white;
     border-right:1px solid var(--gray-stroke);
-    padding-top:100px;
     display:flex;
     flex-direction:column;
 }
@@ -298,7 +300,7 @@ button{
     display:flex;
     flex-direction:column;
     margin-top: 15px;
-    margin-bottom: 15px;
+    margin-bottom: 10px;
     padding-left:20px;
     gap:2px;
 }
@@ -331,6 +333,12 @@ button{
     background-color: var(--secondary-color);
     color: white;
     width: 15rem;
+}
+
+.menu-bottom{
+    margin-top: 0;
+    padding-top: 15px;
+    border-top: 1px solid var(--gray-stroke);
 }
 
 .back {
@@ -586,7 +594,6 @@ button{
     display:flex;
     flex-direction:column;
     gap:15px;
-    max-width:450px;
     box-shadow:10px 10px 10px rgba(0,0,0,0.1);
 }
 

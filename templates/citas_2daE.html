@@ -5,34 +5,32 @@
 {% block content %}
 
 <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/tables.css') }}">
 
 <div class="section-header">
     <h2 class="clinic-title">Citas Programadas</h2>
-    <div class="btn-container">
-        <a href="#" class="btn btn-container" style="background: #6B007C; color: white; cursor: not-allowed; opacity: 0.6;" title="Función en desarrollo">
-            <i class="fa-solid fa-plus"></i> Agregar cita
-        </a>
-    </div>
+    <a href="#" class="btn-agregar">
+        <i class="fa-solid fa-plus"></i> Agregar cita
+    </a>
 </div>
 
-<div class="section-info" style="margin-bottom: 20px;">
-    <p style="color: #636363; font-size: 0.95rem;">
+<div class="section-info">
+    <p>
         <strong>Total de citas:</strong> {{ total_appointments }} |
-        <strong style="color: #1D7B00;">Confirmadas:</strong> {{ appointments|selectattr('status', 'equalto', 'Confirmada')|list|length }} |
-        <strong style="color: #bb9f00;">Pendientes:</strong> {{ appointments|selectattr('status', 'equalto', 'Pendiente')|list|length }}
+        <strong class="high">Confirmadas:</strong> {{ appointments|selectattr('status', 'equalto', 'Confirmada')|list|length }} |
+        <strong class="medium">Pendientes:</strong> {{ appointments|selectattr('status', 'equalto', 'Pendiente')|list|length }}
     </p>
 </div>
 
 <!-- Barra de búsqueda -->
-<div class="search-bar-container" style="margin-bottom: 20px;">
+<div class="search-bar-container section">
     <i class="fa-solid fa-magnifying-glass"></i>
     <input type="text" id="searchInput" placeholder="Buscar por paciente...">
 </div>
 
 <!-- Tabla de citas -->
-<div class="section-card">
-    <div class="inv-table-wrapper">
-        <table class="inv-table">
+    <div class="tbl-wrapper">
+        <table class="tbl">
             <thead>
                 <tr>
                     <th>Paciente</th>
@@ -47,7 +45,7 @@
             </thead>
             <tbody id="appointmentsTable">
                 {% for apt in appointments %}
-                <tr class="inv-row" data-patient="{{ apt.patient_name }}" data-status="{{ apt.status }}">
+                <tr class="tbl-row" data-patient="{{ apt.patient_name }}" data-status="{{ apt.status }}">
                     <td><strong>{{ apt.patient_name }}</strong></td>
                     <td>{{ apt.clinic_name }}</td>
                     <td>{{ apt.area_name }}</td>
@@ -61,21 +59,21 @@
                     <td>{{ apt.vaccine_name }}</td>
                     <td>
                         {% if apt.status == 'Confirmada' %}
-                        <span class="status ok" style="background: #CFFFC0; color: #1D7B00;">
+                        <span class="status-ok">
                             <i class="fa-solid fa-check"></i> Confirmada
                         </span>
                         {% elif apt.status == 'Pendiente' %}
-                        <span class="status warning" style="background: #FFEEC0; color: #bb9f00;">
+                        <span class="status-pending">
                             <i class="fa-solid fa-hourglass-half"></i> Pendiente
                         </span>
                         {% else %}
-                        <span class="status" style="background: #F2F2F2; color: #636363;">
+                        <span class="status-late">
                             <i class="fa-solid fa-times"></i> Cancelada
                         </span>
                         {% endif %}
                     </td>
                     <td>
-                        <a href="#" class="btn-icon" title="Editar" style="cursor: not-allowed; opacity: 0.5;">
+                        <a href="#" class="btn-icon" title="Editar">
                             <i class="fa-solid fa-edit"></i>
                         </a>
                     </td>
@@ -84,10 +82,9 @@
             </tbody>
         </table>
     </div>
-    <p class="table-footer">
+    <p class="tbl-footer">
         Mostrando {{ appointments|length }} de {{ total_appointments }} citas
     </p>
-</div>
 
 <script>
 // Búsqueda local

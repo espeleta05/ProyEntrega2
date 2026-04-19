@@ -1,0 +1,276 @@
+/*
+ * tables.css — Sistema Clínico
+ * ─────────────────────────────────────────────────────────────────────────────
+ * Archivo reutilizable de estilos para tablas.
+ * Importar en cualquier template con:
+ *   <link rel="stylesheet" href="{{ url_for('static', filename='css/tables.css') }}">
+ *
+ * CLASES DISPONIBLES
+ * ──────────────────
+ * Estructura base:
+ *   .tbl-wrapper          → contenedor con borde, sombra y border-radius
+ *   .tbl                  → la tabla en sí (<table class="tbl">)
+ *   .tbl-row              → fila del tbody (<tr class="tbl-row bar-N">)
+ *
+ * Columnas especiales:
+ *   td.name-td            → celda con barra de color izquierda
+ *   td.muted-td           → celda con texto gris secundario
+ *   td.num                → celda numérica (alineada a la derecha, bold)
+ *   thead th.num          → encabezado numérico (alineado a la derecha)
+ *
+ * Barra de color (se pone en el <tr>, afecta a td.name-td):
+ *   .bar-0 … .bar-11
+ *
+ * Badges y pills:
+ *   .badge-birth          → "Al nacer" (verde)
+ *   .badge-age            → edad en meses/años (azul)
+ *   .dose-pill            → número de dosis (azul claro)
+ *   .exp-badge.exp-ok     → fecha de vencimiento vigente (azul)
+ *   .exp-badge.exp-warn   → fecha de vencimiento próxima/vencida (naranja)
+ *   .stock-pill.stock-ok  → stock suficiente (verde)
+ *   .stock-pill.stock-low → stock bajo ≤ 10 (rojo)
+ *   .blood-badge          → tipo de sangre (rojo claro)
+ *   .status-ok            → estado "Aplicada / Al día" (verde)
+ *   .status-pending       → estado pendiente (naranja)
+ *   .status-late          → estado atrasado (rojo)
+ *
+ * Contenido de celda compuesta:
+ *   .cell-stack           → apila dos líneas verticalmente (nombre + subtexto)
+ *   .cell-main            → texto principal de la celda
+ *   .cell-sub             → subtexto secundario (id, descripción corta)
+ *   .patient-cell         → fila con avatar + .cell-stack
+ *   .avatar-sm            → círculo de iniciales
+ *
+ * Misceláneos:
+ *   .lot-td               → celda de número de lote (monospace, gris)
+ *   .tbl-footer           → texto pequeño al pie de la tabla
+ *   .empty-state          → fila sin datos
+ *   .tbl thead th.center  → encabezado centrado
+ * ─────────────────────────────────────────────────────────────────────────────
+ */
+
+/* ── Variables ────────────────────────────────────────────────────────────── */
+:root {
+    --tbl-header-bg:   #4f2c55;
+    --tbl-border:      #e6eaf2;
+    --tbl-row-odd:     #ffffff;
+    --tbl-row-even:    #f7f9fc;
+    --tbl-text:        #1e2230;
+    --tbl-muted:       #6b7280;
+    --tbl-hover:       #eef2ff;
+    --tbl-radius:      14px;
+    --tbl-shadow:      0 4px 24px rgba(30, 34, 64, .08);
+}
+
+/* ── Wrapper ─────────────────────────────────────────────────────────────── */
+.tbl-wrapper {
+    background: #fff;
+    border: 0.5px solid var(--tbl-border);
+    border-radius: var(--tbl-radius);
+    overflow: hidden;
+    box-shadow: var(--tbl-shadow);
+}
+
+/* ── Tabla base ──────────────────────────────────────────────────────────── */
+.tbl {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: var(--tbl-font);
+    font-size: .88rem;
+    table-layout: fixed;
+}
+
+/* ── Encabezado ──────────────────────────────────────────────────────────── */
+.tbl thead tr {
+    background: var(--tbl-header-bg);
+}
+
+.tbl thead th {
+    color: #fff;
+    font-size: .75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .6px;
+    padding: 13px 16px;
+    border: none;
+    text-align: left;
+}
+
+.tbl thead th.num    { text-align: right; }
+.tbl thead th.center { text-align: center; }
+
+/* ── Filas ───────────────────────────────────────────────────────────────── */
+.tbl-row {
+    border-bottom: 1px solid var(--tbl-border);
+    transition: background .12s ease;
+}
+.tbl-row:last-child             { border-bottom: none; }
+.tbl-row:nth-child(odd)         { background: var(--tbl-row-odd); }
+.tbl-row:nth-child(even)        { background: var(--tbl-row-even); }
+.tbl-row:hover                  { background: var(--tbl-hover); }
+
+/* ── Celdas base ─────────────────────────────────────────────────────────── */
+.tbl td {
+    padding: 12px 16px;
+    border: none;
+    vertical-align: middle;
+    color: var(--tbl-text);
+}
+
+.tbl td.num      { text-align: right; font-weight: 700; }
+.tbl td.center   { text-align: center; }
+.tbl td.muted-td { font-size: .82rem; color: var(--tbl-muted); }
+
+/* ── Celda con barra de color izquierda ──────────────────────────────────── */
+/*
+ * Uso: <td class="name-td"> dentro de <tr class="tbl-row bar-N">
+ * La barra aparece automáticamente según la clase bar-N del <tr>.
+ */
+td.name-td {
+    border-left: 5px solid transparent;
+    padding-left: 14px !important;
+    border-radius: 0;
+}
+
+.tbl-row.bar-0  td.name-td { border-left-color: #4CAF7D; }
+.tbl-row.bar-1  td.name-td { border-left-color: #5B8DD9; }
+.tbl-row.bar-2  td.name-td { border-left-color: #29B6C5; }
+.tbl-row.bar-3  td.name-td { border-left-color: #F4A84A; }
+.tbl-row.bar-4  td.name-td { border-left-color: #E8C94A; }
+.tbl-row.bar-5  td.name-td { border-left-color: #A0C94A; }
+.tbl-row.bar-6  td.name-td { border-left-color: #E05252; }
+.tbl-row.bar-7  td.name-td { border-left-color: #AB6BD6; }
+.tbl-row.bar-8  td.name-td { border-left-color: #FF8A65; }
+.tbl-row.bar-9  td.name-td { border-left-color: #78909C; }
+.tbl-row.bar-10 td.name-td { border-left-color: #26A69A; }
+.tbl-row.bar-11 td.name-td { border-left-color: #EC407A; }
+
+/* ── Contenido de celda compuesta ────────────────────────────────────────── */
+/*
+ * Uso: <td class="name-td"><span class="cell-main">Nombre</span><span class="cell-sub">ID: 001</span></td>
+ */
+.cell-stack { display: flex; flex-direction: column; gap: 2px; }
+.cell-main  { font-weight: 800; font-size: .92rem; color: var(--tbl-text); display: block; line-height: 1.2; }
+.cell-sub   { font-size: .72rem; color: var(--tbl-muted); display: block; }
+
+/* Alias semánticos */
+.vax-name { font-weight: 800; font-size: .92rem; color: var(--tbl-text); display: block; }
+.vax-disease { font-size: .75rem; color: var(--tbl-muted); margin-top: 2px; display: block; }
+.pt-id    { font-size: .72rem; color: var(--tbl-muted); display: block; }
+
+/* Celda con avatar + texto */
+.patient-cell { display: flex; align-items: center; gap: 10px; }
+.avatar-sm {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    background: #e3f2fd;
+    color: #1565c0;
+    font-size: .75rem;
+    font-weight: 800;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    text-transform: uppercase;
+}
+
+/* ── Celda de lote ───────────────────────────────────────────────────────── */
+.lot-td {
+    font-family: monospace;
+    font-size: .82rem;
+    color: var(--tbl-muted);
+    letter-spacing: .3px;
+}
+
+/* ── Badges de edad (esquema de vacunación) ──────────────────────────────── */
+.badge-birth,
+.badge-age {
+    display: inline-block;
+    padding: 3px 11px;
+    border-radius: 999px;
+    font-size: .75rem;
+    font-weight: 700;
+    white-space: nowrap;
+}
+.badge-birth { background: #e6f4ea; color: #1b5e20; border: 1.5px solid #a5d6a7; }
+.badge-age   { background: #e3f2fd; color: #0d47a1; border: 1.5px solid #90caf9; }
+
+/* ── Pill de número de dosis ─────────────────────────────────────────────── */
+.dose-pill {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 999px;
+    font-size: .75rem;
+    font-weight: 700;
+    background: #e3f2fd;
+    color: #0d47a1;
+}
+
+/* ── Badge de fecha de vencimiento ───────────────────────────────────────── */
+.exp-badge {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 999px;
+    font-size: .75rem;
+    font-weight: 700;
+    white-space: nowrap;
+}
+.exp-ok   { background: #e3f2fd; color: #0d47a1; }
+.exp-warn { background: #fff3e0; color: #e65100; }
+
+/* ── Pill de stock ───────────────────────────────────────────────────────── */
+.stock-pill {
+    display: inline-block;
+    padding: 3px 12px;
+    border-radius: 999px;
+    font-size: .78rem;
+    font-weight: 700;
+}
+.stock-ok  { background: #e6f4ea; color: #1b5e20; }
+.stock-low { background: #fce4e4; color: #b71c1c; }
+
+/* ── Badge de tipo de sangre ─────────────────────────────────────────────── */
+.blood-badge {
+    display: inline-block;
+    padding: 2px 9px;
+    border-radius: 999px;
+    font-size: .72rem;
+    font-weight: 800;
+    background: #fce4e4;
+    color: #b71c1c;
+}
+
+/* ── Badges de estado ────────────────────────────────────────────────────── */
+.status-ok,
+.status-pending,
+.status-late {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 3px 11px;
+    border-radius: 999px;
+    font-size: .75rem;
+    font-weight: 700;
+    white-space: nowrap;
+}
+.status-ok      { background: #e6f4ea; color: #1b5e20; }
+.status-pending { background: #fff3e0; color: #e65100; }
+.status-late    { background: #fce4e4; color: #b71c1c; }
+
+/* ── Pie de tabla ────────────────────────────────────────────────────────── */
+.tbl-footer {
+    font-family: var(--tbl-font);
+    font-size: .75rem;
+    color: var(--tbl-muted);
+    margin: 10px 0 0;
+    text-align: right;
+}
+
+/* ── Estado vacío ────────────────────────────────────────────────────────── */
+.empty-state {
+    text-align: center;
+    padding: 40px 16px;
+    font-size: .88rem;
+    color: var(--tbl-muted);
+}
