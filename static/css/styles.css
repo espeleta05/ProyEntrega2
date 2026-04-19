@@ -394,14 +394,14 @@ button{
 }
     
 .title{
-    font-size:38px;
+    font-size:2rem;
     color:#6B007C;
 }
     
 .welcome{
-    font-size:32px;
+    font-size:1rem;
     color:#6B007C;
-    margin-bottom:40px;
+    margin-bottom:15px;
 }
 
     

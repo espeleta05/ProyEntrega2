@@ -1,0 +1,55 @@
+<!-- Modal de confirmación genérico reutilizable -->
+<div class="modal-overlay" id="confirmModal">
+    <div class="modal-container">
+        <div class="modal-header">
+            <h2 id="confirmTitle">Confirmar acción</h2>
+            <button class="modal-close" onclick="closeConfirmModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+            <p id="confirmMessage" style="margin: 0; color: #636363; font-size: 0.95rem;">
+                ¿Estás seguro de que deseas continuar?
+            </p>
+        </div>
+        <div class="modal-footer">
+            <button class="btn-cancel" onclick="closeConfirmModal()">Cancelar</button>
+            <button class="btn-confirm" id="confirmBtn" onclick="executeConfirmAction()">Confirmar</button>
+        </div>
+    </div>
+</div>
+
+<script>
+let confirmCallback = null;
+
+function showConfirmModal(title, message, onConfirm) {
+    document.getElementById('confirmTitle').textContent = title;
+    document.getElementById('confirmMessage').textContent = message;
+    confirmCallback = onConfirm;
+    document.getElementById('confirmModal').classList.add('active');
+}
+
+function closeConfirmModal() {
+    document.getElementById('confirmModal').classList.remove('active');
+    confirmCallback = null;
+}
+
+function executeConfirmAction() {
+    if (confirmCallback && typeof confirmCallback === 'function') {
+        confirmCallback();
+    }
+    closeConfirmModal();
+}
+
+// Cerrar al hacer click fuera del modal
+document.getElementById('confirmModal').addEventListener('click', function(e) {
+    if (e.target === this) {
+        closeConfirmModal();
+    }
+});
+
+// Cerrar con tecla ESC
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape' && document.getElementById('confirmModal').classList.contains('active')) {
+        closeConfirmModal();
+    }
+});
+</script>

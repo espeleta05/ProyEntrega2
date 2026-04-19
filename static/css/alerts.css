@@ -1,0 +1,245 @@
+/* ========================================
+   ALERTS & MESSAGES COMPONENT STYLES
+   ======================================== */
+
+:root {
+    --alert-success-bg: #CFFFC0;
+    --alert-success-text: #1D7B00;
+    --alert-success-border: #1D7B00;
+
+    --alert-danger-bg: #FFB9B9;
+    --alert-danger-text: #C40000;
+    --alert-danger-border: #C40000;
+
+    --alert-warning-bg: #FFEEC0;
+    --alert-warning-text: #bb9f00;
+    --alert-warning-border: #bb9f00;
+
+    --alert-info-bg: #E8D9FF;
+    --alert-info-text: #6B007C;
+    --alert-info-border: #6B007C;
+}
+
+/* Flash Messages Container */
+.flash-messages {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 20px;
+    position: relative;
+    z-index: 100;
+}
+
+/* Individual Alert */
+.alert {
+    padding: 14px 16px;
+    border-radius: 8px;
+    border-left: 4px solid;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 0.95rem;
+    font-weight: 500;
+    animation: slideInDown 0.3s ease-out;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.alert.alert-success {
+    background: var(--alert-success-bg);
+    color: var(--alert-success-text);
+    border-left-color: var(--alert-success-border);
+}
+
+.alert.alert-danger {
+    background: var(--alert-danger-bg);
+    color: var(--alert-danger-text);
+    border-left-color: var(--alert-danger-border);
+}
+
+.alert.alert-warning {
+    background: var(--alert-warning-bg);
+    color: var(--alert-warning-text);
+    border-left-color: var(--alert-warning-border);
+}
+
+.alert.alert-info {
+    background: var(--alert-info-bg);
+    color: var(--alert-info-text);
+    border-left-color: var(--alert-info-border);
+}
+
+/* Alert Icon */
+.alert-icon {
+    font-size: 1.2rem;
+    flex-shrink: 0;
+}
+
+/* Alert Content */
+.alert-content {
+    flex: 1;
+}
+
+.alert-message {
+    margin: 0;
+    line-height: 1.4;
+}
+
+/* Alert Close Button */
+.alert-close {
+    background: none;
+    border: none;
+    font-size: 1.2rem;
+    cursor: pointer;
+    color: inherit;
+    padding: 0 4px;
+    flex-shrink: 0;
+    opacity: 0.7;
+    transition: opacity 0.2s;
+}
+
+.alert-close:hover {
+    opacity: 1;
+}
+
+/* Animations */
+@keyframes slideInDown {
+    from {
+        transform: translateY(-20px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+@keyframes fadeOut {
+    from {
+        opacity: 1;
+        transform: translateY(0);
+    }
+    to {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+}
+
+.alert.removing {
+    animation: fadeOut 0.3s ease-out forwards;
+}
+
+/* Status Badges */
+.status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.status-badge.success {
+    background: var(--alert-success-bg);
+    color: var(--alert-success-text);
+}
+
+.status-badge.danger {
+    background: var(--alert-danger-bg);
+    color: var(--alert-danger-text);
+}
+
+.status-badge.warning {
+    background: var(--alert-warning-bg);
+    color: var(--alert-warning-text);
+}
+
+.status-badge.info {
+    background: var(--alert-info-bg);
+    color: var(--alert-info-text);
+}
+
+/* Toast-style notifications (corner) */
+.toast-container {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    z-index: 9999;
+    max-width: 400px;
+    pointer-events: none;
+}
+
+.toast {
+    background: white;
+    border-radius: 8px;
+    padding: 16px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+    border-left: 4px solid;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    animation: slideInRight 0.3s ease-out;
+    pointer-events: all;
+}
+
+.toast.success {
+    border-left-color: var(--alert-success-border);
+}
+
+.toast.danger {
+    border-left-color: var(--alert-danger-border);
+}
+
+.toast.warning {
+    border-left-color: var(--alert-warning-border);
+}
+
+.toast.info {
+    border-left-color: var(--alert-info-border);
+}
+
+@keyframes slideInRight {
+    from {
+        transform: translateX(400px);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .alert {
+        flex-wrap: wrap;
+        padding: 12px 14px;
+    }
+
+    .toast-container {
+        left: 12px;
+        right: 12px;
+        bottom: 12px;
+    }
+
+    .toast {
+        width: 100%;
+    }
+}
+
+/* Accessibility */
+@media (prefers-reduced-motion: reduce) {
+    .alert,
+    .toast {
+        animation: none;
+    }
+
+    .alert.removing {
+        animation: none;
+    }
+}

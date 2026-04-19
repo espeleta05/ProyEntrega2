@@ -1,4 +1,5 @@
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
+from calendar import month_abbr
 from flask import Flask, flash, jsonify, redirect, render_template, request, session, url_for
 
 app = Flask(__name__)
@@ -640,38 +641,180 @@ def logout():
 
 
 # ── DASHBOARD ─────────────────────────────────────────────────────────────────
+from datetime import date, timedelta
+from calendar import month_abbr
+
 @app.route("/dashboard")
 def dashboard():
     locked = _require_login()
     if locked:
         return locked
 
+    today_dt      = date.today()
     patients_raw  = _cur_fetchall("patients")
     vaccines_raw  = _cur_fetchall("vaccines")
     records_raw   = _cur_fetchall("vaccination_records")
     alerts_raw    = _cur_fetchall("gps_risk_alerts")
     inventory_raw = _cur_fetchall("clinic_inventory")
+    lots_raw      = _cur_fetchall("vaccine_lots")
+    scheme_raw    = _cur_fetchall("scheme_doses")   # tabla con las dosis del esquema oficial
 
-    low_stock    = [i for i in inventory_raw if i["quantity"] < i["min_stock"]]
-    top_patients = [_enrich_patient(p) for p in patients_raw[:3]]
+    # ── Pacientes enriquecidos ──────────────────────────────────────────────
+    top_patients = [_enrich_patient(p) for p in patients_raw[:5]]
 
-    session["last_visit"] = date.today().isoformat()
+    # ── KPI: cobertura — pacientes con todas las dosis del esquema ──────────
+    total_doses_in_scheme = len(scheme_raw)   # cuántas dosis tiene el esquema completo
 
-    ctx = {
+    def patient_completed_scheme(pid):
+        applied = [r for r in records_raw if r["patient_id"] == pid]
+        return len(applied) >= total_doses_in_scheme
+
+    patients_complete  = sum(1 for p in patients_raw if patient_completed_scheme(p["patient_id"]))
+    coverage_pct       = round(patients_complete / len(patients_raw) * 100) if patients_raw else 0
+
+    # Tendencia: comparar con mes anterior (simulado como -2 si no hay datos previos)
+    # Ajusta esta lógica según tu BD real
+    coverage_trend = 0   # reemplaza con cálculo real si guardas histórico
+
+    # ── KPI: pacientes con dosis atrasadas ──────────────────────────────────
+    # Un paciente está atrasado si tiene al menos 1 dosis del esquema pendiente
+    # y su edad ya superó la edad recomendada de esa dosis
+    def patient_is_delayed(patient):
+        age_months = (patient.get("age") or 0) * 12
+        applied_vaccine_ids = {r["vaccine_id"] for r in records_raw if r["patient_id"] == patient["patient_id"]}
+        for dose in scheme_raw:
+            if dose["vaccine_id"] not in applied_vaccine_ids:
+                if age_months > (dose.get("ideal_age_months") or 0) + 1:
+                    return True
+        return False
+
+    delayed_patients   = sum(1 for p in patients_raw if patient_is_delayed(p))
+
+    # Pacientes críticos: 2+ vacunas atrasadas
+    def count_delayed_doses(patient):
+        age_months = (patient.get("age") or 0) * 12
+        applied_vaccine_ids = {r["vaccine_id"] for r in records_raw if r["patient_id"] == patient["patient_id"]}
+        return sum(
+            1 for dose in scheme_raw
+            if dose["vaccine_id"] not in applied_vaccine_ids
+            and age_months > (dose.get("ideal_age_months") or 0) + 1
+        )
+
+    patients_critical = sum(1 for p in patients_raw if count_delayed_doses(p) >= 2)
+
+    # ── KPI: dosis aplicadas ────────────────────────────────────────────────
+    week_start         = today_dt - timedelta(days=today_dt.weekday())
+    month_start        = today_dt.replace(day=1)
+
+    applications_today = sum(1 for r in records_raw if r.get("applied_date") == today_dt.isoformat())
+    doses_this_week    = sum(1 for r in records_raw if r.get("applied_date", "") >= week_start.isoformat())
+    doses_this_month   = sum(1 for r in records_raw if r.get("applied_date", "") >= month_start.isoformat())
+
+    # ── KPI: pacientes con dosis vencidas (lotes vencidos usados) ───────────
+    expired_lots       = {l["lot_id"] for l in lots_raw if l.get("expiration_date") and str(l["expiration_date"]) < today_dt.isoformat()}
+    expired_doses      = sum(1 for r in records_raw if r.get("lot_id") in expired_lots)
+
+    # ── KPI: nuevos pacientes este mes ──────────────────────────────────────
+    new_patients_month = sum(
+        1 for p in patients_raw
+        if str(p.get("created_at", ""))[:7] == today_dt.strftime("%Y-%m")
+    )
+
+    # ── KPI: lotes por vencer esta semana ──────────────────────────────────
+    week_end           = today_dt + timedelta(days=7)
+    expiring_lots_week = sum(
+        1 for l in lots_raw
+        if l.get("expiration_date")
+        and today_dt.isoformat() <= str(l["expiration_date"]) <= week_end.isoformat()
+    )
+
+    # ── Stock bajo ─────────────────────────────────────────────────────────
+    low_stock_count    = len([i for i in inventory_raw if i["quantity"] < i["min_stock"]])
+
+    # ── Alertas pendientes ─────────────────────────────────────────────────
+    pending_alerts     = len([al for al in alerts_raw if al["resolved_at"] is None])
+
+    # ── Cobertura por grupo de edad ─────────────────────────────────────────
+    age_groups = [
+        ("0–1 año",   0,   1),
+        ("1–5 años",  1,   5),
+        ("5–10 años", 5,   10),
+        ("10–15 años",10,  15),
+        ("15+ años",  15,  99999),
+    ]
+    coverage_by_age = []
+    for label, lo, hi in age_groups:
+        group = [p for p in patients_raw if lo <= (p.get("age") or 0) < hi]
+        if group:
+            complete = sum(1 for p in group if patient_completed_scheme(p["patient_id"]))
+            pct = round(complete / len(group) * 100)
+        else:
+            pct = 0
+        coverage_by_age.append({"label": label, "pct": pct})
+
+    # ── Dosis por mes (últimos 6 meses) ────────────────────────────────────
+    doses_by_month = []
+    for i in range(5, -1, -1):
+        target = (today_dt.replace(day=1) - timedelta(days=i * 28))
+        ym     = target.strftime("%Y-%m")
+        count  = sum(1 for r in records_raw if str(r.get("applied_date", ""))[:7] == ym)
+        doses_by_month.append({"label": month_abbr[target.month], "count": count})
+
+    # Tendencia mensual: comparar último mes vs penúltimo
+    if len(doses_by_month) >= 2 and doses_by_month[-2]["count"] > 0:
+        monthly_trend = round(
+            (doses_by_month[-1]["count"] - doses_by_month[-2]["count"])
+            / doses_by_month[-2]["count"] * 100
+        )
+    else:
+        monthly_trend = 0
+
+    # ── % retraso por vacuna ───────────────────────────────────────────────
+    delay_by_vaccine = []
+    for vac in vaccines_raw[:8]:   # top 8 para no saturar la gráfica
+        vid       = vac["vaccine_id"]
+        eligible  = [
+            p for p in patients_raw
+            if any(
+                d["vaccine_id"] == vid and (p.get("age") or 0) * 12 > (d.get("ideal_age_months") or 0) + 1
+                for d in scheme_raw
+            )
+        ]
+        if not eligible:
+            continue
+        applied   = {r["patient_id"] for r in records_raw if r["vaccine_id"] == vid}
+        delayed   = sum(1 for p in eligible if p["patient_id"] not in applied)
+        pct       = round(delayed / len(eligible) * 100)
+        delay_by_vaccine.append({"vaccine": vac["name"], "pct": pct})
+
+    delay_by_vaccine.sort(key=lambda x: x["pct"], reverse=True)
+
+    session["last_visit"] = today_dt.isoformat()
+
+    return render_template(
+        "index_2daE.html",
         **_session_vars(),
-        "today":              date.today().strftime("%d/%m/%Y"),
-        "total_patients":     len(patients_raw),
-        "total_vaccines":     len(vaccines_raw),
-        "applications_today": sum(
-            1 for r in records_raw if r["applied_date"] == date.today().isoformat()
-        ),
-        "pending_alerts":     len([al for al in alerts_raw if al["resolved_at"] is None]),
-        "low_stock_count":    len(low_stock),
-        "top_patients":       top_patients,
-        "dashboard_vaccines": vaccines_raw[:3],
-    }
-    return render_template("index_2daE.html", **ctx)
-
+        today               = today_dt.strftime("%d/%m/%Y"),
+        total_patients      = len(patients_raw),
+        total_vaccines      = len(vaccines_raw),
+        applications_today  = applications_today,
+        doses_this_week     = doses_this_week,
+        doses_this_month    = doses_this_month,
+        coverage_pct        = coverage_pct,
+        coverage_trend      = coverage_trend,
+        delayed_patients    = delayed_patients,
+        patients_critical   = patients_critical,
+        expired_doses       = expired_doses,
+        new_patients_month  = new_patients_month,
+        expiring_lots_week  = expiring_lots_week,
+        low_stock_count     = low_stock_count,
+        pending_alerts      = pending_alerts,
+        monthly_trend       = monthly_trend,
+        coverage_by_age     = coverage_by_age,
+        doses_by_month      = doses_by_month,
+        delay_by_vaccine    = delay_by_vaccine,
+        top_patients        = top_patients,
+    )
 
 # ── PACIENTES ─────────────────────────────────────────────────────────────────
 @app.route("/pacientes")
@@ -845,6 +988,101 @@ def _build_next_vaccines(patient_id):
                 "date": f"A los {dose['ideal_age_months']} meses" if dose.get("ideal_age_months") is not None else "—",
             })
     return pending[:3]
+
+
+# ── FUNCIONES DE ENRIQUECIMIENTO (Helpers de datos relacionales) ────────────
+def _enrich_appointment(ap):
+    """Enriquece cita con nombres y datos relacionales."""
+    item = dict(ap)
+    patient = _cur_fetchone("patients", "patient_id", ap["patient_id"])
+    worker = _cur_fetchone("workers", "worker_id", ap["worker_id"])
+    clinic = _cur_fetchone("clinics", "clinic_id", ap["clinic_id"])
+    area = _cur_fetchone("clinic_areas", "area_id", ap.get("area_id")) if ap.get("area_id") else None
+
+    item["patient_name"] = _patient_full_name(patient) if patient else "—"
+    item["worker_name"] = f"{worker['first_name']} {worker['last_name']}" if worker else "—"
+    item["clinic_name"] = clinic["name"] if clinic else "—"
+    item["area_name"] = area["name"] if area else "—"
+    item["vaccine_name"] = ap.get("reason") or "—"
+    item["status"] = ap.get("appointment_status", "—")
+    item["notes"] = ap.get("appointment_notes", "")
+    return item
+
+
+def _enrich_inventory_item(inv):
+    """Enriquece insumo con nombres y datos relacionales."""
+    item = dict(inv)
+    supply = _cur_fetchone("supply_catalog", "supply_id", inv["supply_id"])
+    clinic = _cur_fetchone("clinics", "clinic_id", inv["clinic_id"])
+
+    item["supply_name"] = supply["name"] if supply else "—"
+    item["supply_unit"] = supply["unit"] if supply else "—"
+    item["supply_category"] = supply["category"] if supply else "—"
+    item["clinic_name"] = clinic["name"] if clinic else "—"
+    item["low_stock"] = inv["quantity"] < inv["min_stock"]
+    return item
+
+
+def _enrich_nfc_card(c):
+    """Enriquece tarjeta NFC con datos del paciente."""
+    item = dict(c)
+    patient = _cur_fetchone("patients", "patient_id", c["patient_id"])
+    item["patient_name"] = _patient_full_name(patient) if patient else "—"
+    item["notes"] = c.get("nfc_card_notes")
+    return item
+
+
+def _enrich_nfc_scan(s):
+    """Enriquece evento de escaneo NFC con datos relacionales."""
+    item = dict(s)
+    item["worker_name"] = _worker_full_name(s["scanned_by"]) if s.get("scanned_by") else "—"
+    card = _cur_fetchone("nfc_cards", "nfc_card_id", s["nfc_card_id"])
+    patient = _cur_fetchone("patients", "patient_id", card["patient_id"]) if card else None
+    item["patient_name"] = _patient_full_name(patient) if patient else "—"
+    item["result"] = s.get("nfc_scan_result")
+    return item
+
+
+def _enrich_gps_device(d):
+    """Enriquece dispositivo GPS con datos del paciente."""
+    item = dict(d)
+    patient = _cur_fetchone("patients", "patient_id", d["patient_id"])
+    item["patient_name"] = _patient_full_name(patient) if patient else "—"
+    item["status"] = d.get("gps_device_status")
+    return item
+
+
+def _enrich_gps_alert(a):
+    """Enriquece alerta GPS con datos relacionales."""
+    item = dict(a)
+    patient = _cur_fetchone("patients", "patient_id", a["patient_id"])
+    item["patient_name"] = _patient_full_name(patient) if patient else "—"
+    item["resolved_name"] = _worker_full_name(a["resolved_by"]) if a.get("resolved_by") else "Pendiente"
+    item["notes"] = a.get("risk_notes")
+    return item
+
+
+def _enrich_area(a):
+    """Enriquece área con nombre del tipo."""
+    item = dict(a)
+    atype = _cur_fetchone("area_types", "area_type_id", a["area_type_id"])
+    item["area_type"] = atype["area_type"] if atype else "—"
+    return item
+
+
+def _enrich_clinic(c):
+    """Enriquece clínica con dirección completa y áreas."""
+    item = dict(c)
+    address = _cur_fetchone("addresses", "address_id", c["address_id"])
+    if address:
+        nbhd = _cur_fetchone("neighborhoods", "neighborhood_id", address["neighborhood_id"])
+        item["address_str"] = f"{address['street']} {address['ext_number'] or ''}, {nbhd['name'] if nbhd else ''}".strip(", ")
+    else:
+        item["address_str"] = "—"
+
+    areas_raw = _cur_fetchall_where("clinic_areas", "clinic_id", c["clinic_id"])
+    item["areas"] = [_enrich_area(a) for a in areas_raw]
+    return item
 
 
 # ── ESQUEMA PACIENTE ──────────────────────────────────────────────────────────
@@ -1199,20 +1437,12 @@ def inventario():
         return locked
 
     inventory_raw = _cur_fetchall("clinic_inventory")
-    inventory = []
-    for row in inventory_raw:
-        item   = dict(row)
-        supply = _cur_fetchone("supply_catalog", "supply_id", row["supply_id"])
-        clinic = _cur_fetchone("clinics",        "clinic_id", row["clinic_id"])
-        item["supply_name"]     = supply["name"]     if supply else "—"
-        item["supply_unit"]     = supply["unit"]     if supply else "—"
-        item["supply_category"] = supply["category"] if supply else "—"
-        item["clinic_name"]     = clinic["name"]     if clinic else "—"
-        item["low_stock"]       = row["quantity"] < row["min_stock"]
-        inventory.append(item)
+    inventory = [_enrich_inventory_item(item) for item in inventory_raw]
 
     if any(i["low_stock"] for i in inventory):
         flash("⚠ Hay insumos con stock por debajo del mínimo.", "warning")
+
+    session["last_section"] = "inventario"
 
     return render_template(
         "inventario_2daE.html",
@@ -1231,23 +1461,7 @@ def citas():
         return locked
 
     appointments_raw = _cur_fetchall("appointments")
-    appointments = []
-    for ap in appointments_raw:
-        item    = dict(ap)
-        patient = _cur_fetchone("patients", "patient_id", ap["patient_id"])
-        worker  = _cur_fetchone("workers",  "worker_id",  ap["worker_id"])
-        clinic  = _cur_fetchone("clinics",  "clinic_id",  ap["clinic_id"])
-        area    = _cur_fetchone("clinic_areas", "area_id", ap.get("area_id")) if ap.get("area_id") else None
-        item["patient_name"] = _patient_full_name(patient) if patient else "—"
-        item["worker_name"]  = f"{worker['first_name']} {worker['last_name']}" if worker else "—"
-        item["clinic_name"]  = clinic["name"] if clinic else "—"
-        item["area_name"]    = area["name"]   if area   else "—"
-        # vaccine_id ya no existe en appointments; se muestra el motivo
-        item["vaccine_name"] = ap.get("reason") or "—"
-        # normalizar nombres de campos para la plantilla
-        item["status"]       = ap.get("appointment_status", "—")
-        item["notes"]        = ap.get("appointment_notes", "")
-        appointments.append(item)
+    appointments = [_enrich_appointment(ap) for ap in appointments_raw]
 
     session["last_section"] = "citas"
 
@@ -1271,26 +1485,12 @@ def nfc():
         return locked
 
     cards_raw = _cur_fetchall("nfc_cards")
-    cards = []
-    for c in cards_raw:
-        item    = dict(c)
-        patient = _cur_fetchone("patients", "patient_id", c["patient_id"])
-        item["patient_name"] = _patient_full_name(patient) if patient else "—"
-        # nfc_card_notes → notas en plantilla
-        item["notes"] = c.get("nfc_card_notes")
-        cards.append(item)
+    cards = [_enrich_nfc_card(c) for c in cards_raw]
 
     scan_events_raw = _cur_fetchall("nfc_scan_events")
-    scans = []
-    for s in scan_events_raw:
-        item = dict(s)
-        item["worker_name"] = _worker_full_name(s["scanned_by"]) if s.get("scanned_by") else "—"
-        card    = _cur_fetchone("nfc_cards", "nfc_card_id", s["nfc_card_id"])
-        patient = _cur_fetchone("patients", "patient_id", card["patient_id"]) if card else None
-        item["patient_name"] = _patient_full_name(patient) if patient else "—"
-        # nfc_scan_result → result en plantilla
-        item["result"] = s.get("nfc_scan_result")
-        scans.append(item)
+    scans = [_enrich_nfc_scan(s) for s in scan_events_raw]
+
+    session["last_section"] = "nfc"
 
     return render_template(
         "nfc_2daE.html",
@@ -1310,29 +1510,16 @@ def gps():
         return locked
 
     devices_raw = _cur_fetchall("gps_devices")
-    devices = []
-    for d in devices_raw:
-        item    = dict(d)
-        patient = _cur_fetchone("patients", "patient_id", d["patient_id"])
-        item["patient_name"] = _patient_full_name(patient) if patient else "—"
-        # gps_device_status → status en plantilla
-        item["status"] = d.get("gps_device_status")
-        devices.append(item)
+    devices = [_enrich_gps_device(d) for d in devices_raw]
 
     alerts_raw = _cur_fetchall("gps_risk_alerts")
-    alerts = []
-    for a in alerts_raw:
-        item    = dict(a)
-        patient = _cur_fetchone("patients", "patient_id", a["patient_id"])
-        item["patient_name"]  = _patient_full_name(patient) if patient else "—"
-        item["resolved_name"] = _worker_full_name(a["resolved_by"]) if a.get("resolved_by") else "Pendiente"
-        # risk_notes → notes en plantilla
-        item["notes"] = a.get("risk_notes")
-        alerts.append(item)
+    alerts = [_enrich_gps_alert(a) for a in alerts_raw]
 
     active_alerts = [a for a in alerts if a["resolved_at"] is None]
     if active_alerts:
         flash(f"Tienes {len(active_alerts)} alerta(s) GPS sin resolver.", "danger")
+
+    session["last_section"] = "gps"
 
     return render_template(
         "gps_2daE.html",
@@ -1352,25 +1539,9 @@ def clinicas():
         return locked
 
     clinics_raw = _cur_fetchall("clinics")
-    clinics = []
-    for c in clinics_raw:
-        item    = dict(c)
-        address = _cur_fetchone("addresses", "address_id", c["address_id"])
-        if address:
-            nbhd = _cur_fetchone("neighborhoods", "neighborhood_id", address["neighborhood_id"])
-            item["address_str"] = f"{address['street']} {address['ext_number'] or ''}, {nbhd['name'] if nbhd else ''}".strip(", ")
-        else:
-            item["address_str"] = "—"
-        # Enriquecer áreas con nombre del tipo
-        areas_raw = _cur_fetchall_where("clinic_areas", "clinic_id", c["clinic_id"])
-        areas = []
-        for a in areas_raw:
-            area_item = dict(a)
-            atype = _cur_fetchone("area_types", "area_type_id", a["area_type_id"])
-            area_item["area_type"] = atype["area_type"] if atype else "—"
-            areas.append(area_item)
-        item["areas"] = areas
-        clinics.append(item)
+    clinics = [_enrich_clinic(c) for c in clinics_raw]
+
+    session["last_section"] = "clinicas"
 
     return render_template(
         "clinicas_2daE.html",

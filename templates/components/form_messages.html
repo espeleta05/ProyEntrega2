@@ -1,0 +1,53 @@
+<!-- Componente de mensajes flash reutilizable -->
+<div class="flash-messages">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+            <div class="alert alert-{{ category }}" role="alert">
+                <span class="alert-icon">
+                    {% if category == 'success' %}
+                        <i class="fa-solid fa-check-circle"></i>
+                    {% elif category == 'danger' %}
+                        <i class="fa-solid fa-exclamation-circle"></i>
+                    {% elif category == 'warning' %}
+                        <i class="fa-solid fa-triangle-exclamation"></i>
+                    {% elif category == 'info' %}
+                        <i class="fa-solid fa-circle-info"></i>
+                    {% endif %}
+                </span>
+                <div class="alert-content">
+                    <p class="alert-message">{{ message }}</p>
+                </div>
+                <button class="alert-close" onclick="closeAlert(this)" aria-label="Cerrar notificación">
+                    <i class="fa-solid fa-times"></i>
+                </button>
+            </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+</div>
+
+<script>
+function closeAlert(button) {
+    const alert = button.closest('.alert');
+    alert.classList.add('removing');
+    setTimeout(() => {
+        alert.remove();
+    }, 300);
+}
+
+// Auto-cerrar alertas después de 5 segundos (excepto errores críticos)
+document.addEventListener('DOMContentLoaded', function() {
+    const alerts = document.querySelectorAll('.alert');
+    alerts.forEach(alert => {
+        if (!alert.classList.contains('alert-danger')) {
+            setTimeout(() => {
+                if (alert.parentElement) {
+                    alert.classList.add('removing');
+                    setTimeout(() => alert.remove(), 300);
+                }
+            }, 5000);
+        }
+    });
+});
+</script>

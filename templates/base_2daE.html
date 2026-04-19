@@ -6,6 +6,8 @@
 
 <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
 <link rel="stylesheet" href="{{ url_for('static', filename='css/card.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/modal.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/alerts.css') }}">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -19,6 +21,9 @@
     {% include 'components/sidebar_2daE.html' %}
 
     <main class="content">
+        <!-- Mensajes flash -->
+        {% include 'components/form_messages.html' %}
+
         <div class="content-info">
             {% block content %}{% endblock %}
         </div>
@@ -26,5 +31,9 @@
 
 </div>
 
+<!-- Modal de confirmación genérico -->
+{% include 'components/modal_confirm.html' %}
+
 </body>
 </html>
+

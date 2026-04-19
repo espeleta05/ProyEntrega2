@@ -105,7 +105,8 @@ CREATE TABLE patients (
     nfc_token      VARCHAR(50)  UNIQUE,
     curp           VARCHAR(18)     UNIQUE,
     weight_kg      NUMERIC(5,2),
-    premature      BOOLEAN      NOT NULL DEFAULT FALSE
+    premature      BOOLEAN      NOT NULL DEFAULT FALSE,
+    created_at     TIMESTAMP    DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE allergies (
