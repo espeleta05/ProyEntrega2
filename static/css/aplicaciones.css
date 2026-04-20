@@ -1,8 +1,64 @@
+/* ── KPIs ── */
+.kpi-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin-bottom: 20px;
+}
 
-/* STATS */
-.stats {
+.kpi-mini {
+  background: #fff;
+  border-radius: 10px;
+  border: 0.5px solid var(--border);
+  padding: 16px 18px;  
   display: flex;
-  gap: 20px;
+  flex-direction: column;
+  gap: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4); 
+  position: relative;
+  overflow: hidden;
+}
+
+.kpi-mini::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%; height: 4px;
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+}
+
+.kpi-color1::before  { background: var(--primary-color);}
+.kpi-color2::before  { background: var(--secondary-color); }
+
+.kpi-icon {
+  font-size: 1.1rem;
+  margin-bottom: 4px;
+}
+
+.kpi-icon-color1 { color: var(--primary-color); }
+.kpi-icon-color2 { color: var(--secondary-color); }
+
+.kpi-mini i {
+    font-size: 1.3rem;
+    flex-shrink: 0;
+}
+.kpi-icon-color1  { color: var(--primary-color); }
+.kpi-icon-color2 { color: var(--secondary-color); }
+ 
+.kpi-mini > div {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+}
+.kpi-num {
+    font-size: 1.6rem;
+    font-weight: 800;
+    line-height: 1;
+}
+.kpi-lbl {
+    font-size: .9rem;
+    font-weight: 600;
+    color: #8b8b8b;
 }
 
 .extra{

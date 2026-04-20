@@ -6,27 +6,28 @@
 
 <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
 <link rel="stylesheet" href="{{ url_for('static', filename='css/tables.css') }}">   
+<link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">   
 
 <div class="section-header">
     <h2 class="clinic-title">Sistema NFC - Tarjetas de Identificación</h2>
 </div>
 
 <!-- KPIs -->
-<div class="cards" style="margin-bottom: 40px; gap: 20px;">
-    <div class="dash-card">
-        <h4>{{ total_cards }}</h4>
-        <p>Tarjetas totales</p>
-        <i class="fa-solid fa-credit-card"></i>
+<div class="kpi-grid">
+    <div class="kpi-card kpi-color1">
+        <h4 class="kpi-value">{{ total_cards }}</h4>
+        <p class="kpi-label">Tarjetas totales</p>
+        <div class="kpi-icon"><i class="fa-solid fa-credit-card"></i></div>
     </div>
-    <div class="dash-card scnd-color">
-        <h4>{{ active_cards }}</h4>
-        <p>Tarjetas activas</p>
-        <i class="fa-solid fa-credit-card"></i>
+    <div class="kpi-card kpi-color2">
+        <h4 class="kpi-value">{{ active_cards }}</h4>
+        <p class="kpi-label">Tarjetas activas</p>
+        <div class="kpi-icon"><i class="fa-solid fa-credit-card"></i></div>
     </div>
-    <div class="dash-card">
-        <h4>{{ scans|length }}</h4>
-        <p>Escaneos registrados</p>
-        <i class="fa-solid fa-qrcode"></i>
+    <div class="kpi-card kpi-color2">
+        <h4 class="kpi-value">{{ scans|length }}</h4>
+        <p class="kpi-label">Escaneos registrados</p>
+        <div class="kpi-icon"><i class="fa-solid fa-qrcode"></i></div>
     </div>
 </div>
 

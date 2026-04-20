@@ -4,69 +4,116 @@
 
 {% block content %}
 
+<link rel="stylesheet" href="{{ url_for('static', filename='css/tables.css') }}">
 <link rel="stylesheet" href="{{ url_for('static', filename='css/aplicaciones.css') }}">
 
+<!-- ENCABEZADO -->
 <div class="content-header">
-    <h2 class="title">Registro de aplicaciones</h2>
-
+    <div>
+        <h2 class="title">Registro de aplicaciones</h2>
+        <p class="subtitle">Total registradas: {{ total_applications }}</p>
+    </div>
     <a href="{{ url_for('agregar_aplicacion') }}" class="btn-agregar">
         <i class="fa-solid fa-plus"></i>
         Nueva aplicación
     </a>
 </div>
 
-<div class="subtitle">
-    Total de aplicaciones registradas: {{ total_applications }}
+<!-- KPIs -->
+<div class="kpi-row">
+    <div class="kpi-mini kpi-color1">
+        <i class="fa-solid fa-syringe kpi-icon-color1"></i>
+        <div>
+            <span class="kpi-num">{{ total_applications }}</span>
+            <span class="kpi-lbl">Total aplicaciones</span>
+        </div>
+    </div>
+    <div class="kpi-mini kpi-color2">
+        <i class="fa-solid fa-user kpi-icon-color2"></i>
+        <div>
+            <span class="kpi-num">{{ total_patients_attended }}</span>
+            <span class="kpi-lbl">Pacientes atendidos</span>
+        </div>
+    </div>
+    <div class="kpi-mini kpi-color1">
+        <i class="fa-solid fa-vial kpi-icon-color1"></i>
+        <div>
+            <span class="kpi-num">{{ total_unique_vaccines }}</span>
+            <span class="kpi-lbl">Vacunas diferentes</span>
+        </div>
+    </div>
+    <div class="kpi-mini kpi-color2">
+        <i class="fa-regular fa-calendar-check kpi-icon-color"></i>
+        <div>
+            <span class="kpi-num">{{ applications_today }}</span>
+            <span class="kpi-lbl">Aplicaciones hoy</span>
+        </div>
+    </div>
 </div>
 
+<!-- BUSCADOR -->
 <div class="search-bar-container section">
     <i class="fa-solid fa-magnifying-glass"></i>
-    <input type="text" placeholder="Buscar aplicación por paciente, vacuna o id...">
+    <input type="text" id="searchInput" placeholder="Buscar por paciente, vacuna o doctor...">
 </div>
 
-<!-- STATS -->
-<div class="cards">
-
-    <div class="dash-card">
-        <i class="fa-solid fa-syringe"></i>
-        <h4>Total aplicaciones</h4>
-        <p>{{ total_applications }}</p>
-    </div>
-
-    <div class="dash-card">
-        <i class="fa-solid fa-user"></i>
-        <h4>Pacientes atendidos</h4>
-        <p>{{ total_patients_attended }}</p>
-    </div>
-
-    <div class="dash-card">
-        <i class="fa-solid fa-vial"></i>
-        <h4>Vacunas diferentes</h4>
-        <p>{{ total_unique_vaccines }}</p>
-    </div>
-
-    <div class="dash-card">
-        <i class="fa-regular fa-calendar-check"></i>
-        <h4>Aplicaciones hoy</h4>
-        <p>{{ applications_today }}</p>
-    </div>
-
+<!-- TABLA -->
+<div class="tbl-wrapper">
+    <table class="tbl">
+        <thead>
+            <tr>
+                <th>Vacuna</th>
+                <th>Paciente</th>
+                <th>Dosis</th>
+                <th>Fecha aplicada</th>
+                <th>Próxima dosis</th>
+                <th>Doctor</th>
+                <th>Observaciones</th>
+                <th class="center">Estado</th>
+            </tr>
+        </thead>
+        <tbody id="appsTable">
+            {% for v in applications %}
+            <tr class="tbl-row bar-{{ loop.index0 % 12 }}"
+                data-search="{{ v.name | lower }} {{ v.patient_name | lower }} {{ v.doctor | lower }}">
+                <td>
+                    <span class="cell-main">{{ v.name }}</span>
+                </td>
+                <td>
+                    <div class="patient-cell">
+                        <span>{{ v.patient_name or '—' }}</span>
+                    </div>
+                </td>
+                <td>
+                    <span class="dose-pill">{{ v.dose }}</span>
+                </td>
+                <td class="muted-td">{{ v.date or '—' }}</td>
+                <td class="muted-td">{{ v.next_date or 'N/A' }}</td>
+                <td class="muted-td">{{ v.doctor or '—' }}</td>
+                <td class="muted-td obs-td">{{ v.notes or 'Sin observaciones' }}</td>
+                <td class="center">
+                    <span class="status-ok">
+                        <i class="fa-solid fa-check"></i> Aplicada
+                    </span>
+                </td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="8" class="empty-state">No hay aplicaciones registradas.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
 </div>
+<p class="tbl-footer">Mostrando {{ total_applications }} aplicaciones</p>
 
-<!-- LISTA DE APLICACIONES -->
-<div class="section">
-
-    {% set mode = 'application' %}
-    {% for v in applications %}
-        {% include 'components/vaccine_card_2daE.html' with context %}
-    {% else %}
-        <div class="card">
-            <div class="card-body">
-                <p>No hay aplicaciones registradas.</p>
-            </div>
-        </div>
-    {% endfor %}
-
-</div>
+<script>
+document.getElementById('searchInput').addEventListener('input', function () {
+    const q = this.value.toLowerCase().trim();
+    document.querySelectorAll('#appsTable tr[data-search]').forEach(row => {
+        row.style.display = (!q || row.dataset.search.includes(q)) ? '' : 'none';
+    });
+});
+</script>
 
 {% endblock %}

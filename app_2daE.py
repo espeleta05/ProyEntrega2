@@ -326,27 +326,6 @@ NFC_SCAN_EVENTS = [
     {"scan_event_id": 3, "nfc_card_id": 4, "scanned_by": 2, "clinic_id": 1, "area_id": 1, "scanned_at": "2025-03-22 11:00", "action_triggered": "Registrar_Llegada",    "device_id": None,      "nfc_scan_result": "Llegada registrada"},
 ]
 
-# --- GPS ----------------------------------------------------------------
-# status → gps_device_status
-GPS_DEVICES = [
-    {"gps_device_id": 1, "patient_id": 3, "device_type": "Pulsera_GPS", "model": "GarminKid3",  "imei": "352099001761481", "assigned_date": "2024-03-20", "assigned_by": 1, "battery_pct": 72, "gps_device_status": "Activo"},
-    {"gps_device_id": 2, "patient_id": 2, "device_type": "App_Tutor",   "model": "AppSalud v2", "imei": None,             "assigned_date": "2024-02-14", "assigned_by": 1, "battery_pct": 95, "gps_device_status": "Activo"},
-]
-
-GPS_LOCATIONS = []  # vacío en demo; se llenaría con pings en tiempo real
-
-GPS_SAFE_ZONES = [
-    {"zone_id": 1, "patient_id": 3, "guardian_id": 3, "zone_name": "Casa",    "center_lat": 25.7050, "center_lng": -100.3500, "radius_m": 150, "is_active": True},
-    {"zone_id": 2, "patient_id": 3, "guardian_id": 3, "zone_name": "Clínica", "center_lat": 25.6700, "center_lng": -100.3099, "radius_m": 200, "is_active": True},
-    {"zone_id": 3, "patient_id": 2, "guardian_id": 2, "zone_name": "Escuela", "center_lat": 25.6780, "center_lng": -100.3200, "radius_m": 100, "is_active": True},
-]
-
-# notes → risk_notes
-GPS_RISK_ALERTS = [
-    {"alert_id": 1, "patient_id": 3, "gps_device_id": 1, "alert_type": "Salida_Zona_Segura", "triggered_at": "2025-03-10 14:35", "location_lat": 25.6850, "location_lng": -100.3150, "resolved_at": "2025-03-10 14:50", "resolved_by": 2,    "risk_notes": "Tutor confirmó ubicación"},
-    {"alert_id": 2, "patient_id": 2, "gps_device_id": 2, "alert_type": "Bateria_Baja",       "triggered_at": "2025-03-20 07:00", "location_lat": None,    "location_lng": None,       "resolved_at": None,               "resolved_by": None, "risk_notes": "Pendiente de respuesta"},
-]
-
 # --- SUPPLY / INVENTORY -------------------------------------------------
 # supply_catalog: eliminado description; clinic_inventory: eliminado updated_by; last_updated solo DATE
 SUPPLY_CATALOG = [
@@ -370,14 +349,6 @@ BEACONS = []
 SCAN_LOGS = []
 AUDIT_LOG = []
 
-# --- RISK ZONES (mapa) --------------------------------------------------
-ZONES = [
-    {"name": "Zona Centro",   "cases": 4, "risk": "high"},
-    {"name": "Zona Norte",    "cases": 2, "risk": "medium"},
-    {"name": "Zona Sur",      "cases": 1, "risk": "low"},
-    {"name": "Zona Oriente",  "cases": 3, "risk": "high"},
-    {"name": "Zona Poniente", "cases": 1, "risk": "low"},
-]
 
 # --- USERS (login) -------------------------------------------------------
 USERS = {
@@ -434,16 +405,11 @@ def _cur_fetchall(table):
         "nfc_cards":                  NFC_CARDS,
         "nfc_devices":                NFC_DEVICES,
         "nfc_scan_events":            NFC_SCAN_EVENTS,
-        "gps_devices":                GPS_DEVICES,
-        "gps_locations":              GPS_LOCATIONS,
-        "gps_safe_zones":             GPS_SAFE_ZONES,
-        "gps_risk_alerts":            GPS_RISK_ALERTS,
         "supply_catalog":             SUPPLY_CATALOG,
         "clinic_inventory":           CLINIC_INVENTORY,
         "beacons":                    BEACONS,
         "scan_logs":                  SCAN_LOGS,
         "audit_log":                  AUDIT_LOG,
-        "zones":                      ZONES,
     }
     return list(tables.get(table, []))
 
@@ -1043,25 +1009,6 @@ def _enrich_nfc_scan(s):
     return item
 
 
-def _enrich_gps_device(d):
-    """Enriquece dispositivo GPS con datos del paciente."""
-    item = dict(d)
-    patient = _cur_fetchone("patients", "patient_id", d["patient_id"])
-    item["patient_name"] = _patient_full_name(patient) if patient else "—"
-    item["status"] = d.get("gps_device_status")
-    return item
-
-
-def _enrich_gps_alert(a):
-    """Enriquece alerta GPS con datos relacionales."""
-    item = dict(a)
-    patient = _cur_fetchone("patients", "patient_id", a["patient_id"])
-    item["patient_name"] = _patient_full_name(patient) if patient else "—"
-    item["resolved_name"] = _worker_full_name(a["resolved_by"]) if a.get("resolved_by") else "Pendiente"
-    item["notes"] = a.get("risk_notes")
-    return item
-
-
 def _enrich_area(a):
     """Enriquece área con nombre del tipo."""
     item = dict(a)
@@ -1392,34 +1339,6 @@ def add_user():
     )
 
 
-# ── MAPA DE RIESGO ────────────────────────────────────────────────────────────
-@app.route("/mapa-riesgo")
-def mapa_riesgo():
-    locked = _require_login()
-    if locked:
-        return locked
-
-    zones  = _cur_fetchall("zones")
-    alerts = _cur_fetchall("gps_risk_alerts")
-
-    high   = sum(1 for z in zones if z["risk"] == "high")
-    medium = sum(1 for z in zones if z["risk"] == "medium")
-    low    = sum(1 for z in zones if z["risk"] == "low")
-
-    active_gps_alerts = [a for a in alerts if a["resolved_at"] is None]
-
-    return render_template(
-        "mapaRiesgo_2daE.html",
-        **_session_vars(),
-        high_risk_count=high,
-        medium_risk_count=medium,
-        low_risk_count=low,
-        zones=zones,
-        gps_alerts=active_gps_alerts,
-        safe_zones=_cur_fetchall("gps_safe_zones"),
-    )
-
-
 # ── REPORTES PÚBLICOS ─────────────────────────────────────────────────────────
 @app.route("/reportes-publicos")
 def reportes_publicos():
@@ -1499,35 +1418,6 @@ def nfc():
         scans=scans,
         total_cards=len(cards),
         active_cards=sum(1 for c in cards_raw if c["status"] == "Activa"),
-    )
-
-
-# ── GPS / ALERTAS ─────────────────────────────────────────────────────────────
-@app.route("/gps")
-def gps():
-    locked = _require_login()
-    if locked:
-        return locked
-
-    devices_raw = _cur_fetchall("gps_devices")
-    devices = [_enrich_gps_device(d) for d in devices_raw]
-
-    alerts_raw = _cur_fetchall("gps_risk_alerts")
-    alerts = [_enrich_gps_alert(a) for a in alerts_raw]
-
-    active_alerts = [a for a in alerts if a["resolved_at"] is None]
-    if active_alerts:
-        flash(f"Tienes {len(active_alerts)} alerta(s) GPS sin resolver.", "danger")
-
-    session["last_section"] = "gps"
-
-    return render_template(
-        "gps_2daE.html",
-        **_session_vars(),
-        devices=devices,
-        alerts=alerts,
-        active_alerts_count=len(active_alerts),
-        safe_zones=_cur_fetchall("gps_safe_zones"),
     )
 
 

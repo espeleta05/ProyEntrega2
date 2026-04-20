@@ -5,72 +5,76 @@
 {% block content %}
 
 <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/clinicas.css') }}">
 
 <div class="section-header">
     <h2 class="clinic-title">Clínicas y Áreas de Servicio</h2>
 </div>
 
-<div class="section-info" style="margin-bottom: 30px;">
-    <p style="color: #636363; font-size: 0.95rem;">
+<div class="section-info">
+    <p>
         <strong>Total de clínicas:</strong> {{ total_clinics }} |
-        <strong style="color: #1D7B00;">Activas:</strong> {{ clinics|selectattr('is_active', 'true')|list|length }}
+        <strong class="status-active">Activas:</strong> {{ clinics|selectattr('is_active', 'true')|list|length }}
     </p>
 </div>
 
 <!-- Grid de clínicas -->
-<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(350px, 1fr)); gap: 20px;">
+<div class="clinics-grid">
     {% for clinic in clinics %}
-    <div class="section-card" style="background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.08);">
+    <div class="clinic-card">
 
         <!-- Header de clínica -->
-        <div style="background: linear-gradient(135deg, #6B007C 0%, #4B1535 100%); color: white; padding: 16px; border-bottom: 4px solid #E8ABCE;">
-            <div style="display: flex; align-items: flex-start; justify-content: space-between;">
+        <div class="clinic-header">
+            <div class="clinic-header-top">
                 <div>
-                    <h3 style="margin: 0 0 6px; font-size: 1.1rem; font-weight: 700;">
+                    <h3 class="clinic-title-card">
                         <i class="fa-solid fa-hospital"></i> {{ clinic.name }}
                     </h3>
-                    <p style="margin: 0; font-size: 0.85rem; opacity: 0.9;">
+                    <p class="clinic-subtitle">
                         {{ clinic.institution_type }}
                     </p>
                 </div>
-                <span style="padding: 4px 10px; background: {% if clinic.is_active %}#CFFFC0{% else %}#F2F2F2{% endif %}; color: {% if clinic.is_active %}#1D7B00{% else %}#636363{% endif %}; border-radius: 20px; font-size: 0.75rem; font-weight: 700;">
+
+                <span class="status-badge {% if clinic.is_active %}status-active{% else %}status-inactive{% endif %}">
                     {% if clinic.is_active %}ACTIVA{% else %}INACTIVA{% endif %}
                 </span>
             </div>
         </div>
 
         <!-- Información de contacto -->
-        <div style="padding: 16px; border-bottom: 1px solid #e6e6e6;">
-            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
-                <i class="fa-solid fa-phone" style="color: #6B007C; width: 20px;"></i>
-                <span style="color: #1e2230; font-size: 0.9rem;">{{ clinic.phone }}</span>
+        <div class="clinic-contact">
+            <div class="contact-row">
+                <i class="fa-solid fa-phone"></i>
+                <span class="contact-text">{{ clinic.phone }}</span>
             </div>
-            <div style="display: flex; align-items: flex-start; gap: 10px;">
-                <i class="fa-solid fa-location-dot" style="color: #6B007C; width: 20px; margin-top: 2px;"></i>
-                <span style="color: #636363; font-size: 0.9rem;">{{ clinic.address_str }}</span>
+
+            <div class="contact-address">
+                <i class="fa-solid fa-location-dot"></i>
+                <span>{{ clinic.address_str }}</span>
             </div>
         </div>
 
-        <!-- Áreas de servicio (acordeón) -->
-        <div style="padding: 16px;">
-            <h4 style="margin: 0 0 12px; font-size: 0.95rem; font-weight: 700; color: #1e2230;">
+        <!-- Áreas de servicio -->
+        <div class="clinic-areas">
+            <h4 class="areas-title">
                 <i class="fa-solid fa-layer-group"></i> Áreas ({{ clinic.areas|length }})
             </h4>
 
-            <div style="display: flex; flex-direction: column; gap: 8px;">
+            <div class="areas-list">
                 {% for area in clinic.areas %}
-                <div style="background: #f9f9f9; padding: 10px; border-radius: 8px; border-left: 3px solid #E8ABCE;">
-                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div class="area-item">
+                    <div class="area-top">
                         <div>
-                            <p style="margin: 0 0 3px; font-size: 0.9rem; font-weight: 600; color: #1e2230;">
+                            <p class="area-name">
                                 {{ area.name }}
                             </p>
-                            <span style="font-size: 0.8rem; color: #8b8b8b;">
+                            <span class="area-meta">
                                 {{ area.area_type }} · Piso {{ area.floor }}
                             </span>
                         </div>
+
                         {% if area.capacity %}
-                        <span style="background: #E8ABCE; color: #4B1535; padding: 4px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: 700;">
+                        <span class="area-capacity">
                             Cap: {{ area.capacity }}
                         </span>
                         {% endif %}
@@ -80,15 +84,15 @@
             </div>
 
             {% if clinic.areas|length == 0 %}
-            <p style="margin: 0; font-size: 0.9rem; color: #8b8b8b; text-align: center; padding: 20px 0;">
+            <p class="no-areas">
                 <i class="fa-solid fa-inbox"></i> Sin áreas registradas
             </p>
             {% endif %}
         </div>
 
         <!-- Botón de acción -->
-        <div style="padding: 12px 16px; background: #f5f5f5; border-top: 1px solid #e6e6e6; text-align: center;">
-            <a href="#" style="color: #6B007C; text-decoration: none; font-size: 0.9rem; font-weight: 600; cursor: not-allowed; opacity: 0.6;">
+        <div class="clinic-footer">
+            <a href="#">
                 <i class="fa-solid fa-edit"></i> Editar clínica
             </a>
         </div>
@@ -98,20 +102,12 @@
 
 <!-- Mensaje si no hay clínicas -->
 {% if clinics|length == 0 %}
-<div style="background: #f9f9f9; border: 2px dashed #e0e0e0; border-radius: 12px; padding: 40px; text-align: center;">
-    <i class="fa-solid fa-building" style="font-size: 2.5rem; color: #d0d0d0; margin-bottom: 16px;"></i>
-    <p style="margin: 0; color: #999; font-size: 1rem;">
+<div class="no-clinics">
+    <i class="fa-solid fa-building"></i>
+    <p>
         No hay clínicas registradas
     </p>
 </div>
 {% endif %}
-
-<style>
-@media (max-width: 768px) {
-    .section-grid {
-        grid-template-columns: 1fr !important;
-    }
-}
-</style>
 
 {% endblock %}

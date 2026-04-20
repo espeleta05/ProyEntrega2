@@ -199,15 +199,14 @@ CREATE TABLE workers (
     curp           CHAR(18)      UNIQUE,
     address_id     INT           REFERENCES addresses(address_id),
     birth_date     DATE,
-    hire_date      DATE,
-    password_hash  VARCHAR(255)  NOT NULL
+    hire_date      DATE
 );
 
 CREATE TABLE worker_professional (
-    worker_id        INT NOT NULL REFERENCES workers(worker_id),
-    cedula_profesional VARCHAR(20),
-    specialty_id     INT REFERENCES specialties(specialty_id),
-    institution_id   INT REFERENCES institutions(institution_id),
+    worker_id            INT NOT NULL REFERENCES workers(worker_id),
+    professional_license VARCHAR(20),
+    specialty_id         INT REFERENCES specialties(specialty_id),
+    institution_id       INT REFERENCES institutions(institution_id),
     PRIMARY KEY (worker_id, specialty_id)
 );
 
@@ -248,6 +247,15 @@ CREATE TABLE worker_schedules (
     shift_type   VARCHAR(30)
 );
 
+-- LOGIN
+CREATE TABLE users (
+    user_id        SERIAL PRIMARY KEY,
+    worker_id      INT UNIQUE REFERENCES workers(worker_id),
+    username       VARCHAR(50)  NOT NULL UNIQUE,
+    password_hash  VARCHAR(255) NOT NULL,
+    is_active      BOOLEAN      DEFAULT TRUE,
+    created_at     TIMESTAMP    DEFAULT CURRENT_TIMESTAMP
+);
 
 --  MÓDULO: VACCINES
 CREATE TABLE manufacturers (
@@ -345,7 +353,7 @@ CREATE TABLE vaccination_records (
     appointment_id       INT      UNIQUE REFERENCES appointments(appointment_id) 
     -- sabemos que cada registro de vacunación se asocia a una cita, pero no todas las citas terminan en vacunación, por eso es opcional y único
     patient_temp_c       NUMERIC(4,1),
-    had_reaction         BOOLEAN  NOT NULL DEFAULT FALSE,
+    had_reaction         BOOLEAN  NOT NULL DEFAULT FALSE
 );
 
 CREATE TABLE post_vaccine_reactions (
