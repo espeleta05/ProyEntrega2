@@ -165,6 +165,7 @@ def _db_execute(sql, params=None):
 
 ACTION_LOG_TABLE_READY = False
 ACTION_LOG_LOCK = Lock()
+REQUIRE_DATABASE_MODE = os.getenv("REQUIRE_DATABASE_MODE", "1").strip() != "0"
 SENSITIVE_KEYS = {
     "password", "password_confirm", "pass", "token", "nfc_bridge_token",
     "authorization", "x-nfc-token",
@@ -205,6 +206,19 @@ def _db_ensure_action_log_table():
         ACTION_LOG_TABLE_READY = True
 
 
+def _db_is_reachable():
+    try:
+        conn = _db_connect()
+    except Exception:
+        return False
+    if not conn:
+        return False
+    try:
+        return True
+    finally:
+        conn.close()
+
+
 def _audit_module_from_path(path):
     route = (path or "").lower()
     if route.startswith("/api/nfc") or route.startswith("/nfc"):
@@ -223,6 +237,16 @@ def _audit_module_from_path(path):
         return "workers"
 
     return None
+
+
+def _requires_persistent_storage(path):
+    route = (path or "").lower()
+    prefixes = (
+        "/pacientes", "/register_patient", "/delete_patient", "/historial", "/esquema_paciente", "/api/patients-list",
+        "/personal", "/api/workers-list",
+        "/nfc", "/api/nfc", "/nfc-bridge", "/nfc-station",
+    )
+    return route.startswith(prefixes)
 
 
 def _sanitize_payload(value):
@@ -1391,6 +1415,21 @@ def _enrich_record(r):
     item["patient_temp_c"] = r.get("patient_temp_c")
     item["notes"]          = "Con reacción" if r.get("had_reaction") else "Sin reacciones"
     return item
+
+
+@app.before_request
+def _enforce_persistent_storage_mode():
+    if not REQUIRE_DATABASE_MODE:
+        return None
+    if not _requires_persistent_storage(request.path):
+        return None
+    if not _db_configured() or not _db_is_reachable():
+        return jsonify({
+            "ok": False,
+            "error": "Base de datos no disponible. Se bloqueo el modo demo para evitar reinicios de datos.",
+            "path": request.path,
+        }), 503
+    return None
 
 
 @app.before_request
