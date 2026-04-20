@@ -2,6 +2,7 @@ from datetime import date, datetime, timedelta
 from calendar import month_abbr
 from flask import Flask, flash, jsonify, redirect, render_template, request, session, url_for
 
+
 app = Flask(__name__)
 app.secret_key = "segunda-entrega-demo"
 
@@ -515,7 +516,6 @@ def _blood_type_str(blood_type_id):
     return bt["blood_type"] if bt else "—"
 
 def _enrich_patient(p):
-    """Agrega campos calculados y relacionados a un paciente."""
     item = dict(p)
     item["full_name"]   = _patient_full_name(p)
     item["age"]         = _age_years(p["birth_date"])
@@ -791,6 +791,8 @@ def pacientes():
 
     patients_raw = _cur_fetchall("patients")
     patients     = [_enrich_patient(p) for p in patients_raw]
+    ##cur.execute("SELECT * FROM v_patients_full")  # vista enriquecida en BD
+    ##patients = cur.fetchall()
 
     return render_template(
         "pacientes_2daE.html",
