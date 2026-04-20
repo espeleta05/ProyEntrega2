@@ -199,6 +199,15 @@ h1 {
         <strong>/api/nfc/ingest?token=TU_TOKEN&uid=UID</strong>
     </div>
 
+    <div class="panel" style="margin-bottom: 15px;">
+        <h3>Ingreso manual de UID (desde telefono)</h3>
+        <p style="margin-bottom: 8px;">Si el telefono solo lee NFC y no envia HTTP, pega aqui el serial leido (ej. 3F:E9:2F:36) y procesa en esta compu.</p>
+        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+            <input id="manualUid" type="text" placeholder="UID de la tarjeta" style="flex: 1; min-width: 220px; padding: 10px; border: 1px solid #bcd3f5; border-radius: 6px; font-family: Consolas, monospace; text-transform: uppercase;">
+            <button id="manualUidBtn" class="btn" type="button" style="flex: 0 0 auto;">Procesar UID</button>
+        </div>
+    </div>
+
     <div class="actions">
         <a href="{{ url_for('nfc_bridge_page') }}" class="btn">Administrar vinculos NFC</a>
         <a href="{{ url_for('login') }}" class="btn secondary">Ir a login tradicional</a>
@@ -209,6 +218,8 @@ h1 {
 (() => {
     const statusBox = document.getElementById('statusBox');
     const eventInfo = document.getElementById('eventInfo');
+    const manualUid = document.getElementById('manualUid');
+    const manualUidBtn = document.getElementById('manualUidBtn');
     let lastEventId = 0;
     let stationArmed = false;
 
@@ -264,6 +275,27 @@ h1 {
         }
     }
 
+    async function processManualUid() {
+        const uid = (manualUid.value || '').trim().toUpperCase();
+        if (!uid) {
+            setStatus('Escribe un UID para procesar.', 'warn');
+            return;
+        }
+
+        try {
+            const res = await fetch(`/api/nfc/read?id=${encodeURIComponent(uid)}`, { cache: 'no-store' });
+            if (!res.ok) {
+                setStatus('No se pudo enviar el UID manual.', 'error');
+                return;
+            }
+            setStatus(`UID recibido: ${uid}. Procesando...`, 'ok');
+            manualUid.value = '';
+            await pollStation();
+        } catch (error) {
+            setStatus('Error de red enviando UID manual.', 'error');
+        }
+    }
+
     async function armStationFromLatest() {
         try {
             const res = await fetch('/api/nfc/latest', { cache: 'no-store' });
@@ -284,6 +316,13 @@ h1 {
     }
 
     armStationFromLatest();
+    manualUidBtn.addEventListener('click', processManualUid);
+    manualUid.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter') {
+            event.preventDefault();
+            processManualUid();
+        }
+    });
     setInterval(pollStation, 900);
 })();
 </script>

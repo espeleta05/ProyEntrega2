@@ -29,17 +29,18 @@ NFC_BRIDGE_STATE = {
 }
 
 # Vinculacion UID -> entidad (medico/paciente) para acciones automaticas.
-NFC_BINDINGS = [
-    {"uid": "NFCMED01", "entity_type": "worker", "entity_id": 2, "label": "Gafete Elena"},
-    {"uid": "NFCMED02", "entity_type": "worker", "entity_id": 4, "label": "Gafete Sofia"},
-    {"uid": "NFCPAC01", "entity_type": "patient", "entity_id": 1, "label": "Tarjeta Ana"},
-    {"uid": "NFCPAC02", "entity_type": "patient", "entity_id": 2, "label": "Tarjeta Carlos"},
-]
+# Ya no se cargan semillas demo: todo debe vivir en PostgreSQL.
+NFC_BINDINGS = []
 
 
 def _nfc_bridge_token():
     """Token compartido para proteger el endpoint publico de ingesta NFC."""
     return os.getenv("NFC_BRIDGE_TOKEN", "demo-nfc-token")
+
+
+def _is_local_request():
+    remote = (request.remote_addr or "").strip()
+    return remote in {"127.0.0.1", "::1", "localhost"}
 
 
 def _extract_nfc_uid(payload):
@@ -48,7 +49,7 @@ def _extract_nfc_uid(payload):
         return None
     candidates = [
         "uid", "id", "tag_id", "nfc_id", "NFC_ID", "serial", "identifier", "value",
-        "TAG_UID", "tagUid", "nfcUid",
+        "TAG_UID", "tagUid", "nfcUid", "scanned_tag_id", "tagId", "serial_number",
     ]
     for key in candidates:
         value = payload.get(key)
@@ -598,22 +599,6 @@ def _db_list_nfc_bindings():
         """
     )
 
-    # Migracion suave: si la tabla esta vacia, migra los defaults en memoria.
-    if not rows and NFC_BINDINGS:
-        for b in NFC_BINDINGS:
-            uid = str(b.get("uid") or "").strip().upper()
-            uid_norm = _normalize_uid(uid)
-            if not uid_norm:
-                continue
-            _db_upsert_nfc_binding(uid, uid_norm, b.get("entity_type"), int(b.get("entity_id") or 0), b.get("label", ""))
-        rows = _db_query_all(
-            """
-            SELECT uid, entity_type, entity_id, worker_id, COALESCE(label, '') AS label
-            FROM nfc_bindings
-            ORDER BY binding_id
-            """
-        )
-
     return rows
 
 
@@ -1107,9 +1092,9 @@ def _cur_fetchall(table):
         "vaccination_records":        VACCINATION_RECORDS,
         "post_vaccine_reactions":     POST_VACCINE_REACTIONS,
         "scheme_completion_alerts":   SCHEME_COMPLETION_ALERTS,
-        "nfc_cards":                  NFC_CARDS,
+        "nfc_cards":                  [],
         "nfc_devices":                NFC_DEVICES,
-        "nfc_scan_events":            NFC_SCAN_EVENTS,
+        "nfc_scan_events":            [],
         "gps_devices":                GPS_DEVICES,
         "gps_locations":              GPS_LOCATIONS,
         "gps_safe_zones":             GPS_SAFE_ZONES,
@@ -1248,9 +1233,6 @@ def _find_nfc_binding(uid):
             """,
             (needle,),
         )
-    for binding in reversed(NFC_BINDINGS):
-        if _normalize_uid(binding.get("uid")) == needle:
-            return binding
     return None
 
 
@@ -1795,11 +1777,6 @@ def delete_patient(id):
     for rel in _cur_fetchall_where("patient_guardian_relations", "patient_id", id):
         PATIENT_GUARDIAN_RELATIONS.remove(rel)
 
-    NFC_BINDINGS[:] = [
-        b for b in NFC_BINDINGS
-        if not (b.get("entity_type") == "patient" and int(b.get("entity_id") or -1) == id)
-    ]
-
     flash(f"Paciente {nombre} eliminado.", "warning")
     return jsonify({"message": "Paciente eliminado (demo)"})
 
@@ -2257,11 +2234,6 @@ def delete_user(id):
             _db_delete_nfc_bindings_for_entity("worker", id)
         except Exception as exc:  # pragma: no cover - depende del estado de BD
             return jsonify({"error": f"No se pudo eliminar en PostgreSQL: {exc}"}), 500
-
-        NFC_BINDINGS[:] = [
-            b for b in NFC_BINDINGS
-            if not (b.get("entity_type") == "worker" and int(b.get("entity_id") or -1) == id)
-        ]
         nombre = f"{worker['first_name']} {worker['last_name']}".strip()
         flash(f"Trabajador {nombre} eliminado.", "warning")
         return jsonify({"message": "Trabajador eliminado en PostgreSQL"})
@@ -2275,10 +2247,6 @@ def delete_user(id):
         WORKER_EMAILS.remove(e)
     for p in list(_cur_fetchall_where("worker_phones", "worker_id", id)):
         WORKER_PHONES.remove(p)
-    NFC_BINDINGS[:] = [
-        b for b in NFC_BINDINGS
-        if not (b.get("entity_type") == "worker" and int(b.get("entity_id") or -1) == id)
-    ]
 
     nombre = f"{worker['first_name']} {worker['last_name']}".strip()
     flash(f"Trabajador {nombre} eliminado.", "warning")
@@ -2302,6 +2270,15 @@ def nfc_bridge_page():
     if locked:
         return locked
     return render_template("nfc_bridge_2daE.html", **_session_vars())
+
+
+@app.route("/nfc-register")
+def nfc_register():
+    """Página para capturar manualmente el UID de una tarjeta NFC y registrarlo."""
+    locked = _require_login()
+    if locked:
+        return locked
+    return render_template("registrarNFC_2daE.html", **_session_vars())
 
 
 @app.route("/nfc-station")
@@ -2626,7 +2603,8 @@ def api_reportes_publicos_resumen():
 def api_nfc_ingest():
     """Recibe lecturas NFC desde Android (NFC Tools / atajos HTTP)."""
     token = (request.headers.get("X-NFC-Token") or request.args.get("token") or "").strip()
-    if token != _nfc_bridge_token():
+    # Si viene por adb reverse (localhost), permitir sin token para simplificar flujo USB local.
+    if token != _nfc_bridge_token() and not _is_local_request():
         return jsonify({"ok": False, "error": "Token invalido"}), 401
 
     payload = request.get_json(silent=True) or {}
@@ -2675,13 +2653,58 @@ def api_nfc_latest():
     return jsonify({"ok": True, "latest": latest, "events": recent_events})
 
 
+@app.route("/api/nfc/read", methods=["GET", "POST"])
+def api_nfc_read():
+    """Endpoint simplificado para NFC Tools u otras apps de lectura NFC.
+    Acepta UID en formato: /api/nfc/read?id=3F:E9:2F:36 o /api/nfc/read/3FE92F36
+    """
+    uid = None
+    
+    # Intenta obtener UID desde query string (múltiples nombres posibles)
+    for param in ["id", "uid", "nfc_id", "NFC_ID", "serial", "hex"]:
+        uid = request.args.get(param, "").strip().upper()
+        if uid:
+            break
+    
+    # Si viene en path como /api/nfc/read/3FE92F36
+    if not uid and request.path_info.startswith("/api/nfc/read/"):
+        path_parts = request.path_info.split("/")
+        if len(path_parts) > 3:
+            uid = path_parts[3].strip().upper()
+    
+    # Si viene en JSON
+    if not uid:
+        data = request.get_json(silent=True) or {}
+        uid = data.get("id") or data.get("uid") or data.get("serial")
+        if uid:
+            uid = str(uid).strip().upper()
+    
+    # Si viene en raw body
+    if not uid:
+        raw = request.data.decode("utf-8", errors="ignore").strip().upper()
+        if raw and len(raw) > 3:
+            uid = raw
+    
+    if not uid:
+        return jsonify({"ok": False, "error": "No se envio UID. Usa: /api/nfc/read?id=3F:E9:2F:36"}), 400
+    
+    # Permite con o sin dos puntos (3F:E9:2F:36 o 3FE92F36)
+    uid = uid.replace(":", "").replace(" ", "")
+    
+    source = (request.user_agent.string or "nfc_tools").strip()
+    event = _record_nfc_event(uid=uid, source=source)
+    binding = _find_nfc_binding(uid)
+    command = _binding_command(binding)
+    return jsonify({"ok": True, "event": event, "binding": binding, "command": command})
+
+
 @app.route("/api/nfc/bindings")
 def api_nfc_bindings():
     locked = _require_login()
     if locked:
         return jsonify({"ok": False, "error": "No autenticado"}), 401
 
-    binding_source = _db_list_nfc_bindings() if _db_configured() else NFC_BINDINGS
+    binding_source = _db_list_nfc_bindings() if _db_configured() else []
     bindings = []
     for b in binding_source:
         row = dict(b)
@@ -2743,33 +2766,7 @@ def api_nfc_bind():
     if _db_configured():
         binding = _db_upsert_nfc_binding(raw_uid, uid_norm, entity_type, entity_id, label)
     else:
-        existing_by_uid = _find_nfc_binding(raw_uid)
-        if existing_by_uid:
-            existing_by_uid["uid"] = raw_uid
-            existing_by_uid["entity_type"] = entity_type
-            existing_by_uid["entity_id"] = entity_id
-            existing_by_uid["label"] = label
-            binding = existing_by_uid
-        else:
-            NFC_BINDINGS.append({
-                "uid": raw_uid,
-                "entity_type": entity_type,
-                "entity_id": entity_id,
-                "label": label,
-            })
-            binding = NFC_BINDINGS[-1]
-
-        # Evita que quede mas de un binding por UID normalizado.
-        seen = False
-        cleaned = []
-        for b in reversed(NFC_BINDINGS):
-            if _normalize_uid(b.get("uid")) != uid_norm:
-                cleaned.append(b)
-                continue
-            if not seen:
-                cleaned.append(b)
-                seen = True
-        NFC_BINDINGS[:] = list(reversed(cleaned))
+        return jsonify({"ok": False, "error": "Base de datos no disponible para guardar vinculaciones NFC"}), 503
 
     return jsonify({"ok": True, "binding": binding})
 
@@ -2789,9 +2786,7 @@ def api_nfc_unbind():
     if _db_configured():
         removed = _db_delete_nfc_binding(uid_norm)
     else:
-        before = len(NFC_BINDINGS)
-        NFC_BINDINGS[:] = [b for b in NFC_BINDINGS if _normalize_uid(b.get("uid")) != uid_norm]
-        removed = before - len(NFC_BINDINGS)
+        return jsonify({"ok": False, "error": "Base de datos no disponible para borrar vinculaciones NFC"}), 503
     if removed <= 0:
         return jsonify({"ok": False, "error": "No se encontro vinculacion para ese UID"}), 404
 
@@ -2948,6 +2943,8 @@ def api_workers_list():
         last_name = w.get("last_name") or w.get("lastname", "")
         workers.append({
             "worker_id": w["worker_id"],
+            "name": first_name,
+            "lastname": last_name,
             "first_name": first_name,
             "last_name": last_name,
             "full_name": f"{first_name} {last_name}".strip(),

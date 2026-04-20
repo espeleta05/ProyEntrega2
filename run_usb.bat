@@ -48,7 +48,7 @@ if errorlevel 1 (
 
 echo.
 echo Flask por USB listo.
-echo En Automate usa URL: http://127.0.0.1:5000/api/nfc/ingest?token=mi_token_nfc_2026^&uid=... 
+echo En Automate usa URL: http://127.0.0.1:5000/api/nfc/ingest?uid=... 
 echo.
 "%PYTHON_EXE%" -m flask --app app_2daE run --host 127.0.0.1 --port 5000
 
