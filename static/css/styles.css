@@ -21,6 +21,15 @@
     --gray-background: #F2F2F2;
     --card-shadow: 0 4px 12px rgba(0, 0, 0, 0.7);
     --transition: all 0.3s ease;
+
+    --text-main:   #1e2230;
+    --text-muted:  #6b7280;
+    --border:      #e6eaf2;
+    --bg-card:     #ffffff;
+    --bg-hover:    #f7f9fc;
+    --radius-card: 14px;
+    --shadow-card: 0 2px 12px rgba(30, 34, 64, .07);
+    --shadow-hover: 0 6px 24px rgba(30, 34, 64, .13);
 }
     
 body{

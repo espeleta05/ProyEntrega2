@@ -116,7 +116,7 @@
     <!-- Retraso por vacuna -->
     <div class="chart-card delay-card">
         <div class="chart-card-header">
-            <h3>% retraso por vacuna</h3>
+            <h3>Porcentaje de retraso por vacuna</h3>
         </div>
         <div class="chart-wrap chart-wrap-sm">
             <canvas id="delayChart"></canvas>
@@ -192,7 +192,7 @@
                 {% for p in top_patients %}
                 {% set bar_i = loop.index0 % 9 %}
                 <tr class="inv-row bar-{{ bar_i }}">
-                    <td class="name-td">
+                    <td>
                         <div class="patient-cell">
                             <div class="avatar-sm">{{ p.first_name[0] }}{{ p.last_name[0] }}</div>
                             <div>

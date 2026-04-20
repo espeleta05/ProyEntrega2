@@ -20,7 +20,7 @@
     --border:     var(--gray-stroke);
     --row-odd:    #ffffff;
     --row-even:   var(--gray-background);
-    --header-bg:  var(--secondary-color);
+    --header-bg:  #4f2c55;
     --radius-md:  10px;
     --radius-lg:  14px;
     --shadow:     0 4px 12px rgba(0, 0, 0, 0.4);
@@ -120,7 +120,6 @@
     
     font-size: .95rem;
     font-weight: 800;
-    color: var(--text-main);
     margin: 0;
 }
 .chart-badge {
@@ -212,10 +211,8 @@
     margin-bottom: 14px;
 }
 .section-header-row h3 {
-    font-family: var(--font);
     font-size: .95rem;
     font-weight: 800;
-    color: var(--text-main);
     margin: 0;
 }
  
@@ -296,7 +293,7 @@ td.name-td {
     display: flex; align-items: center; justify-content: center;
     flex-shrink: 0;
 }
-.vax-name  { font-weight: 800; font-size: .88rem; display: block; color: var(--text-main); }
+.vax-name  { font-weight: 700; font-size: .88rem; display: block; }
 .pt-id     { font-size: .72rem; color: var(--text-muted); display: block; }
 .muted-td  { font-size: .8rem; color: var(--text-muted); }
 
