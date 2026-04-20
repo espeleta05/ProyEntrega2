@@ -18,7 +18,7 @@
     --medium-background: #FFEEC0;
     --gray-color: #636363;
     --gray-stroke: #cecece;
-    --gray-background: #F2F2F2;
+    --gray-background: #e6e6e6;
     --card-shadow: 0 4px 12px rgba(0, 0, 0, 0.7);
     --transition: all 0.3s ease;
 
@@ -176,13 +176,38 @@ button{
 .search-bar-container {
     width: 682px;
     height: 56px;
-    background: #ECE6F0;
+    background: var(--gray-background);
     border-radius: 28px;
     display: flex;
     align-items: center;
     padding: 0 20px;
     color: #49454F;
     font-size: 20px;
+}
+
+.sort-and-filter {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.sort-options {
+    display: flex;
+    flex-direction: row;
+    justify-content: start;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 30px;
+}
+
+.sort-select {
+    padding: 8px 12px;
+    border-radius: 10px;
+    border: 1px solid #d8d8d8;
+    background: #fff;
+    font-size: 14px;
+    color: #49454F;
+    cursor: pointer;
 }
 
 .global-search-wrapper {

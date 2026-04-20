@@ -4,11 +4,10 @@
 
 {% block content %}
 
-<link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
 <link rel="stylesheet" href="{{ url_for('static', filename='css/tables.css') }}">
 
-<div class="section-header">
-    <h2 class="clinic-title">Inventario de Insumos</h2>
+<div class="content-header">
+    <h2 class="title">Inventario de Insumos</h2>
     <a href="#" class="btn-agregar">
         <i class="fa-solid fa-plus"></i> Agregar insumo
     </a>
@@ -24,6 +23,31 @@
 <div class="search-bar-container section" >
     <i class="fa-solid fa-magnifying-glass"></i>
     <input type="text" id="searchInput" placeholder="Buscar por insumo o clínica...">
+</div>
+
+<div class="sort-and-filter">
+    <div class="sort-options">
+        <p class="sort-label">Filtrar por insumo:</p>
+        <select id="roleFilterSelect" class="sort-select">
+            <option value="">Todos</option>
+            {% for item in inventory %}
+            <option value="{{ item.supply_name | lower }}">{{ item.supply_name }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    
+    <div class="sort-options">
+        <p class="sort-label">Ordenar por:</p>
+        <select id="sortSelect" class="sort-select">
+            <option value="">Ninguno</option>
+            <option value="clinica">Clinica</option>
+            <option value="insumo">Insumo</option>
+            <option value="unidad">Unidad</option>
+            <option value="stock">Stock</option>
+            <option value="categoria">Categoria</option>
+            <option value="estado">Estado</option>
+        </select>
+    </div>
 </div>
 
 <!-- Tabla de inventario -->

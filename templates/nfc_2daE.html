@@ -4,11 +4,10 @@
 
 {% block content %}
 
-<link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
 <link rel="stylesheet" href="{{ url_for('static', filename='css/tables.css') }}">   
 <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">   
 
-<div class="section-header">
+<div class="title">
     <h2 class="clinic-title">Sistema NFC - Tarjetas de Identificación</h2>
 </div>
 
@@ -41,6 +40,28 @@
     <div class="search-bar-container section">
         <i class="fa-solid fa-magnifying-glass"></i>
         <input type="text" id="searchCardsInput" placeholder="Buscar por UID o paciente...">
+    </div>
+
+    <div class="sort-and-filter">
+        <div class="sort-options">
+            <p class="sort-label">Filtrar por estado:</p>
+            <select id="roleFilterSelect" class="sort-select">
+                <option value="">Todos</option>
+                {% for c in cards %}
+                <option value="{{ c.status }}">{{ c.status }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        
+        <div class="sort-options">
+            <p class="sort-label">Ordenar por:</p>
+            <select id="sortSelect" class="sort-select">
+                <option value="">Ninguno</option>
+                <option value="paciente">Paciente</option>
+                <option value="tipo_tarjeta">Tipo de tarjeta</option>
+                <option value="fecha_emision">Fecha de emisión</option>
+            </select>
+        </div>
     </div>
 
     <!-- Tabla de tarjetas -->

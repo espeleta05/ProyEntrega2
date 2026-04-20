@@ -1298,8 +1298,8 @@ def add_user():
             WORKERS.append({
                 "worker_id":     new_wid,
                 "role_id":       role_id,
-                "first_name":    request.form.get("name", ""),
-                "last_name":     request.form.get("lastname", ""),
+                "first_name":    request.form.get("first_name", ""),
+                "last_name":     request.form.get("last_name", ""),
                 "curp":          None,
                 "address_id":    None,
                 "birth_date":    None,
@@ -1336,6 +1336,29 @@ def add_user():
         form=form,
         error=error,
         roles=_cur_fetchall("roles"),
+    )
+
+@app.route("/personal/editar/<int:worker_id>", methods=["GET", "POST"])
+def edit_user(worker_id):
+    worker = next((w for w in WORKERS if w["worker_id"] == worker_id), None)
+
+    if not worker:
+        flash("Usuario no encontrado", "danger")
+        return redirect(url_for("personal"))
+
+    if request.method == "POST":
+        worker["first_name"] = request.form.get("name")
+        worker["last_name"]  = request.form.get("lastname")
+        worker["role"]       = request.form.get("role")
+        worker["mail"]       = request.form.get("mail")
+
+        flash("Usuario actualizado correctamente", "success")
+        return redirect(url_for("personal"))
+
+    return render_template(
+        "edit_user_2daE.html",
+        worker=worker,
+        **_session_vars()
     )
 
 

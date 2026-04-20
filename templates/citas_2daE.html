@@ -4,11 +4,10 @@
 
 {% block content %}
 
-<link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
 <link rel="stylesheet" href="{{ url_for('static', filename='css/tables.css') }}">
 
-<div class="section-header">
-    <h2 class="clinic-title">Citas Programadas</h2>
+<div class="content-header">
+    <h2 class="title">Citas Programadas</h2>
     <a href="#" class="btn-agregar">
         <i class="fa-solid fa-plus"></i> Agregar cita
     </a>
@@ -26,6 +25,31 @@
 <div class="search-bar-container section">
     <i class="fa-solid fa-magnifying-glass"></i>
     <input type="text" id="searchInput" placeholder="Buscar por paciente...">
+</div>
+
+<div class="sort-and-filter">
+    <div class="sort-options">
+        <p class="sort-label">Filtrar por fecha:</p>
+        <select id="roleFilterSelect" class="sort-select">
+            <option value="">Todos</option>
+            {% for ap in appointments %}
+            <option value="{{ ap.scheduled_at[:10] }}">{{ ap.scheduled_at[:10] }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    
+    <div class="sort-options">
+        <p class="sort-label">Ordenar por:</p>
+        <select id="sortSelect" class="sort-select">
+            <option value="">Ninguno</option>
+            <option value="paciente">Paciente</option>
+            <option value="clinica">Clinica</option>
+            <option value="area">Area</option>
+            <option value="trabajador">Trabajador</option>
+            <option value="fecha">Fecha</option>
+            <option value="estado">Estado</option>
+        </select>
+    </div>
 </div>
 
 <!-- Tabla de citas -->

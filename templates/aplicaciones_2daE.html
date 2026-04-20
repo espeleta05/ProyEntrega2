@@ -57,6 +57,31 @@
     <input type="text" id="searchInput" placeholder="Buscar por paciente, vacuna o doctor...">
 </div>
 
+<div class="sort-and-filter">
+    <div class="sort-options">
+        <p class="sort-label">Filtrar por vacuna:</p>
+        <select id="roleFilterSelect" class="sort-select">
+            <option value="">Todas</option>
+            {% for v in applications %}
+            <option value="{{ v.vaccine_id | lower }}">{{ v.name }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    
+    <div class="sort-options">
+        <p class="sort-label">Ordenar por:</p>
+        <select id="sortSelect" class="sort-select">
+            <option value="">Ninguno</option>
+            <option value="vacuna">Vacuna</option>
+            <option value="paciente">Paciente</option>
+            <option value="dosis">Dosis</option>
+            <option value="fecha">Fecha</option>
+            <option value="doctor">Doctor</option>
+            <option value="estado">Estado</option>
+        </select>
+    </div>
+</div>
+
 <!-- TABLA -->
 <div class="tbl-wrapper">
     <table class="tbl">

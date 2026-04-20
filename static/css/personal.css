@@ -1,74 +1,126 @@
 
-/* Sections */
-.section {
-    margin-top: 30px;
-}
+/* ── Sección por rol ── */
+.role-section { margin-bottom: 28px; }
 
-.section-header {
+.role-header {
     display: flex;
+    align-items: center;
     justify-content: space-between;
+    margin-bottom: 10px;
+}
+.role-title-row {
+    display: flex;
     align-items: center;
+    gap: 10px;
+}
+.role-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+.role-title {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--text-main);
+    margin: 0;
 }
 
-.section-header h3 {
-    color: #4B1535;
+/* Badge contador de rol */
+.role-count-badge {
+    font-family: var(--font);
+    font-size: .72rem;
+    font-weight: 800;
+    padding: 3px 10px;
+    border-radius: 999px;
 }
 
-.section-header a {
-    color: #4B1535;
+/* ── Dot y badge por color de rol ── */
+.rc-blue   .role-dot, .role-dot.rc-blue   { background: var(--blue); }
+.rc-teal   .role-dot, .role-dot.rc-teal   { background: var(--teal); }
+.rc-purple .role-dot, .role-dot.rc-purple { background: var(--purple); }
+.rc-amber  .role-dot, .role-dot.rc-amber  { background: var(--amber); }
+.rc-green  .role-dot, .role-dot.rc-green  { background: var(--green); }
+.rc-coral  .role-dot, .role-dot.rc-coral  { background: var(--coral); }
+
+.role-count-badge.rc-blue   { background: var(--blue-bg);   color: var(--blue-txt); }
+.role-count-badge.rc-teal   { background: var(--teal-bg);   color: var(--teal-txt); }
+.role-count-badge.rc-purple { background: var(--purple-bg); color: var(--purple-txt); }
+.role-count-badge.rc-amber  { background: var(--amber-bg);  color: var(--amber-txt); }
+.role-count-badge.rc-green  { background: var(--green-bg);  color: var(--green-txt); }
+.role-count-badge.rc-coral  { background: var(--coral-bg);  color: var(--coral-txt); }
+
+/* ── Avatar coloreado por rol ── */
+.rc-blue-avatar   { background: var(--blue-bg)   !important; color: var(--blue-txt)   !important; }
+.rc-teal-avatar   { background: var(--teal-bg)   !important; color: var(--teal-txt)   !important; }
+.rc-purple-avatar { background: var(--purple-bg) !important; color: var(--purple-txt) !important; }
+.rc-amber-avatar  { background: var(--amber-bg)  !important; color: var(--amber-txt)  !important; }
+.rc-green-avatar  { background: var(--green-bg)  !important; color: var(--green-txt)  !important; }
+.rc-coral-avatar  { background: var(--coral-bg)  !important; color: var(--coral-txt)  !important; }
+
+/* ── Pill de rol en celda ── */
+.role-pill {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 999px;
+    font-family: var(--font);
+    font-size: .8rem;
+    font-weight: 700;
+    white-space: nowrap;
+}
+.role-pill.rc-blue   { background: var(--blue-bg);   color: var(--blue-txt); }
+.role-pill.rc-teal   { background: var(--teal-bg);   color: var(--teal-txt); }
+.role-pill.rc-purple { background: var(--purple-bg); color: var(--purple-txt); }
+.role-pill.rc-amber  { background: var(--amber-bg);  color: var(--amber-txt); }
+.role-pill.rc-green  { background: var(--green-bg);  color: var(--green-txt); }
+.role-pill.rc-coral  { background: var(--coral-bg);  color: var(--coral-txt); }
+
+/* ── ID badge ── */
+.emp-id-badge {
+    font-family: monospace;
+    font-size: .8rem;
+    color: var(--text-muted);
+    background: #f1f5f9;
+    padding: 2px 8px;
+    border-radius: 6px;
+    letter-spacing: .3px;
+}
+
+/* ── Mail cell ── */
+.mail-cell {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-family: var(--font);
+    font-size: .82rem;
+    color: var(--text-muted);
+}
+.mail-cell i { font-size: .75rem; color: #b0b8c9; }
+
+/* ── Botón de acción ── */
+.action-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    border-radius: 7px;
+    background: #f1f5f9;
+    color: var(--text-muted);
     text-decoration: none;
-    font-weight: bold;
+    font-size: .8rem;
+    transition: background .15s, color .15s;
+}
+.action-btn:hover {
+    background: #e3f2fd;
+    color: #1565c0;
 }
 
-/* Cards */
-.cards {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 15px;
-    margin-top: 15px;
-}
-
-.workers-grid{
-    display: flex;
-    flex-direction: row;
-    justify-content: space-evenly;
-    gap: 20px;
-}
-
-.worker-avatar{
-    width:40px;
-    height:40px;
-    background:#C08D00;
-    border-radius:50%;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    color:white;
-    font-weight:bold;
-}
-
-.worker-info{
-    gap:10px;
-}
-
-.worker-name{
-    font-weight: 600;
-}
-
-.worker-id{
-    color: var(--gray-color);
-}
-
-.worker-mail{
-    color: var(--gray-color);
-}
-.employee-card {
-    display: flex;
-    align-items: center;
-    gap: 15px;
-    width: 45%;
-    padding: 15px;
-    border: 1px solid #CED4DA;
-    border-radius: 15px;
-    background: white;
+/* ── Empty state ── */
+.empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    font-family: var(--font);
+    font-size: .95rem;
+    color: var(--text-muted);
 }

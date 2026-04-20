@@ -24,6 +24,29 @@
     <input type="text" id="searchInput" placeholder="Buscar vacuna por nombre...">
 </div>
 
+<div class="sort-and-filter">
+    <div class="sort-options">
+        <p class="sort-label">Filtrar por nombre:</p>
+        <select id="roleFilterSelect" class="sort-select">
+            <option value="">Todos</option>
+            {% for v in vaccines %}
+            <option value="{{ v.vaccine_id | lower }}">{{ v.name }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    
+    <div class="sort-options">
+        <p class="sort-label">Ordenar por:</p>
+        <select id="sortSelect" class="sort-select">
+            <option value="">Ninguno</option>
+            <option value="name">Nombre</option>
+            <option value="lote">Lote</option>
+            <option value="stock">Stock</option>
+            <option value="dosis">Dosis aplicadas</option>
+        </select>
+    </div>
+</div>
+
 <div class="btn-container">
     <a href="{{ url_for('esquema_vacunacion') }}" class="btn-esquema">
         <i class="fa-solid fa-clipboard-list"></i>

@@ -4,20 +4,19 @@
 
 {% block content %}
 
+<link rel="stylesheet" href="{{ url_for('static', filename='css/tables.css') }}">
 <link rel="stylesheet" href="{{ url_for('static', filename='css/personal.css') }}">
 
 <!-- HEADER -->
 <div class="content-header">
-    <h2 class="title">Administración de personal</h2>
-
+    <div>
+        <h2 class="title">Administración de personal</h2>
+        <p class="subtitle">Total de empleados: {{ total_workers }}</p>
+    </div>
     <a href="{{ url_for('add_user') }}" class="btn-agregar">
         <i class="fa-solid fa-plus"></i>
         Agregar usuario
     </a>
-</div>
-
-<div class="subtitle">
-    Total de empleados: {{ total_workers }}
 </div>
 
 <!-- SEARCH -->
@@ -26,37 +25,96 @@
     <input type="text" id="personalSearchInput" placeholder="Buscar empleado por nombre, correo, rol o id...">
 </div>
 
+<div class="sort-and-filter">
+    <div class="sort-options">
+        <p class="sort-label">Filtrar por rol:</p>
+        <select id="roleFilterSelect" class="sort-select">
+            <option value="">Todos</option>
+            {% for role in roles %}
+            <option value="{{ role | lower }}">{{ role }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    
+    <div class="sort-options">
+        <p class="sort-label">Ordenar por:</p>
+        <select id="sortSelect" class="sort-select">
+            <option value="name">Nombre</option>
+            <option value="id">ID</option>
+            <option value="role">Rol</option>
+        </select>
+    </div>
+</div>
+
 <!-- SECCIONES POR ROL -->
 {% set roles = workers | groupby('role') %}
-{% for role, members in roles %}
-<div class="section">
+{% set role_colors = ['rc-blue', 'rc-teal', 'rc-purple', 'rc-amber', 'rc-green', 'rc-coral'] %}
 
-    <div class="section-header">
-        <h3>{{ role }}</h3>
-        <span class="role-count">{{ members | list | length }} empleados</span>
+{% for role, members in roles %}
+{% set rc = role_colors[loop.index0 % 6] %}
+<div class="role-section" data-role="{{ role | lower }}">
+
+    <div class="role-header">
+        <div class="role-title-row">
+            <span class="role-dot {{ rc }}"></span>
+            <h3 class="role-title">{{ role }}</h3>
+        </div>
+        <span class="role-count-badge {{ rc }}">{{ members | list | length }}</span>
     </div>
 
-    <div class="workers-grid">
-        {% for w in members %}
-        <div class="employee-card">
-
-            <div class="worker-avatar">
-                {{ w.name[0] | upper }}{{ w.lastname[0] | upper if w.lastname else '' }}
-            </div>
-
-            <div class="worker-info">
-                <p class="worker-name">{{ w.name }} {{ w.lastname }}</p>
-                <div class="worker-id">EMP{{ '%03d' % w.worker_id }} — {{ w.role }}</div>
-                {% if w.mail %}
-                <div class="worker-mail">
-                    <i class="fa-solid fa-envelope"></i>
-                    {{ w.mail }}
-                </div>
-                {% endif %}
-            </div>
-
-        </div>
-        {% endfor %}
+    <div class="tbl-wrapper">
+        <table class="tbl">
+            <thead>
+                <tr>
+                    <th style="width:32%">Empleado</th>
+                    <th style="width:28%">Correo</th>
+                    <th style="width:16%">ID</th>
+                    <th style="width:14%">Rol</th>
+                    <th style="width:10%" class="center">Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for w in members %}
+                <tr class="tbl-row employee-row bar-{{ loop.index0 % 12 }}">
+                    <td >
+                        <div class="patient-cell">
+                            <div class="avatar-sm {{ rc }}-avatar">
+                                {{ w.first_name[0] | upper }}{{ w.last_name[0] | upper if w.last_name else '' }}
+                            </div>
+                            <div class="cell-stack">
+                                <span class="cell-main">{{ w.first_name }} {{ w.last_name }}</span>
+                                {% if w.specialty %}
+                                <span class="cell-sub">{{ w.specialty }}</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </td>
+                    <td class="muted-td">
+                        {% if w.mail %}
+                        <span class="mail-cell">
+                            <i class="fa-solid fa-envelope"></i>
+                            {{ w.mail }}
+                        </span>
+                        {% else %}
+                        <span class="muted-td">—</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <span class="emp-id-badge">EMP{{ '%03d' % w.worker_id }}</span>
+                    </td>
+                    <td>
+                        <span class="role-pill {{ rc }}">{{ w.role }}</span>
+                    </td>
+                    <td class="center">
+                        <a href="{{ url_for('edit_user', worker_id=w.worker_id) }}"
+                           class="action-btn" title="Editar">
+                            <i class="fa-solid fa-pen-to-square"></i>
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
     </div>
 
 </div>
@@ -69,26 +127,27 @@
     const input = document.getElementById('personalSearchInput');
     if (!input) return;
 
-    const cards = Array.from(document.querySelectorAll('.employee-card'));
+    const rows = Array.from(document.querySelectorAll('.employee-row'));
 
     function applyFilter(value) {
         const term = (value || '').toLowerCase().trim();
+        rows.forEach(row => {
+            const text = row.innerText.toLowerCase();
+            row.style.display = (!term || text.includes(term)) ? '' : 'none';
+        });
 
-        cards.forEach(card => {
-            const text = card.innerText.toLowerCase();
-            card.style.display = (!term || text.includes(term)) ? 'flex' : 'none';
+        // Ocultar secciones enteras si no tienen filas visibles
+        document.querySelectorAll('.role-section').forEach(section => {
+            const visible = section.querySelectorAll('.employee-row:not([style*="none"])').length;
+            section.style.display = visible > 0 ? '' : 'none';
         });
     }
 
-    input.addEventListener('input', (e) => applyFilter(e.target.value));
+    input.addEventListener('input', e => applyFilter(e.target.value));
 
-    // Si llega un parametro ?q=... desde la busqueda global, aplicarlo al abrir.
     const params = new URLSearchParams(window.location.search);
     const q = (params.get('q') || '').trim();
-    if (q) {
-        input.value = q;
-        applyFilter(q);
-    }
+    if (q) { input.value = q; applyFilter(q); }
 })();
 </script>
 

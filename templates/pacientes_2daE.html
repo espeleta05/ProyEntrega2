@@ -23,6 +23,28 @@
     <input type="text" id="searchInput" placeholder="Buscar paciente por nombre o id...">
 </div>
 
+<div class="sort-and-filter">
+    <div class="sort-options">
+        <p class="sort-label">Filtrar por tipo de sangre:</p>
+        <select id="roleFilterSelect" class="sort-select">
+            <option value="">Todos</option>
+            {% for p in patients %}
+            <option value="{{ p.blood_type_id | lower }}">{{ p.blood_type }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    
+    <div class="sort-options">
+        <p class="sort-label">Ordenar por:</p>
+        <select id="sortSelect" class="sort-select">
+            <option value="">Ninguno</option>
+            <option value="name">Nombre</option>
+            <option value="id">ID</option>
+            <option value="edad">Edad</option>
+        </select>
+    </div>
+</div>
+
 <div class="patients-grid" id="patientsContainer">
     {% for p in patients %}
 
