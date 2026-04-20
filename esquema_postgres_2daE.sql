@@ -14,20 +14,24 @@ CREATE TABLE states (
     state_id    SERIAL PRIMARY KEY,
     country_id  INT          NOT NULL REFERENCES countries(country_id),
     name        VARCHAR(100) NOT NULL,
-    code        VARCHAR(10)
+    code        VARCHAR(10),
+    UNIQUE(country_id, name),
+    UNIQUE(country_id, code)
 );
 
 CREATE TABLE municipalities (
     municipality_id  SERIAL PRIMARY KEY,
     state_id         INT          NOT NULL REFERENCES states(state_id),
-    name             VARCHAR(100) NOT NULL
+    name             VARCHAR(100) NOT NULL,
+    UNIQUE(state_id, name)
 );
 
 CREATE TABLE neighborhoods (
     neighborhood_id  SERIAL PRIMARY KEY,
     municipality_id  INT          NOT NULL REFERENCES municipalities(municipality_id),
     name             VARCHAR(100) NOT NULL,
-    zip_code         VARCHAR(10)
+    zip_code         VARCHAR(10),
+    UNIQUE(municipality_id, name, zip_code)
 );
 
 CREATE TABLE addresses (
@@ -37,7 +41,8 @@ CREATE TABLE addresses (
     ext_number        VARCHAR(20),
     cross_street_1    VARCHAR(200),
     latitude          NUMERIC(9,4),
-    longitude         NUMERIC(9,4)
+    longitude         NUMERIC(9,4),
+    UNIQUE(neighborhood_id, street, ext_number)
 );
 
 
@@ -51,7 +56,7 @@ CREATE TABLE clinics (
     is_active         BOOLEAN      NOT NULL DEFAULT TRUE
 );
 
-CREATE TABLE area_types (
+CREATE TABLE clinic_area_types (
     area_type_id  SERIAL PRIMARY KEY,
     area_type     VARCHAR(50) NOT NULL UNIQUE
 );
@@ -60,14 +65,15 @@ CREATE TABLE clinic_areas (
     area_id       SERIAL PRIMARY KEY,
     clinic_id     INT          NOT NULL REFERENCES clinics(clinic_id),
     name          VARCHAR(200) NOT NULL,
-    area_type_id  INT          NOT NULL REFERENCES area_types(area_type_id),
+    area_type_id  INT          NOT NULL REFERENCES clinic_area_types(area_type_id),
     floor         SMALLINT,
-    capacity      SMALLINT
+    capacity      SMALLINT,
+    UNIQUE(clinic_id, name)
 );
 
 CREATE TABLE equipment_catalog (
     equipment_id           SERIAL PRIMARY KEY,
-    name                   VARCHAR(200) NOT NULL,
+    name                   VARCHAR(200) NOT NULL UNIQUE,
     category               VARCHAR(100),
     requires_calibration   BOOLEAN      NOT NULL DEFAULT FALSE
 );
@@ -78,7 +84,8 @@ CREATE TABLE area_equipment (
     equipment_id       INT           NOT NULL REFERENCES equipment_catalog(equipment_id),
     quantity           SMALLINT      NOT NULL DEFAULT 1,
     serial_number      VARCHAR(50),
-    condition          VARCHAR(50)
+    condition          VARCHAR(50),
+    UNIQUE(area_id, equipment_id)
 );
 
 
@@ -98,12 +105,13 @@ CREATE TABLE patients (
     nfc_token      VARCHAR(50)  UNIQUE,
     curp           VARCHAR(18)     UNIQUE,
     weight_kg      NUMERIC(5,2),
-    premature      BOOLEAN      NOT NULL DEFAULT FALSE
+    premature      BOOLEAN      NOT NULL DEFAULT FALSE,
+    created_at     TIMESTAMP    DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE allergies (
     allergy_id    SERIAL PRIMARY KEY,
-    name          VARCHAR(100) NOT NULL,
+    name          VARCHAR(100) NOT NULL UNIQUE,
     allergy_type  VARCHAR(50)
 );
 
@@ -125,7 +133,7 @@ CREATE TABLE marital_status (
 
 CREATE TABLE occupations (
     occupation_id    SERIAL PRIMARY KEY,
-    occupation_name  VARCHAR(100) NOT NULL
+    occupation_name  VARCHAR(100) NOT NULL UNIQUE
 );
 
 CREATE TABLE guardians (
@@ -143,14 +151,16 @@ CREATE TABLE guardian_phones (
     guardian_id  INT          NOT NULL REFERENCES guardians(guardian_id),
     phone        VARCHAR(20)  NOT NULL,
     phone_type   VARCHAR(30),
-    is_primary   BOOLEAN      NOT NULL DEFAULT FALSE
+    is_primary   BOOLEAN      NOT NULL DEFAULT FALSE,
+    UNIQUE(guardian_id, phone)
 );
 
 CREATE TABLE guardian_emails (
     email_id     SERIAL PRIMARY KEY,
     guardian_id  INT          NOT NULL REFERENCES guardians(guardian_id),
     email        VARCHAR(150) NOT NULL,
-    is_primary   BOOLEAN      NOT NULL DEFAULT FALSE
+    is_primary   BOOLEAN      NOT NULL DEFAULT FALSE,
+    UNIQUE(guardian_id, email)
 );
 
 CREATE TABLE patient_guardian_relations (
@@ -177,7 +187,7 @@ CREATE TABLE specialties (
 
 CREATE TABLE institutions (
     institution_id    SERIAL PRIMARY KEY,
-    institution_name  VARCHAR(200) NOT NULL,
+    institution_name  VARCHAR(200) NOT NULL UNIQUE,
     address_id        INT          REFERENCES addresses(address_id)
 );
 
@@ -189,15 +199,14 @@ CREATE TABLE workers (
     curp           CHAR(18)      UNIQUE,
     address_id     INT           REFERENCES addresses(address_id),
     birth_date     DATE,
-    hire_date      DATE,
-    password_hash  VARCHAR(255)  NOT NULL
+    hire_date      DATE
 );
 
 CREATE TABLE worker_professional (
-    worker_id        INT NOT NULL REFERENCES workers(worker_id),
-    cedula_profesional VARCHAR(20),
-    specialty_id     INT REFERENCES specialties(specialty_id),
-    institution_id   INT REFERENCES institutions(institution_id),
+    worker_id            INT NOT NULL REFERENCES workers(worker_id),
+    professional_license VARCHAR(20),
+    specialty_id         INT REFERENCES specialties(specialty_id),
+    institution_id       INT REFERENCES institutions(institution_id),
     PRIMARY KEY (worker_id, specialty_id)
 );
 
@@ -206,14 +215,16 @@ CREATE TABLE worker_phones (
     worker_id   INT          NOT NULL REFERENCES workers(worker_id),
     phone       VARCHAR(20)  NOT NULL,
     phone_type  VARCHAR(30),
-    is_primary  BOOLEAN      NOT NULL DEFAULT FALSE
+    is_primary  BOOLEAN      NOT NULL DEFAULT FALSE,
+    UNIQUE(worker_id, phone)
 );
 
 CREATE TABLE worker_emails (
     email_id   SERIAL PRIMARY KEY,
     worker_id  INT          NOT NULL REFERENCES workers(worker_id),
     email      VARCHAR(150) NOT NULL,
-    is_primary BOOLEAN      NOT NULL DEFAULT FALSE
+    is_primary BOOLEAN      NOT NULL DEFAULT FALSE,
+    UNIQUE(worker_id, email)
 );
 
 CREATE TABLE worker_clinic_assignment (
@@ -236,11 +247,20 @@ CREATE TABLE worker_schedules (
     shift_type   VARCHAR(30)
 );
 
+-- LOGIN
+CREATE TABLE users (
+    user_id        SERIAL PRIMARY KEY,
+    worker_id      INT UNIQUE REFERENCES workers(worker_id),
+    username       VARCHAR(50)  NOT NULL UNIQUE,
+    password_hash  VARCHAR(255) NOT NULL,
+    is_active      BOOLEAN      DEFAULT TRUE,
+    created_at     TIMESTAMP    DEFAULT CURRENT_TIMESTAMP
+);
 
 --  MÓDULO: VACCINES
 CREATE TABLE manufacturers (
     manufacturer_id  SERIAL PRIMARY KEY,
-    name             VARCHAR(200) NOT NULL,
+    name             VARCHAR(200) NOT NULL UNIQUE,
     country_id       INT          REFERENCES countries(country_id),
     contact_email    VARCHAR(150)
 );
@@ -252,12 +272,12 @@ CREATE TABLE vaccine_vias (
 
 CREATE TABLE vaccines (
     vaccine_id        SERIAL PRIMARY KEY,
-    name              VARCHAR(100) NOT NULL,
-    commercial_name   VARCHAR(100),
+    name              VARCHAR(100) NOT NULL UNIQUE,
+    commercial_name   VARCHAR(100) UNIQUE,
     manufacturer_id   INT          REFERENCES manufacturers(manufacturer_id),
     via_id            INT          REFERENCES vaccine_vias(via_id),
     ideal_age_months  SMALLINT,
-    descripcion       TEXT
+    disease_prevented TEXT
 );
 
 CREATE TABLE vaccine_lots (
@@ -295,16 +315,22 @@ CREATE TABLE scheme_doses (
 
 --  MÓDULO: APPOINTMENTS
 CREATE TABLE appointments (
-    appointment_id      SERIAL PRIMARY KEY,
-    patient_id          INT           NOT NULL REFERENCES patients(patient_id),
-    clinic_id           INT           NOT NULL REFERENCES clinics(clinic_id),
-    area_id             INT           REFERENCES clinic_areas(area_id),
-    worker_id           INT           REFERENCES workers(worker_id),
-    scheduled_at        TIMESTAMP     NOT NULL,
+    appointment_id      SERIAL      PRIMARY KEY,
+    patient_id          INT         NOT NULL REFERENCES patients(patient_id),
+    clinic_id           INT         NOT NULL REFERENCES clinics(clinic_id),
+    area_id             INT         REFERENCES clinic_areas(area_id),
+    worker_id           INT         REFERENCES workers(worker_id),
+    vaccine_id          INT         REFERENCES vaccines(vaccine_id),
+    scheme_dose_id      INT         REFERENCES scheme_doses(dose_id),
+    scheduled_at        TIMESTAMP   NOT NULL,
     duration_min        SMALLINT,
     reason              TEXT,
     appointment_status  VARCHAR(50) CHECK (appointment_status IN ('Programada','Completada','Cancelada','No Show')),
-    appointment_notes   TEXT
+    appointment_notes   TEXT,
+    created_at          TIMESTAMP   DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(patient_id, scheduled_at),
+    UNIQUE(clinic_id, area_id, scheduled_at),
+    UNIQUE(worker_id, scheduled_at)
 );
 
 
@@ -315,28 +341,30 @@ CREATE TABLE application_sites (
 );
 
 CREATE TABLE vaccination_records (
-    record_id            SERIAL PRIMARY KEY,
-    patient_id           INT           NOT NULL REFERENCES patients(patient_id),
-    vaccine_id           INT           NOT NULL REFERENCES vaccines(vaccine_id),
-    worker_id            INT           NOT NULL REFERENCES workers(worker_id),
-    clinic_id            INT           NOT NULL REFERENCES clinics(clinic_id),
-    lot_id               INT           REFERENCES vaccine_lots(lot_id),
-    scheme_dose_id       INT           REFERENCES scheme_doses(dose_id),
-    applied_date         DATE          NOT NULL,
-    application_site_id  INT           REFERENCES application_sites(application_site_id),
+    record_id            SERIAL   PRIMARY KEY,
+    patient_id           INT      NOT NULL REFERENCES patients(patient_id),
+    vaccine_id           INT      NOT NULL REFERENCES vaccines(vaccine_id),
+    worker_id            INT      NOT NULL REFERENCES workers(worker_id),
+    clinic_id            INT      NOT NULL REFERENCES clinics(clinic_id),
+    lot_id               INT      REFERENCES vaccine_lots(lot_id),
+    scheme_dose_id       INT      REFERENCES scheme_doses(dose_id),
+    applied_date         DATE     NOT NULL,
+    application_site_id  INT      REFERENCES application_sites(application_site_id),
+    appointment_id       INT      UNIQUE REFERENCES appointments(appointment_id) 
+    -- sabemos que cada registro de vacunación se asocia a una cita, pero no todas las citas terminan en vacunación, por eso es opcional y único
     patient_temp_c       NUMERIC(4,1),
-    had_reaction         BOOLEAN       NOT NULL DEFAULT FALSE
+    had_reaction         BOOLEAN  NOT NULL DEFAULT FALSE
 );
 
 CREATE TABLE post_vaccine_reactions (
-    reaction_id         SERIAL PRIMARY KEY,
-    record_id           INT          NOT NULL REFERENCES vaccination_records(record_id),
-    reported_by         INT          REFERENCES workers(worker_id),
+    reaction_id         SERIAL   PRIMARY KEY,
+    record_id           INT      NOT NULL REFERENCES vaccination_records(record_id),
+    reported_by         INT      REFERENCES workers(worker_id),
     symptom             TEXT,
     severity            VARCHAR(30),
     onset_hours         SMALLINT,
     treatment           TEXT,
-    notified_authority  BOOLEAN      NOT NULL DEFAULT FALSE
+    notified_authority  BOOLEAN  NOT NULL DEFAULT FALSE
 );
 
 
@@ -400,7 +428,7 @@ CREATE TABLE scheme_completion_alerts (
 
 CREATE TABLE supply_catalog (
     supply_id  SERIAL PRIMARY KEY,
-    name       VARCHAR(200) NOT NULL,
+    name       VARCHAR(200) NOT NULL UNIQUE,
     unit       VARCHAR(30),
     category   VARCHAR(50)
 );
@@ -411,7 +439,8 @@ CREATE TABLE clinic_inventory (
     supply_id     INT     NOT NULL REFERENCES supply_catalog(supply_id),
     quantity      INT     NOT NULL DEFAULT 0,
     min_stock     INT     NOT NULL DEFAULT 0,
-    last_updated  DATE
+    last_updated  DATE,
+    UNIQUE(clinic_id, supply_id)
 );
 
 CREATE TABLE beacons (

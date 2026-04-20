@@ -31,7 +31,7 @@
                 <i class="fa-solid fa-user"></i>
             </div>
 
-            <div>
+            <div class="patient-info">
                 <p>{{ p.first_name }} {{ p.last_name }}</p>
                 <p class="id">ID: P{{ p.patient_id }}</p>
             </div>
@@ -56,40 +56,13 @@
         {% set show_delete = false %}
         {% include 'components/patient_card_2daE.html' %}
 
-        <a href="{{ url_for('esquema_paciente', id=patient.patient_id) }}" class="btn-esquema">
-            <i class="fa-solid fa-clipboard-list"></i>
-            Ver esquema de vacunación
-        </a>
-
-        <!-- HISTORIAL -->
-        <h2 class="title">Historial de vacunación</h2>
-
-        {% set mode = 'application' %}
-        {% set show_delete = false %}
-        {% for v in applications %}
-            {% include 'components/vaccine_card_2daE.html' with context %}
-        {% else %}
-            <p>No hay vacunas registradas.</p>
-        {% endfor %}
-
-    </div>
-
-    <!-- PROXIMAS -->
-    <div class="next-vaccines">
-        <h3>Próximas vacunas</h3>
-
-        {% for v in next_vaccines %}
-        <div class="next-card">
-            <div>
-                <strong>{{ v.name }}</strong>
-                <p>Dosis #{{ v.dose }}</p>
-            </div>
-
-            <div class="date">
-                {{ v.date }}
-            </div>
+        <div class="btn-container">
+            <a href="{{ url_for('esquema_paciente', id=patient.patient_id) }}" class="btn-esquema">
+                <i class="fa-solid fa-clipboard-list"></i>
+                Ver esquema de vacunación
+            </a>
         </div>
-        {% endfor %}
+
     </div>
 
     {% endif %}

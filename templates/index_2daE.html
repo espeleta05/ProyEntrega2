@@ -6,172 +6,297 @@
 
 <link rel="stylesheet" href="{{ url_for('static', filename='css/nuevoPaciente.css') }}">
 <link rel="stylesheet" href="{{ url_for('static', filename='css/nuevaVacuna.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 
 <style>
     .content-info {
-        background-color: transparent !important;
-        box-shadow: none !important;
-    }
-
-    #btn-add-vaccine-dashboard {
-        display: inline-flex;
-        align-items: center;
-        gap: 10px;
-        background-color: #E8ABCE; 
-        color: #4B1535;          
-        padding: 12px 20px;       
-        border-radius: 10px;
-        font-weight: 600;
-        font-size: 15px;
-        cursor: pointer;
-        border: none;
-        transition: 0.2s;
-    }
-
-    #btn-add-vaccine-dashboard:hover {
-        background-color: #d99ab8;
-    }
-
-    .second-section {
-        display: flex;
-        flex-direction: row;
-        justify-content: space-between;
-        gap: 20px;
-        margin-top: 30px;
-    }
-
-    .second-section .section-card {
-        flex: 1; 
-        min-width: 0;
-    }
-    
-    .second-section .section-header {
-        align-items: center;
+    background-color: transparent !important;
+    box-shadow: none !important;
     }
 </style>
+<!-- ENCABEZADO -->
+<div class="dash-header">
+    <div>
+        <p class="date">{{ today }}</p>
+        <h2 class="title">Panel general</h2>
+        <p class="welcome">Bienvenido, {{ name }} {{ lastname }}</p>
+    </div>
+</div>
 
-<p class="date">{{ today }}</p>
+<!-- KPIs FILA 1 -->
+<div class="kpi-grid">
 
-<h2 class="title">Panel general</h2>
-<h3 class="welcome">BIENVENIDO {{ name|upper }} {{ lastname|upper }}</h3>
-
-<div class="cards">
-
-    <div class="dash-card">
-        <i class="fa-solid fa-user"></i>
-        <h4>Total pacientes</h4>
-        <p>{{ total_patients }}</p>
+    <div class="kpi-card kpi-color1">
+        <div class="kpi-icon"><i class="fa-solid fa-users"></i></div>
+        <div class="kpi-body">
+            <span class="kpi-value">{{ total_patients }}</span>
+            <span class="kpi-label">Pacientes en seguimiento</span>
+        </div>
     </div>
 
-    <div class="dash-card">
-        <i class="fa-solid fa-syringe"></i>
-        <h4>Vacunas en stock</h4>
-        <p>{{ total_vaccines }} tipos</p>
+    <div class="kpi-card kpi-color2">
+        <div class="kpi-icon"><i class="fa-solid fa-shield-virus"></i></div>
+        <div class="kpi-body">
+            <span class="kpi-value">{{ coverage_pct }}%</span>
+            <span class="kpi-label">Cobertura — esquema completo</span>
+        </div>
+        <span class="kpi-trend {{ 'trend-up' if coverage_trend >= 0 else 'trend-down' }}">
+            <i class="fa-solid fa-arrow-{{ 'up' if coverage_trend >= 0 else 'down' }}"></i>
+            {{ coverage_trend|abs }}% vs mes anterior
+        </span>
     </div>
 
-    <div class="dash-card">
-        <i class="fa-regular fa-calendar-check"></i>
-        <h4>Aplicaciones hoy</h4>
-        <p>{{ applications_today }}</p>
+    <div class="kpi-card kpi-color1">
+        <div class="kpi-icon"><i class="fa-solid fa-triangle-exclamation"></i></div>
+        <div class="kpi-body">
+            <span class="kpi-value">{{ delayed_patients }}</span>
+            <span class="kpi-label">Pacientes con dosis atrasadas</span>
+        </div>
     </div>
 
-    <div class="dash-card">
-        <i class="fa-solid fa-triangle-exclamation"></i>
-        <h4>Alertas pendientes</h4>
-        <p>{{ pending_alerts }}</p>
+    <div class="kpi-card kpi-color2">
+        <div class="kpi-icon"><i class="fa-solid fa-syringe"></i></div>
+        <div class="kpi-body">
+            <span class="kpi-value">{{ doses_this_month }}</span>
+            <span class="kpi-label">Dosis aplicadas este mes</span>
+        </div>
+        <span class="kpi-sub">Hoy: {{ applications_today }} · Semana: {{ doses_this_week }}</span>
+    </div>
+
+    <div class="kpi-card kpi-color1">
+        <div class="kpi-icon"><i class="fa-solid fa-calendar-xmark"></i></div>
+        <div class="kpi-body">
+            <span class="kpi-value">{{ expired_doses }}</span>
+            <span class="kpi-label">Pacientes con dosis vencidas</span>
+        </div>
+    </div>
+
+    <div class="kpi-card kpi-color2">
+        <div class="kpi-icon"><i class="fa-solid fa-user-plus"></i></div>
+        <div class="kpi-body">
+            <span class="kpi-value">{{ new_patients_month }}</span>
+            <span class="kpi-label">Nuevos registros este mes</span>
+        </div>
     </div>
 
 </div>
 
-<!-- PACIENTES -->
-<section class="patients">
+<!-- FILA 2: Gráficas -->
+<div class="charts-row">
 
-    <div class="section-header">
-        <h2>Gestión de pacientes</h2>
+    <div class="chart-card">
+        <div class="chart-card-header">
+            <h3>Cobertura por grupo de edad</h3>
+            <span class="chart-badge">% esquema completo</span>
+        </div>
+        <div class="chart-wrap">
+            <canvas id="coverageChart"></canvas>
+        </div>
+    </div>
 
+    <div class="chart-card">
+        <div class="chart-card-header">
+            <h3>Dosis aplicadas por mes</h3>
+            <span class="chart-badge {{ 'trend-up' if monthly_trend >= 0 else 'trend-down' }}">
+                <i class="fa-solid fa-arrow-{{ 'up' if monthly_trend >= 0 else 'down' }}"></i>
+                {{ monthly_trend|abs }}%
+            </span>
+        </div>
+        <div class="chart-wrap">
+            <canvas id="dosesChart"></canvas>
+        </div>
+    </div>
+
+</div>
+
+<!-- FILA 3: Retraso por vacuna + Alertas -->
+<div class="bottom-row">
+
+    <!-- Retraso por vacuna -->
+    <div class="chart-card delay-card">
+        <div class="chart-card-header">
+            <h3>Porcentaje de retraso por vacuna</h3>
+        </div>
+        <div class="chart-wrap chart-wrap-sm">
+            <canvas id="delayChart"></canvas>
+        </div>
+    </div>
+
+    <!-- Alertas -->
+    <div class="alerts-card">
+        <div class="chart-card-header">
+            <h3><i class="fa-solid fa-bell"></i> Alertas activas</h3>
+            {% if pending_alerts > 0 %}
+                <span class="alert-count-badge">{{ pending_alerts }}</span>
+            {% endif %}
+        </div>
+        <ul class="alerts-list">
+            {% if patients_critical > 0 %}
+            <li class="alert-item alert-red">
+                <i class="fa-solid fa-circle-exclamation"></i>
+                <span>{{ patients_critical }} pacientes con 2+ vacunas atrasadas</span>
+            </li>
+            {% endif %}
+            {% if expiring_lots_week > 0 %}
+            <li class="alert-item alert-amber">
+                <i class="fa-solid fa-hourglass-half"></i>
+                <span>{{ expiring_lots_week }} lotes vencen esta semana</span>
+            </li>
+            {% endif %}
+            {% if low_stock_count > 0 %}
+            <li class="alert-item alert-amber">
+                <i class="fa-solid fa-boxes-stacked"></i>
+                <span>{{ low_stock_count }} vacunas con stock bajo</span>
+            </li>
+            {% endif %}
+            {% if pending_alerts > 0 %}
+            <li class="alert-item alert-red">
+                <i class="fa-solid fa-location-dot"></i>
+                <span>{{ pending_alerts }} alertas de riesgo sin resolver</span>
+            </li>
+            {% endif %}
+            {% if patients_critical == 0 and expiring_lots_week == 0 and low_stock_count == 0 and pending_alerts == 0 %}
+            <li class="alert-item alert-ok">
+                <i class="fa-solid fa-circle-check"></i>
+                <span>Sin alertas activas</span>
+            </li>
+            {% endif %}
+        </ul>
+    </div>
+
+</div>
+
+<!-- FILA 4: Pacientes recientes -->
+<div class="section-card mt-20">
+    <div class="section-header-row">
+        <h3>Pacientes recientes</h3>
         <button class="btn-agregar" onclick="openPatientModal()">
-            <i class="fa-solid fa-plus"></i>
-            Agregar paciente
+            <i class="fa-solid fa-plus"></i> Agregar paciente
         </button>
     </div>
 
-    <div class="patients-table">
-
-        <div class="table-header">
-            <span>PACIENTE</span>
-            <span>TUTOR</span>
-            <span>EDAD</span>
-            <span>SANGRE</span>
-            <span>ALERGIAS</span>
-            <span>ESTADO</span>
-        </div>
-
-        {% for p in top_patients %}
-        <div class="patient-row">
-            <!-- PACIENTE -->
-            <div class="patient-info">
-                <div class="avatar">
-                    <i class="fa-solid fa-user"></i>
-                </div>
-
-                <div>
-                    <p>{{ p.first_name }} {{ p.last_name }}</p>
-                    <small class="id">ID: P{{ p.patient_id }}</small>
-                </div>
-            </div>
-
-            <div>{{ p.guardian }}</div>
-
-            <div>
-                <p>{{ p.age }} años</p>
-            </div>
-
-            <div>
-                <span class="blood A">{{ p.blood_type }}</span>
-            </div>
-
-            <div>{{ p.allergies }}</div>
-
-            <div class="status ok">Al día</div>
-
-        </div>
-        {% endfor %}
-    
-</section>
-<p class="patients-count">Mostrando {{ top_patients|length }} de {{ total_patients }} pacientes</p>
-
-<div class="second-section">
-
-    <section class="section-card">
-        <div class="section-header">
-            <h2>Inventario de vacunas</h2>
-            
-            <div id="btn-add-vaccine-dashboard" onclick="openVaccineModal()">
-                <i class="fa-solid fa-plus"></i>
-                Agregar vacuna
-            </div>
-        </div>
-
-        {% for v in dashboard_vaccines %}
-        <div class="vaccine-item">
-            <div>
-                <h4>{{ v.name }}</h4>
-                <small>{{ v.manufacturer or 'Fabricante no definido' }}</small>
-            </div>
-
-            <div class="stock">
-                <p>{{ v.inventory or 0 }} dosis</p>
-                <small class="high">Stock</small>
-            </div>
-        </div>
-        {% endfor %}
-
-    </section>
-
+    <div class="inv-table-wrapper">
+        <table class="inv-table">
+            <thead>
+                <tr>
+                    <th>Paciente</th>
+                    <th>Tutor</th>
+                    <th>Edad</th>
+                    <th>Tipo de sangre</th>
+                    <th>Alergias</th>
+                    <th style="text-align:center">Estado</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for p in top_patients %}
+                {% set bar_i = loop.index0 % 9 %}
+                <tr class="inv-row bar-{{ bar_i }}">
+                    <td>
+                        <div class="patient-cell">
+                            <div class="avatar-sm">{{ p.first_name[0] }}{{ p.last_name[0] }}</div>
+                            <div>
+                                <span class="vax-name">{{ p.first_name }} {{ p.last_name }}</span>
+                                <span class="pt-id">ID: P{{ p.patient_id }}</span>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="muted-td">{{ p.guardian or '—' }}</td>
+                    <td class="muted-td">{{ p.age }} años</td>
+                    <td><span class="blood-badge">{{ p.blood_type or '—' }}</span></td>
+                    <td class="muted-td">{{ p.allergies or 'Ninguna' }}</td>
+                    <td style="text-align:center"><span class="status-ok"><i class="fa-solid fa-check"></i> Al día</span></td>
+                </tr>
+                {% else %}
+                <tr><td colspan="6" class="empty-state">Sin pacientes registrados.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    <p class="table-footer">Mostrando {{ top_patients|length }} de {{ total_patients }} pacientes</p>
 </div>
 
 {% include 'nuevoPaciente_2daE.html' %}
 {% include 'nuevaVacuna_2daE.html' %}
 
-{% endblock %}
+<script>
+const coverageData = {{ coverage_by_age | tojson }};
+const dosesData    = {{ doses_by_month  | tojson }};
+const delayData    = {{ delay_by_vaccine | tojson }};
 
+/* ── Cobertura por grupo de edad ── */
+new Chart(document.getElementById('coverageChart'), {
+    type: 'bar',
+    data: {
+        labels: coverageData.map(d => d.label),
+        datasets: [{
+            label: '% cobertura',
+            data: coverageData.map(d => d.pct),
+            backgroundColor: ['#4CAF7D','#5B8DD9','#29B6C5','#F4A84A','#AB6BD6'],
+            borderRadius: 6,
+            borderSkipped: false,
+        }]
+    },
+    options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+            y: { beginAtZero: true, max: 100, ticks: { callback: v => v + '%' }, grid: { color: '#f0f0f0' } },
+            x: { grid: { display: false } }
+        }
+    }
+});
+
+/* ── Dosis por mes ── */
+new Chart(document.getElementById('dosesChart'), {
+    type: 'line',
+    data: {
+        labels: dosesData.map(d => d.label),
+        datasets: [{
+            label: 'Dosis',
+            data: dosesData.map(d => d.count),
+            borderColor: '#4f46e5',
+            backgroundColor: 'rgba(79,70,229,.1)',
+            borderWidth: 2.5,
+            pointRadius: 4,
+            pointBackgroundColor: '#4f46e5',
+            tension: 0.4,
+            fill: true,
+        }]
+    },
+    options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+            y: { beginAtZero: true, grid: { color: '#f0f0f0' } },
+            x: { grid: { display: false } }
+        }
+    }
+});
+
+/* ── Retraso por vacuna ── */
+new Chart(document.getElementById('delayChart'), {
+    type: 'bar',
+    data: {
+        labels: delayData.map(d => d.vaccine),
+        datasets: [{
+            label: '% retraso',
+            data: delayData.map(d => d.pct),
+            backgroundColor: '#E05252',
+            borderRadius: 6,
+            borderSkipped: false,
+        }]
+    },
+    options: {
+        indexAxis: 'y',
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+            x: { beginAtZero: true, max: 100, ticks: { callback: v => v + '%' }, grid: { color: '#f0f0f0' } },
+            y: { grid: { display: false } }
+        }
+    }
+});
+</script>
+
+{% endblock %}

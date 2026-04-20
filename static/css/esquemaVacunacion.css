@@ -1,30 +1,184 @@
-.regresar{
-    display: flex;
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap');
+
+/* ── Variables ── */
+:root {
+    --header-bg:  #4f2c55;
+    --border:     #f1e6f2;
+    --row-odd:    #ffffff;
+    --row-even:   #fbf7fc;
+    --text-main:  #1e2230;
+    --text-muted: #6b7280;
+}
+
+.back {
+    display: inline-flex;
     align-items: center;
-    justify-content: flex-start;
-    color: var(--gray-color);
-    text-align: left;
-    margin-bottom: 10px;
-    gap: 15px;
+    gap: 8px;
+    color: var(--text-muted);
+    font-weight: 600;
+    font-size: 1rem;
+    text-decoration: none;
+    margin-bottom: 18px;
+    transition: color .2s;
+}
+.back:hover { color: var(--secondary-color); }
+.back i { font-size: .85rem; }
+
+.content-header { 
+    display:flex;
+    align-items: center;
+    justify-content: center;
+}
+.content-header .title {
+    font-size: 1.8rem;
+    text-align: center;
+    font-weight: 700;
+    color: var(--primary-color);
+    margin: 0;
+    letter-spacing: -.3px;
 }
 
-.regresar i{
-    color: var(--gray-color);
+.content-info {
+    box-shadow: none !important;
 }
 
-table {
-    border-collapse: collapse;
+.inv-table-wrapper {
+    background: #fff;
+    border: 0.5px solid var(--border);
+    border-radius: 14px;
+    overflow: hidden;
+    box-shadow: 0 4px 24px rgba(30,34,64,.08);
+}
+
+.inv-table {
     width: 100%;
-    border-radius: 20px;
+    border-collapse: collapse;
+    font-size: .88rem;
+    table-layout: fixed;
 }
-  
-td, th {
-    border: 1px solid #dddddd;
+
+/* ── Tabla ── */
+table {
+    width: 90%;
+    margin: auto;
+    border-radius: 14px;
+    border-collapse: collapse;
+    table-layout: fixed;
+}
+
+/* ── Header ── */
+thead th {
+    background: var(--header-bg);
+    color: white;
+    font-size: 0.9rem;
+    font-weight: 700;
+    letter-spacing: .8px;
+    padding: 12px 16px;
     text-align: left;
-    padding: 12px;
-    width: 20px;
 }
-  
-tr:nth-child(even) {
-    background-color: #dddddd;
+thead th:nth-child(1) { width: 28%; }
+thead th:nth-child(2) { width: 40%; }
+thead th:nth-child(3) { width: 12%; text-align: center; }
+
+/* ── Filas ── */
+tr.vaccine-row {
+    border-bottom: 1px solid var(--border);
+    transition: background .15s ease;
+}
+tr.vaccine-row.bg-odd  { background: var(--row-odd); }
+tr.vaccine-row.bg-even { background: var(--row-even); }
+tr.vaccine-row:hover   { background: #eef2ff; }
+
+/* ── Nombre vacuna con barra izquierda integrada ── */
+td.name-cell {
+    padding: 14px 18px !important;
+    vertical-align: middle !important;
+    border-left: 6px solid transparent; /* fallback */
+}
+
+/* La barra de color ES el border-left de esta celda */
+td.name-cell.bar-0  { border-left-color: #4CAF7D; }
+td.name-cell.bar-1  { border-left-color: #5B8DD9; }
+td.name-cell.bar-2  { border-left-color: #29B6C5; }
+td.name-cell.bar-3  { border-left-color: #F4A84A; }
+td.name-cell.bar-4  { border-left-color: #E8C94A; }
+td.name-cell.bar-5  { border-left-color: #A0C94A; }
+td.name-cell.bar-6  { border-left-color: #E05252; }
+td.name-cell.bar-7  { border-left-color: #AB6BD6; }
+td.name-cell.bar-8  { border-left-color: #FF8A65; }
+td.name-cell.bar-9  { border-left-color: #78909C; }
+td.name-cell.bar-10 { border-left-color: #26A69A; }
+td.name-cell.bar-11 { border-left-color: #EC407A; }
+
+.vaccine-name {
+    font-size: .95rem;
+    font-weight: 800;
+    color: var(--text-main);
+    display: block;
+    line-height: 1.2;
+}
+
+.vaccine-disease {
+    font-size: .75rem;
+    color: var(--text-muted);
+    margin-top: 3px;
+    display: block;
+    line-height: 1.3;
+}
+
+/* ── Dosis ── */
+td.doses-cell {
+    padding: 8px 12px 8px 0;
+    vertical-align: middle;
+}
+
+.doses-inner {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.dose-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6px 12px;
+    border-radius: 8px;
+    background: #f8fafc;
+    border: 1px solid #e5e9f2;
+    transition: all .15s ease;
+}
+
+.dose-row:hover {
+    background: #eef2ff;
+    border-color: #c7d2fe;
+}
+
+.dose-age { font-size: .8rem; }
+
+.dose-number {
+    font-weight: 800;
+    font-size: .9rem;
+    color: var(--primary);
+    min-width: 24px;
+    text-align: right;
+}
+
+/* ── Badges ── */
+.badge-birth,
+.badge-age {
+    padding: 3px 20px;
+    border-radius: 999px;
+    font-size: .75rem;
+    font-weight: 700;
+}
+
+.badge-birth {
+    background: #e6f4ea;
+    color: #1b5e20;
+}
+
+.badge-age {
+    background: #e3f2fd;
+    color: #0d47a1;
 }

@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Servicios - ImmuniCare</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/serviciosPP.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+
+    <!-- SIDEBAR IZQUIERDO -->
+    <aside class="sidebar">
+        <div class="sidebar-header">
+            <a href="#" class="logo">
+                <i class="fa-solid fa-syringe logo-icon"></i>
+                <span class="logo-text">ImmuniCare</span>
+            </a>
+        </div>
+        
+        <nav class="sidebar-menu">
+            <div class="menu-category">Principal</div>
+            <a href="#" class="menu-item">
+                <i class="fa-solid fa-house"></i>
+                <span>Inicio</span>
+            </a>
+            <a href="#" class="menu-item">
+                <i class="fa-solid fa-building"></i>
+                <span>Nosotros</span>
+            </a>
+            <a href="#" class="menu-item active">
+                <i class="fa-solid fa-syringe"></i>
+                <span>Servicios</span>
+            </a>
+            <a href="#" class="menu-item">
+                <i class="fa-solid fa-phone"></i>
+                <span>Contacto</span>
+            </a>
+        </nav>
+
+        <div class="sidebar-footer">
+            <button class="btn-register">
+                <i class="fa-solid fa-user-plus"></i>
+                Registrarse
+            </button>
+        </div>
+    </aside>
+
+    <!-- CONTENEDOR DERECHO -->
+    <div class="main-container">
+        
+        <!-- TOPBAR -->
+        <header class="topbar">
+            <div class="search-bar">
+                <i class="fa-solid fa-magnifying-glass"></i>
+                <input type="text" placeholder="Buscar información...">
+            </div>
+            <div class="topbar-actions">
+                <button class="btn-action">
+                    Realiza tu cita
+                    <i class="fa-solid fa-arrow-right"></i>
+                </button>
+                <div class="user-icon">
+                    <i class="fa-solid fa-user"></i>
+                </div>
+            </div>
+        </header>
+
+        <!-- CONTENIDO PRINCIPAL -->
+        <main class="content">
+            
+            <!-- HERO HEADER -->
+            <section class="services-hero">
+                <div class="hero-title-col">
+                    <h1>Servicios</h1>
+                </div>
+                <div class="hero-text-col">
+                    <h2>Nuestros Servicios</h2>
+                    <p>En ImmuniCare nos especializamos en vacunación infantil, enfocados en la prevención y el bienestar de los más pequeños. Sabemos que la salud de tus hijos es lo más importante, por lo que trabajamos con altos estándares de calidad, seguridad y atención profesional. Nuestro objetivo es acompañar a cada familia durante el proceso de vacunación, brindando orientación, seguimiento y un entorno confiable.</p>
+                </div>
+            </section>
+
+            <!-- GRID DE SERVICIOS -->
+            <section class="services-grid-section">
+                <div class="services-grid-container">
+                    
+                    <div class="service-card">
+                        <h3>Primeras vacunas</h3>
+                        <p>Esquema inicial para recién nacidos. Protección esencial desde los primeros días de vida.</p>
+                    </div>
+
+                    <div class="service-card">
+                        <h3>Niños pequeños</h3>
+                        <p>Vacunación durante las primeras etapas de crecimiento, ingreso a guardería y desarrollo temprano.</p>
+                    </div>
+
+                    <div class="service-card">
+                        <h3>Etapa escolar</h3>
+                        <p>Refuerzos y vacunas necesarias para el ingreso y permanencia en la escuela.</p>
+                    </div>
+
+                    <div class="service-card">
+                        <h3>Chequeos y control</h3>
+                        <p>Seguimiento del esquema de vacunación y monitoreo preventivo del crecimiento.</p>
+                    </div>
+
+                    <div class="service-card">
+                        <h3>Adolescentes y jóvenes</h3>
+                        <p>Aplicación de dosis de refuerzo y vacunas clave para su bienestar y prevención a largo plazo.</p>
+                    </div>
+
+                    <div class="service-card">
+                        <h3>Vacunas para viajes</h3>
+                        <p>Protección adicional para excursiones, campamentos o viajes nacionales e internacionales.</p>
+                    </div>
+
+                </div>
+            </section>
+
+            <!-- SECCIÓN DE VACUNAS DISPONIBLES -->
+            <section class="vaccines-section">
+                <div class="vaccines-image">
+                    <img src="{{ url_for('static', filename='img/vacunas_servicio.jpg') }}" alt="Vacunas disponibles">
+                </div>
+                <div class="vaccines-list">
+                    <h2>Vacunas que aplicamos</h2>
+                    <div class="vaccine-tags">
+                        <span>Fiebre Tifoidea</span>
+                        <span>VPH – Virus del Papiloma Humano</span>
+                        <span>Influenza</span>
+                        <span>Hepatitis B – Infantil</span>
+                        <span>Varicela</span>
+                        <span>BCG</span>
+                        <span>Rotavirus</span>
+                        <span>Neumococo</span>
+                        <span>SRP</span>
+                        <span>Hexavalente</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- CTA SECTION -->
+            <section class="cta-section">
+                <div class="cta-content">
+                    <h3>Separa o llama para agendar tu cita</h3>
+                    <p>Aprovecha de nuestro sistema de agenda en línea. Protégete, a tus seres queridos, y a la comunidad. ¡Reserva hoy mismo!</p>
+                    <a href="#" class="btn-action" style="width: fit-content; margin-top: 20px;">
+                        Agenda una Cita
+                        <i class="fa-solid fa-arrow-right"></i>
+                    </a>
+                </div>
+                <div class="cta-image">
+                    <img src="{{ url_for('static', filename='img/cta_servicios.jpg') }}" alt="Agendar cita">
+                </div>
+            </section>
+
+            <!-- FOOTER -->
+            <footer class="footer">
+                <div class="footer-col">
+                    <h4>Visítanos</h4>
+                    <p>Centro Médico Christus Muguerza Sur</p>
+                    <p>Cons. 203 Piso 2</p>
+                    <p>Carr. Nacional 6501, La Estanzuela</p>
+                    <p>Monterrey, NL.</p>
+                </div>
+                <div class="footer-col">
+                    <h4>Contáctanos</h4>
+                    <p><i class="fa-solid fa-phone"></i> 81 0000 0000</p>
+                    <p><i class="fa-solid fa-envelope"></i> immunicare.clinica@gmail.com</p>
+                </div>
+                <div class="footer-col">
+                    <h4>Horarios</h4>
+                    <p>Lun a Vie: 10:00 – 18:00</p>
+                    <p>Sábado: 9:00 a 14:00</p>
+                    <p>Domingo: Cerrado</p>
+                </div>
+            </footer>
+
+        </main>
+    </div>
+
+</body>
+</html>

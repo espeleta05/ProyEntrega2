@@ -1,9 +1,12 @@
 /* MAIN CONTAINER */
 
 .login-container{
-    width:30%;
-    overflow: hidden;
-    margin: 40px;
+    width:40%;
+    background-color: white;
+    padding: 40px;
+    margin: 80px 0;
+    height: auto;
+    border-radius: 30px ;
     display:flex;
     flex-direction:column;
     justify-content: center;
@@ -12,23 +15,30 @@
     text-align:center;
 }
 
+.login-info{
+    display:flex;
+    flex-direction:column;
+    gap: 10px;
+    align-items:center;
+}
+
 /* TITLE */
 
 .titulo-sistema{
-    font-size:50px;
+    font-size:1.8rem;
     color:var(--primary-color);
-    margin-bottom:20px;
+    margin-bottom:10px;
 }
 
 /* ICON */
 
 .icon-group i{
-    font-size: 2rem;
+    font-size: 1.5rem;
     color: var(--primary-color);
     background-color: var(--light-color);
-    margin: 20px;
-    width: 100px;
-    height: 100px;
+    margin: 10px;
+    width: 70px;
+    height: 70px;
     border-radius: 50%;
     display: flex;
     align-items: center;
@@ -38,9 +48,8 @@
 /* LOGIN TITLE */
 
 .login-title{
-    font-size:1.8rem;
+    font-size:1.5rem;
     font-weight:700;
-    margin-bottom:40px;
 }
 
 /* FORM */
@@ -55,7 +64,7 @@
 /* LABELS */
 
 label{
-    font-size:1.3rem;
+    font-size:1.2rem;
     text-align:left;
 }
 
@@ -77,7 +86,7 @@ label{
 
 .input-box input{
     width:100%;
-    height:55px;
+    height:50px;
 
     border:1px solid #636363;
     border-radius:20px;
@@ -89,7 +98,7 @@ label{
 /* LOGIN BUTTON */
 
 .login-button{
-    margin-top:15px;
+    margin-top:10spx;
 
     background:var(--primary-color);
     color:white;
@@ -97,8 +106,8 @@ label{
     border:none;
     border-radius:15px;
 
-    padding: 15px 0;
-    font-size:1.3rem;
+    padding: 10px 0;
+    font-size:1.2rem;
     font-weight:600;
 
     cursor:pointer;

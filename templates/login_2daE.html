@@ -3,6 +3,12 @@
 <head>
 <meta charset="UTF-8">
 <title>Login - Sistema Clínico de Vacunación</title>
+
+<!--
+    <link rel="stylesheet" href="../static/css/styles.css">
+    <link rel="stylesheet" href="../static/css/login.css">
+-->
+    
 <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
 <link rel="stylesheet" href="{{ url_for('static', filename='css/login.css') }}">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -13,39 +19,31 @@
 
 <body>
 
-<!-- Login Container -->
 <div class="login-container">
-
-    <!-- Title -->
+<div class="login-info">
     <h1 class="titulo-sistema">Sistema Clínico de Vacunación</h1>
 
-    <!-- User Icon -->
     <div class="icon-group">
         <i class="fa-solid fa-user"></i>
     </div>
 
-    <!-- Login subtitle -->
     <h2 class="login-title">Inicia Sesión</h2>
 
     <!-- Login Form -->
     <form class="login-form" method="POST">
 
-        <!-- Usuario -->
         <label class="label">Usuario</label>
 
         <div class="input-box usuario-box">
             <input type="text" name="mail" placeholder="mail o user" required>
         </div>
 
-        <!-- Contraseña -->
         <label class="label">Contraseña</label>
 
         <div class="input-box password-box">
             <input type="password" name="password" placeholder="****" required>
-            <!-- <i class="fa-solid fa-eye"></i> -->
         </div>
 
-        <!-- Login Button -->
         <button type="submit" class="login-button">Iniciar sesión</button>
     </form>
 
@@ -54,11 +52,12 @@
         <p class="error">{{ error }}</p>
     {% endif %}
 
-    <!-- Forgot password -->
     <a href="#" class="forgot-password">
         ¿Olvidó su contraseña?
         </a>
 
+</div>
+    
 </div>
 
 </body>

@@ -1,0 +1,112 @@
+{% extends 'base_2daE.html' %}
+
+{% block title %}Clínicas - Personal Clínico{% endblock %}
+
+{% block content %}
+
+<link rel="stylesheet" href="{{ url_for('static', filename='css/clinicas.css') }}">
+
+<div class="content-header">
+    <h2 class="title">Clínicas y Áreas de Servicio</h2>
+</div>
+
+<div class="section-info">
+    <p>
+        <strong>Total de clínicas:</strong> {{ total_clinics }} |
+        <strong class="status-active">Activas:</strong> {{ clinics|selectattr('is_active', 'true')|list|length }}
+    </p>
+</div>
+
+<!-- Grid de clínicas -->
+<div class="clinics-grid">
+    {% for clinic in clinics %}
+    <div class="clinic-card">
+
+        <!-- Header de clínica -->
+        <div class="clinic-header">
+            <div class="clinic-header-top">
+                <div>
+                    <h3 class="clinic-title-card">
+                        <i class="fa-solid fa-hospital"></i> {{ clinic.name }}
+                    </h3>
+                    <p class="clinic-subtitle">
+                        {{ clinic.institution_type }}
+                    </p>
+                </div>
+
+                <span class="status-badge {% if clinic.is_active %}status-active{% else %}status-inactive{% endif %}">
+                    {% if clinic.is_active %}ACTIVA{% else %}INACTIVA{% endif %}
+                </span>
+            </div>
+        </div>
+
+        <!-- Información de contacto -->
+        <div class="clinic-contact">
+            <div class="contact-row">
+                <i class="fa-solid fa-phone"></i>
+                <span class="contact-text">{{ clinic.phone }}</span>
+            </div>
+
+            <div class="contact-address">
+                <i class="fa-solid fa-location-dot"></i>
+                <span>{{ clinic.address_str }}</span>
+            </div>
+        </div>
+
+        <!-- Áreas de servicio -->
+        <div class="clinic-areas">
+            <h4 class="areas-title">
+                <i class="fa-solid fa-layer-group"></i> Áreas ({{ clinic.areas|length }})
+            </h4>
+
+            <div class="areas-list">
+                {% for area in clinic.areas %}
+                <div class="area-item">
+                    <div class="area-top">
+                        <div>
+                            <p class="area-name">
+                                {{ area.name }}
+                            </p>
+                            <span class="area-meta">
+                                {{ area.area_type }} · Piso {{ area.floor }}
+                            </span>
+                        </div>
+
+                        {% if area.capacity %}
+                        <span class="area-capacity">
+                            Cap: {{ area.capacity }}
+                        </span>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+
+            {% if clinic.areas|length == 0 %}
+            <p class="no-areas">
+                <i class="fa-solid fa-inbox"></i> Sin áreas registradas
+            </p>
+            {% endif %}
+        </div>
+
+        <!-- Botón de acción -->
+        <div class="clinic-footer">
+            <a href="#">
+                <i class="fa-solid fa-edit"></i> Editar clínica
+            </a>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<!-- Mensaje si no hay clínicas -->
+{% if clinics|length == 0 %}
+<div class="no-clinics">
+    <i class="fa-solid fa-building"></i>
+    <p>
+        No hay clínicas registradas
+    </p>
+</div>
+{% endif %}
+
+{% endblock %}

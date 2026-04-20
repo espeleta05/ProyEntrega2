@@ -1,0 +1,208 @@
+{% extends 'base_2daE.html' %}
+
+{% block title %}NFC - Personal Clínico{% endblock %}
+
+{% block content %}
+
+<link rel="stylesheet" href="{{ url_for('static', filename='css/tables.css') }}">   
+<link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">   
+
+<div class="title">
+    <h2 class="clinic-title">Sistema NFC - Tarjetas de Identificación</h2>
+</div>
+
+<!-- KPIs -->
+<div class="kpi-grid">
+    <div class="kpi-card kpi-color1">
+        <h4 class="kpi-value">{{ total_cards }}</h4>
+        <p class="kpi-label">Tarjetas totales</p>
+        <div class="kpi-icon"><i class="fa-solid fa-credit-card"></i></div>
+    </div>
+    <div class="kpi-card kpi-color2">
+        <h4 class="kpi-value">{{ active_cards }}</h4>
+        <p class="kpi-label">Tarjetas activas</p>
+        <div class="kpi-icon"><i class="fa-solid fa-credit-card"></i></div>
+    </div>
+    <div class="kpi-card kpi-color2">
+        <h4 class="kpi-value">{{ scans|length }}</h4>
+        <p class="kpi-label">Escaneos registrados</p>
+        <div class="kpi-icon"><i class="fa-solid fa-qrcode"></i></div>
+    </div>
+</div>
+
+<!-- SECCIÓN 1: TARJETAS NFC -->
+<div class="section-card">
+    <h3 class="section-header" style="margin-bottom: 20px;">
+        <div>Tarjetas NFC Registradas</div>
+    </h3>
+
+    <!-- Búsqueda -->
+    <div class="search-bar-container section">
+        <i class="fa-solid fa-magnifying-glass"></i>
+        <input type="text" id="searchCardsInput" placeholder="Buscar por UID o paciente...">
+    </div>
+
+    <div class="sort-and-filter">
+        <div class="sort-options">
+            <p class="sort-label">Filtrar por estado:</p>
+            <select id="roleFilterSelect" class="sort-select">
+                <option value="">Todos</option>
+                {% for c in cards %}
+                <option value="{{ c.status }}">{{ c.status }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        
+        <div class="sort-options">
+            <p class="sort-label">Ordenar por:</p>
+            <select id="sortSelect" class="sort-select">
+                <option value="">Ninguno</option>
+                <option value="paciente">Paciente</option>
+                <option value="tipo_tarjeta">Tipo de tarjeta</option>
+                <option value="fecha_emision">Fecha de emisión</option>
+            </select>
+        </div>
+    </div>
+
+    <!-- Tabla de tarjetas -->
+    <div class="tbl-wrapper">
+        <table class="tbl">
+            <thead>
+                <tr>
+                    <th>UID</th>
+                    <th>Paciente</th>
+                    <th>Tipo de tarjeta</th>
+                    <th>Estado</th>
+                    <th>Fecha emisión</th>
+                    <th>Último escaneo</th>
+                    <th>Notas</th>
+                </tr>
+            </thead>
+            <tbody id="cardsTable">
+                {% for card in cards %}
+                <tr class="tbl-row" data-uid="{{ card.uid }}" data-patient="{{ card.patient_name }}">
+                    <td><code style="background: #f0f0f0; padding: 3px 6px; border-radius: 4px;">{{ card.uid }}</code></td>
+                    <td><strong>{{ card.patient_name }}</strong></td>
+                    <td>{{ card.card_type }}</td>
+                    <td>
+                        {% if card.status == 'Activa' %}
+                        <span class="status-ok">
+                            <i class="fa-solid fa-check"></i> Activa
+                        </span>
+                        {% else %}
+                        <span class="status-late">
+                            <i class="fa-solid fa-times"></i> Inactiva
+                        </span>
+                        {% endif %}
+                    </td>
+                    <td>{{ card.issued_date }}</td>
+                    <td class="muted-td">
+                        <span>
+                            {{ card.last_scanned_at[:10] if card.last_scanned_at else '—' }}
+                        </span>
+                    </td>
+                    <td class="muted-td">
+                        <span>
+                            {{ card.notes[:30] if card.notes else '—' }}
+                        </span>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- SECCIÓN 2: EVENTOS DE ESCANEO -->
+<div class="section-card">
+    <h3 class="section-header" style="margin-bottom: 20px;">
+        <div>Eventos de Escaneo</div>
+    </h3>
+
+    <!-- Búsqueda -->
+    <div class="search-bar-container section">
+        <i class="fa-solid fa-magnifying-glass"></i>
+        <input type="text" id="searchScansInput" placeholder="Buscar por paciente o trabajador...">
+    </div>
+
+    <!-- Tabla de escaneos -->
+    <div class="tbl-wrapper">
+        <table class="tbl">
+            <thead>
+                <tr>
+                    <th>Fecha y Hora</th>
+                    <th>Paciente</th>
+                    <th>Trabajador</th>
+                    <th>Acción</th>
+                    <th>Resultado</th>
+                </tr>
+            </thead>
+            <tbody id="scansTable">
+                {% for scan in scans %}
+                <tr class="tbl-row" data-patient="{{ scan.patient_name }}" data-worker="{{ scan.worker_name }}">
+                    <td>
+                        <span>
+                            {{ scan.scanned_at[:10] if scan.scanned_at else '—' }}<br>
+                            <strong>{{ scan.scanned_at[11:16] if scan.scanned_at else '—' }}</strong>
+                        </span>
+                    </td>
+                    <td><strong>{{ scan.patient_name }}</strong></td>
+                    <td>{{ scan.worker_name }}</td>
+                    <td>{{ scan.action_triggered }}</td>
+                    <td>
+                        {% if scan.result == 'Éxito' or scan.result == 'Exitoso' %}
+                        <span class="status-ok">
+                            <i class="fa-solid fa-check"></i> {{ scan.result }}
+                        </span>
+                        {% elif scan.result == 'Error' %}
+                        <span class="status-late">
+                            <i class="fa-solid fa-exclamation"></i> {{ scan.result }}
+                        </span>
+                        {% else %}
+                        <span class="muted-td">{{ scan.result or '—' }}</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+// Búsqueda en tarjetas
+document.getElementById('searchCardsInput').addEventListener('input', function(e) {
+    const query = e.target.value.toLowerCase();
+    const rows = document.querySelectorAll('#cardsTable tr');
+
+    rows.forEach(row => {
+        const uid = row.getAttribute('data-uid').toLowerCase();
+        const patient = row.getAttribute('data-patient').toLowerCase();
+
+        if (uid.includes(query) || patient.includes(query)) {
+            row.style.display = '';
+        } else {
+            row.style.display = 'none';
+        }
+    });
+});
+
+// Búsqueda en escaneos
+document.getElementById('searchScansInput').addEventListener('input', function(e) {
+    const query = e.target.value.toLowerCase();
+    const rows = document.querySelectorAll('#scansTable tr');
+
+    rows.forEach(row => {
+        const patient = row.getAttribute('data-patient').toLowerCase();
+        const worker = row.getAttribute('data-worker').toLowerCase();
+
+        if (patient.includes(query) || worker.includes(query)) {
+            row.style.display = '';
+        } else {
+            row.style.display = 'none';
+        }
+    });
+});
+</script>
+
+{% endblock %}

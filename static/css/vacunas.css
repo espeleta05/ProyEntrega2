@@ -1,87 +1,134 @@
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap');
+
+:root {
+    --header-bg:  #4f2c55;
+    --border:     #f1e6f2;
+    --row-odd:    #ffffff;
+    --row-even:   #fbf7fc;
+    --text-main:  #1e2230;
+    --text-muted: #6b7280;
+}
 
 
-.esquema{
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    text-align: center;
-    margin: 30px;
-    text-decoration: underline;
-    letter-spacing: 1px;
+/* ── Tabla wrapper ── */
+.inv-table-wrapper {
+    background: #fff;
+    border: 0.5px solid var(--border);
+    border-radius: 14px;
+    overflow: hidden;
+    box-shadow: 0 4px 24px rgba(30,34,64,.08);
+}
+
+/* ── Tabla ── */
+.inv-table {
     width: 100%;
-    font-style: medium;
-    font-weight: 600;
-    color: var(--secondary-color);
-    cursor: pointer;
+    border-collapse: collapse;
+    font-family: var(--font);
+    font-size: .88rem;
+    table-layout: fixed;
 }
 
-.btn-esquema {
-    display: inline-flex;
-    align-items: center;
-    justify-self: center;
-    gap: 0.5rem;
-    margin: 1rem 0 1.5rem;
-    padding: 0.55rem 1.2rem;
-    background: var(--secondary-color);
-    color: var( --light-color);
-    font-size: 0.88rem;
-    font-weight: 600;
-    border-radius: 8px;
-    text-decoration: none;
-  }
-  
-  .btn-esquema:hover { 
-    transition: background .2s;
-    background: #ffffff;
-    color: var(--secondary-color);
-  }
+/* Header */
+.inv-table thead th {
+    background: var(--header-bg);
+    color: #fff;
+    font-size: .75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .6px;
+    padding: 13px 16px;
+    border: none;
+    text-align: left;
+}
+.inv-table thead th.num { text-align: right; }
 
-/* VACCINE LIST */
+/* Anchos de columnas */
+.inv-table thead th:nth-child(1) { width: 20%; }
+.inv-table thead th:nth-child(2) { width: 10%; }
+.inv-table thead th:nth-child(3) { width: 16%; }
+.inv-table thead th:nth-child(4),
+.inv-table thead th:nth-child(5),
+.inv-table thead th:nth-child(6) { width: 12%; }
+.inv-table thead th:nth-child(7) { width: 14%; }
 
-/* TAGS */
+/* Filas */
+.inv-row {
+    border-bottom: 1px solid var(--border);
+    transition: background .12s;
+}
+.inv-row:last-child { border-bottom: none; }
+.inv-row:nth-child(odd)  { background: var(--row-odd); }
+.inv-row:nth-child(even) { background: var(--row-even); }
+.inv-row:hover { background: #eef2ff; }
 
-.tag{
+.inv-table td {
+    padding: 13px 16px;
+    border: none;
+    vertical-align: middle;
+    color: var(--text-main);
+}
+.inv-table td.num { text-align: right; font-weight: 700; }
 
-padding:5px 12px;
-border-radius:15px;
-font-size:13px;
-
+/* ── Barra de color en la celda de nombre ── */
+td.name-td {
+    border-left: 5px solid transparent;
+    padding-left: 14px !important;
+    border-radius: 0;
 }
 
-.tag.activa{
-background:#B9DAFF;
-color:#0073A4;
+.inv-row.bar-0  td.name-td { border-left-color: #4CAF7D; }
+.inv-row.bar-1  td.name-td { border-left-color: #5B8DD9; }
+.inv-row.bar-2  td.name-td { border-left-color: #29B6C5; }
+.inv-row.bar-3  td.name-td { border-left-color: #F4A84A; }
+.inv-row.bar-4  td.name-td { border-left-color: #E8C94A; }
+.inv-row.bar-5  td.name-td { border-left-color: #A0C94A; }
+.inv-row.bar-6  td.name-td { border-left-color: #E05252; }
+.inv-row.bar-7  td.name-td { border-left-color: #AB6BD6; }
+.inv-row.bar-8  td.name-td { border-left-color: #FF8A65; }
+.inv-row.bar-9  td.name-td { border-left-color: #78909C; }
+.inv-row.bar-10 td.name-td { border-left-color: #26A69A; }
+.inv-row.bar-11 td.name-td { border-left-color: #EC407A; }
+
+.vax-name {
+    font-weight: 800;
+    font-size: .95rem;
+    color: var(--text-main);
 }
 
-
-
-/* STOCK */
-
-.stock{
-    display: flex;
-    gap: 10px;
-    align-items: center;
-    padding:6px 12px;
-    border-radius:15px;
-    font-size:14px;
-    width:fit-content;
+/* ── Lote ── */
+.lot-td {
+    font-family: monospace;
+    font-size: .82rem;
+    color: var(--text-muted);
+    letter-spacing: .3px;
 }
 
-.stock.text{
-padding: 0;
+/* ── Fecha vencimiento ── */
+.exp-badge {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 999px;
+    font-size: .75rem;
+    font-weight: 700;
 }
+.exp-ok   { background: #e3f2fd; color: #0d47a1; }
+.exp-warn { background: #fff3e0; color: #e65100; }
 
-.stock.high{
-background:#CFFFC0;
-color:#1D7B00;
+/* ── Stock pill ── */
+.stock-pill {
+    display: inline-block;
+    padding: 3px 12px;
+    border-radius: 999px;
+    font-size: .8rem;
+    font-weight: 700;
 }
+.stock-ok  { background: #e6f4ea; color: #1b5e20; }
+.stock-low { background: #fce4e4; color: #b71c1c; }
 
-.stock.medium{
-background:#FFEEC0;
-color:#C08D00;
-}
-
-.stock.low{
-    background-color: var(--bad-background);
-    color: var(--bad-color);
+/* ── Empty state ── */
+.empty-state {
+    text-align: center;
+    padding: 40px;
+    color: var(--text-muted);
+    font-size: .9rem;
 }

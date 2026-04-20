@@ -13,47 +13,49 @@
 
 <link rel="stylesheet" href="{{ url_for('static', filename='css/esquemaVacunacion.css') }}">
 <link rel="stylesheet" href="{{ url_for('static', filename='css/esquemaPaciente.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/tables.css') }}">
 
 
 <!-- -- Back + title -- -->
 <div class="scheme-header">
     <a href="{{ url_for('historial') }}" class="back"><i class="fa-solid fa-arrow-left"></i> Regresar</a>
     <h2 class="title">Esquema de vacunación</h2>
-    <p class="patient-sub">
+    <p class="subtitle">
         {{ patient.full_name }} &nbsp;·&nbsp; ID: P{{ patient.patient_id }}
         &nbsp;·&nbsp; {{ patient.age if patient.age is defined else '' }} años
     </p>
 </div>
 
-<!-- -- Vaccination history table -- -->
 <section class="patients">
-        <table>
-            <thead>
-                <tr>
-                    <th>Vacuna</th>
-                    <th>Dosis</th>
-                    <th>Fecha aplicada</th>
-                    <th>Aplicada por</th>
-                    <th>Estado</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for app in applications %}
-                <tr>
-                    <td><strong>{{ app.name }}</strong></td>
-                    <td>{{ app.dose }}</td>
-                    <td>{{ app.date }}</td>
-                    <td>{{ app.doctor }}</td>
-                    <td><span class="status ok"><i class="fa-solid fa-check"></i> Aplicada</span></td>
-                </tr>
-                {% else %}
-                <tr>
-                    <td colspan="5" class="empty-state">Sin registros de vacunación aún.</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-</section>
+    <div class="tbl-wrapper">
+      <table class="tbl">
+        <thead>
+          <tr>
+            <th>Vacuna</th>
+            <th>Dosis</th>
+            <th>Fecha aplicada</th>
+            <th>Aplicada por</th>
+            <th>Estado</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for app in applications %}
+          <tr class="{{ 'row-even' if loop.index is even else 'row-odd' }} bar-{{ loop.index0 % 9 }}">
+            <td class="name-td"><strong>{{ app.name }}</strong></td>
+            <td><span class="dose-pill">{{ app.dose }}</span></td>
+            <td class="muted-td">{{ app.date }}</td>
+            <td class="muted-td">{{ app.doctor }}</td>
+            <td><span class="status-ok"><i class="fa-solid fa-check"></i> Aplicada</span></td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="5" class="empty-state">Sin registros de vacunación aún.</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
  
 <!-- -- Summary cards -- -->
 {% set total_applied  = applications | length %}
@@ -61,26 +63,34 @@
 {% set total_doses    = total_applied + total_pending %}
 {% set pct = ((total_applied / total_doses * 100) | int) if total_doses > 0 else 0 %}
  
-<div class="cards">
-    <div class="dash-card">
+<div class="kpi-grid">
+    <div class="kpi-card kpi-color1">
         <i class="fa-solid fa-syringe"></i>
-        <h4>Dosis aplicadas</h4>
-        <p>{{ total_applied }}</p>
+        <div class="kpi-body">
+            <p class="kpi-value">{{ total_applied }}</p>
+            <p class="kpi-label">Dosis aplicadas</p>
+        </div>
     </div>
-    <div class="dash-card">
+    <div class="kpi-card kpi-color2">
         <i class="fa-regular fa-clock"></i>
-        <h4>Dosis pendientes</h4>
-        <p>{{ total_pending }}</p>
+        <div class="kpi-body">
+            <p class="kpi-value">{{ total_pending }}</p>
+            <p class="kpi-label">Dosis pendientes</p>
+        </div>
     </div>
-    <div class="dash-card">
+    <div class="kpi-card kpi-color1">
         <i class="fa-solid fa-calendar-days"></i>
-        <h4>Total programadas</h4>
-        <p>{{ total_doses }}</p>
+        <div class="kpi-body">
+            <p class="kpi-value">{{ total_doses }}</p>
+            <p class="kpi-label">Total programadas</p>
+        </div>
     </div>
-    <div class="dash-card">
+    <div class="kpi-card kpi-color2">
         <i class="fa-solid fa-chart-simple"></i>
-        <h4>Progreso</h4>
-        <p>{{ pct }}%</p>
+        <div class="kpi-body">
+            <p class="kpi-value">{{ pct }}%</p>
+            <p class="kpi-label">Progreso</p>
+        </div>
     </div>
 </div>
  

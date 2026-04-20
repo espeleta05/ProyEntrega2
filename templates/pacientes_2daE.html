@@ -8,16 +8,14 @@
 <link rel="stylesheet" href="{{ url_for('static', filename='css/pacientes.css') }}">
 
 <div class="content-header">
-    <h2 class="title">Gestión de pacientes</h2>
-
+    <div>
+        <h2 class="title">Gestión de pacientes</h2>
+        <p class="subtitle">Total pacientes: {{ total_patients }}</p>
+    </div>
     <button class="btn-agregar" onclick="openPatientModal()">
         <i class="fa-solid fa-plus"></i>
         Agregar paciente
     </button>
-</div>
-
-<div class="subtitle">
-    Total pacientes: {{ total_patients }}
 </div>
 
 <div class="search-bar-container section">
@@ -25,26 +23,117 @@
     <input type="text" id="searchInput" placeholder="Buscar paciente por nombre o id...">
 </div>
 
-<div class="section" id="patientsContainer">
+<div class="sort-and-filter">
+    <div class="sort-options">
+        <p class="sort-label">Filtrar por tipo de sangre:</p>
+        <select id="roleFilterSelect" class="sort-select">
+            <option value="">Todos</option>
+            {% for p in patients %}
+            <option value="{{ p.blood_type_id | lower }}">{{ p.blood_type }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    
+    <div class="sort-options">
+        <p class="sort-label">Ordenar por:</p>
+        <select id="sortSelect" class="sort-select">
+            <option value="">Ninguno</option>
+            <option value="name">Nombre</option>
+            <option value="id">ID</option>
+            <option value="edad">Edad</option>
+        </select>
+    </div>
+</div>
 
+<div class="patients-grid" id="patientsContainer">
     {% for p in patients %}
+
+    <!--
+        {# Risk class #}
+        {% set risk_value = (p.risk or 'bajo') | lower %}
+        {% if 'alto' in risk_value %}
+            {% set risk_class = 'high' %}
+            {% set risk_color = 'rc-red' %}
+        {% elif 'medio' in risk_value or 'moderado' in risk_value %}
+            {% set risk_class = 'mid' %}
+            {% set risk_color = 'rc-amber' %}
+        {% else %}
+            {% set risk_class = 'low' %}
+            {% set risk_color = 'rc-green' %}
+        {% endif %}
+    -->
+       
+
         <div id="patient-card-{{ p.patient_id }}" class="patient-card-wrapper">
-            {% include 'components/patient_card_2daE.html' %}
-        </div>
-    {% else %}
-        <div class="card">
-            <div class="card-body">
-                <p>No hay pacientes registrados.</p>
+            <div class="pt-card">
+
+                <!-- Top strip de color por riesgo -->
+                <div class="pt-card-strip"></div>
+
+                <!-- Header -->
+                <div class="pt-card-header">
+                    <div class="pt-avatar">
+                        {{ p.first_name[0] | upper }}{{ p.last_name[0] | upper if p.last_name else '' }}
+                    </div>
+                    <div class="pt-header-info">
+                        <span class="pt-name">{{ p.full_name }}</span>
+                        <span class="pt-id">ID: P{{ p.patient_id }}</span>
+                    </div>
+                    {% if show_delete is not defined or show_delete %}
+                    <button type="button" class="pt-delete-btn delete-patient-btn"
+                            data-patient-id="{{ p.patient_id }}" title="Eliminar paciente">
+                        <i class="fa-solid fa-trash"></i>
+                    </button>
+                    {% endif %}
+                </div>
+
+                <!-- Body -->
+                <div class="pt-card-body">
+                    <div class="pt-detail">
+                        <i class="fa-solid fa-calendar-days"></i>
+                        <span>{{ p.birth_date }}</span>
+                    </div>
+                    <div class="pt-detail">
+                        <i class="fa-solid fa-user-shield"></i>
+                        <span>{{ p.guardian or 'Sin tutor' }}</span>
+                    </div>
+                    <div class="pt-detail">
+                        <i class="fa-solid fa-phone"></i>
+                        <span>{{ p.contact or '—' }}</span>
+                    </div>
+                </div>
+
+                <!-- Footer con badges -->
+                <div class="pt-card-footer">
+                    <span class="pt-badge pt-blood">
+                        <i class="fa-solid fa-droplet"></i>
+                        {{ p.blood_type or '—' }}
+                    </span>
+                    <span class="pt-badge pt-allergy">
+                        <i class="fa-solid fa-triangle-exclamation"></i>
+                        {{ p.allergies or 'Sin alergias' }}
+                    </span>
+                    <!--
+                        <span class="pt-badge pt-risk {{ risk_color }}">
+                            {{ p.risk or 'Bajo' }}
+                        </span>
+                    -->
+                </div>
+
             </div>
         </div>
-    {% endfor %}
 
+    {% else %}
+        <div class="pt-empty">
+            <i class="fa-solid fa-users-slash"></i>
+            <p>No hay pacientes registrados.</p>
+        </div>
+    {% endfor %}
 </div>
 
 {% include 'nuevoPaciente_2daE.html' %}
 
 <script>
-// Script de búsqueda (sin cambios)
 const container = document.getElementById('patientsContainer');
 const originalCards = container ? Array.from(container.querySelectorAll('.patient-card-wrapper')) : [];
 
@@ -57,9 +146,9 @@ document.getElementById('searchInput').addEventListener('input', function() {
     }
 
     originalCards.forEach(card => {
-        const patientId = card.id.replace('patient-card-', '');
-        const nameElement = card.querySelector('.card-header h3');
-        const patientName = nameElement ? nameElement.innerText.toLowerCase() : '';
+        const patientId  = card.id.replace('patient-card-', '');
+        const nameEl     = card.querySelector('.pt-name');
+        const patientName = nameEl ? nameEl.innerText.toLowerCase() : '';
 
         if (patientId === searchTerm || patientName.includes(searchTerm)) {
             card.style.display = 'block';
@@ -70,7 +159,6 @@ document.getElementById('searchInput').addEventListener('input', function() {
     });
 });
 
-// Si llega un parametro ?q=... desde la busqueda global, aplicarlo al abrir.
 (() => {
     const params = new URLSearchParams(window.location.search);
     const q = (params.get('q') || '').trim();
@@ -84,23 +172,14 @@ document.querySelectorAll('.delete-patient-btn').forEach(btn => {
     btn.addEventListener('click', async function () {
         const patientId = this.dataset.patientId;
         if (!patientId) return;
-
-        if (!confirm('Esta accion eliminara al paciente y sus registros relacionados. Continuar?')) {
-            return;
-        }
-
+        if (!confirm('Esta accion eliminara al paciente y sus registros relacionados. Continuar?')) return;
         try {
             const response = await fetch(`/delete_patient/${patientId}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' }
             });
             const result = await response.json();
-
-            if (!response.ok) {
-                alert(result.error || 'No se pudo eliminar el paciente');
-                return;
-            }
-
+            if (!response.ok) { alert(result.error || 'No se pudo eliminar el paciente'); return; }
             const card = document.getElementById(`patient-card-${patientId}`);
             if (card) card.remove();
             alert(result.message || 'Paciente eliminado correctamente');
@@ -114,4 +193,3 @@ document.querySelectorAll('.delete-patient-btn').forEach(btn => {
 </script>
 
 {% endblock %}
-

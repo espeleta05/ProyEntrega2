@@ -14,12 +14,12 @@
             <span>Pacientes</span>
         </a>
 
-        <a href="{{ url_for('vacunas_page') }}" class="menu-item {% if request.endpoint=='vacunas_page' %}active{% endif %}">
+        <a href="{{ url_for('vacunas_page') }}" class="menu-item {% if request.endpoint=='vacunas_page' or request.endpoint=='esquema_vacunacion' %}active{% endif %}">
             <i class="fa-solid fa-syringe"></i>
             <span>Vacunas</span>
         </a>
 
-        <a href="{{ url_for('historial') }}" class="menu-item {% if request.endpoint=='historial' %}active{% endif %}">
+        <a href="{{ url_for('historial') }}" class="menu-item {% if request.endpoint=='historial' or request.endpoint=='esquema_paciente' %}active{% endif %}">
             <i class="fa-solid fa-file-medical"></i>
             <span>Historial médico</span>
         </a>
@@ -37,6 +37,30 @@
         <a href="{{ url_for('nfc_bridge_page') }}" class="menu-item {% if request.endpoint=='nfc_bridge_page' %}active{% endif %}">
             <i class="fa-solid fa-wifi"></i>
             <span>NFC Bridge</span>
+        </a>
+
+    </nav>
+
+    <nav class="menu menu-bottom">
+
+        <a href="{{ url_for('inventario') }}" class="menu-item {% if request.endpoint=='inventario' %}active{% endif %}">
+            <i class="fa-solid fa-boxes-stacked"></i>
+            <span>Inventario</span>
+        </a>
+
+        <a href="{{ url_for('citas') }}" class="menu-item {% if request.endpoint=='citas' %}active{% endif %}">
+            <i class="fa-solid fa-calendar-check"></i>
+            <span>Citas</span>
+        </a>
+
+        <a href="{{ url_for('nfc') }}" class="menu-item {% if request.endpoint=='nfc' %}active{% endif %}">
+            <i class="fa-solid fa-credit-card"></i>
+            <span>NFC</span>
+        </a>
+
+        <a href="{{ url_for('clinicas') }}" class="menu-item {% if request.endpoint=='clinicas' %}active{% endif %}">
+            <i class="fa-solid fa-hospital"></i>
+            <span>Clínicas</span>
         </a>
 
     </nav>

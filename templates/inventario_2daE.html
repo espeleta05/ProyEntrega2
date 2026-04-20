@@ -1,0 +1,117 @@
+{% extends 'base_2daE.html' %}
+
+{% block title %}Inventario - Personal Clínico{% endblock %}
+
+{% block content %}
+
+<link rel="stylesheet" href="{{ url_for('static', filename='css/tables.css') }}">
+
+<div class="content-header">
+    <h2 class="title">Inventario de Insumos</h2>
+    <a href="#" class="btn-agregar">
+        <i class="fa-solid fa-plus"></i> Agregar insumo
+    </a>
+</div>
+
+<div class="section-info">
+        <strong>Total de insumos:</strong> {{ inventory|length }} &nbsp;|&nbsp;
+        <strong class="low">Con stock bajo:</strong> {{ inventory|selectattr('low_stock', 'true')|list|length }}
+    </p>
+</div>
+
+<!-- Barra de búsqueda -->
+<div class="search-bar-container section" >
+    <i class="fa-solid fa-magnifying-glass"></i>
+    <input type="text" id="searchInput" placeholder="Buscar por insumo o clínica...">
+</div>
+
+<div class="sort-and-filter">
+    <div class="sort-options">
+        <p class="sort-label">Filtrar por insumo:</p>
+        <select id="roleFilterSelect" class="sort-select">
+            <option value="">Todos</option>
+            {% for item in inventory %}
+            <option value="{{ item.supply_name | lower }}">{{ item.supply_name }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    
+    <div class="sort-options">
+        <p class="sort-label">Ordenar por:</p>
+        <select id="sortSelect" class="sort-select">
+            <option value="">Ninguno</option>
+            <option value="clinica">Clinica</option>
+            <option value="insumo">Insumo</option>
+            <option value="unidad">Unidad</option>
+            <option value="stock">Stock</option>
+            <option value="categoria">Categoria</option>
+            <option value="estado">Estado</option>
+        </select>
+    </div>
+</div>
+
+<!-- Tabla de inventario -->
+<div class="tbl-wrapper">
+    <table class="tbl">
+        <thead>
+            <tr>
+                <th>Clínica</th>
+                <th>Insumo</th>
+                <th>Unidad</th>
+                <th class="num">Stock actual</th>
+                <th class="num">Stock mínimo</th>
+                <th>Categoría</th>
+                <th class="center">Estado</th>
+            </tr>
+        </thead>
+        <tbody id="inventoryTable">
+            {% for item in inventory %}
+            <tr class="tbl-row bar-{{ loop.index0 % 12 }}"
+                data-clinic="{{ item.clinic_name }}"
+                data-supply="{{ item.supply_name }}">
+                <td class="muted-td">{{ item.clinic_name }}</td>
+                <td>
+                    <span class="cell-main">{{ item.supply_name }}</span>
+                </td>
+                <td class="muted-td">{{ item.supply_unit }}</td>
+                <td class="num">
+                    <span class="stock-pill {{ 'stock-low' if item.low_stock else 'stock-ok' }}">
+                        {{ item.quantity }}
+                    </span>
+                </td>
+                <td class="num">{{ item.min_stock }}</td>
+                <td class="muted-td">{{ item.supply_category }}</td>
+                <td class="center">
+                    {% if item.low_stock %}
+                        <span class="status-late">
+                            <i class="fa-solid fa-triangle-exclamation"></i> Bajo
+                        </span>
+                    {% else %}
+                        <span class="status-ok">
+                            <i class="fa-solid fa-check"></i> Disponible
+                        </span>
+                    {% endif %}
+                </td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="7" class="empty-state">No hay insumos registrados.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+<p class="tbl-footer">Mostrando {{ inventory|length }} de {{ inventory|length }} insumos</p>
+
+<script>
+document.getElementById('searchInput').addEventListener('input', function(e) {
+    const query = e.target.value.toLowerCase();
+    document.querySelectorAll('#inventoryTable tr[data-clinic]').forEach(row => {
+        const clinic  = row.dataset.clinic.toLowerCase();
+        const supply  = row.dataset.supply.toLowerCase();
+        row.style.display = (clinic.includes(query) || supply.includes(query)) ? '' : 'none';
+    });
+});
+</script>
+
+{% endblock %}

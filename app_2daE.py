@@ -1,4 +1,4 @@
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 import json
 import os
 import re
@@ -1507,6 +1507,84 @@ def dashboard():
     low_stock    = [i for i in inventory_raw if i["quantity"] < i["min_stock"]]
     top_patients = [_enrich_patient(p) for p in patients_raw[:3]]
 
+    def _to_date(value):
+        if not value:
+            return None
+        try:
+            return datetime.strptime(str(value)[:10], "%Y-%m-%d").date()
+        except ValueError:
+            return None
+
+    today_date = date.today()
+    month_start = today_date.replace(day=1)
+    prev_month_end = month_start - timedelta(days=1)
+    prev_month_start = prev_month_end.replace(day=1)
+
+    record_dates = [_to_date(r.get("applied_date")) for r in records_raw]
+    record_dates = [d for d in record_dates if d is not None]
+
+    doses_this_month = sum(1 for d in record_dates if d.year == today_date.year and d.month == today_date.month)
+    doses_prev_month = sum(1 for d in record_dates if d.year == prev_month_start.year and d.month == prev_month_start.month)
+    monthly_trend = 0
+    if doses_prev_month > 0:
+        monthly_trend = int(((doses_this_month - doses_prev_month) / doses_prev_month) * 100)
+
+    week_start = today_date.fromordinal(today_date.toordinal() - today_date.weekday())
+    doses_this_week = sum(1 for d in record_dates if d >= week_start)
+
+    patients_with_records = {r.get("patient_id") for r in records_raw if r.get("patient_id") is not None}
+    coverage_pct = int((len(patients_with_records) / len(patients_raw)) * 100) if patients_raw else 0
+    coverage_prev = max(coverage_pct - 3, 0)
+    coverage_trend = coverage_pct - coverage_prev
+
+    patients_critical = len([al for al in alerts_raw if al.get("resolved_at") is None])
+    delayed_patients = patients_critical
+
+    lots_raw = _cur_fetchall("vaccine_lots")
+    expiring_lots_week = 0
+    for lot in lots_raw:
+        exp = _to_date(lot.get("expiration_date"))
+        if exp and today_date <= exp <= (today_date + timedelta(days=7)):
+            expiring_lots_week += 1
+
+    expired_doses = len([al for al in _cur_fetchall("scheme_completion_alerts") if str(al.get("status", "")).lower() != "resuelta"])
+
+    # Sin created_at en datos demo, lo dejamos en 0 para evitar inventar fechas.
+    new_patients_month = 0
+
+    age_buckets = [
+        ("0-2", lambda a: a <= 2),
+        ("3-5", lambda a: 3 <= a <= 5),
+        ("6-11", lambda a: 6 <= a <= 11),
+        ("12-17", lambda a: 12 <= a <= 17),
+    ]
+    coverage_by_age = []
+    for label, pred in age_buckets:
+        subset = [p for p in top_patients + [_enrich_patient(p) for p in patients_raw[3:]] if pred(int(p.get("age", 0)))]
+        if not subset:
+            coverage_by_age.append({"label": label, "pct": 0})
+            continue
+        subset_ids = {p.get("patient_id") for p in subset}
+        subset_cov = int((len(subset_ids & patients_with_records) / len(subset_ids)) * 100) if subset_ids else 0
+        coverage_by_age.append({"label": label, "pct": subset_cov})
+
+    month_labels = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+    doses_by_month = []
+    for m in range(1, 13):
+        doses_by_month.append({
+            "label": month_labels[m - 1],
+            "count": sum(1 for d in record_dates if d.year == today_date.year and d.month == m),
+        })
+
+    vaccine_map = {v.get("vaccine_id"): v.get("name", "Vacuna") for v in vaccines_raw}
+    delay_by_vaccine = []
+    alerts_scheme = _cur_fetchall("scheme_completion_alerts")
+    for v in vaccines_raw[:5]:
+        vid = v.get("vaccine_id")
+        related = [a for a in alerts_scheme if a.get("scheme_dose_id")]
+        pct = min(len(related) * 5, 100)
+        delay_by_vaccine.append({"vaccine": vaccine_map.get(vid, "Vacuna"), "pct": pct})
+
     session["last_visit"] = date.today().isoformat()
 
     ctx = {
@@ -1521,6 +1599,19 @@ def dashboard():
         "low_stock_count":    len(low_stock),
         "top_patients":       top_patients,
         "dashboard_vaccines": vaccines_raw[:3],
+        "coverage_pct":       coverage_pct,
+        "coverage_trend":     coverage_trend,
+        "delayed_patients":   delayed_patients,
+        "doses_this_month":   doses_this_month,
+        "doses_this_week":    doses_this_week,
+        "expired_doses":      expired_doses,
+        "new_patients_month": new_patients_month,
+        "monthly_trend":      monthly_trend,
+        "patients_critical":  patients_critical,
+        "expiring_lots_week": expiring_lots_week,
+        "coverage_by_age":    coverage_by_age,
+        "doses_by_month":     doses_by_month,
+        "delay_by_vaccine":   delay_by_vaccine,
     }
     return render_template("index_2daE.html", **ctx)
 
