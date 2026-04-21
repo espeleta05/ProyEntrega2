@@ -3,88 +3,49 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ImmuniCare - Centro de Vacunación</title>
-    <!-- CORRECCIÓN 1: Asegúrate que el nombre del archivo CSS sea correcto (ej. inicioPP.css o landing.css) -->
+    <title>ImmuniCare - Centro de Vacunación Infantil</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&family=Open+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/inicioPP.css') }}">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
 <body>
 
-    <!-- SIDEBAR IZQUIERDO -->
-    <aside class="sidebar">
-        <div class="sidebar-header">
-            <a href="{{ url_for('pagina_inicio') }}" class="logo">
-                <i class="fa-solid fa-syringe logo-icon"></i>
-                <span class="logo-text">ImmuniCare</span>
-            </a>
-        </div>
-        
-        <nav class="sidebar-menu">
-            <div class="menu-category">Principal</div>
-            <!-- CORRECCIÓN 2: Enlaces del menú usando url_for -->
-            <a href="{{ url_for('pagina_inicio') }}" class="menu-item active">
-                <i class="fa-solid fa-house"></i>
-                <span>Inicio</span>
-            </a>
-            <a href="{{ url_for('pagina_nosotros') }}" class="menu-item">
-                <i class="fa-solid fa-building"></i>
-                <span>Nosotros</span>
-            </a>
-            <a href="{{ url_for('pagina_servicios') }}" class="menu-item">
-                <i class="fa-solid fa-syringe"></i>
-                <span>Servicios</span>
-            </a>
-            <a href="{{ url_for('pagina_contacto') }}" class="menu-item">
-                <i class="fa-solid fa-phone"></i>
-                <span>Contacto</span>
-            </a>
+    <!-- TOPBAR -->
+    <header class="topbar">
+        <a href="{{ url_for('pagina_inicio') }}" class="topbar-logo">
+            <img src="{{ url_for('static', filename='img/logo.png') }}" alt="ImmuniCare Logo" class="logo-img">
+        </a>
+        <nav class="topbar-nav">
+            <a href="{{ url_for('pagina_inicio') }}" class="nav-link active">Principal</a>
+            <a href="{{ url_for('pagina_nosotros') }}" class="nav-link">Nosotros</a>
+            <a href="{{ url_for('pagina_servicios') }}" class="nav-link">Servicios</a>
+            <a href="{{ url_for('pagina_contacto') }}" class="nav-link">Contacto</a>
         </nav>
-
-        <div class="sidebar-footer">
-            <!-- Enlace al login del sistema -->
-            <a href="{{ url_for('login') }}" class="btn-register" style="text-decoration: none; color: white;">
-                <i class="fa-solid fa-user-plus"></i>
-                Iniciar Sesión
-            </a>
+        <div class="topbar-actions">
+            <a href="#" class="btn-login"><i class="fa-solid fa-user"></i> <span>Iniciar Sesión</span></a>
+            <a href="{{ url_for('pagina_contacto') }}" class="btn-action">Agenda tu Cita <i class="fa-solid fa-arrow-right"></i></a>
         </div>
-    </aside>
+    </header>
 
-    <!-- CONTENEDOR DERECHO -->
+    <!-- MAIN CONTAINER -->
     <div class="main-container">
-        
-        <!-- TOPBAR -->
-        <header class="topbar">
-            <div class="search-bar">
-                <i class="fa-solid fa-magnifying-glass"></i>
-                <input type="text" placeholder="Buscar información...">
-            </div>
-            <div class="topbar-actions">
-                <a href="#" class="btn-action">
-                    Realiza tu cita
-                    <i class="fa-solid fa-arrow-right"></i>
-                </a>
-                <div class="user-icon">
-                    <i class="fa-solid fa-user"></i>
-                </div>
-            </div>
-        </header>
-
-        <!-- CONTENIDO PRINCIPAL -->
         <main class="content">
-            
+
             <!-- HERO SECTION -->
             <section class="hero">
                 <div class="hero-content">
-                    <h1>Prevención que cuida su futuro</h1>
+                    <h1>Prevención que <span>cuida su futuro</span></h1>
                     <h2>Centro de Vacunación Infantil</h2>
-                    <a href="#" class="btn-hero">
+                    <a href="{{ url_for('pagina_contacto') }}" class="btn-hero">
                         Agenda una Cita
                         <i class="fa-solid fa-arrow-right"></i>
                     </a>
                 </div>
             </section>
 
-            <!-- FEATURES CARDS -->
+            <!-- FEATURES -->
             <section class="features">
                 <div class="feature-card">
                     <div class="icon-circle c1"><i class="fa-solid fa-clock"></i></div>
@@ -104,34 +65,31 @@
                 </div>
             </section>
 
-            <!-- ABOUT SECTION -->
+            <!-- INFO SECTION 1 -->
             <section class="info-section">
                 <div class="info-image">
-                    <!-- CORRECCIÓN 3: Imágenes con url_for -->
-                    <img src="{{ url_for('static', filename='img/img_2.png') }}" alt="Doctor y paciente">
+                    <img src="{{ url_for('static', filename='img/inicio_2.png') }}" alt="Niño vacunándose">
                 </div>
                 <div class="info-text">
                     <h3>Cuidando la salud de tus hijos</h3>
-                    <p>En nuestro centro de vacunación infantil trabajamos con un propósito claro: cuidar la salud de los más pequeños. Confiamos en el poder de las vacunas como una herramienta segura y eficaz para prevenir enfermedades y proteger su desarrollo.</p>
-                    <a href="{{ url_for('pagina_nosotros') }}" class="btn-action">
-                        Sobre Nosotros
-                        <i class="fa-solid fa-arrow-right"></i>
-                    </a>
+                    <p>En nuestro centro trabajamos para proteger a los más pequeños mediante vacunación segura y eficaz.</p>
+                    <p>Brindamos acompañamiento profesional a cada familia en todo momento.</p>
+                    <br>
+                    <a href="{{ url_for('pagina_nosotros') }}" class="btn-action">Sobre Nosotros <i class="fa-solid fa-arrow-right"></i></a>
                 </div>
             </section>
 
-            <!-- SERVICES SECTION -->
+            <!-- INFO SECTION 2 (Reverse) -->
             <section class="info-section reverse">
                 <div class="info-image">
-                    <img src="{{ url_for('static', filename='img/img_3.png') }}" alt="Servicios">
+                    <img src="{{ url_for('static', filename='img/inicio_3.png') }}" alt="Servicios médicos">
                 </div>
                 <div class="info-text">
                     <h3>Nuestros Servicios</h3>
-                    <p>Ofrecemos atención especializada y segura en la aplicación de vacunas, brindando cuidado y confianza para proteger la salud de los niños en cada etapa de su crecimiento.</p>
-                    <a href="{{ url_for('pagina_servicios') }}" class="btn-action">
-                        Más Información
-                        <i class="fa-solid fa-arrow-right"></i>
-                    </a>
+                    <p>Atención especializada en vacunación infantil y medicina preventiva.</p>
+                    <p>Contamos con un amplio catálogo de biológicos para todas las edades.</p>
+                    <br>
+                    <a href="{{ url_for('pagina_servicios') }}" class="btn-action">Más Información <i class="fa-solid fa-arrow-right"></i></a>
                 </div>
             </section>
 
@@ -139,42 +97,40 @@
             <section class="cta-section">
                 <div class="cta-content">
                     <h3>Separa o llama para agendar tu cita</h3>
-                    <p>Aprovecha de nuestro sistema de agenda en línea. Protégete, a tus seres queridos, y a la comunidad. ¡Reserva hoy mismo!</p>
-                    <a href="#" class="btn-action" style="width: fit-content; margin-top: 20px;">
-                        Agenda una Cita
-                        <i class="fa-solid fa-arrow-right"></i>
-                    </a>
+                    <p>Agenda en línea de forma rápida y segura. Estamos listos para atenderte.</p>
+                    <a href="{{ url_for('pagina_contacto') }}" class="btn-action">Agenda una Cita <i class="fa-solid fa-calendar-check"></i></a>
                 </div>
                 <div class="cta-image">
-                    <img src="{{ url_for('static', filename='img/img_4.png') }}" alt="Agendar">
+                    <img src="{{ url_for('static', filename='img/todas_2.png') }}" alt="Agenda tu cita">
                 </div>
             </section>
 
-            <!-- FOOTER -->
-            <footer class="footer">
-                <!-- ... (resto del footer igual) ... -->
-                 <div class="footer-col">
-                    <h4>Visítanos</h4>
-                    <p>Centro Médico Christus Muguerza Sur</p>
-                    <p>Cons. 203 Piso 2</p>
-                    <p>Carr. Nacional 6501, La Estanzuela</p>
-                    <p>Monterrey, NL.</p>
-                </div>
-                <div class="footer-col">
-                    <h4>Contáctanos</h4>
-                    <p><i class="fa-solid fa-phone"></i> 81 0000 0000</p>
-                    <p><i class="fa-solid fa-envelope"></i> immunicare.clinica@gmail.com</p>
-                </div>
-                <div class="footer-col">
-                    <h4>Horarios</h4>
-                    <p>Lun a Vie: 10:00 – 18:00</p>
-                    <p>Sábado: 9:00 a 14:00</p>
-                    <p>Domingo: Cerrado</p>
-                </div>
-            </footer>
-
         </main>
     </div>
+
+    <!-- FOOTER -->
+    <footer class="footer">
+        <div class="footer-col">
+            <h4>Visítanos</h4>
+            <p>Centro Médico</p>
+            <p>Christus Muguerza Sur</p>
+            <p>Cons. 203 Piso 2</p>
+            <p>Carr. Nacional 6501</p>
+            <p>La Estanzuela 64988</p>
+            <p>Monterrey NL.</p>
+        </div>
+        <div class="footer-col">
+            <h4>Contáctanos</h4>
+            <p><i class="fa-solid fa-phone"></i> 81 0000 0000</p>
+            <p><i class="fa-solid fa-envelope"></i> immunicare.clinica@gmail.com</p>
+        </div>
+        <div class="footer-col">
+            <h4>Horarios</h4>
+            <p>Lun a Vie: 10:00 – 18:00</p>
+            <p>Sábado: 9:00 a 14:00</p>
+            <p>Domingo: Cerrado</p>
+        </div>
+    </footer>
 
 </body>
 </html>

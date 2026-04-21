@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Contacto - ImmuniCare</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&family=Open+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/contactoPP.css') }}">
+</head>
+<body>
+
+    <!-- TOPBAR -->
+    <header class="topbar">
+        <a href="{{ url_for('pagina_inicio') }}" class="topbar-logo">
+            <img src="{{ url_for('static', filename='img/logo.png') }}" alt="ImmuniCare Logo" class="logo-img">
+        </a>
+        <nav class="topbar-nav">
+            <a href="{{ url_for('pagina_inicio') }}" class="nav-link">Principal</a>
+            <a href="{{ url_for('pagina_nosotros') }}" class="nav-link">Nosotros</a>
+            <a href="{{ url_for('pagina_servicios') }}" class="nav-link">Servicios</a>
+            <a href="{{ url_for('pagina_contacto') }}" class="nav-link active">Contacto</a>
+        </nav>
+        <div class="topbar-actions">
+            <a href="#" class="btn-login"><i class="fa-solid fa-user"></i> Iniciar Sesión</a>
+            <a href="#cita" class="btn-action">Agenda tu Cita <i class="fa-solid fa-arrow-right"></i></a>
+        </div>
+    </header>
+
+    <div class="main-container">
+        <main class="content">
+            
+            <!-- HERO HEADER -->
+            <section class="contact-hero">
+                <h1>Estamos para apoyarte en lo que necesites</h1>
+                <p>¿Tienes alguna duda? ¿Requieres orientación en cuanto a tu esquema de vacunación?</p>
+                <p>No dudes en contactarnos.</p>
+            </section>
+
+            <!-- MENSAJES FLASH -->
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ category }}">
+                            {{ message }}
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+
+            <!-- SECCIÓN DE CONTACTO -->
+            <section class="contact-section">
+                
+                <!-- COLUMNA IZQUIERDA: INFORMACIÓN -->
+                <div class="contact-info-col">
+                    <div class="info-item">
+                        <h3><i class="fa-solid fa-phone"></i> Teléfono</h3>
+                        <p>81 0000 0000</p>
+                    </div>
+                    
+                    <div class="info-item">
+                        <h3><i class="fa-solid fa-envelope"></i> Correo Electrónico</h3>
+                        <p>immunicare.clinica@gmail.com</p>
+                    </div>
+
+                    <div class="info-item">
+                        <h3><i class="fa-solid fa-location-dot"></i> Ubicación</h3>
+                        <p>Centro Médico Christus Muguerza Sur</p>
+                        <p>Cons. 203 Piso 2, Carr. Nacional 6501</p>
+                        <p>La Estanzuela, Monterrey NL.</p>
+                    </div>
+
+                    <!-- MAPA IMAGEN GRANDE -->
+                    <div class="map-placeholder">
+                        <img src="{{ url_for('static', filename='img/mapa_contacto.png') }}" alt="Ubicación en mapa">
+                    </div>
+                </div>
+
+                <!-- COLUMNA DERECHA: FORMULARIO -->
+                <div class="contact-form-col" id="cita">
+                    <h2>Mándanos un mensaje</h2>
+                    <form action="{{ url_for('pagina_contacto') }}" method="POST" class="contact-form">
+                        
+                        <div class="form-group">
+                            <label>Nombre</label>
+                            <input type="text" name="nombre" placeholder="Nombre(s)" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Apellidos</label>
+                            <input type="text" name="apellidos" placeholder="Apellidos paternos y maternos" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Email</label>
+                            <input type="email" name="email" placeholder="Ingresa tu correo electrónico" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label>WhatsApp</label>
+                            <input type="tel" name="whatsapp" placeholder="Ingresa tu número">
+                        </div>
+
+                        <div class="form-group">
+                            <label>Mensaje</label>
+                            <textarea name="mensaje" placeholder="Escribe tu mensaje aquí..." rows="4" required></textarea>
+                        </div>
+
+                        <button type="submit" class="btn-action" style="width: 100%; justify-content: center;">
+                            Enviar
+                            <i class="fa-solid fa-paper-plane"></i>
+                        </button>
+                    </form>
+                </div>
+
+            </section>
+
+        </main>
+    </div>
+
+    <!-- FOOTER -->
+    <footer class="footer">
+        <div class="footer-col">
+            <h4>Visítanos</h4>
+            <p>Centro Médico</p>
+            <p>Christus Muguerza Sur</p>
+            <p>Cons. 203 Piso 2</p>
+            <p>Carr. Nacional 6501</p>
+            <p>La Estanzuela 64988</p>
+            <p>Monterrey NL.</p>
+        </div>
+        <div class="footer-col">
+            <h4>Contáctanos</h4>
+            <p><i class="fa-solid fa-phone"></i> 81 0000 0000</p>
+            <p><i class="fa-solid fa-envelope"></i> immunicare.clinica@gmail.com</p>
+        </div>
+        <div class="footer-col">
+            <h4>Horarios</h4>
+            <p>Lun a Vie: 10:00 – 18:00</p>
+            <p>Sábado: 9:00 a 14:00</p>
+            <p>Domingo: Cerrado</p>
+        </div>
+    </footer>
+
+</body>
+</html>
