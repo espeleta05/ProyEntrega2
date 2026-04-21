@@ -1,4 +1,5 @@
 import os
+import math
 from datetime import date, datetime, timedelta
 from calendar import month_abbr
 from urllib.parse import urlparse
@@ -918,6 +919,18 @@ def _temporal_date(value):
             except ValueError:
                 return None
     return None
+
+
+def _distance_meters(lat1, lon1, lat2, lon2):
+    """Calcula distancia en metros entre dos coordenadas (Haversine)."""
+    r = 6371000.0
+    phi1 = math.radians(lat1)
+    phi2 = math.radians(lat2)
+    dphi = math.radians(lat2 - lat1)
+    dlambda = math.radians(lon2 - lon1)
+    a = math.sin(dphi / 2) ** 2 + math.cos(phi1) * math.cos(phi2) * math.sin(dlambda / 2) ** 2
+    c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+    return r * c
 
 
 def _worker_full_name(worker_id):
@@ -2317,6 +2330,8 @@ def api_alertas_esquema():
             "dose_label":   dose["dose_label"] if dose else "—",
         })
     return jsonify(result)
+
+
 
 
 if __name__ == "__main__":
