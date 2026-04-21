@@ -16,6 +16,7 @@
     <header class="topbar">
         <a href="{{ url_for('pagina_inicio') }}" class="topbar-logo">
             <img src="{{ url_for('static', filename='img/logo.png') }}" alt="ImmuniCare Logo" class="logo-img">
+            <span class="logo-text">ImmuniCare</span>
         </a>
         <nav class="topbar-nav">
             <a href="{{ url_for('pagina_inicio') }}" class="nav-link active">Principal</a>
@@ -24,7 +25,7 @@
             <a href="{{ url_for('pagina_contacto') }}" class="nav-link">Contacto</a>
         </nav>
         <div class="topbar-actions">
-            <a href="#" class="btn-login"><i class="fa-solid fa-user"></i> <span>Iniciar Sesión</span></a>
+            <a href="{{ url_for('login') }}" class="btn-login">...<span>Iniciar Sesión</span></a>
             <a href="{{ url_for('pagina_contacto') }}" class="btn-action">Agenda tu Cita <i class="fa-solid fa-arrow-right"></i></a>
         </div>
     </header>
@@ -33,15 +34,14 @@
     <div class="main-container">
         <main class="content">
 
-            <!-- HERO SECTION -->
             <section class="hero">
-                <div class="hero-content">
+                 <div class="hero-content">
                     <h1>Prevención que <span>cuida su futuro</span></h1>
                     <h2>Centro de Vacunación Infantil</h2>
-                    <a href="{{ url_for('pagina_contacto') }}" class="btn-hero">
+                <a href="{{ url_for('pagina_contacto') }}" class="btn-action">
                         Agenda una Cita
-                        <i class="fa-solid fa-arrow-right"></i>
-                    </a>
+                    <i class="fa-solid fa-arrow-right"></i>
+                </a>
                 </div>
             </section>
 
@@ -100,8 +100,8 @@
                     <p>Agenda en línea de forma rápida y segura. Estamos listos para atenderte.</p>
                     <a href="{{ url_for('pagina_contacto') }}" class="btn-action">Agenda una Cita <i class="fa-solid fa-calendar-check"></i></a>
                 </div>
-                <div class="cta-image">
-                    <img src="{{ url_for('static', filename='img/todas_2.png') }}" alt="Agenda tu cita">
+                <div class="info-image">
+                    <img src="{{ url_for('static', filename='img/todas_1.png') }}" alt="Agenda tu cita">
                 </div>
             </section>
 
