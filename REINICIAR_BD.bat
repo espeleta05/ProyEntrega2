@@ -13,8 +13,8 @@ if not exist ".venv\Scripts\python.exe" (
     exit /b 1
 )
 
-call ".venv\Scripts\activate.bat"
-python scripts\bootstrap_postgres.py --force-reset
+set "VENV_PY=.venv\Scripts\python.exe"
+"%VENV_PY%" scripts\bootstrap_postgres.py --force-reset
 
 if errorlevel 1 (
     echo [ERROR] No se pudo reiniciar la base de datos.

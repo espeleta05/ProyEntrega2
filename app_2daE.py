@@ -1,7 +1,7 @@
 import os
 from datetime import date, datetime, timedelta
 from calendar import month_abbr
-from flask import Flask, flash, jsonify, redirect, render_template, request, session, url_for
+from flask import Flask, flash, jsonify, redirect, render_template, request, session, url_for, g, has_request_context
 import psycopg
 from psycopg import sql
 from psycopg.rows import dict_row
@@ -379,6 +379,41 @@ def _db_connect():
     return psycopg.connect(app.config["DATABASE_URL"], row_factory=dict_row)
 
 
+def _get_conn():
+    if has_request_context():
+        conn = getattr(g, "db_conn", None)
+        if conn is None or conn.closed:
+            conn = _db_connect()
+            g.db_conn = conn
+        return conn, False
+    return _db_connect(), True
+
+
+def _get_req_cache():
+    if not has_request_context():
+        return None
+    cache = getattr(g, "req_cache", None)
+    if cache is None:
+        cache = {}
+        g.req_cache = cache
+    return cache
+
+
+def _safe_rollback(conn):
+    try:
+        if conn is not None and not conn.closed:
+            conn.rollback()
+    except Exception:
+        pass
+
+
+@app.teardown_appcontext
+def _close_request_db(_exc):
+    conn = getattr(g, "db_conn", None)
+    if conn is not None and not conn.closed:
+        conn.close()
+
+
 def _safe_table_name(table):
     return TABLE_ALIASES.get(table, table)
 
@@ -392,68 +427,110 @@ def _table_exists(conn, table):
 
 def _cur_fetchall(table):
     physical = _safe_table_name(table)
+    cache = _get_req_cache()
+    cache_key = ("all", physical)
+    if cache is not None and cache_key in cache:
+        return cache[cache_key]
+
+    conn, should_close = _get_conn()
     try:
-        with _db_connect() as conn:
-            if not _table_exists(conn, physical):
-                return []
-            with conn.cursor() as cur:
-                cur.execute(sql.SQL("SELECT * FROM {}" ).format(sql.Identifier(physical)))
-                return cur.fetchall()
+        with conn.cursor() as cur:
+            cur.execute(sql.SQL("SELECT * FROM {}").format(sql.Identifier(physical)))
+            rows = cur.fetchall()
+            if cache is not None:
+                cache[cache_key] = rows
+            return rows
     except Exception:
+        _safe_rollback(conn)
         return []
+    finally:
+        if should_close and not conn.closed:
+            conn.close()
 
 
 def _cur_fetchone(table, pk_field, pk_value):
     physical = _safe_table_name(table)
+    cache = _get_req_cache()
+    cache_key = ("one", physical, pk_field, pk_value)
+    if cache is not None and cache_key in cache:
+        return cache[cache_key]
+
+    conn, should_close = _get_conn()
     try:
-        with _db_connect() as conn:
-            if not _table_exists(conn, physical):
-                return None
-            with conn.cursor() as cur:
-                cur.execute(
-                    sql.SQL("SELECT * FROM {} WHERE {} = %s LIMIT 1").format(
-                        sql.Identifier(physical),
-                        sql.Identifier(pk_field),
-                    ),
-                    (pk_value,),
-                )
-                return cur.fetchone()
+        with conn.cursor() as cur:
+            cur.execute(
+                sql.SQL("SELECT * FROM {} WHERE {} = %s LIMIT 1").format(
+                    sql.Identifier(physical),
+                    sql.Identifier(pk_field),
+                ),
+                (pk_value,),
+            )
+            row = cur.fetchone()
+            if cache is not None:
+                cache[cache_key] = row
+            return row
     except Exception:
+        _safe_rollback(conn)
         return None
+    finally:
+        if should_close and not conn.closed:
+            conn.close()
 
 
 def _cur_fetchall_where(table, field, value):
     physical = _safe_table_name(table)
+    cache = _get_req_cache()
+    cache_key = ("where", physical, field, value)
+    if cache is not None and cache_key in cache:
+        return cache[cache_key]
+
+    conn, should_close = _get_conn()
     try:
-        with _db_connect() as conn:
-            if not _table_exists(conn, physical):
-                return []
-            with conn.cursor() as cur:
-                cur.execute(
-                    sql.SQL("SELECT * FROM {} WHERE {} = %s").format(
-                        sql.Identifier(physical),
-                        sql.Identifier(field),
-                    ),
-                    (value,),
-                )
-                return cur.fetchall()
+        with conn.cursor() as cur:
+            cur.execute(
+                sql.SQL("SELECT * FROM {} WHERE {} = %s").format(
+                    sql.Identifier(physical),
+                    sql.Identifier(field),
+                ),
+                (value,),
+            )
+            rows = cur.fetchall()
+            if cache is not None:
+                cache[cache_key] = rows
+            return rows
     except Exception:
+        _safe_rollback(conn)
         return []
+    finally:
+        if should_close and not conn.closed:
+            conn.close()
 
 
 def _exec_sql(query, params=None, fetchone=False, fetchall=False):
-    with _db_connect() as conn:
+    conn, should_close = _get_conn()
+    try:
         with conn.cursor() as cur:
             cur.execute(query, params or ())
             if fetchone:
                 return cur.fetchone()
             if fetchall:
                 return cur.fetchall()
+            conn.commit()
+            cache = _get_req_cache()
+            if cache is not None:
+                cache.clear()
             return None
+    except Exception:
+        _safe_rollback(conn)
+        raise
+    finally:
+        if should_close and not conn.closed:
+            conn.close()
 
 
 def _sp_fetchall(function_name, params=None):
-    with _db_connect() as conn:
+    conn, should_close = _get_conn()
+    try:
         with conn.cursor() as cur:
             if params:
                 placeholders = ", ".join(["%s"] * len(params))
@@ -466,6 +543,12 @@ def _sp_fetchall(function_name, params=None):
                 query = sql.SQL("SELECT * FROM {}()").format(sql.Identifier(function_name))
                 cur.execute(query)
             return cur.fetchall()
+    except Exception:
+        _safe_rollback(conn)
+        raise
+    finally:
+        if should_close and not conn.closed:
+            conn.close()
 
 
 def _sp_try_fetchall(function_name, params=None, fallback=None):
@@ -476,7 +559,8 @@ def _sp_try_fetchall(function_name, params=None, fallback=None):
 
 
 def _sp_fetchone(function_name, params=None):
-    with _db_connect() as conn:
+    conn, should_close = _get_conn()
+    try:
         with conn.cursor() as cur:
             if params:
                 placeholders = ", ".join(["%s"] * len(params))
@@ -489,6 +573,12 @@ def _sp_fetchone(function_name, params=None):
                 query = sql.SQL("SELECT * FROM {}()").format(sql.Identifier(function_name))
                 cur.execute(query)
             return cur.fetchone()
+    except Exception:
+        _safe_rollback(conn)
+        raise
+    finally:
+        if should_close and not conn.closed:
+            conn.close()
 
 
 def _sp_try_fetchone(function_name, params=None, fallback=None):
@@ -534,12 +624,54 @@ def _sync_known_sequences(conn):
 def _patients_from_sp():
     raw = _sp_try_fetchall("sp_get_patients_full")
     if not raw:
-        return [_enrich_patient(p) for p in _cur_fetchall("patients")]
+        raw = _exec_sql(
+            """
+            SELECT
+                p.patient_id,
+                p.first_name,
+                p.last_name,
+                (p.first_name || ' ' || p.last_name) AS full_name,
+                p.birth_date,
+                COALESCE(bt.blood_type, '—') AS blood_type,
+                COALESCE(g.first_name || ' ' || g.last_name, 'Sin tutor') AS guardian,
+                COALESCE(ph.phone, '—') AS contact,
+                COALESCE(STRING_AGG(DISTINCT al.name, ', '), 'Ninguna') AS allergies,
+                'N/A'::TEXT AS risk
+            FROM patients p
+            LEFT JOIN blood_types bt ON bt.blood_type_id = p.blood_type_id
+            LEFT JOIN patient_guardian_relations pgr
+                ON pgr.patient_id = p.patient_id AND pgr.is_primary = TRUE
+            LEFT JOIN guardians g ON g.guardian_id = pgr.guardian_id
+            LEFT JOIN LATERAL (
+                SELECT gp.phone
+                FROM guardian_phones gp
+                WHERE gp.guardian_id = g.guardian_id
+                ORDER BY gp.is_primary DESC, gp.phone_id ASC
+                LIMIT 1
+            ) ph ON TRUE
+            LEFT JOIN patient_allergies pa ON pa.patient_id = p.patient_id
+            LEFT JOIN allergies al ON al.allergy_id = pa.allergy_id
+            GROUP BY
+                p.patient_id,
+                p.first_name,
+                p.last_name,
+                p.birth_date,
+                bt.blood_type,
+                g.first_name,
+                g.last_name,
+                ph.phone
+            ORDER BY p.patient_id
+            """,
+            fetchall=True,
+        ) or []
     out = []
     for row in raw:
         item = dict(row)
-        item["guardian"] = item.get("guardian_name") or "Sin tutor"
-        item["contact"] = item.get("guardian_phone") or "—"
+        item["full_name"] = item.get("full_name") or _patient_full_name(item)
+        item["guardian"] = item.get("guardian") or item.get("guardian_name") or "Sin tutor"
+        item["contact"] = item.get("contact") or item.get("guardian_phone") or "—"
+        item["blood_type"] = item.get("blood_type") or "—"
+        item["allergies"] = item.get("allergies") or "Ninguna"
         item["risk"] = item.get("risk") or "N/A"
         out.append(item)
     return out
@@ -548,27 +680,47 @@ def _patients_from_sp():
 def _applications_from_sp():
     raw = _sp_try_fetchall("sp_get_vaccination_records_full")
     if not raw:
-        return [_enrich_record(r) for r in _cur_fetchall("vaccination_records")]
+        raw = _exec_sql(
+            """
+            SELECT
+                vr.record_id,
+                vr.vaccine_id,
+                vr.applied_date,
+                vr.patient_temp_c,
+                COALESCE(vr.had_reaction, FALSE) AS had_reaction,
+                p.first_name || ' ' || p.last_name AS patient_name,
+                v.name AS vaccine_name,
+                w.first_name || ' ' || w.last_name AS worker_name,
+                sd.dose_label,
+                aps.application_site
+            FROM vaccination_records vr
+            JOIN patients p ON p.patient_id = vr.patient_id
+            JOIN vaccines v ON v.vaccine_id = vr.vaccine_id
+            JOIN workers w ON w.worker_id = vr.worker_id
+            LEFT JOIN scheme_doses sd ON sd.dose_id = vr.scheme_dose_id
+            LEFT JOIN application_sites aps ON aps.application_site_id = vr.application_site_id
+            ORDER BY vr.applied_date DESC, vr.record_id DESC
+            """,
+            fetchall=True,
+        ) or []
 
-    vaccines = {v["name"]: v["vaccine_id"] for v in _cur_fetchall("vaccines")}
-    out = []
-    for row in raw:
-        item = {
+    return [
+        {
             "id": row.get("record_id"),
             "name": row.get("vaccine_name"),
-            "vaccine_id": vaccines.get(row.get("vaccine_name")),
+            "vaccine_id": row.get("vaccine_id"),
             "patient_name": row.get("patient_name"),
             "doctor": row.get("worker_name"),
             "dose": row.get("dose_label") or "—",
-            "date": row.get("applied_date"),
+            "date": _temporal_text(row.get("applied_date")),
             "next_date": None,
             "application_site": row.get("application_site") or "—",
             "had_reaction": row.get("had_reaction", False),
             "patient_temp_c": row.get("patient_temp_c"),
             "notes": "Con reacción" if row.get("had_reaction") else "Sin reacciones",
         }
-        out.append(item)
-    return out
+        for row in raw
+    ]
 
 
 def _inventory_from_sp():
@@ -582,14 +734,71 @@ def _inventory_from_sp():
 def _appointments_from_sp():
     raw = _sp_try_fetchall("sp_get_appointments_full")
     if not raw:
-        return [_enrich_appointment(ap) for ap in _cur_fetchall("appointments")]
+        raw = _exec_sql(
+            """
+            SELECT
+                a.appointment_id,
+                a.scheduled_at,
+                a.duration_min,
+                COALESCE(a.reason, '—') AS reason,
+                COALESCE(a.appointment_status, '—') AS appointment_status,
+                COALESCE(a.appointment_notes, '') AS appointment_notes,
+                p.first_name || ' ' || p.last_name AS patient_name,
+                w.first_name || ' ' || w.last_name AS worker_name,
+                c.name AS clinic_name,
+                COALESCE(ca.name, '—') AS area_name,
+                COALESCE(a.reason, '—') AS vaccine_name,
+                COALESCE(a.appointment_status, '—') AS status
+            FROM appointments a
+            JOIN patients p ON p.patient_id = a.patient_id
+            JOIN workers w ON w.worker_id = a.worker_id
+            JOIN clinics c ON c.clinic_id = a.clinic_id
+            LEFT JOIN clinic_areas ca ON ca.area_id = a.area_id
+            ORDER BY a.scheduled_at DESC
+            """,
+            fetchall=True,
+        ) or []
     out = []
     for row in raw:
         item = dict(row)
         item["status"] = row.get("appointment_status") or "—"
         item["vaccine_name"] = row.get("reason") or "—"
+        item["scheduled_at"] = _temporal_text(row.get("scheduled_at"))
         out.append(item)
     return out
+
+
+def _patient_records_full(patient_id):
+    rows = _exec_sql(
+        """
+        SELECT
+            vr.record_id AS id,
+            vr.applied_date AS date,
+            vr.patient_temp_c,
+            COALESCE(vr.had_reaction, FALSE) AS had_reaction,
+            p.first_name || ' ' || p.last_name AS patient_name,
+            v.name AS name,
+            w.first_name || ' ' || w.last_name AS doctor,
+            COALESCE(sd.dose_label, '—') AS dose,
+            COALESCE(aps.application_site, '—') AS application_site,
+            CASE
+                WHEN COALESCE(vr.had_reaction, FALSE) THEN 'Con reacción'
+                ELSE 'Sin reacciones'
+            END AS notes,
+            NULL::DATE AS next_date
+        FROM vaccination_records vr
+        JOIN patients p ON p.patient_id = vr.patient_id
+        JOIN vaccines v ON v.vaccine_id = vr.vaccine_id
+        JOIN workers w ON w.worker_id = vr.worker_id
+        LEFT JOIN scheme_doses sd ON sd.dose_id = vr.scheme_dose_id
+        LEFT JOIN application_sites aps ON aps.application_site_id = vr.application_site_id
+        WHERE vr.patient_id = %s
+        ORDER BY vr.applied_date DESC, vr.record_id DESC
+        """,
+        (patient_id,),
+        fetchall=True,
+    ) or []
+    return [{**row, "date": _temporal_text(row.get("date"))} for row in rows]
 
 
 # =============================================================================
@@ -637,6 +846,34 @@ def _next_id(items, key):
 def _patient_full_name(patient):
     parts = [patient.get("first_name", ""), patient.get("last_name", "")]
     return " ".join(p for p in parts if p).strip()
+
+
+def _temporal_text(value):
+    if value is None:
+        return None
+    if isinstance(value, datetime):
+        return value.isoformat(sep=" ")
+    if isinstance(value, date):
+        return value.isoformat()
+    return str(value)
+
+
+def _temporal_date(value):
+    if value is None:
+        return None
+    if isinstance(value, datetime):
+        return value.date()
+    if isinstance(value, date):
+        return value
+    if isinstance(value, str):
+        try:
+            return datetime.fromisoformat(value.replace("Z", "")).date()
+        except ValueError:
+            try:
+                return datetime.strptime(value[:10], "%Y-%m-%d").date()
+            except ValueError:
+                return None
+    return None
 
 
 def _worker_full_name(worker_id):
@@ -919,9 +1156,9 @@ def dashboard():
     week_start         = today_dt - timedelta(days=today_dt.weekday())
     month_start        = today_dt.replace(day=1)
 
-    applications_today = sum(1 for r in records_raw if r.get("applied_date") == today_dt.isoformat())
-    doses_this_week    = sum(1 for r in records_raw if r.get("applied_date", "") >= week_start.isoformat())
-    doses_this_month   = sum(1 for r in records_raw if r.get("applied_date", "") >= month_start.isoformat())
+    applications_today = sum(1 for r in records_raw if _temporal_date(r.get("applied_date")) == today_dt)
+    doses_this_week    = sum(1 for r in records_raw if (_temporal_date(r.get("applied_date")) or date.min) >= week_start)
+    doses_this_month   = sum(1 for r in records_raw if (_temporal_date(r.get("applied_date")) or date.min) >= month_start)
 
     # ── KPI: pacientes con dosis vencidas (lotes vencidos usados) ───────────
     expired_lots       = {l["lot_id"] for l in lots_raw if l.get("expiration_date") and str(l["expiration_date"]) < today_dt.isoformat()}
@@ -1123,17 +1360,16 @@ def historial():
     if locked:
         return locked
 
-    patients_raw = _cur_fetchall("patients")
-    patient      = _enrich_patient(patients_raw[0]) if patients_raw else None
-    records_raw  = _cur_fetchall_where("vaccination_records", "patient_id", patient["patient_id"]) if patient else []
-    records      = [_enrich_record(r) for r in records_raw]
+    patients = _patients_from_sp()
+    patient = patients[0] if patients else None
+    records = _patient_records_full(patient["patient_id"]) if patient else []
 
     next_vaccines = _build_next_vaccines(patient["patient_id"]) if patient else []
 
     return render_template(
         "historial_2daE.html",
         **_session_vars(),
-        patients=[_enrich_patient(p) for p in patients_raw],
+        patients=patients,
         patient=patient,
         applications=records,
         next_vaccines=next_vaccines,
@@ -1146,21 +1382,20 @@ def historial_paciente(id):
     if locked:
         return locked
 
-    patient_raw = _cur_fetchone("patients", "patient_id", id)
-    if not patient_raw:
+    patients = _patients_from_sp()
+    patient = next((p for p in patients if p.get("patient_id") == id), None)
+    if not patient:
         flash("Paciente no encontrado.", "danger")
         return redirect(url_for("historial"))
 
-    patient     = _enrich_patient(patient_raw)
-    records_raw = _cur_fetchall_where("vaccination_records", "patient_id", id)
-    records     = [_enrich_record(r) for r in records_raw]
+    records = _patient_records_full(id)
 
     session["last_patient_viewed"] = id
 
     return render_template(
         "historial_2daE.html",
         **_session_vars(),
-        patients=[_enrich_patient(p) for p in _cur_fetchall("patients")],
+        patients=patients,
         patient=patient,
         applications=records,
         next_vaccines=_build_next_vaccines(id),
@@ -1236,6 +1471,8 @@ def _enrich_nfc_card(c):
     patient = _cur_fetchone("patients", "patient_id", c["patient_id"])
     item["patient_name"] = _patient_full_name(patient) if patient else "—"
     item["notes"] = c.get("nfc_card_notes")
+    item["issued_date"] = _temporal_text(c.get("issued_date"))
+    item["last_scanned_at"] = _temporal_text(c.get("last_scanned_at"))
     return item
 
 
@@ -1247,6 +1484,7 @@ def _enrich_nfc_scan(s):
     patient = _cur_fetchone("patients", "patient_id", card["patient_id"]) if card else None
     item["patient_name"] = _patient_full_name(patient) if patient else "—"
     item["result"] = s.get("nfc_scan_result")
+    item["scanned_at"] = _temporal_text(s.get("scanned_at"))
     return item
 
 
@@ -1536,17 +1774,31 @@ def personal():
     if locked:
         return locked
 
-    workers_raw = _cur_fetchall("workers")
-    workers = []
-    for w in workers_raw:
-        row  = dict(w)
-        role = _cur_fetchone("roles", "role_id", w["role_id"])
-        row["role"]     = role["name"] if role else "Sin rol"
-        row["name"]     = w["first_name"]
-        row["lastname"] = w["last_name"]
-        # email desde worker_emails
-        row["mail"]     = _worker_email(w["worker_id"])
-        workers.append(row)
+    workers = _exec_sql(
+        """
+        SELECT
+            w.worker_id,
+            w.first_name AS name,
+            w.last_name AS lastname,
+            COALESCE(r.name, 'Sin rol') AS role,
+            COALESCE(we.email, '—') AS mail
+        FROM workers w
+        LEFT JOIN roles r ON r.role_id = w.role_id
+        LEFT JOIN LATERAL (
+            SELECT e.email
+            FROM worker_emails e
+            WHERE e.worker_id = w.worker_id
+            ORDER BY e.is_primary DESC, e.email_id ASC
+            LIMIT 1
+        ) we ON TRUE
+        ORDER BY w.worker_id
+        """,
+        fetchall=True,
+    ) or []
+
+    for worker in workers:
+        worker["first_name"] = worker.get("name") or ""
+        worker["last_name"] = worker.get("lastname") or ""
 
     return render_template(
         "personal_2daE.html",
