@@ -1020,9 +1020,20 @@ def _enrich_record(r):
 # =============================================================================
 
 @app.route("/")
-def home():
-    return redirect(url_for("login"))
+def pagina_inicio(): 
+    return render_template("inicioPP.html")
 
+@app.route("/servicios")
+def pagina_servicios():
+    return render_template("serviciosPP.html")
+
+@app.route("/nosotros")
+def pagina_nosotros():
+    return render_template("nosotrosPP.html")
+
+@app.route("/contacto")
+def pagina_contacto():
+    return render_template("contactoPP.html")
 
 def _password_matches(raw_password, stored_password):
     if not stored_password:
@@ -1107,9 +1118,11 @@ def _authenticate_user(login_value, password):
 # ── LOGIN / LOGOUT ────────────────────────────────────────────────────────────
 @app.route("/login", methods=["GET", "POST"])
 def login():
+    # 1. Si ya está logueado, mandarlo al dashboard
     if "user_name" in session:
         return redirect(url_for("dashboard"))
 
+    # 2. Si está enviando el formulario (POST)
     if request.method == "POST":
         mail     = (request.form.get("mail") or "").strip()
         password = request.form.get("password") or ""
@@ -1124,8 +1137,11 @@ def login():
             return redirect(url_for("dashboard"))
 
         flash("Credenciales inválidas.", "danger")
+        # Nota: Aquí NO ponemos return, dejamos que caiga al final para recargar la pág
 
-    return render_template("login_2daE.html")
+    # 3. Si es GET (entrar normal) o si falló el login
+    # IMPORTANTE: Esta línea debe estar AFUERA (a la misma altura) del 'if'
+    return render_template("login_2daE.html") 
 
 
 @app.route("/logout")
@@ -1133,7 +1149,7 @@ def logout():
     nombre = session.get("user_name", "")
     session.clear()
     flash(f"Sesión de {nombre} cerrada correctamente.", "info")
-    return redirect(url_for("login"))
+    return redirect(url_for("pagina_inicio"))
 
 
 # ── DASHBOARD ─────────────────────────────────────────────────────────────────
