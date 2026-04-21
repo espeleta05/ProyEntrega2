@@ -26,13 +26,40 @@ h1, h2, h3, h4, h5, h6 { font-family: 'Montserrat', sans-serif; font-weight: 700
 .main-container { margin-left: 0; width: 100%; }
 
 /* HERO */
-.hero { background: linear-gradient(135deg, rgba(107, 0, 124, 0.05) 0%, rgba(232, 171, 206, 0.15) 100%); padding: 100px 60px; min-height: 70vh; display: flex; align-items: center; position: relative; }
-.hero-content { max-width: 800px; }
-.hero-content h1 { font-size: 52px; color: var(--secondary-color); margin-bottom: 15px; line-height: 1.2; }
-.hero-content h1 span { color: var(--primary-color); }
-.hero-content h2 { font-size: 28px; color: var(--gray-color); font-weight: 500; margin-bottom: 40px; }
-.btn-hero { display: inline-flex; align-items: center; gap: 10px; background: var(--primary-color); color: white; font-size: 20px; font-weight: 600; padding: 18px 40px; border-radius: 15px; text-decoration: none; transition: var(--transition); box-shadow: 0 8px 20px rgba(107, 0, 124, 0.2); }
-.btn-hero:hover { background: var(--secondary-color); transform: translateY(-3px); }
+.hero {
+    background: 
+        linear-gradient(135deg, rgba(107, 0, 124, 0.4), rgba(232, 171, 206, 0.3)),
+        url('../img/inicio_1.png'); /* 👈 tu imagen */
+        
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+
+    padding: 100px 60px;
+    min-height: 70vh;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+}
+.hero-content h1 {
+    font-size: 52px;
+    color: white; /* 🔥 importante */
+    margin-bottom: 15px;
+}
+
+.hero-content h1 span {
+    color: #6B007C; /* opcional para resaltar */
+}
+
+.hero-content h2 {
+    font-size: 28px;
+    color: #f0f0f0;
+    margin-bottom: 40px;
+}
+
+
 
 /* FEATURES */
 .features { display: grid; grid-template-columns: repeat(4, 1fr); gap: 30px; padding: 60px; background: white; }
@@ -86,4 +113,12 @@ h1, h2, h3, h4, h5, h6 { font-family: 'Montserrat', sans-serif; font-weight: 700
     .hero-content h1 { font-size: 32px; }
     .features { grid-template-columns: 1fr; }
     .info-text h3, .cta-content h3 { font-size: 28px; }
+}
+
+.logo-text {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 28px;
+    font-weight: 700;
+    color: #6B007C; /* tu color */
+    margin-left: 12px;
 }
