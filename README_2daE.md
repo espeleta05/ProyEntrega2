@@ -1,25 +1,34 @@
-# Segunda Entrega (Demo sin Base de Datos)
+# Segunda Entrega (PostgreSQL + psycopg)
 
-Esta carpeta contiene una version funcional visual del sistema en Flask + HTML, sin conexion a base de datos.
+Aplicacion Flask conectada a PostgreSQL usando `psycopg`.
 
-## Credenciales demo
-- Usuario: `admin`
-- Contrasena: `123`
+## Requisitos
+- Python 3.10+
+- PostgreSQL 14+
+- Dependencias de Python:
+  - `pip install -r requirements_2daE.txt`
 
-## Que incluye
-- Backend Flask con datos hardcodeados en memoria.
-- HTML completos con sufijo `_2daE`.
-- CSS copiados desde el proyecto original.
-- Scripts SQL para PostgreSQL normalizados y con SP simples.
+## Configuracion de entorno
+- Variable opcional `SECRET_KEY`
+- Variable `DATABASE_URL` (si no se define, usa):
+  - `postgresql://postgres:postgres@localhost:5432/sistemaVacunacion`
+
+## Orden recomendado de SQL
+1. `sql/esquema_postgres_2daE.sql`
+2. `sql/vistas.sql`
+3. `sql/SP.sql`
+4. `sql/triggers.sql`
+5. `sql/datos_postgres_2daE.sql`
 
 ## Ejecutar
-1. Crear y activar entorno virtual (opcional).
+1. Activar entorno virtual.
 2. Instalar dependencias:
-   - `pip install -r segunda_entrega/requirements_2daE.txt`
-3. Ejecutar:
-   - `python segunda_entrega/app_2daE.py`
+   - `pip install -r requirements_2daE.txt`
+3. Ejecutar app:
+   - `python app_2daE.py`
 4. Abrir:
    - `http://127.0.0.1:5000`
 
-## Nota
-Los registros se guardan solo en memoria del proceso. Al reiniciar Flask, vuelven a los valores de ejemplo.
+## Nota operativa
+- El backend usa funciones SP para altas principales.
+- Si las secuencias `SERIAL` quedaron desfasadas por inserts con IDs fijos del seed, el backend ya sincroniza secuencias antes de insertar.

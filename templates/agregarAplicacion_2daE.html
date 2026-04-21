@@ -48,9 +48,9 @@
                     <select name="vaccine_id" required>
                         <option value="" disabled {% if not form.vaccine_id %}selected{% endif %}>Seleccionar vacuna</option>
                         {% for v in vaccines %}
-                        <option value="{{ v.id_vaccine }}"
-                            {% if form.vaccine_id | string == v.id_vaccine | string %}selected{% endif %}>
-                            {{ v.name }}{% if v.inventory %} ({{ v.inventory }} dosis){% endif %}
+                        <option value="{{ v.vaccine_id }}"
+                            {% if form.vaccine_id | string == v.vaccine_id | string %}selected{% endif %}>
+                            {{ v.name }}
                         </option>
                         {% endfor %}
                     </select>
@@ -65,16 +65,22 @@
                         {% for w in workers %}
                         <option value="{{ w.worker_id }}"
                             {% if form.worker_id | string == w.worker_id | string %}selected{% endif %}>
-                            {{ w.name }} {{ w.lastname }} — {{ w.role }}
+                            {{ w.first_name }} {{ w.last_name }}
                         </option>
                         {% endfor %}
                     </select>
                 </div>
 
                 <div class="input-group">
-                    <label>Numero de dosis</label>
-                    <input type="text" name="dose_applied" placeholder="Ej: Dosis #1, Refuerzo"
-                        value="{{ form.dose_applied or '' }}" required>
+                    <label>Dosis del esquema</label>
+                    <select name="scheme_dose_id">
+                        <option value="" selected>N/A</option>
+                        {% for d in scheme_doses %}
+                        <option value="{{ d.dose_id }}" {% if form.scheme_dose_id | string == d.dose_id | string %}selected{% endif %}>
+                            {{ d.dose_label }}
+                        </option>
+                        {% endfor %}
+                    </select>
                 </div>
             </div>
 
@@ -86,16 +92,57 @@
                 </div>
 
                 <div class="input-group">
-                    <label>Numero de lote <span class="optional">(opcional)</span></label>
-                    <input type="text" name="lot_number" placeholder="Ej: LOT-2024-001"
-                        value="{{ form.lot_number or '' }}">
+                    <label>Lote <span class="optional">(opcional)</span></label>
+                    <select name="lot_id">
+                        <option value="" selected>N/A</option>
+                        {% for lot in lots %}
+                        <option value="{{ lot.lot_id }}" {% if form.lot_id | string == lot.lot_id | string %}selected{% endif %}>
+                            {{ lot.lot_number }}
+                        </option>
+                        {% endfor %}
+                    </select>
                 </div>
             </div>
 
-            <div class="input-group full">
-                <label>Ubicacion / Clinica <span class="optional">(opcional)</span></label>
-                <input type="text" name="clinic_location" placeholder="Ej: Clínica Norte, Consultorio 3"
-                    value="{{ form.clinic_location or '' }}">
+            <div class="row">
+                <div class="input-group">
+                    <label>Clinica</label>
+                    <select name="clinic_id" required>
+                        <option value="" disabled {% if not form.clinic_id %}selected{% endif %}>Seleccionar clinica</option>
+                        {% for c in clinics %}
+                        <option value="{{ c.clinic_id }}" {% if form.clinic_id | string == c.clinic_id | string %}selected{% endif %}>
+                            {{ c.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="input-group">
+                    <label>Sitio de aplicacion</label>
+                    <select name="application_site_id">
+                        <option value="" selected>N/A</option>
+                        {% for s in application_sites %}
+                        <option value="{{ s.application_site_id }}" {% if form.application_site_id | string == s.application_site_id | string %}selected{% endif %}>
+                            {{ s.application_site }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="input-group">
+                    <label>Temperatura paciente (C)</label>
+                    <input type="number" step="0.1" name="patient_temp_c" value="{{ form.patient_temp_c or '' }}">
+                </div>
+
+                <div class="input-group">
+                    <label>Tuvo reaccion</label>
+                    <select name="had_reaction">
+                        <option value="false" {% if form.had_reaction != 'true' %}selected{% endif %}>No</option>
+                        <option value="true" {% if form.had_reaction == 'true' %}selected{% endif %}>Si</option>
+                    </select>
+                </div>
             </div>
 
             <div class="buttons">

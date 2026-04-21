@@ -1,10 +1,19 @@
+import os
 from datetime import date, datetime, timedelta
 from calendar import month_abbr
 from flask import Flask, flash, jsonify, redirect, render_template, request, session, url_for
+import psycopg
+from psycopg import sql
+from psycopg.rows import dict_row
+import bcrypt
 
 
 app = Flask(__name__)
-app.secret_key = "segunda-entrega-demo"
+app.secret_key = os.getenv("SECRET_KEY", "segunda-entrega-demo")
+app.config["DATABASE_URL"] = os.getenv(
+    "DATABASE_URL",
+    "postgresql://postgres:postgres@localhost:5432/sistemaVacunacion",
+)
 
 
 # DATOS HARDCODEADOS  (simulan lo que devolvería PostgreSQL)
@@ -358,69 +367,229 @@ USERS = {
 
 
 # =============================================================================
-# HELPERS — simulan el cursor de psycopg2
+# HELPERS — capa de acceso PostgreSQL (psycopg)
 # =============================================================================
 
+TABLE_ALIASES = {
+    "area_types": "clinic_area_types",
+}
+
+
+def _db_connect():
+    return psycopg.connect(app.config["DATABASE_URL"], row_factory=dict_row)
+
+
+def _safe_table_name(table):
+    return TABLE_ALIASES.get(table, table)
+
+
+def _table_exists(conn, table):
+    with conn.cursor() as cur:
+        cur.execute("SELECT to_regclass(%s) AS reg", (f"public.{table}",))
+        row = cur.fetchone()
+    return bool(row and row["reg"])
+
+
 def _cur_fetchall(table):
-    tables = {
-        "countries":                  COUNTRIES,
-        "states":                     STATES,
-        "municipalities":             MUNICIPALITIES,
-        "neighborhoods":              NEIGHBORHOODS,
-        "addresses":                  ADDRESSES,
-        "clinics":                    CLINICS,
-        "area_types":                 AREA_TYPES,
-        "clinic_areas":               CLINIC_AREAS,
-        "equipment_catalog":          EQUIPMENT_CATALOG,
-        "area_equipment":             AREA_EQUIPMENT,
-        "blood_types":                BLOOD_TYPES,
-        "patients":                   PATIENTS,
-        "allergies":                  ALLERGIES,
-        "patient_allergies":          PATIENT_ALLERGIES,
-        "marital_status":             MARITAL_STATUS,
-        "occupations":                OCCUPATIONS,
-        "guardians":                  GUARDIANS,
-        "guardian_phones":            GUARDIAN_PHONES,
-        "guardian_emails":            GUARDIAN_EMAILS,
-        "patient_guardian_relations": PATIENT_GUARDIAN_RELATIONS,
-        "roles":                      ROLES,
-        "specialties":                SPECIALTIES,
-        "institutions":               INSTITUTIONS,
-        "workers":                    WORKERS,
-        "worker_phones":              WORKER_PHONES,
-        "worker_emails":              WORKER_EMAILS,
-        "worker_professional":        WORKER_PROFESSIONAL,
-        "worker_clinic_assignment":   WORKER_CLINIC_ASSIGNMENT,
-        "worker_schedules":           WORKER_SCHEDULES,
-        "manufacturers":              MANUFACTURERS,
-        "vaccine_vias":               VACCINE_VIAS,
-        "vaccines":                   VACCINES,
-        "vaccine_lots":               VACCINE_LOTS,
-        "vaccination_scheme":         VACCINATION_SCHEME,
-        "scheme_doses":               SCHEME_DOSES,
-        "appointments":               APPOINTMENTS,
-        "application_sites":          APPLICATION_SITES,
-        "vaccination_records":        VACCINATION_RECORDS,
-        "post_vaccine_reactions":     POST_VACCINE_REACTIONS,
-        "scheme_completion_alerts":   SCHEME_COMPLETION_ALERTS,
-        "nfc_cards":                  NFC_CARDS,
-        "nfc_devices":                NFC_DEVICES,
-        "nfc_scan_events":            NFC_SCAN_EVENTS,
-        "supply_catalog":             SUPPLY_CATALOG,
-        "clinic_inventory":           CLINIC_INVENTORY,
-        "beacons":                    BEACONS,
-        "scan_logs":                  SCAN_LOGS,
-        "audit_log":                  AUDIT_LOG,
-    }
-    return list(tables.get(table, []))
+    physical = _safe_table_name(table)
+    try:
+        with _db_connect() as conn:
+            if not _table_exists(conn, physical):
+                return []
+            with conn.cursor() as cur:
+                cur.execute(sql.SQL("SELECT * FROM {}" ).format(sql.Identifier(physical)))
+                return cur.fetchall()
+    except Exception:
+        return []
 
 
 def _cur_fetchone(table, pk_field, pk_value):
-    return next((row for row in _cur_fetchall(table) if row.get(pk_field) == pk_value), None)
+    physical = _safe_table_name(table)
+    try:
+        with _db_connect() as conn:
+            if not _table_exists(conn, physical):
+                return None
+            with conn.cursor() as cur:
+                cur.execute(
+                    sql.SQL("SELECT * FROM {} WHERE {} = %s LIMIT 1").format(
+                        sql.Identifier(physical),
+                        sql.Identifier(pk_field),
+                    ),
+                    (pk_value,),
+                )
+                return cur.fetchone()
+    except Exception:
+        return None
 
 
 def _cur_fetchall_where(table, field, value):
-    return [row for row in _cur_fetchall(table) if row.get(field) == value]
+    physical = _safe_table_name(table)
+    try:
+        with _db_connect() as conn:
+            if not _table_exists(conn, physical):
+                return []
+            with conn.cursor() as cur:
+                cur.execute(
+                    sql.SQL("SELECT * FROM {} WHERE {} = %s").format(
+                        sql.Identifier(physical),
+                        sql.Identifier(field),
+                    ),
+                    (value,),
+                )
+                return cur.fetchall()
+    except Exception:
+        return []
+
+
+def _exec_sql(query, params=None, fetchone=False, fetchall=False):
+    with _db_connect() as conn:
+        with conn.cursor() as cur:
+            cur.execute(query, params or ())
+            if fetchone:
+                return cur.fetchone()
+            if fetchall:
+                return cur.fetchall()
+            return None
+
+
+def _sp_fetchall(function_name, params=None):
+    with _db_connect() as conn:
+        with conn.cursor() as cur:
+            if params:
+                placeholders = ", ".join(["%s"] * len(params))
+                query = sql.SQL("SELECT * FROM {}({})").format(
+                    sql.Identifier(function_name),
+                    sql.SQL(placeholders),
+                )
+                cur.execute(query, tuple(params))
+            else:
+                query = sql.SQL("SELECT * FROM {}()").format(sql.Identifier(function_name))
+                cur.execute(query)
+            return cur.fetchall()
+
+
+def _sp_try_fetchall(function_name, params=None, fallback=None):
+    try:
+        return _sp_fetchall(function_name, params=params)
+    except Exception:
+        return fallback if fallback is not None else []
+
+
+def _sp_fetchone(function_name, params=None):
+    with _db_connect() as conn:
+        with conn.cursor() as cur:
+            if params:
+                placeholders = ", ".join(["%s"] * len(params))
+                query = sql.SQL("SELECT * FROM {}({})").format(
+                    sql.Identifier(function_name),
+                    sql.SQL(placeholders),
+                )
+                cur.execute(query, tuple(params))
+            else:
+                query = sql.SQL("SELECT * FROM {}()").format(sql.Identifier(function_name))
+                cur.execute(query)
+            return cur.fetchone()
+
+
+def _sp_try_fetchone(function_name, params=None, fallback=None):
+    try:
+        return _sp_fetchone(function_name, params=params)
+    except Exception:
+        return fallback
+
+
+def _sync_serial_sequence(conn, table, id_column):
+    with conn.cursor() as cur:
+        cur.execute("SELECT pg_get_serial_sequence(%s, %s) AS seq", (table, id_column))
+        row = cur.fetchone()
+        seq_name = row["seq"] if row else None
+        if not seq_name:
+            return
+        cur.execute(sql.SQL("SELECT COALESCE(MAX({}), 0) AS max_id FROM {}").format(
+            sql.Identifier(id_column),
+            sql.Identifier(table),
+        ))
+        max_row = cur.fetchone()
+        max_id = max_row["max_id"] if max_row else 0
+        cur.execute("SELECT setval(%s, %s, true)", (seq_name, max_id))
+
+
+def _sync_known_sequences(conn):
+    targets = [
+        ("patients", "patient_id"),
+        ("guardians", "guardian_id"),
+        ("guardian_phones", "phone_id"),
+        ("patient_guardian_relations", "relation_id"),
+        ("workers", "worker_id"),
+        ("worker_emails", "email_id"),
+        ("worker_phones", "phone_id"),
+        ("vaccines", "vaccine_id"),
+        ("vaccination_records", "record_id"),
+    ]
+    for table, column in targets:
+        if _table_exists(conn, table):
+            _sync_serial_sequence(conn, table, column)
+
+
+def _patients_from_sp():
+    raw = _sp_try_fetchall("sp_get_patients_full")
+    if not raw:
+        return [_enrich_patient(p) for p in _cur_fetchall("patients")]
+    out = []
+    for row in raw:
+        item = dict(row)
+        item["guardian"] = item.get("guardian_name") or "Sin tutor"
+        item["contact"] = item.get("guardian_phone") or "—"
+        item["risk"] = item.get("risk") or "N/A"
+        out.append(item)
+    return out
+
+
+def _applications_from_sp():
+    raw = _sp_try_fetchall("sp_get_vaccination_records_full")
+    if not raw:
+        return [_enrich_record(r) for r in _cur_fetchall("vaccination_records")]
+
+    vaccines = {v["name"]: v["vaccine_id"] for v in _cur_fetchall("vaccines")}
+    out = []
+    for row in raw:
+        item = {
+            "id": row.get("record_id"),
+            "name": row.get("vaccine_name"),
+            "vaccine_id": vaccines.get(row.get("vaccine_name")),
+            "patient_name": row.get("patient_name"),
+            "doctor": row.get("worker_name"),
+            "dose": row.get("dose_label") or "—",
+            "date": row.get("applied_date"),
+            "next_date": None,
+            "application_site": row.get("application_site") or "—",
+            "had_reaction": row.get("had_reaction", False),
+            "patient_temp_c": row.get("patient_temp_c"),
+            "notes": "Con reacción" if row.get("had_reaction") else "Sin reacciones",
+        }
+        out.append(item)
+    return out
+
+
+def _inventory_from_sp():
+    raw = _sp_try_fetchall("sp_get_inventory_status")
+    if raw:
+        return raw
+    inventory_raw = _cur_fetchall("clinic_inventory")
+    return [_enrich_inventory_item(item) for item in inventory_raw]
+
+
+def _appointments_from_sp():
+    raw = _sp_try_fetchall("sp_get_appointments_full")
+    if not raw:
+        return [_enrich_appointment(ap) for ap in _cur_fetchall("appointments")]
+    out = []
+    for row in raw:
+        item = dict(row)
+        item["status"] = row.get("appointment_status") or "—"
+        item["vaccine_name"] = row.get("reason") or "—"
+        out.append(item)
+    return out
 
 
 # =============================================================================
@@ -574,6 +743,86 @@ def home():
     return redirect(url_for("login"))
 
 
+def _password_matches(raw_password, stored_password):
+    if not stored_password:
+        return False
+    # Compatibilidad con seeds demo del repo y altas locales previas.
+    if stored_password == raw_password:
+        return True
+    if stored_password == f"hash:{raw_password}":
+        return True
+    if stored_password.startswith("$2a$") or stored_password.startswith("$2b$") or stored_password.startswith("$2y$"):
+        try:
+            return bcrypt.checkpw(raw_password.encode("utf-8"), stored_password.encode("utf-8"))
+        except Exception:
+            return False
+    return False
+
+
+def _authenticate_user(login_value, password):
+    with _db_connect() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT
+                    w.worker_id,
+                    w.first_name,
+                    w.last_name,
+                    r.name AS role_name,
+                    COALESCE(w.password_hash, '') AS password_hash,
+                    we.email
+                FROM workers w
+                LEFT JOIN roles r ON r.role_id = w.role_id
+                LEFT JOIN worker_emails we ON we.worker_id = w.worker_id AND we.is_primary = TRUE
+                WHERE LOWER(COALESCE(we.email, '')) = LOWER(%s)
+                   OR CAST(w.worker_id AS TEXT) = %s
+                LIMIT 1
+                """,
+                (login_value, login_value),
+            )
+            worker = cur.fetchone()
+
+        if worker and _password_matches(password, worker["password_hash"]):
+            return {
+                "worker_id": worker["worker_id"],
+                "name": worker["first_name"] or "",
+                "lastname": worker["last_name"] or "",
+                "role": worker.get("role_name") or "Administrador",
+            }
+
+        # Fallback opcional para tabla users si existe en la BD.
+        if _table_exists(conn, "users"):
+            with conn.cursor() as cur:
+                cur.execute(
+                    """
+                    SELECT
+                        u.worker_id,
+                        u.username,
+                        u.password_hash,
+                        w.first_name,
+                        w.last_name,
+                        r.name AS role_name
+                    FROM users u
+                    LEFT JOIN workers w ON w.worker_id = u.worker_id
+                    LEFT JOIN roles r ON r.role_id = w.role_id
+                    WHERE LOWER(u.username) = LOWER(%s)
+                    LIMIT 1
+                    """,
+                    (login_value,),
+                )
+                user = cur.fetchone()
+
+            if user and _password_matches(password, user["password_hash"]):
+                return {
+                    "worker_id": user.get("worker_id"),
+                    "name": user.get("first_name") or user.get("username") or "",
+                    "lastname": user.get("last_name") or "",
+                    "role": user.get("role_name") or "Administrador",
+                }
+
+    return None
+
+
 # ── LOGIN / LOGOUT ────────────────────────────────────────────────────────────
 @app.route("/login", methods=["GET", "POST"])
 def login():
@@ -583,9 +832,9 @@ def login():
     if request.method == "POST":
         mail     = (request.form.get("mail") or "").strip()
         password = request.form.get("password") or ""
-        user     = USERS.get(mail)
+        user     = _authenticate_user(mail, password)
 
-        if user and user["password"] == password:
+        if user:
             session["user_name"]     = user["name"]
             session["user_lastname"] = user["lastname"]
             session["role"]          = user["role"]
@@ -593,7 +842,7 @@ def login():
             flash(f"Bienvenido, {user['name']}.", "success")
             return redirect(url_for("dashboard"))
 
-        flash("Credenciales inválidas. Usa admin / 123", "danger")
+        flash("Credenciales inválidas.", "danger")
 
     return render_template("login_2daE.html")
 
@@ -607,8 +856,6 @@ def logout():
 
 
 # ── DASHBOARD ─────────────────────────────────────────────────────────────────
-from datetime import date, timedelta
-from calendar import month_abbr
 
 @app.route("/dashboard")
 def dashboard():
@@ -789,10 +1036,7 @@ def pacientes():
     if locked:
         return locked
 
-    patients_raw = _cur_fetchall("patients")
-    patients     = [_enrich_patient(p) for p in patients_raw]
-    ##cur.execute("SELECT * FROM v_patients_full")  # vista enriquecida en BD
-    ##patients = cur.fetchall()
+    patients = _patients_from_sp()
 
     return render_template(
         "pacientes_2daE.html",
@@ -816,53 +1060,30 @@ def register_patient():
     if not first_name or not last_name:
         return jsonify({"error": "Nombre y apellido son requeridos"}), 400
 
-    # Simular INSERT en guardians (sin second_last, marital_status/occupation como FK int)
-    new_guardian_id = _next_id(GUARDIANS, "guardian_id")
-    GUARDIANS.append({
-        "guardian_id":       new_guardian_id,
-        "first_name":        (tutor.get("name")    or "Tutor").strip(),
-        "last_name":         (tutor.get("lastname") or "Demo").strip(),
-        "curp":              None,
-        "address_id":        None,
-        "marital_status_id": None,
-        "occupation":        None,
-    })
-    if tutor.get("number"):
-        GUARDIAN_PHONES.append({
-            "phone_id":   _next_id(GUARDIAN_PHONES, "phone_id"),
-            "guardian_id": new_guardian_id,
-            "phone":       tutor["number"],
-            "phone_type":  "Celular",
-            "is_primary":  True,
-        })
+    with _db_connect() as conn:
+        _sync_known_sequences(conn)
 
-    # Simular INSERT en patients (sin second_last, address_id, risk_level, is_active, registered_at)
-    new_pid = _next_id(PATIENTS, "patient_id")
-    PATIENTS.append({
-        "patient_id":   new_pid,
-        "first_name":   first_name,
-        "last_name":    last_name,
-        "curp":         payload.get("curp"),
-        "birth_date":   payload.get("birth_date") or "2021-01-01",
-        "gender":       payload.get("gender") or "M",
-        "blood_type_id": 1,  # O+ por default
-        "nfc_token":    f"NFC{new_pid:03d}",
-        "weight_kg":    payload.get("weight_kg"),
-        "premature":    bool(payload.get("premature", False)),
-    })
+    row = _sp_try_fetchone(
+        "sp_register_patient",
+        params=[
+            first_name,
+            last_name,
+            payload.get("curp"),
+            payload.get("birth_date") or "2021-01-01",
+            payload.get("gender") or "M",
+            payload.get("weight_kg"),
+            bool(payload.get("premature", False)),
+            (tutor.get("name") or "Tutor").strip(),
+            (tutor.get("lastname") or "Demo").strip(),
+            tutor.get("number"),
+        ],
+    )
+    if not row:
+        return jsonify({"error": "No se pudo registrar el paciente en la base de datos"}), 500
 
-    # Simular INSERT en patient_guardian_relations
-    PATIENT_GUARDIAN_RELATIONS.append({
-        "relation_id":   _next_id(PATIENT_GUARDIAN_RELATIONS, "relation_id"),
-        "patient_id":    new_pid,
-        "guardian_id":   new_guardian_id,
-        "relation_type": "Tutor",
-        "is_primary":    True,
-        "has_custody":   True,
-    })
-
+    patient_id = row.get("patient_id")
     flash(f"Paciente {first_name} {last_name} registrado correctamente.", "success")
-    return jsonify({"message": "Paciente registrado (demo)", "patient_id": new_pid})
+    return jsonify({"message": "Paciente registrado", "patient_id": patient_id})
 
 
 @app.route("/delete_patient/<int:id>", methods=["POST"])
@@ -875,17 +1096,24 @@ def delete_patient(id):
     if not patient:
         return jsonify({"error": "Paciente no encontrado"}), 404
 
-    PATIENTS.remove(patient)
     nombre = _patient_full_name(patient)
 
-    for r in _cur_fetchall_where("vaccination_records", "patient_id", id):
-        VACCINATION_RECORDS.remove(r)
-
-    for rel in _cur_fetchall_where("patient_guardian_relations", "patient_id", id):
-        PATIENT_GUARDIAN_RELATIONS.remove(rel)
+    try:
+        with _db_connect() as conn:
+            with conn.cursor() as cur:
+                cur.execute("DELETE FROM patient_allergies WHERE patient_id = %s", (id,))
+                cur.execute("DELETE FROM post_vaccine_reactions WHERE record_id IN (SELECT record_id FROM vaccination_records WHERE patient_id = %s)", (id,))
+                cur.execute("DELETE FROM vaccination_records WHERE patient_id = %s", (id,))
+                cur.execute("DELETE FROM nfc_cards WHERE patient_id = %s", (id,))
+                cur.execute("DELETE FROM scheme_completion_alerts WHERE patient_id = %s", (id,))
+                cur.execute("DELETE FROM appointments WHERE patient_id = %s", (id,))
+                cur.execute("DELETE FROM patient_guardian_relations WHERE patient_id = %s", (id,))
+                cur.execute("DELETE FROM patients WHERE patient_id = %s", (id,))
+    except Exception as ex:
+        return jsonify({"error": f"No se pudo eliminar el paciente: {ex}"}), 400
 
     flash(f"Paciente {nombre} eliminado.", "warning")
-    return jsonify({"message": "Paciente eliminado (demo)"})
+    return jsonify({"message": "Paciente eliminado"})
 
 
 # ── HISTORIAL ─────────────────────────────────────────────────────────────────
@@ -941,6 +1169,17 @@ def historial_paciente(id):
 
 def _build_next_vaccines(patient_id):
     """Construye las próximas vacunas pendientes desde scheme_doses vs vaccination_records."""
+    sp_rows = _sp_try_fetchall("sp_get_pending_scheme_doses", params=[patient_id])
+    if sp_rows:
+        return [
+            {
+                "name": row.get("vaccine_name") or "—",
+                "dose": row.get("dose_label") or "—",
+                "date": f"A los {row['ideal_age_months']} meses" if row.get("ideal_age_months") is not None else "—",
+            }
+            for row in sp_rows[:3]
+        ]
+
     applied_dose_ids = {
         r["scheme_dose_id"]
         for r in _cur_fetchall_where("vaccination_records", "patient_id", patient_id)
@@ -1123,18 +1362,26 @@ def register_vaccine():
     if not name:
         return jsonify({"error": "El nombre de vacuna es requerido"}), 400
 
-    new_vid = _next_id(VACCINES, "vaccine_id")
-    VACCINES.append({
-        "vaccine_id":       new_vid,
-        "name":             name,
-        "commercial_name":  payload.get("commercial_name"),
-        "manufacturer_id":  payload.get("manufacturer_id"),
-        "via_id":           payload.get("via_id"),
-        "ideal_age_months": payload.get("ideal_age_months"),
-        "descripcion":      payload.get("descripcion") or "No especificado",
-    })
+    with _db_connect() as conn:
+        _sync_known_sequences(conn)
+
+    row = _sp_try_fetchone(
+        "sp_register_vaccine",
+        params=[
+            name,
+            payload.get("commercial_name"),
+            payload.get("manufacturer_id"),
+            payload.get("via_id"),
+            payload.get("ideal_age_months"),
+            payload.get("disease_prevented") or payload.get("descripcion") or "No especificado",
+        ],
+    )
+    if not row:
+        return jsonify({"error": "No se pudo registrar la vacuna en la base de datos"}), 500
+
+    new_vid = row.get("vaccine_id")
     flash(f"Vacuna '{name}' registrada.", "success")
-    return jsonify({"message": "Vacuna registrada (demo)", "vaccine_id": new_vid})
+    return jsonify({"message": "Vacuna registrada", "vaccine_id": new_vid})
 
 
 @app.route("/delete_vaccine/<int:id>", methods=["POST"])
@@ -1147,9 +1394,26 @@ def delete_vaccine(id):
     if not vaccine:
         return jsonify({"error": "Vacuna no encontrada"}), 404
 
-    VACCINES.remove(vaccine)
+    try:
+        with _db_connect() as conn:
+            with conn.cursor() as cur:
+                cur.execute(
+                    "SELECT COUNT(*) AS total FROM vaccination_records WHERE vaccine_id = %s",
+                    (id,),
+                )
+                used = cur.fetchone()["total"]
+                if used:
+                    return jsonify({"error": "No se puede eliminar: la vacuna ya tiene aplicaciones registradas"}), 400
+
+                cur.execute("DELETE FROM scheme_doses WHERE vaccine_id = %s", (id,))
+                cur.execute("DELETE FROM vaccine_lots WHERE vaccine_id = %s", (id,))
+                cur.execute("DELETE FROM appointments WHERE vaccine_id = %s", (id,))
+                cur.execute("DELETE FROM vaccines WHERE vaccine_id = %s", (id,))
+    except Exception as ex:
+        return jsonify({"error": f"No se pudo eliminar la vacuna: {ex}"}), 400
+
     flash(f"Vacuna '{vaccine['name']}' eliminada.", "warning")
-    return jsonify({"message": "Vacuna eliminada (demo)"})
+    return jsonify({"message": "Vacuna eliminada"})
 
 
 # ── APLICACIONES (VACCINATION RECORDS) ───────────────────────────────────────
@@ -1159,8 +1423,8 @@ def aplicaciones():
     if locked:
         return locked
 
+    records           = _applications_from_sp()
     records_raw       = _cur_fetchall("vaccination_records")
-    records           = [_enrich_record(r) for r in records_raw]
     unique_patients   = len(set(r["patient_id"] for r in records_raw))
     unique_vaccines   = len(set(r["vaccine_id"] for r in records_raw))
     applications_today = sum(
@@ -1205,20 +1469,44 @@ def agregar_aplicacion():
             if not patient or not vaccine:
                 error = "Paciente o vacuna no encontrados"
             else:
-                new_record = {
-                    "record_id":           _next_id(VACCINATION_RECORDS, "record_id"),
-                    "patient_id":          patient_id,
-                    "vaccine_id":          vaccine_id,
-                    "worker_id":           worker_id or session.get("worker_id", 1),
-                    "clinic_id":           1,
-                    "lot_id":              None,
-                    "scheme_dose_id":      scheme_dose_id,
-                    "applied_date":        request.form.get("applied_date") or date.today().isoformat(),
-                    "application_site_id": app_site_id,
-                    "patient_temp_c":      request.form.get("patient_temp_c") or None,
-                    "had_reaction":        request.form.get("had_reaction") == "true",
-                }
-                VACCINATION_RECORDS.insert(0, new_record)
+                clinic_id = int(request.form.get("clinic_id") or 1)
+                lot_id = request.form.get("lot_id")
+                lot_id = int(lot_id) if lot_id else None
+
+                with _db_connect() as conn:
+                    _sync_known_sequences(conn)
+
+                row = _sp_try_fetchone(
+                    "sp_register_vaccination_record",
+                    params=[
+                        patient_id,
+                        vaccine_id,
+                        worker_id or session.get("worker_id", 1),
+                        clinic_id,
+                        lot_id,
+                        scheme_dose_id,
+                        request.form.get("applied_date") or date.today().isoformat(),
+                        app_site_id,
+                        request.form.get("patient_temp_c") or None,
+                        request.form.get("had_reaction") == "true",
+                    ],
+                )
+                if not row:
+                    error = "No se pudo registrar la aplicación en base de datos"
+                    return render_template(
+                        "agregarAplicacion_2daE.html",
+                        **_session_vars(),
+                        patients=_cur_fetchall("patients"),
+                        vaccines=_cur_fetchall("vaccines"),
+                        workers=_cur_fetchall("workers"),
+                        clinics=_cur_fetchall("clinics"),
+                        lots=_cur_fetchall("vaccine_lots"),
+                        scheme_doses=_cur_fetchall("scheme_doses"),
+                        application_sites=_cur_fetchall("application_sites"),
+                        form=form,
+                        error=error,
+                    )
+
                 flash(
                     f"Aplicación de {vaccine['name']} registrada para "
                     f"{_patient_full_name(patient)}.",
@@ -1232,6 +1520,8 @@ def agregar_aplicacion():
         patients=_cur_fetchall("patients"),
         vaccines=_cur_fetchall("vaccines"),
         workers=_cur_fetchall("workers"),
+        clinics=_cur_fetchall("clinics"),
+        lots=_cur_fetchall("vaccine_lots"),
         scheme_doses=_cur_fetchall("scheme_doses"),
         application_sites=_cur_fetchall("application_sites"),
         form=form,
@@ -1281,53 +1571,91 @@ def add_user():
         password = request.form.get("password") or ""
         confirm  = request.form.get("password_confirm") or ""
         mail     = (request.form.get("mail") or "").strip()
+        first_name = (request.form.get("first_name") or request.form.get("name") or "").strip()
+        last_name = (request.form.get("last_name") or request.form.get("lastname") or "").strip()
+        role_raw = request.form.get("role_id") or request.form.get("role")
 
-        # Verificar email en worker_emails
-        email_exists = any(
-            (e.get("email") or "").lower() == mail.lower()
-            for e in _cur_fetchall("worker_emails")
+        if role_raw:
+            try:
+                role_id = int(role_raw)
+            except ValueError:
+                role_row = _exec_sql(
+                    "SELECT role_id FROM roles WHERE LOWER(name) = LOWER(%s) LIMIT 1",
+                    (role_raw,),
+                    fetchone=True,
+                )
+                role_id = role_row["role_id"] if role_row else 3
+        else:
+            role_id = 3
+
+        email_row = _exec_sql(
+            "SELECT 1 AS ok FROM worker_emails WHERE LOWER(email) = LOWER(%s) LIMIT 1",
+            (mail,),
+            fetchone=True,
         )
+        email_exists = bool(email_row)
 
         if password != confirm:
             error = "Las contraseñas no coinciden"
+            flash(error, "danger")
+        elif not first_name or not last_name:
+            error = "Nombre y apellidos son obligatorios"
             flash(error, "danger")
         elif email_exists:
             error = "El email ya existe en el sistema"
             flash(error, "danger")
         else:
-            role_id = int(request.form.get("role_id") or 3)
-            new_wid = _next_id(WORKERS, "worker_id")
-            WORKERS.append({
-                "worker_id":     new_wid,
-                "role_id":       role_id,
-                "first_name":    request.form.get("first_name", ""),
-                "last_name":     request.form.get("last_name", ""),
-                "curp":          None,
-                "address_id":    None,
-                "birth_date":    None,
-                "hire_date":     date.today().isoformat(),
-                "password_hash": f"hash:{password}",
-            })
-            # Insertar email en worker_emails
-            WORKER_EMAILS.append({
-                "email_id":  _next_id(WORKER_EMAILS, "email_id"),
-                "worker_id": new_wid,
-                "email":     mail,
-                "is_primary": True,
-            })
-            # Insertar teléfono si viene
-            phone = request.form.get("phone")
-            if phone:
-                WORKER_PHONES.append({
-                    "phone_id":  _next_id(WORKER_PHONES, "phone_id"),
-                    "worker_id": new_wid,
-                    "phone":     phone,
-                    "phone_type": "Celular",
-                    "is_primary": True,
-                })
+            try:
+                with _db_connect() as conn:
+                    _sync_known_sequences(conn)
+                    with conn.cursor() as cur:
+                        cur.execute(
+                            """
+                            INSERT INTO workers (role_id, first_name, last_name, hire_date, password_hash)
+                            VALUES (%s, %s, %s, %s, %s)
+                            RETURNING worker_id
+                            """,
+                            (
+                                role_id,
+                                first_name,
+                                last_name,
+                                date.today().isoformat(),
+                                f"hash:{password}",
+                            ),
+                        )
+                        new_wid = cur.fetchone()["worker_id"]
+
+                        cur.execute(
+                            """
+                            INSERT INTO worker_emails (worker_id, email, is_primary)
+                            VALUES (%s, %s, TRUE)
+                            """,
+                            (new_wid, mail),
+                        )
+
+                        phone = (request.form.get("phone") or "").strip()
+                        if phone:
+                            cur.execute(
+                                """
+                                INSERT INTO worker_phones (worker_id, phone, phone_type, is_primary)
+                                VALUES (%s, %s, 'Celular', TRUE)
+                                """,
+                                (new_wid, phone),
+                            )
+            except Exception as ex:
+                error = f"No se pudo registrar el usuario: {ex}"
+                flash(error, "danger")
+                return render_template(
+                    "add_user_2daE.html",
+                    **_session_vars(),
+                    form=form,
+                    error=error,
+                    roles=_cur_fetchall("roles"),
+                )
+
             session["last_registered_worker"] = new_wid
             flash(
-                f"Usuario {request.form.get('name', '')} registrado correctamente.",
+                f"Usuario {first_name} registrado correctamente.",
                 "success",
             )
             return redirect(url_for("personal"))
@@ -1342,24 +1670,97 @@ def add_user():
 
 @app.route("/personal/editar/<int:worker_id>", methods=["GET", "POST"])
 def edit_user(worker_id):
-    worker = next((w for w in WORKERS if w["worker_id"] == worker_id), None)
+    locked = _require_login()
+    if locked:
+        return locked
+
+    worker = _exec_sql(
+        """
+        SELECT
+            w.worker_id,
+            w.first_name,
+            w.last_name,
+            w.role_id,
+            r.name AS role_name,
+            we.email
+        FROM workers w
+        LEFT JOIN roles r ON r.role_id = w.role_id
+        LEFT JOIN worker_emails we ON we.worker_id = w.worker_id AND we.is_primary = TRUE
+        WHERE w.worker_id = %s
+        LIMIT 1
+        """,
+        (worker_id,),
+        fetchone=True,
+    )
 
     if not worker:
         flash("Usuario no encontrado", "danger")
         return redirect(url_for("personal"))
 
     if request.method == "POST":
-        worker["first_name"] = request.form.get("name")
-        worker["last_name"]  = request.form.get("lastname")
-        worker["role"]       = request.form.get("role")
-        worker["mail"]       = request.form.get("mail")
+        first_name = (request.form.get("first_name") or request.form.get("name") or "").strip()
+        last_name = (request.form.get("last_name") or request.form.get("lastname") or "").strip()
+        mail = (request.form.get("mail") or "").strip()
+        role_id_raw = request.form.get("role_id") or request.form.get("role")
+
+        try:
+            role_id = int(role_id_raw) if role_id_raw is not None else worker["role_id"]
+        except ValueError:
+            role = _exec_sql(
+                "SELECT role_id FROM roles WHERE LOWER(name) = LOWER(%s) LIMIT 1",
+                (role_id_raw,),
+                fetchone=True,
+            )
+            role_id = role["role_id"] if role else worker["role_id"]
+
+        try:
+            with _db_connect() as conn:
+                with conn.cursor() as cur:
+                    cur.execute(
+                        """
+                        UPDATE workers
+                        SET first_name = %s,
+                            last_name = %s,
+                            role_id = %s
+                        WHERE worker_id = %s
+                        """,
+                        (first_name, last_name, role_id, worker_id),
+                    )
+                    if mail:
+                        cur.execute(
+                            "SELECT email_id FROM worker_emails WHERE worker_id = %s AND is_primary = TRUE LIMIT 1",
+                            (worker_id,),
+                        )
+                        email_row = cur.fetchone()
+                        if email_row:
+                            cur.execute(
+                                "UPDATE worker_emails SET email = %s WHERE email_id = %s",
+                                (mail, email_row["email_id"]),
+                            )
+                        else:
+                            cur.execute(
+                                "INSERT INTO worker_emails (worker_id, email, is_primary) VALUES (%s, %s, TRUE)",
+                                (worker_id, mail),
+                            )
+        except Exception as ex:
+            flash(f"No se pudo actualizar el usuario: {ex}", "danger")
+            return redirect(url_for("edit_user", worker_id=worker_id))
 
         flash("Usuario actualizado correctamente", "success")
         return redirect(url_for("personal"))
 
+    worker_view = {
+        "worker_id": worker["worker_id"],
+        "name": worker["first_name"],
+        "lastname": worker["last_name"],
+        "role": worker.get("role_name") or "",
+        "role_id": worker.get("role_id"),
+        "mail": worker.get("email") or "",
+    }
+
     return render_template(
         "edit_user_2daE.html",
-        worker=worker,
+        worker=worker_view,
         **_session_vars()
     )
 
@@ -1380,8 +1781,7 @@ def inventario():
     if locked:
         return locked
 
-    inventory_raw = _cur_fetchall("clinic_inventory")
-    inventory = [_enrich_inventory_item(item) for item in inventory_raw]
+    inventory = _inventory_from_sp()
 
     if any(i["low_stock"] for i in inventory):
         flash("⚠ Hay insumos con stock por debajo del mínimo.", "warning")
@@ -1404,8 +1804,7 @@ def citas():
     if locked:
         return locked
 
-    appointments_raw = _cur_fetchall("appointments")
-    appointments = [_enrich_appointment(ap) for ap in appointments_raw]
+    appointments = _appointments_from_sp()
 
     session["last_section"] = "citas"
 

@@ -72,7 +72,7 @@ INSERT INTO clinics (clinic_id, name, address_id, phone, institution_type, is_ac
 --  CLINIC AREAS
 -- ─────────────────────────────────────────────
 
-INSERT INTO area_types (area_type_id, area_type) VALUES
+INSERT INTO clinic_area_types (area_type_id, area_type) VALUES
 (1, 'Sala_Espera'),
 (2, 'Consultorio'),
 (3, 'Enfermeria'),
@@ -142,12 +142,12 @@ INSERT INTO area_equipment (area_equipment_id, area_id, equipment_id, quantity, 
 
     -- Todos menores de 10 años (nacidos después de 2016-03-24)
     INSERT INTO patients (patient_id, first_name, last_name, birth_date, blood_type_id, gender, nfc_token, curp, weight_kg, premature) VALUES
-    (1,  'Sofia',      'Ramirez Torres',     '2024-01-15', 1, 'F', 'NFC001', 'RATS240115MNLMRS01', 4.2,  FALSE)
-    (2,  'Mateo',      'González Vega',      '2023-06-10', 3, 'M', 'NFC002', 'GOVM230610HNLNNG02', 9.5,  FALSE)
-    (3,  'Valentina',  'Hernández Cruz',     '2022-11-20', 2, 'F', 'NFC003', 'HECV221120MNLRRL03', 11.8, FALSE)
-    (4,  'Santiago',   'López Morales',      '2021-04-05', 5, 'M', 'NFC004', 'LOMS210405HNLPRG04', 14.3, FALSE)
-    (5,  'Isabella',   'Martínez Sánchez',   '2020-09-18', 7, 'F', 'NFC005', 'MASI200918MNLRRN05', 17.6, FALSE)
-    (6,  'Emiliano',   'Flores Reyes',       '2019-03-22', 4, 'M', 'NFC006', 'FOREM190322HNLLL06',20.4, FALSE)
+    (1,  'Sofia',      'Ramirez Torres',     '2024-01-15', 1, 'F', 'NFC001', 'RATS240115MNLMRS01', 4.2,  FALSE),
+    (2,  'Mateo',      'González Vega',      '2023-06-10', 3, 'M', 'NFC002', 'GOVM230610HNLNNG02', 9.5,  FALSE),
+    (3,  'Valentina',  'Hernández Cruz',     '2022-11-20', 2, 'F', 'NFC003', 'HECV221120MNLRRL03', 11.8, FALSE),
+    (4,  'Santiago',   'López Morales',      '2021-04-05', 5, 'M', 'NFC004', 'LOMS210405HNLPRG04', 14.3, FALSE),
+    (5,  'Isabella',   'Martínez Sánchez',   '2020-09-18', 7, 'F', 'NFC005', 'MASI200918MNLRRN05', 17.6, FALSE),
+    (6,  'Emiliano',   'Flores Reyes',       '2019-03-22', 4, 'M', 'NFC006', 'FOREM190322HNLLL06',20.4, FALSE),
     (7,  'Camila',     'Díaz Ortega',        '2018-07-30', 6, 'F', 'NFC007', 'DIOC180730MNLXZM07', 22.1, TRUE),
     (8,  'Sebastián',  'Pérez Gutiérrez',    '2017-12-12', 8, 'M', 'NFC008', 'PEGS171212HNLRRB08', 24.8, FALSE),
     (9,  'Luciana',    'Vargas Jiménez',     '2016-08-03', 1, 'F', 'NFC009', 'VAJI160803MNLRGN09', 27.0, FALSE),
@@ -407,7 +407,7 @@ INSERT INTO area_equipment (area_equipment_id, area_id, equipment_id, quantity, 
     (4, 'Oral');
 
     -- Vacunas del Esquema Nacional de Vacunación México
-    INSERT INTO vaccines (vaccine_id, name, commercial_name, manufacturer_id, via_id, ideal_age_months, descripcion) VALUES
+    INSERT INTO vaccines (vaccine_id, name, commercial_name, manufacturer_id, via_id, ideal_age_months, disease_prevented) VALUES
     (1,  'BCG',                  'BCG Birmex',        1, 1,  0,  'Tuberculosis — dosis única al nacimiento'),
     (2,  'Hepatitis B',          'Engerix-B',         5, 2,  0,  'Hepatitis B — primera dosis al nacimiento'),
     (3,  'Pentavalente acelular','Pentaxim',          2, 2,  2,  'DPT + Hib + Polio inactivado — 3 dosis'),

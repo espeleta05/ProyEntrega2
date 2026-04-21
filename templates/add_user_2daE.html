@@ -33,12 +33,12 @@
             <div class="row">
                 <div class="input-group">
                     <label>Nombre(s)</label>
-                    <input type="text" name="name" placeholder="Nombre(s)" value="{{ form.name or '' }}" required>
+                    <input type="text" name="first_name" placeholder="Nombre(s)" value="{{ form.first_name or form.name or '' }}" required>
                 </div>
 
                 <div class="input-group">
                     <label>Apellidos</label>
-                    <input type="text" name="lastname" placeholder="Apellidos paterno y materno" value="{{ form.lastname or '' }}" required>
+                    <input type="text" name="last_name" placeholder="Apellidos paterno y materno" value="{{ form.last_name or form.lastname or '' }}" required>
                 </div>
             </div>
 
@@ -50,11 +50,11 @@
 
                 <div class="input-group">
                     <label>Rol</label>
-                    <select name="role" required>
-                        <option value="" disabled {% if not form.role %}selected{% endif %}>Seleccionar</option>
-                        <option value="Administrador" {% if form.role == 'Administrador' %}selected{% endif %}>Administrador</option>
-                        <option value="Enfermero"     {% if form.role == 'Enfermero' %}selected{% endif %}>Enfermero</option>
-                        <option value="Médico"        {% if form.role == 'Médico' %}selected{% endif %}>Médico</option>
+                    <select name="role_id" required>
+                        <option value="" disabled {% if not form.role_id %}selected{% endif %}>Seleccionar</option>
+                        {% for role in roles %}
+                        <option value="{{ role.role_id }}" {% if form.role_id | string == role.role_id | string %}selected{% endif %}>{{ role.name }}</option>
+                        {% endfor %}
                     </select>
                 </div>
             </div>
