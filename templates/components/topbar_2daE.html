@@ -1,6 +1,9 @@
 <div class="topbar">
-    <div class="clinic-title">ClínicaNuevoLeón</div>
-
+        <a href="{{ url_for('pagina_inicio') }}" class="topbar-logo">
+            <img src="{{ url_for('static', filename='img/logo.png') }}" alt="ImmuniCare Logo" class="logo-img">
+            <span class="logo-text">ImmuniCare</span>
+        </a>
+    
     <div class="search-bar-container global-search-wrapper">
         <i class="fa-solid fa-magnifying-glass"></i>
         <input type="text" id="globalSearchInput" placeholder="Buscar paciente, vacuna o trabajador..." autocomplete="off">
