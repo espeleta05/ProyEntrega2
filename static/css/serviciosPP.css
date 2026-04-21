@@ -1,253 +1,84 @@
-/* === VARIABLES === */
+/* === ESTILOS BASE === */
+* { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Open Sans', sans-serif; }
 :root {
-    --primary-color: #6B007C;
-    --secondary-color: #4B1535;
-    --light-color: #FAD9FF;
-    --button-color: #E8ABCE;
-    --gray-color: #636363;
-    --gray-stroke: #cecece;
-    --gray-background: #F2F2F2;
+    --primary-color: #6B007C; --secondary-color: #4B1535; --light-color: #FAD9FF;
+    --button-color: #E8ABCE; --gray-color: #636363; --gray-stroke: #cecece;
+    --gray-background: #F2F2F2; --transition: all 0.3s ease;
 }
+body { background-color: var(--gray-background); padding-top: 110px; }
+h1, h2, h3, h4, h5, h6 { font-family: 'Montserrat', sans-serif; font-weight: 700; }
 
-* {
-    box-sizing: border-box;
-    margin: 0;
-    padding: 0;
-    font-family: 'SF Pro', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-}
+/* TOPBAR */
+.topbar { position: fixed; top: 0; left: 0; width: 100%; height: 110px; background: white; border-bottom: 1px solid rgba(99, 99, 99, 0.61); display: flex; align-items: center; justify-content: space-between; padding: 0 60px; z-index: 100; }
+.topbar-logo { display: flex; align-items: center; text-decoration: none; }
+.logo-img { height: 85px; width: auto; object-fit: contain; }
+.topbar-nav { display: flex; align-items: center; gap: 40px; }
+.nav-link { font-size: 18px; font-weight: 600; color: var(--gray-color); text-decoration: none; transition: color 0.3s ease; }
+.nav-link:hover, .nav-link.active { color: var(--primary-color); }
+.topbar-actions { display: flex; align-items: center; gap: 20px; }
+.btn-login { display: flex; align-items: center; gap: 8px; background: transparent; color: var(--secondary-color); font-size: 18px; font-weight: 600; padding: 12px 24px; border-radius: 15px; cursor: pointer; border: 2px solid var(--primary-color); text-decoration: none; transition: var(--transition); }
+.btn-login:hover { background: var(--primary-color); color: white; }
+.btn-action { display: flex; align-items: center; gap: 10px; background: var(--button-color); color: var(--secondary-color); font-size: 18px; font-weight: 700; padding: 15px 36px; border-radius: 15px; border: none; cursor: pointer; text-decoration: none; transition: var(--transition); }
+.btn-action:hover { background: var(--primary-color); color: white; transform: scale(1.02); }
 
-body {
-    background-color: var(--gray-background);
-    color: #333;
-}
+/* CONTENT */
+.main-container { margin-left: 0; width: 100%; }
 
-/* === LAYOUT === */
-.main-container {
-    margin-left: 280px; /* Espacio para el sidebar */
-}
+/* HERO SERVICIOS */
+.services-hero { display: flex; align-items: center; padding: 60px; background: white; gap: 60px; }
+.hero-title-col { flex: 0 0 30%; }
+.hero-title-col h1 { font-size: 48px; color: var(--primary-color); line-height: 1.2; }
+.hero-text-col { flex: 1; }
+.hero-text-col h2 { font-size: 28px; color: var(--secondary-color); margin-bottom: 20px; }
+.hero-text-col p { color: var(--gray-color); line-height: 1.8; margin-bottom: 15px; }
 
-/* === SIDEBAR === */
-.sidebar {
-    position: fixed;
-    left: 0;
-    top: 0;
-    width: 280px;
-    height: 100vh;
-    background: #FFFFFF;
-    border-right: 1px solid rgba(99, 99, 99, 0.61);
-    display: flex;
-    flex-direction: column;
-    z-index: 100;
-}
+/* GRID SERVICIOS */
+.services-grid-section { padding: 60px; }
+.services-grid-container { display: grid; grid-template-columns: repeat(3, 1fr); gap: 30px; }
+.service-card { background: white; padding: 30px; border-radius: 20px; border-bottom: 5px solid var(--button-color); box-shadow: 0 4px 15px rgba(0,0,0,0.05); transition: var(--transition); }
+.service-card:hover { transform: translateY(-5px); border-bottom-color: var(--primary-color); box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
+.service-card h3 { font-size: 22px; color: var(--secondary-color); margin-bottom: 15px; }
+.service-card p { color: var(--gray-color); line-height: 1.6; }
 
-.sidebar-header {
-    padding: 40px 20px 20px 30px;
-    border-bottom: 1px solid var(--gray-stroke);
-}
+/* SECCIÓN VACUNAS - IMAGEN GRANDE */
+.vaccines-section { display: flex; align-items: center; padding: 80px 60px; gap: 80px; background: white; }
+.vaccines-image { flex: 1; overflow: hidden; border-radius: 20px; box-shadow: 0 15px 40px rgba(0,0,0,0.1); }
+.vaccines-image img { width: 100%; height: 450px; object-fit: cover; display: block; }
+.vaccines-list { flex: 1; }
+.vaccines-list h2 { font-size: 32px; color: var(--secondary-color); margin-bottom: 30px; }
+.vaccine-tags { display: flex; flex-wrap: wrap; gap: 15px; }
+.vaccine-tags span { background: var(--light-color); color: var(--primary-color); padding: 10px 20px; border-radius: 25px; font-weight: 600; font-size: 14px; border: 1px solid rgba(107, 0, 124, 0.1); }
 
-.logo {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    text-decoration: none;
-}
+/* CTA */
+.cta-section { background: var(--light-color); padding: 80px 60px; display: flex; align-items: center; justify-content: space-between; gap: 60px; }
+.cta-content { flex: 1; }
+.cta-content h3 { font-size: 36px; color: var(--secondary-color); margin-bottom: 15px; }
+.cta-content p { font-size: 18px; color: var(--gray-color); margin-bottom: 30px; max-width: 500px; }
+.cta-image { flex: 1; display: flex; justify-content: center; }
+.cta-image img { width: 100%; max-width: 500px; height: 350px; object-fit: cover; border-radius: 20px; box-shadow: 0 15px 40px rgba(0,0,0,0.15); }
 
-.logo-icon { font-size: 44px; color: var(--primary-color); }
-.logo-text { font-family: 'Alumni Sans', sans-serif; font-size: 48px; font-weight: 600; color: var(--primary-color); }
-
-.sidebar-menu { padding: 30px 20px; display: flex; flex-direction: column; gap: 5px; flex-grow: 1; }
-.menu-category { background: rgba(232, 171, 206, 0.44); padding: 10px 20px; border-radius: 30px; color: var(--secondary-color); font-weight: 600; margin-bottom: 10px; font-size: 20px; }
-.menu-item { display: flex; align-items: center; gap: 15px; padding: 12px 20px; border-radius: 25px; color: var(--gray-color); font-size: 18px; text-decoration: none; transition: all 0.2s; }
-.menu-item:hover { background-color: var(--secondary-color); color: white; }
-.menu-item.active { background: rgba(232, 171, 206, 0.44); color: var(--secondary-color); font-weight: 600; }
-
-.sidebar-footer { padding: 20px; border-top: 1px solid var(--gray-stroke); }
-.btn-register { display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; padding: 12px; background: var(--gray-color); color: white; border-radius: 50px; font-weight: 600; cursor: pointer; border: none; }
-
-/* === TOPBAR === */
-.topbar {
-    position: fixed; top: 0; left: 280px; right: 0; height: 110px;
-    background: white; border-bottom: 1px solid rgba(99, 99, 99, 0.61);
-    display: flex; align-items: center; justify-content: space-between; padding: 0 40px; z-index: 99;
-}
-.search-bar { display: flex; align-items: center; background: #ECE6F0; padding: 0 20px; border-radius: 28px; width: 682px; height: 56px; }
-.search-bar input { border: none; background: transparent; width: 100%; font-size: 16px; outline: none; margin-left: 10px; }
-.btn-action { display: flex; align-items: center; gap: 10px; background: var(--button-color); color: var(--secondary-color); padding: 15px 36px; border-radius: 15px; font-weight: 700; font-size: 20px; border: none; cursor: pointer; text-decoration: none; }
-.user-icon { width: 50px; height: 50px; background: rgba(99, 99, 99, 0.2); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: var(--gray-color); cursor: pointer; }
-
-/* === CONTENT === */
-.content { margin-top: 110px; padding: 0; background: var(--gray-background); }
-
-/* === HERO SERVICES === */
-.services-hero {
-    display: flex;
-    background: linear-gradient(180deg, rgba(232, 171, 206, 0.19) 0%, rgba(255, 0, 146, 0.19) 100%);
-    padding: 60px 50px;
-    min-height: 300px;
-}
-
-.hero-title-col {
-    flex: 0 0 40%;
-    display: flex;
-    align-items: center;
-}
-
-.services-hero h1 {
-    font-size: 55px;
-    font-weight: 760;
-    color: var(--primary-color);
-    line-height: 1.2;
-}
-
-.hero-text-col {
-    flex: 1;
-    padding-left: 50px;
-}
-
-.hero-text-col h2 {
-    font-size: 24px;
-    font-weight: 760;
-    color: #000;
-    margin-bottom: 20px;
-}
-
-.hero-text-col p {
-    font-size: 21px;
-    line-height: 1.4;
-    color: var(--gray-color);
-}
-
-/* === GRID SERVICES === */
-.services-grid-section {
-    padding: 50px;
-}
-
-.services-grid-container {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 30px;
-    background: white;
-    padding: 40px;
-    border-radius: 15px;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-}
-
-.service-card {
-    padding: 20px;
-    border-left: 4px solid var(--button-color); /* Detalle visual */
-    background: #fdfdfd;
-}
-
-.service-card h3 {
-    font-size: 24px;
-    font-weight: 700;
-    color: #000;
-    margin-bottom: 10px;
-}
-
-.service-card p {
-    font-size: 21px;
-    color: var(--secondary-color);
-    line-height: 1.3;
-}
-
-/* === VACCINES SECTION === */
-.vaccines-section {
-    display: flex;
-    background: white;
-    margin: 0 50px 40px 50px;
-    border-radius: 15px;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-    overflow: hidden;
-    min-height: 363px;
-}
-
-.vaccines-image {
-    flex: 0 0 40%;
-    position: relative;
-}
-
-.vaccines-image img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-}
-
-.vaccines-list {
-    flex: 1;
-    padding: 40px;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-}
-
-.vaccines-list h2 {
-    font-size: 24px;
-    font-weight: 700;
-    color: #000;
-    margin-bottom: 20px;
-}
-
-.vaccine-tags {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
-}
-
-.vaccine-tags span {
-    background: var(--gray-background);
-    color: var(--gray-color);
-    padding: 8px 16px;
-    border-radius: 20px;
-    font-size: 16px;
-    font-weight: 500;
-    text-decoration: underline; /* Según el CSS original */
-}
-
-/* === CTA SECTION === */
-.cta-section {
-    background: white;
-    margin: 40px 50px;
-    border-radius: 15px;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-    display: flex;
-    overflow: hidden;
-    height: 388px;
-}
-
-.cta-content {
-    flex: 1;
-    padding: 50px;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-}
-
-.cta-content h3 { font-size: 32px; color: var(--primary-color); margin-bottom: 20px; }
-.cta-content p { font-size: 21px; color: var(--secondary-color); line-height: 1.4; }
-
-.cta-image { flex: 1; }
-.cta-image img { width: 100%; height: 100%; object-fit: cover; }
-
-/* === FOOTER === */
-.footer {
-    background: var(--button-color);
-    padding: 60px 50px;
-    display: flex;
-    justify-content: space-between;
-    color: #000;
-}
-
-.footer-col h4 { font-size: 24px; margin-bottom: 20px; font-weight: 700; }
-.footer-col p { font-size: 18px; line-height: 1.6; margin-bottom: 10px; }
+/* FOOTER */
+.footer { background: var(--button-color); padding: 60px; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 40px; }
+.footer-col { flex: 1; min-width: 250px; }
+.footer-col h4 { font-size: 22px; margin-bottom: 25px; color: var(--secondary-color); }
+.footer-col p { font-size: 16px; line-height: 1.8; color: var(--secondary-color); margin-bottom: 8px; display: flex; align-items: center; gap: 10px; }
+.footer-col i { color: var(--primary-color); width: 20px; }
 
 /* RESPONSIVE */
-@media (max-width: 1200px) {
-    .sidebar { display: none; }
-    .main-container { margin-left: 0; }
-    .topbar { left: 0; }
-    .services-hero { flex-direction: column; }
-    .services-grid-container { grid-template-columns: 1fr; }
+@media (max-width: 1024px) {
+    .topbar-nav { display: none; }
+    .services-hero { flex-direction: column; text-align: center; }
+    .services-grid-container { grid-template-columns: repeat(2, 1fr); }
     .vaccines-section { flex-direction: column; }
-    .cta-section { flex-direction: column; height: auto; }
+    .vaccines-image img { height: 300px; }
+    .cta-section { flex-direction: column; text-align: center; }
+    .cta-content { display: flex; flex-direction: column; align-items: center; }
+    .footer { flex-direction: column; text-align: center; align-items: center; }
+    .footer-col p { justify-content: center; }
+}
+@media (max-width: 768px) {
+    .topbar { padding: 0 20px; height: 80px; }
+    .logo-img { height: 60px; }
+    .services-grid-container { grid-template-columns: 1fr; }
+    .vaccine-tags { justify-content: center; }
 }
