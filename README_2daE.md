@@ -10,8 +10,11 @@ Aplicacion Flask conectada a PostgreSQL usando `psycopg`.
 
 ## Configuracion de entorno
 - Variable opcional `SECRET_KEY`
-- Variable `DATABASE_URL` (si no se define, usa):
-  - `postgresql://postgres:postgres@localhost:5432/sistemaVacunacion`
+- Variable `DATABASE_URL` con el host, usuario y contrasena reales de la maquina donde corre PostgreSQL.
+- Referencia de ejemplo: [.env.example](.env.example)
+- Si no se define `DATABASE_URL`, la app intenta el valor local:
+   - `postgresql://postgres:postgres@localhost:5432/sistemaVacunacion`
+- En otra maquina, ese valor solo funcionara si existe un usuario `postgres` con esa clave y esa base de datos.
 
 ## Orden recomendado de SQL
 1. `sql/esquema_postgres_2daE.sql`

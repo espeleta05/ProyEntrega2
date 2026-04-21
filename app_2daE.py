@@ -1,6 +1,7 @@
 import os
 from datetime import date, datetime, timedelta
 from calendar import month_abbr
+from urllib.parse import urlparse
 from flask import Flask, flash, jsonify, redirect, render_template, request, session, url_for, g, has_request_context
 import psycopg
 from psycopg import sql
@@ -10,10 +11,53 @@ import bcrypt
 
 app = Flask(__name__)
 app.secret_key = os.getenv("SECRET_KEY", "segunda-entrega-demo")
+
+
+def _load_local_env_file(env_path=".env"):
+    if not os.path.exists(env_path):
+        return
+    try:
+        with open(env_path, "r", encoding="utf-8") as env_file:
+            for raw_line in env_file:
+                line = raw_line.strip()
+                if not line or line.startswith("#") or "=" not in line:
+                    continue
+                key, value = line.split("=", 1)
+                key = key.strip()
+                value = value.strip().strip('"').strip("'")
+                if key and key not in os.environ:
+                    os.environ[key] = value
+    except Exception:
+        pass
+
+
+_load_local_env_file()
+
 app.config["DATABASE_URL"] = os.getenv(
     "DATABASE_URL",
     "postgresql://postgres:postgres@localhost:5432/sistemaVacunacion",
 )
+
+
+def _database_url_hint():
+    parsed = urlparse(app.config["DATABASE_URL"])
+    host = parsed.hostname or "localhost"
+    port = parsed.port or 5432
+    db_name = parsed.path.lstrip("/") or "<database>"
+    user = parsed.username or "<user>"
+    return f"{user}@{host}:{port}/{db_name}"
+
+
+@app.errorhandler(psycopg.OperationalError)
+def handle_database_operational_error(error):
+    message = (
+        "No se pudo conectar a PostgreSQL. Revisa DATABASE_URL, el servidor, el usuario/rol "
+        "y la contraseña de esa maquina."
+    )
+    if request.path.startswith("/api/"):
+        return jsonify({"error": message, "detail": str(error), "database": _database_url_hint()}), 503
+    flash(f"{message} Configuracion activa: {_database_url_hint()}", "danger")
+    return redirect(url_for("login"))
 
 
 # DATOS HARDCODEADOS  (simulan lo que devolvería PostgreSQL)
