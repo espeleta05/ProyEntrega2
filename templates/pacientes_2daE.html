@@ -6,6 +6,19 @@
 
 <link rel="stylesheet" href="{{ url_for('static', filename='css/nuevoPaciente.css') }}">
 <link rel="stylesheet" href="{{ url_for('static', filename='css/pacientes.css') }}">
+<style>
+.patient-card-wrapper.nfc-focus .pt-card {
+    border: 2px solid #1f8a46;
+    box-shadow: 0 0 0 4px rgba(31, 138, 70, 0.15);
+    animation: nfcFlash 1.2s ease-in-out 2;
+}
+
+@keyframes nfcFlash {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.01); }
+    100% { transform: scale(1); }
+}
+</style>
 
 <div class="content-header">
     <div>
@@ -162,10 +175,35 @@ document.getElementById('searchInput').addEventListener('input', function() {
 (() => {
     const params = new URLSearchParams(window.location.search);
     const q = (params.get('q') || '').trim();
+    const focusPatientId = (params.get('focus_patient_id') || '').trim();
+    const fromNfc = (params.get('from_nfc') || '').trim() === '1';
     const searchInput = document.getElementById('searchInput');
-    if (!q || !searchInput) return;
-    searchInput.value = q;
-    searchInput.dispatchEvent(new Event('input'));
+
+    if (focusPatientId) {
+        if (searchInput) {
+            searchInput.value = focusPatientId;
+            searchInput.dispatchEvent(new Event('input'));
+        }
+
+        const targetCard = document.getElementById(`patient-card-${focusPatientId}`);
+        if (targetCard) {
+            targetCard.classList.add('nfc-focus');
+            targetCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+
+        if (fromNfc) {
+            const subtitle = document.querySelector('.content-header .subtitle');
+            if (subtitle && targetCard) {
+                subtitle.textContent = `Paciente detectado por NFC: ID ${focusPatientId}`;
+            }
+        }
+        return;
+    }
+
+    if (q && searchInput) {
+        searchInput.value = q;
+        searchInput.dispatchEvent(new Event('input'));
+    }
 })();
 
 document.querySelectorAll('.delete-patient-btn').forEach(btn => {

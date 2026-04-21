@@ -2758,8 +2758,8 @@ def api_nfc_read():
             break
     
     # Si viene en path como /api/nfc/read/3FE92F36
-    if not uid and request.path_info.startswith("/api/nfc/read/"):
-        path_parts = request.path_info.split("/")
+    if not uid and request.path.startswith("/api/nfc/read/"):
+        path_parts = request.path.split("/")
         if len(path_parts) > 3:
             uid = path_parts[3].strip().upper()
     
