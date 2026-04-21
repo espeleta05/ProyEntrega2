@@ -16,6 +16,7 @@
     <header class="topbar">
         <a href="{{ url_for('pagina_inicio') }}" class="topbar-logo">
             <img src="{{ url_for('static', filename='img/logo.png') }}" alt="ImmuniCare Logo" class="logo-img">
+            <span class="logo-text">ImmuniCare</span>
         </a>
         <nav class="topbar-nav">
             <a href="{{ url_for('pagina_inicio') }}" class="nav-link">Principal</a>
@@ -24,7 +25,7 @@
             <a href="{{ url_for('pagina_contacto') }}" class="nav-link active">Contacto</a>
         </nav>
         <div class="topbar-actions">
-            <a href="{{ url_for('login') }}" class="btn-login">...<span>Iniciar Sesión</span></a>
+            <a href="{{ url_for('login') }}" class="btn-login"><span>Iniciar Sesión</span></a>
             <a href="#cita" class="btn-action">Agenda tu Cita <i class="fa-solid fa-arrow-right"></i></a>
         </div>
     </header>

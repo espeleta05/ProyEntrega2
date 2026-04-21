@@ -16,6 +16,7 @@
     <header class="topbar">
         <a href="{{ url_for('pagina_inicio') }}" class="topbar-logo">
             <img src="{{ url_for('static', filename='img/logo.png') }}" alt="ImmuniCare Logo" class="logo-img">
+            <span class="logo-text">ImmuniCare</span>
         </a>
         <nav class="topbar-nav">
             <a href="{{ url_for('pagina_inicio') }}" class="nav-link">Principal</a>
@@ -24,7 +25,7 @@
             <a href="{{ url_for('pagina_contacto') }}" class="nav-link">Contacto</a>
         </nav>
         <div class="topbar-actions">
-            <a href="{{ url_for('login') }}" class="btn-login">...<span>Iniciar Sesión</span></a>
+            <a href="{{ url_for('login') }}" class="btn-login"><span>Iniciar Sesión</span></a>
             <a href="{{ url_for('pagina_contacto') }}" class="btn-action">Agenda tu Cita <i class="fa-solid fa-arrow-right"></i></a>
         </div>
     </header>
@@ -32,11 +33,13 @@
     <div class="main-container">
         <main class="content">
             
-            <!-- HERO HEADER -->
-            <section class="about-hero">
-                <h1>Una infancia protegida es un futuro más seguro</h1>
-                <p>Somos un centro de vacunación infantil dedicado a cuidar la salud de los más pequeños, ofreciendo una amplia variedad de vacunas que ayudan a prevenir enfermedades y fortalecer su desarrollo.</p>
-                <p>Brindamos orientación a los padres para que puedan tomar decisiones informadas sobre el bienestar de sus hijos, cumpliendo con los más altos estándares de calidad e higiene.</p>
+
+            <section class="hero">
+                 <div class="about-hero">
+                    <h1>Una infancia protegida es un futuro más seguro</h1>
+                    <p>Somos un centro de vacunación infantil dedicado a cuidar la salud de los más pequeños, ofreciendo una amplia variedad de vacunas que ayudan a prevenir enfermedades y fortalecer su desarrollo.</p>
+                    <p>Brindamos orientación a los padres para que puedan tomar decisiones informadas sobre el bienestar de sus hijos, cumpliendo con los más altos estándares de calidad e higiene.</p>
+                </div>
             </section>
 
             <!-- SECCIÓN DE CONTENIDO -->
