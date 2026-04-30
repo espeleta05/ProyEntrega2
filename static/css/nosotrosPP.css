@@ -30,7 +30,7 @@ h1, h2, h3, h4, h5, h6 { font-family: 'Montserrat', sans-serif; font-weight: 700
 .hero {
     background: 
         linear-gradient(135deg, rgba(107, 0, 124, 0.4), rgba(232, 171, 206, 0.3)),
-        url('../img/todas_2.png'); 
+        url('img/todas_1.png'); 
         
     background-size: cover;
     background-position: center;

@@ -104,14 +104,37 @@
 <p class="tbl-footer">Mostrando {{ inventory|length }} de {{ inventory|length }} insumos</p>
 
 <script>
-document.getElementById('searchInput').addEventListener('input', function(e) {
-    const query = e.target.value.toLowerCase();
-    document.querySelectorAll('#inventoryTable tr[data-clinic]').forEach(row => {
-        const clinic  = row.dataset.clinic.toLowerCase();
-        const supply  = row.dataset.supply.toLowerCase();
-        row.style.display = (clinic.includes(query) || supply.includes(query)) ? '' : 'none';
+const inventorySearch = document.getElementById('searchInput');
+const inventoryFilter = document.getElementById('roleFilterSelect');
+const inventorySort = document.getElementById('sortSelect');
+const inventoryRows = Array.from(document.querySelectorAll('#inventoryTable tr[data-clinic]'));
+
+function applyInventoryView() {
+    const query = (inventorySearch?.value || '').toLowerCase();
+    const filter = (inventoryFilter?.value || '').toLowerCase();
+    inventoryRows.forEach(row => {
+        const clinic = row.dataset.clinic.toLowerCase();
+        const supply = row.dataset.supply.toLowerCase();
+        row.style.display = (!query || clinic.includes(query) || supply.includes(query)) && (!filter || supply.includes(filter)) ? '' : 'none';
     });
-});
+}
+
+function sortInventory() {
+    if (!inventorySort) return;
+    const key = inventorySort.value;
+    const tbody = document.getElementById('inventoryTable');
+    const visibleRows = inventoryRows.filter(row => row.style.display !== 'none');
+    const idxMap = { clinica: 0, insumo: 1, unidad: 2, stock: 3, categoria: 5, estado: 6 };
+    const idx = idxMap[key] ?? 0;
+    visibleRows.sort((left, right) => (left.children[idx]?.innerText || '').localeCompare(right.children[idx]?.innerText || '', 'es', { numeric: true, sensitivity: 'base' }));
+    visibleRows.forEach(row => tbody.appendChild(row));
+}
+
+if (inventorySearch) inventorySearch.addEventListener('input', () => { applyInventoryView(); sortInventory(); });
+if (inventoryFilter) inventoryFilter.addEventListener('change', () => { applyInventoryView(); sortInventory(); });
+if (inventorySort) inventorySort.addEventListener('change', () => { sortInventory(); applyInventoryView(); });
+
+applyInventoryView();
 </script>
 
 {% endblock %}

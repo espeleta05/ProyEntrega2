@@ -111,20 +111,37 @@
     </p>
 
 <script>
-// Búsqueda local
-document.getElementById('searchInput').addEventListener('input', function(e) {
-    const query = e.target.value.toLowerCase();
-    const rows = document.querySelectorAll('#appointmentsTable tr');
+const appointmentsSearch = document.getElementById('searchInput');
+const appointmentsFilter = document.getElementById('roleFilterSelect');
+const appointmentsSort = document.getElementById('sortSelect');
+const appointmentRows = Array.from(document.querySelectorAll('#appointmentsTable tr[data-patient]'));
 
-    rows.forEach(row => {
-        const patient = row.getAttribute('data-patient').toLowerCase();
-        if (patient.includes(query)) {
-            row.style.display = '';
-        } else {
-            row.style.display = 'none';
-        }
+function applyAppointmentsView() {
+    const query = (appointmentsSearch?.value || '').toLowerCase();
+    const dateFilter = (appointmentsFilter?.value || '').toLowerCase();
+    appointmentRows.forEach(row => {
+        const patient = (row.getAttribute('data-patient') || '').toLowerCase();
+        const date = (row.children[4]?.innerText || '').toLowerCase();
+        row.style.display = (!query || patient.includes(query)) && (!dateFilter || date.includes(dateFilter)) ? '' : 'none';
     });
-});
+}
+
+function sortAppointments() {
+    if (!appointmentsSort) return;
+    const key = appointmentsSort.value;
+    const tbody = document.getElementById('appointmentsTable');
+    const visibleRows = appointmentRows.filter(row => row.style.display !== 'none');
+    const idxMap = { paciente: 0, clinica: 1, area: 2, trabajador: 3, fecha: 4, estado: 6 };
+    const idx = idxMap[key] ?? 0;
+    visibleRows.sort((left, right) => (left.children[idx]?.innerText || '').localeCompare(right.children[idx]?.innerText || '', 'es', { numeric: true, sensitivity: 'base' }));
+    visibleRows.forEach(row => tbody.appendChild(row));
+}
+
+if (appointmentsSearch) appointmentsSearch.addEventListener('input', () => { applyAppointmentsView(); sortAppointments(); });
+if (appointmentsFilter) appointmentsFilter.addEventListener('change', () => { applyAppointmentsView(); sortAppointments(); });
+if (appointmentsSort) appointmentsSort.addEventListener('change', () => { sortAppointments(); applyAppointmentsView(); });
+
+applyAppointmentsView();
 </script>
 
 {% endblock %}

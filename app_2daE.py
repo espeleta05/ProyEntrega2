@@ -587,7 +587,9 @@ def _sp_fetchall(function_name, params=None):
             else:
                 query = sql.SQL("SELECT * FROM {}()").format(sql.Identifier(function_name))
                 cur.execute(query)
-            return cur.fetchall()
+            rows = cur.fetchall()
+            conn.commit()
+            return rows
     except Exception:
         _safe_rollback(conn)
         raise
@@ -617,7 +619,9 @@ def _sp_fetchone(function_name, params=None):
             else:
                 query = sql.SQL("SELECT * FROM {}()").format(sql.Identifier(function_name))
                 cur.execute(query)
-            return cur.fetchone()
+            row = cur.fetchone()
+            conn.commit()
+            return row
     except Exception:
         _safe_rollback(conn)
         raise
@@ -651,7 +655,7 @@ def _sync_serial_sequence(conn, table, id_column):
 
 def _sync_known_sequences(conn):
     targets = [
-        ("patients", "patient_id"),
+        ("patients", "patient_id"),JHGFYTIR
         ("guardians", "guardian_id"),
         ("guardian_phones", "phone_id"),
         ("patient_guardian_relations", "relation_id"),
@@ -1065,6 +1069,9 @@ def _password_matches(raw_password, stored_password):
 
 
 def _authenticate_user(login_value, password):
+    login_value = (login_value or "").strip()
+    login_value_lc = login_value.lower()
+
     with _db_connect() as conn:
         with conn.cursor() as cur:
             cur.execute(
@@ -1080,10 +1087,11 @@ def _authenticate_user(login_value, password):
                 LEFT JOIN roles r ON r.role_id = w.role_id
                 LEFT JOIN worker_emails we ON we.worker_id = w.worker_id AND we.is_primary = TRUE
                 WHERE LOWER(COALESCE(we.email, '')) = LOWER(%s)
+                         OR LOWER(SPLIT_PART(COALESCE(we.email, ''), '@', 1)) = LOWER(%s)
                    OR CAST(w.worker_id AS TEXT) = %s
                 LIMIT 1
                 """,
-                (login_value, login_value),
+                     (login_value, login_value, login_value),
             )
             worker = cur.fetchone()
 
@@ -1125,12 +1133,24 @@ def _authenticate_user(login_value, password):
                     "role": user.get("role_name") or "Administrador",
                 }
 
+    # Fallback demo para compatibilidad con credenciales historicas del proyecto.
+    demo_user = USERS.get(login_value_lc)
+    if demo_user and _password_matches(password, demo_user.get("password")):
+        return {
+            "worker_id": demo_user.get("worker_id"),
+            "name": demo_user.get("name") or "",
+            "lastname": demo_user.get("lastname") or "",
+            "role": demo_user.get("role") or "Administrador",
+        }
+
     return None
 
 
 # ── LOGIN / LOGOUT ────────────────────────────────────────────────────────────
 @app.route("/login", methods=["GET", "POST"])
 def login():
+    error = None
+
     # 1. Si ya está logueado, mandarlo al dashboard
     if "user_name" in session:
         return redirect(url_for("dashboard"))
@@ -1149,12 +1169,13 @@ def login():
             flash(f"Bienvenido, {user['name']}.", "success")
             return redirect(url_for("dashboard"))
 
-        flash("Credenciales inválidas.", "danger")
+        error = "Credenciales inválidas."
+        flash(error, "danger")
         # Nota: Aquí NO ponemos return, dejamos que caiga al final para recargar la pág
 
     # 3. Si es GET (entrar normal) o si falló el login
     # IMPORTANTE: Esta línea debe estar AFUERA (a la misma altura) del 'if'
-    return render_template("login_2daE.html") 
+    return render_template("login_2daE.html", error=error)
 
 
 @app.route("/logout")
@@ -1370,6 +1391,17 @@ def register_patient():
     if not first_name or not last_name:
         return jsonify({"error": "Nombre y apellido son requeridos"}), 400
 
+    gender_raw = (payload.get("gender") or "").strip().lower()
+    gender_map = {
+        "masculino": "M",
+        "m": "M",
+        "femenino": "F",
+        "f": "F",
+        "otro": "O",
+        "o": "O",
+    }
+    gender_code = gender_map.get(gender_raw, "O")
+
     with _db_connect() as conn:
         _sync_known_sequences(conn)
 
@@ -1380,7 +1412,7 @@ def register_patient():
             last_name,
             payload.get("curp"),
             payload.get("birth_date") or "2021-01-01",
-            payload.get("gender") or "M",
+            gender_code,
             payload.get("weight_kg"),
             bool(payload.get("premature", False)),
             (tutor.get("name") or "Tutor").strip(),
@@ -1414,6 +1446,10 @@ def delete_patient(id):
                 cur.execute("DELETE FROM patient_allergies WHERE patient_id = %s", (id,))
                 cur.execute("DELETE FROM post_vaccine_reactions WHERE record_id IN (SELECT record_id FROM vaccination_records WHERE patient_id = %s)", (id,))
                 cur.execute("DELETE FROM vaccination_records WHERE patient_id = %s", (id,))
+                cur.execute(
+                    "DELETE FROM nfc_scan_events WHERE nfc_card_id IN (SELECT nfc_card_id FROM nfc_cards WHERE patient_id = %s)",
+                    (id,),
+                )
                 cur.execute("DELETE FROM nfc_cards WHERE patient_id = %s", (id,))
                 cur.execute("DELETE FROM scheme_completion_alerts WHERE patient_id = %s", (id,))
                 cur.execute("DELETE FROM appointments WHERE patient_id = %s", (id,))
@@ -2022,11 +2058,30 @@ def edit_user(worker_id):
         flash("Usuario no encontrado", "danger")
         return redirect(url_for("personal"))
 
+    roles = _cur_fetchall("roles") or []
+
     if request.method == "POST":
         first_name = (request.form.get("first_name") or request.form.get("name") or "").strip()
         last_name = (request.form.get("last_name") or request.form.get("lastname") or "").strip()
         mail = (request.form.get("mail") or "").strip()
         role_id_raw = request.form.get("role_id") or request.form.get("role")
+
+        if not first_name or not last_name:
+            flash("Nombre y apellidos son obligatorios", "danger")
+            worker_view = {
+                "worker_id": worker_id,
+                "name": first_name,
+                "lastname": last_name,
+                "role": worker.get("role_name") or "",
+                "role_id": worker.get("role_id"),
+                "mail": mail,
+            }
+            return render_template(
+                "edit_user_2daE.html",
+                worker=worker_view,
+                roles=roles,
+                **_session_vars()
+            )
 
         try:
             role_id = int(role_id_raw) if role_id_raw is not None else worker["role_id"]
@@ -2036,7 +2091,24 @@ def edit_user(worker_id):
                 (role_id_raw,),
                 fetchone=True,
             )
-            role_id = role["role_id"] if role else worker["role_id"]
+            role_id = role["role_id"] if role else None
+
+        if role_id is None:
+            flash("Selecciona un rol valido", "danger")
+            worker_view = {
+                "worker_id": worker_id,
+                "name": first_name,
+                "lastname": last_name,
+                "role": worker.get("role_name") or "",
+                "role_id": worker.get("role_id"),
+                "mail": mail,
+            }
+            return render_template(
+                "edit_user_2daE.html",
+                worker=worker_view,
+                roles=roles,
+                **_session_vars()
+            )
 
         try:
             with _db_connect() as conn:
@@ -2086,6 +2158,7 @@ def edit_user(worker_id):
     return render_template(
         "edit_user_2daE.html",
         worker=worker_view,
+        roles=roles,
         **_session_vars()
     )
 
@@ -2249,62 +2322,131 @@ def api_reportes_publicos_resumen():
     locked = _require_login()
     if locked:
         return jsonify({"error": "No autenticado"}), 401
+    # Parámetros de filtro (opcional)
+    from_date = request.args.get('from')
+    to_date = request.args.get('to')
 
-    records_raw  = _cur_fetchall("vaccination_records")
-    patients_raw = _cur_fetchall("patients")
-    total_doses  = len(records_raw)
-    reached_pop  = len(set(r["patient_id"] for r in records_raw))
-    target_pop   = max(len(patients_raw), 1)
-    coverage     = (reached_pop / target_pop) * 100
+    params = []
+    date_where = ""
+    if from_date and to_date:
+        date_where = "WHERE applied_date BETWEEN %s AND %s"
+        params = [from_date, to_date]
 
-    monthly = [
-        {"period_label": "2026-01", "doses_applied": 1, "unique_patients": 1},
-        {"period_label": "2026-02", "doses_applied": 1, "unique_patients": 1},
-        {"period_label": "2026-03", "doses_applied": 3, "unique_patients": 3},
-    ]
+    # KPIs
+    total_doses_row = _exec_sql(f"SELECT COUNT(*) AS cnt FROM vaccination_records {date_where}", tuple(params), fetchone=True)
+    total_doses = int(total_doses_row['cnt']) if total_doses_row else 0
 
-    vax_count  = {}
-    vax_people = {}
-    for r in records_raw:
-        vname = _vaccine_name(r["vaccine_id"])
-        vax_count[vname]  = vax_count.get(vname, 0) + 1
-        vax_people.setdefault(vname, set()).add(r["patient_id"])
+    reached_row = _exec_sql(f"SELECT COUNT(DISTINCT patient_id) AS cnt FROM vaccination_records {date_where}", tuple(params), fetchone=True)
+    reached_pop = int(reached_row['cnt']) if reached_row else 0
 
-    vaccines_summary = [
-        {
-            "vaccine_name":    name,
-            "doses_applied":   doses,
-            "unique_patients": len(vax_people[name]),
-            "share_percent":   round(doses / total_doses * 100, 1) if total_doses else 0,
-        }
-        for name, doses in vax_count.items()
-    ]
+    patients_cnt_row = _exec_sql("SELECT COUNT(*) AS cnt FROM patients", (), fetchone=True)
+    target_pop = max(int(patients_cnt_row['cnt']) if patients_cnt_row else 0, 1)
 
-    zones_raw = _cur_fetchall("zones")
-    zones_summary = [
-        {
-            "zone_name":       z["name"],
-            "doses_applied":   z["cases"],
-            "unique_patients": z["cases"],
-            "risk_level":      z["risk"],
-            "risk_label":      {"high": "Alto", "medium": "Medio", "low": "Bajo"}.get(z["risk"], "—"),
-        }
-        for z in zones_raw
-    ]
+    coverage = (reached_pop / target_pop) * 100 if target_pop else 0
+
+    # Monthly: agrupar por YYYY-MM
+    monthly = _exec_sql(
+        """
+        SELECT to_char(applied_date, 'YYYY-MM') AS period_label,
+               COUNT(*) AS doses_applied,
+               COUNT(DISTINCT patient_id) AS unique_patients
+        FROM vaccination_records
+        {where}
+        GROUP BY period_label
+        ORDER BY period_label
+        """.format(where=date_where), tuple(params), fetchall=True
+    ) or []
+
+    # Vaccines summary
+    vaccines_rows = _exec_sql(
+        """
+        SELECT v.name AS vaccine_name,
+               COUNT(*) AS doses_applied,
+               COUNT(DISTINCT vr.patient_id) AS unique_patients
+        FROM vaccination_records vr
+        JOIN vaccines v ON v.vaccine_id = vr.vaccine_id
+        {where}
+        GROUP BY v.name
+        ORDER BY doses_applied DESC
+        LIMIT 50
+        """.format(where=date_where), tuple(params), fetchall=True
+    ) or []
+
+    vaccines_summary = []
+    for row in vaccines_rows:
+        doses = int(row.get('doses_applied') or 0)
+        vaccines_summary.append({
+            'vaccine_name': row.get('vaccine_name'),
+            'doses_applied': doses,
+            'unique_patients': int(row.get('unique_patients') or 0),
+            'share_percent': round(doses / total_doses * 100, 1) if total_doses else 0,
+        })
+
+    # Zones: intentar desde vista si existe, si no devolver vacío
+    zones_summary = []
+    try:
+        zones_raw = _cur_fetchall('zones')
+        zones_summary = [
+            {
+                'zone_name': z.get('name'),
+                'doses_applied': z.get('cases'),
+                'unique_patients': z.get('cases'),
+                'risk_level': z.get('risk'),
+                'risk_label': {'high': 'Alto', 'medium': 'Medio', 'low': 'Bajo'}.get(z.get('risk'), '—'),
+            }
+            for z in zones_raw
+        ]
+    except Exception:
+        zones_summary = []
 
     payload = {
-        "kpis": {
-            "total_doses_applied": total_doses,
-            "target_population":   target_pop,
-            "reached_population":  reached_pop,
-            "coverage_percent":    round(coverage, 1),
-            "avg_delay_days":      5.0,
-            "active_zones":        len(zones_raw),
+        'kpis': {
+            'total_doses_applied': total_doses,
+            'target_population': target_pop,
+            'reached_population': reached_pop,
+            'coverage_percent': round(coverage, 1),
+            'avg_delay_days': 0.0,
+            'active_zones': len(zones_summary),
         },
-        "monthly":  monthly,
-        "vaccines": vaccines_summary,
-        "zones":    zones_summary,
+        'monthly': [dict(r) for r in monthly],
+        'vaccines': vaccines_summary,
+        'zones': zones_summary,
     }
+
+    # Comprobar existencia de vistas y funciones clave y advertir si faltan
+    warnings = []
+    views_to_check = [
+        'v_patients_full',
+        'v_vaccination_records_full',
+        'v_inventory_status',
+        'v_appointments_full',
+        'v_pending_scheme_doses',
+    ]
+    for v in views_to_check:
+        try:
+            row = _exec_sql("SELECT to_regclass(%s) AS reg", (f'public.{v}',), fetchone=True)
+            if not row or not row.get('reg'):
+                warnings.append(f"Vista faltante: {v}")
+        except Exception:
+            warnings.append(f"No se pudo verificar vista: {v}")
+
+    funcs_to_check = [
+        'sp_get_patients_full',
+        'sp_get_vaccination_records_full',
+        'sp_get_inventory_status',
+        'sp_get_appointments_full',
+    ]
+    for fn in funcs_to_check:
+        try:
+            row = _exec_sql("SELECT EXISTS(SELECT 1 FROM pg_proc WHERE proname = %s)", (fn,), fetchone=True)
+            if not row or not row.get('exists'):
+                warnings.append(f"Función/SP faltante: {fn}")
+        except Exception:
+            warnings.append(f"No se pudo verificar función: {fn}")
+
+    if warnings:
+        payload['warnings'] = warnings
+
     return jsonify(payload)
 
 

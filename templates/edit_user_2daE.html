@@ -34,7 +34,12 @@
             <div class="row">
                 <div class="input-group">
                     <label>Rol</label>
-                    <input type="text" name="role" value="{{ worker.role or '' }}" required>
+                    <select name="role_id" required>
+                        <option value="" disabled {% if not worker.role_id %}selected{% endif %}>Seleccionar</option>
+                        {% for role in roles %}
+                        <option value="{{ role.role_id }}" {% if worker.role_id | string == role.role_id | string %}selected{% endif %}>{{ role.name }}</option>
+                        {% endfor %}
+                    </select>
                 </div>
 
                 <div class="input-group">

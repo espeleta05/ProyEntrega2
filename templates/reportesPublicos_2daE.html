@@ -4,7 +4,7 @@
 
 {% block content %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/reportesPublicos.css') }}">
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://code.highcharts.com/highcharts.js"></script>
 
 <div class="report-shell">
     <section class="report-header">
@@ -159,7 +159,7 @@
     const noDataBox = document.getElementById('reportNoData');
 
     let monthlyChart;
-    let vaccineChart;
+    let vaccineChart; // placeholders for compatibility
 
     function paintKpis(kpis) {
         document.getElementById('kpiDoses').textContent = fmt.format(kpis.total_doses_applied || 0);
@@ -175,36 +175,18 @@
         const doses = rows.map(r => r.doses_applied);
         const reached = rows.map(r => r.unique_patients);
 
-        if (monthlyChart) monthlyChart.destroy();
-        monthlyChart = new Chart(document.getElementById('monthlyChart'), {
-            type: 'line',
-            data: {
-                labels,
-                datasets: [
-                    {
-                        label: 'Dosis aplicadas',
-                        data: doses,
-                        borderColor: '#2F6FED',
-                        backgroundColor: 'rgba(47, 111, 237, 0.18)',
-                        borderWidth: 3,
-                        tension: 0.2,
-                        fill: true,
-                    },
-                    {
-                        label: 'Personas atendidas',
-                        data: reached,
-                        borderColor: '#0A7A4D',
-                        backgroundColor: 'rgba(10, 122, 77, 0.15)',
-                        borderWidth: 3,
-                        tension: 0.2,
-                        fill: false,
-                    }
-                ]
-            },
-            options: {
-                responsive: true,
-                plugins: { legend: { position: 'bottom' } },
-            }
+        // Highcharts
+        monthlyChart = Highcharts.chart('monthlyChart', {
+            chart: { type: 'line' },
+            title: { text: null },
+            xAxis: { categories: labels },
+            yAxis: { title: { text: null } },
+            series: [
+                { name: 'Dosis aplicadas', data: doses, color: '#2F6FED' },
+                { name: 'Personas atendidas', data: reached, color: '#0A7A4D' }
+            ],
+            credits: { enabled: false },
+            legend: { align: 'center', verticalAlign: 'bottom' }
         });
 
         if (!rows.length) {
@@ -225,22 +207,14 @@
         const labels = rows.map(r => r.vaccine_name);
         const doses = rows.map(r => r.doses_applied);
 
-        if (vaccineChart) vaccineChart.destroy();
-        vaccineChart = new Chart(document.getElementById('vaccineChart'), {
-            type: 'bar',
-            data: {
-                labels,
-                datasets: [{
-                    label: 'Dosis aplicadas',
-                    data: doses,
-                    borderWidth: 1,
-                    backgroundColor: ['#2F6FED', '#26A69A', '#FF8A65', '#8D6E63', '#5C6BC0', '#66BB6A'],
-                }]
-            },
-            options: {
-                responsive: true,
-                plugins: { legend: { display: false } },
-            }
+        vaccineChart = Highcharts.chart('vaccineChart', {
+            chart: { type: 'column' },
+            title: { text: null },
+            xAxis: { categories: labels, crosshair: true },
+            yAxis: { title: { text: null } },
+            series: [{ name: 'Dosis aplicadas', data: doses, color: '#2F6FED' }],
+            credits: { enabled: false },
+            legend: { enabled: false }
         });
 
         if (!rows.length) {

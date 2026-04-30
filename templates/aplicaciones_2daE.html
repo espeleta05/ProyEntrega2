@@ -63,7 +63,7 @@
         <select id="roleFilterSelect" class="sort-select">
             <option value="">Todas</option>
             {% for v in applications %}
-            <option value="{{ v.vaccine_id | lower }}">{{ v.name }}</option>
+            <option value="{{ v.name | lower }}">{{ v.name }}</option>
             {% endfor %}
         </select>
     </div>
@@ -133,12 +133,36 @@
 <p class="tbl-footer">Mostrando {{ total_applications }} aplicaciones</p>
 
 <script>
-document.getElementById('searchInput').addEventListener('input', function () {
-    const q = this.value.toLowerCase().trim();
-    document.querySelectorAll('#appsTable tr[data-search]').forEach(row => {
-        row.style.display = (!q || row.dataset.search.includes(q)) ? '' : 'none';
+const appsSearch = document.getElementById('searchInput');
+const appsFilter = document.getElementById('roleFilterSelect');
+const appsSort = document.getElementById('sortSelect');
+const appsRows = Array.from(document.querySelectorAll('#appsTable tr[data-search]'));
+
+function applyAppsView() {
+    const q = (appsSearch?.value || '').toLowerCase().trim();
+    const filter = (appsFilter?.value || '').toLowerCase().trim();
+    appsRows.forEach(row => {
+        const vaccine = (row.children[0]?.innerText || '').toLowerCase();
+        row.style.display = (!q || row.dataset.search.includes(q)) && (!filter || vaccine.includes(filter)) ? '' : 'none';
     });
-});
+}
+
+function sortApps() {
+    if (!appsSort) return;
+    const key = appsSort.value;
+    const tbody = document.getElementById('appsTable');
+    const visibleRows = appsRows.filter(row => row.style.display !== 'none');
+    const idxMap = { vacuna: 0, paciente: 1, dosis: 2, fecha: 3, doctor: 5, estado: 7 };
+    const idx = idxMap[key] ?? 0;
+    visibleRows.sort((left, right) => (left.children[idx]?.innerText || '').localeCompare(right.children[idx]?.innerText || '', 'es', { numeric: true, sensitivity: 'base' }));
+    visibleRows.forEach(row => tbody.appendChild(row));
+}
+
+if (appsSearch) appsSearch.addEventListener('input', () => { applyAppsView(); sortApps(); });
+if (appsFilter) appsFilter.addEventListener('change', () => { applyAppsView(); sortApps(); });
+if (appsSort) appsSort.addEventListener('change', () => { sortApps(); applyAppsView(); });
+
+applyAppsView();
 </script>
 
 {% endblock %}

@@ -136,7 +136,7 @@
             first_name: document.getElementById('p_name').value,
             last_name: document.getElementById('p_lastname').value,
             birth_date: document.getElementById('p_birthdate').value,
-            gender: document.getElementById('p_gender').value,
+            gender: document.getElementById('p_gender').value === 'Masculino' ? 'M' : 'F',
             blood_type: document.getElementById('p_blood').value,
             allergies: document.getElementById('p_allergies').value,
             

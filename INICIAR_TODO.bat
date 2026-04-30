@@ -4,13 +4,15 @@ setlocal
 cd /d "%~dp0"
 
 echo ===========================================
-echo  INICIANDO APP (SIN REINSTALAR)
+echo  INICIANDO APP
 echo ===========================================
 
-echo [1/5] Verificando entorno virtual...
+call :load_env
+
+echo [1/4] Verificando entorno virtual...
 if not exist ".venv\Scripts\python.exe" (
     echo [ERROR] No existe entorno virtual.
-    echo [TIP] Ejecuta primero INSTALAR_PRIMERA_VEZ.bat
+    echo [TIP] Ejecuta primero CONFIGURAR_ENTORNO.bat.
     pause
     exit /b 1
 )
@@ -22,16 +24,16 @@ if not exist "%VENV_PY%" (
     exit /b 1
 )
 
-echo [2/5] Verificando dependencias...
+echo [2/4] Verificando dependencias...
 "%VENV_PY%" -c "import flask, psycopg, bcrypt" >nul 2>nul
 if errorlevel 1 (
     echo [ERROR] Faltan dependencias en el entorno virtual.
-    echo [TIP] Ejecuta INSTALAR_PRIMERA_VEZ.bat para instalarlas.
+    echo [TIP] Ejecuta primero CONFIGURAR_ENTORNO.bat.
     pause
     exit /b 1
 )
 
-echo [3/5] Verificando base de datos PostgreSQL...
+echo [3/4] Verificando base de datos PostgreSQL...
 if "%DATABASE_URL%"=="" (
     set "DATABASE_URL=postgresql://postgres:postgres@localhost:5432/sistemaVacunacion"
 )
@@ -39,21 +41,20 @@ if "%DATABASE_URL%"=="" (
 if errorlevel 1 (
     echo [ERROR] No se pudo inicializar la base de datos.
     echo [TIP] Verifica que PostgreSQL este encendido y que DATABASE_URL sea valida.
-    echo [TIP] Si quieres reiniciar todo manualmente usa: python scripts\bootstrap_postgres.py --force-reset
     pause
     exit /b 1
 )
 
-echo [4/5] Probando conexion a la base...
-"%VENV_PY%" -c "import os, psycopg; conn=psycopg.connect(os.getenv('DATABASE_URL','postgresql://postgres:postgres@localhost:5432/sistemaVacunacion')); cur=conn.cursor(); cur.execute('SELECT 1'); print(cur.fetchone()[0]); conn.close()" >nul 2>nul
-if errorlevel 1 (
-    echo [ERROR] La conexion a PostgreSQL fallo.
-    pause
-    exit /b 1
-)
-
-echo [5/5] Iniciando servidor Flask...
+echo [4/4] Iniciando servidor Flask...
 start "" http://127.0.0.1:5000
 "%VENV_PY%" app_2daE.py
 
-endlocal
+exit /b 0
+
+:load_env
+if exist ".env" (
+    for /f "usebackq eol=# tokens=1,* delims==" %%A in (".env") do (
+        if not "%%A"=="" set "%%A=%%B"
+    )
+)
+exit /b 0

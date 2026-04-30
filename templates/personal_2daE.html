@@ -125,29 +125,59 @@
 <script>
 (() => {
     const input = document.getElementById('personalSearchInput');
+    const roleFilter = document.getElementById('roleFilterSelect');
+    const sortSelect = document.getElementById('sortSelect');
     if (!input) return;
 
     const rows = Array.from(document.querySelectorAll('.employee-row'));
+    const sections = Array.from(document.querySelectorAll('.role-section'));
 
-    function applyFilter(value) {
-        const term = (value || '').toLowerCase().trim();
+    function applyFilter() {
+        const term = (input.value || '').toLowerCase().trim();
+        const roleTerm = (roleFilter?.value || '').toLowerCase().trim();
         rows.forEach(row => {
             const text = row.innerText.toLowerCase();
-            row.style.display = (!term || text.includes(term)) ? '' : 'none';
+            const sectionRole = (row.closest('.role-section')?.dataset.role || '').toLowerCase();
+            row.style.display = (!term || text.includes(term)) && (!roleTerm || sectionRole.includes(roleTerm)) ? '' : 'none';
         });
 
         // Ocultar secciones enteras si no tienen filas visibles
-        document.querySelectorAll('.role-section').forEach(section => {
+        sections.forEach(section => {
             const visible = section.querySelectorAll('.employee-row:not([style*="none"])').length;
             section.style.display = visible > 0 ? '' : 'none';
         });
     }
 
-    input.addEventListener('input', e => applyFilter(e.target.value));
+    function sortRows() {
+        const key = sortSelect?.value || 'name';
+        sections.forEach(section => {
+            const tbody = section.querySelector('tbody');
+            if (!tbody) return;
+            const sectionRows = Array.from(tbody.querySelectorAll('.employee-row'));
+            sectionRows.sort((left, right) => {
+                if (key === 'id') {
+                    return Number(left.querySelector('.emp-id-badge')?.innerText.replace(/\D/g, '') || 0) - Number(right.querySelector('.emp-id-badge')?.innerText.replace(/\D/g, '') || 0);
+                }
+                if (key === 'role') {
+                    return (left.closest('.role-section')?.dataset.role || '').localeCompare(right.closest('.role-section')?.dataset.role || '', 'es', { sensitivity: 'base' });
+                }
+                const leftName = left.querySelector('.cell-main')?.innerText.toLowerCase() || '';
+                const rightName = right.querySelector('.cell-main')?.innerText.toLowerCase() || '';
+                return leftName.localeCompare(rightName, 'es', { sensitivity: 'base' });
+            });
+            sectionRows.forEach(row => tbody.appendChild(row));
+        });
+    }
+
+    input.addEventListener('input', applyFilter);
+    if (roleFilter) roleFilter.addEventListener('change', applyFilter);
+    if (sortSelect) sortSelect.addEventListener('change', () => { sortRows(); applyFilter(); });
 
     const params = new URLSearchParams(window.location.search);
     const q = (params.get('q') || '').trim();
-    if (q) { input.value = q; applyFilter(q); }
+    if (q) { input.value = q; }
+    sortRows();
+    applyFilter();
 })();
 </script>
 

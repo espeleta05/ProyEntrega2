@@ -30,7 +30,7 @@
         <select id="roleFilterSelect" class="sort-select">
             <option value="">Todos</option>
             {% for v in vaccines %}
-            <option value="{{ v.vaccine_id | lower }}">{{ v.name }}</option>
+            <option value="{{ v.name | lower }}">{{ v.name }}</option>
             {% endfor %}
         </select>
     </div>
@@ -120,24 +120,48 @@
 
 <script>
 const rows = Array.from(document.querySelectorAll('#tableBody tr[data-name]'));
+const searchInput = document.getElementById('searchInput');
+const filterSelect = document.getElementById('roleFilterSelect');
+const sortSelect = document.getElementById('sortSelect');
 
-document.getElementById('searchInput').addEventListener('input', function () {
-    const term = this.value.toLowerCase().trim();
+function applyView() {
+    const term = (searchInput?.value || '').toLowerCase().trim();
+    const filter = (filterSelect?.value || '').toLowerCase().trim();
     rows.forEach(row => {
         const name = row.dataset.name || '';
-        const lot  = row.dataset.lot  || '';
-        row.style.display = (!term || name.includes(term) || lot.includes(term)) ? '' : 'none';
+        const lot = row.dataset.lot || '';
+        row.style.display = (!term || name.includes(term) || lot.includes(term)) && (!filter || name.includes(filter)) ? '' : 'none';
     });
-});
+}
+
+function sortRows() {
+    if (!sortSelect) return;
+    const key = sortSelect.value;
+    const tbody = document.getElementById('tableBody');
+    const visibleRows = rows.filter(row => row.style.display !== 'none');
+    visibleRows.sort((left, right) => {
+        if (key === 'lote') return (left.dataset.lot || '').localeCompare(right.dataset.lot || '', 'es', { numeric: true, sensitivity: 'base' });
+        if (key === 'stock') return Number(right.querySelector('.stock-td')?.innerText || 0) - Number(left.querySelector('.stock-td')?.innerText || 0);
+        if (key === 'dosis') return Number(right.children[5]?.innerText || 0) - Number(left.children[5]?.innerText || 0);
+        return (left.dataset.name || '').localeCompare(right.dataset.name || '', 'es', { sensitivity: 'base' });
+    });
+    visibleRows.forEach(row => tbody.appendChild(row));
+}
+
+if (searchInput) searchInput.addEventListener('input', () => { applyView(); sortRows(); });
+if (filterSelect) filterSelect.addEventListener('change', () => { applyView(); sortRows(); });
+if (sortSelect) sortSelect.addEventListener('change', () => { sortRows(); applyView(); });
 
 (() => {
     const params = new URLSearchParams(window.location.search);
     const q = (params.get('q') || '').trim();
-    const input = document.getElementById('searchInput');
-    if (!q || !input) return;
-    input.value = q;
-    input.dispatchEvent(new Event('input'));
+    if (!q || !searchInput) return;
+    searchInput.value = q;
+    applyView();
+    sortRows();
 })();
+
+applyView();
 </script>
 
 {% endblock %}

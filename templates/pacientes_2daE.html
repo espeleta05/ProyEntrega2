@@ -29,7 +29,7 @@
         <select id="roleFilterSelect" class="sort-select">
             <option value="">Todos</option>
             {% for p in patients %}
-            <option value="{{ p.blood_type_id | lower }}">{{ p.blood_type }}</option>
+            <option value="{{ p.blood_type | lower }}">{{ p.blood_type }}</option>
             {% endfor %}
         </select>
     </div>
@@ -64,7 +64,11 @@
     -->
        
 
-        <div id="patient-card-{{ p.patient_id }}" class="patient-card-wrapper">
+           <div id="patient-card-{{ p.patient_id }}" class="patient-card-wrapper"
+               data-patient-id="{{ p.patient_id }}"
+               data-name="{{ p.full_name | lower }}"
+               data-blood="{{ p.blood_type | lower }}"
+               data-birth="{{ p.birth_date }}">
             <div class="pt-card">
 
                 <!-- Top strip de color por riesgo -->
@@ -136,37 +140,54 @@
 <script>
 const container = document.getElementById('patientsContainer');
 const originalCards = container ? Array.from(container.querySelectorAll('.patient-card-wrapper')) : [];
+const searchInput = document.getElementById('searchInput');
+const bloodFilter = document.getElementById('roleFilterSelect');
+const sortSelect = document.getElementById('sortSelect');
 
-document.getElementById('searchInput').addEventListener('input', function() {
-    const searchTerm = this.value.toLowerCase().trim();
-
-    if (searchTerm === "") {
-        originalCards.forEach(card => card.style.display = 'block');
-        return;
-    }
+function applyPatientsView() {
+    const searchTerm = (searchInput?.value || '').toLowerCase().trim();
+    const bloodTerm = (bloodFilter?.value || '').toLowerCase().trim();
 
     originalCards.forEach(card => {
-        const patientId  = card.id.replace('patient-card-', '');
-        const nameEl     = card.querySelector('.pt-name');
-        const patientName = nameEl ? nameEl.innerText.toLowerCase() : '';
-
-        if (patientId === searchTerm || patientName.includes(searchTerm)) {
-            card.style.display = 'block';
-            card.parentNode.insertBefore(card, card.parentNode.firstChild);
-        } else {
-            card.style.display = 'none';
-        }
+        const patientId = (card.dataset.patientId || '').toLowerCase();
+        const patientName = (card.dataset.name || '').toLowerCase();
+        const blood = (card.dataset.blood || '').toLowerCase();
+        const matchesSearch = !searchTerm || patientId === searchTerm || patientName.includes(searchTerm);
+        const matchesBlood = !bloodTerm || blood === bloodTerm;
+        card.style.display = (matchesSearch && matchesBlood) ? 'block' : 'none';
     });
-});
+}
+
+function sortPatients() {
+    if (!container || !sortSelect) return;
+    const visibleCards = originalCards.filter(card => card.style.display !== 'none');
+    const key = sortSelect.value;
+    visibleCards.sort((left, right) => {
+        if (key === 'id') {
+            return Number(left.dataset.patientId || 0) - Number(right.dataset.patientId || 0);
+        }
+        if (key === 'edad') {
+            return (right.dataset.birth || '').localeCompare(left.dataset.birth || '', 'es');
+        }
+        return (left.dataset.name || '').localeCompare(right.dataset.name || '', 'es', { sensitivity: 'base' });
+    });
+    visibleCards.forEach(card => container.appendChild(card));
+}
+
+if (searchInput) searchInput.addEventListener('input', () => { applyPatientsView(); sortPatients(); });
+if (bloodFilter) bloodFilter.addEventListener('change', () => { applyPatientsView(); sortPatients(); });
+if (sortSelect) sortSelect.addEventListener('change', () => { sortPatients(); applyPatientsView(); });
 
 (() => {
     const params = new URLSearchParams(window.location.search);
     const q = (params.get('q') || '').trim();
-    const searchInput = document.getElementById('searchInput');
     if (!q || !searchInput) return;
     searchInput.value = q;
-    searchInput.dispatchEvent(new Event('input'));
+    applyPatientsView();
+    sortPatients();
 })();
+
+applyPatientsView();
 
 document.querySelectorAll('.delete-patient-btn').forEach(btn => {
     btn.addEventListener('click', async function () {

@@ -24,13 +24,8 @@ Aplicacion Flask conectada a PostgreSQL usando `psycopg`.
 5. `sql/datos_postgres_2daE.sql`
 
 ## Ejecutar
-1. Activar entorno virtual.
-2. Instalar dependencias:
-   - `pip install -r requirements_2daE.txt`
-3. Ejecutar app:
-   - `python app_2daE.py`
-4. Abrir:
-   - `http://127.0.0.1:5000`
+1. Ejecutar `CONFIGURAR_ENTORNO.bat` una sola vez para crear `.env`, entorno virtual, dependencias y base.
+2. Ejecutar `INICIAR_TODO.bat` para levantar la app.
 
 ## Nota operativa
 - El backend usa funciones SP para altas principales.
