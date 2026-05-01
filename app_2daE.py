@@ -2,51 +2,20 @@ import os
 import math
 from datetime import date, datetime, timedelta
 from calendar import month_abbr
-from urllib.parse import urlparse
 from flask import Flask, flash, jsonify, redirect, render_template, request, session, url_for, g, has_request_context
 import psycopg
 from psycopg import sql
 from psycopg.rows import dict_row
 import bcrypt
+import logging
 
+# Importar configuración centralizada
+from config import DATABASE_URL, SECRET_KEY, _database_url_hint, validate_database_connection
 
 app = Flask(__name__)
-app.secret_key = os.getenv("SECRET_KEY", "segunda-entrega-demo")
+app.secret_key = SECRET_KEY
 
-
-def _load_local_env_file(env_path=".env"):
-    if not os.path.exists(env_path):
-        return
-    try:
-        with open(env_path, "r", encoding="utf-8") as env_file:
-            for raw_line in env_file:
-                line = raw_line.strip()
-                if not line or line.startswith("#") or "=" not in line:
-                    continue
-                key, value = line.split("=", 1)
-                key = key.strip()
-                value = value.strip().strip('"').strip("'")
-                if key and key not in os.environ:
-                    os.environ[key] = value
-    except Exception:
-        pass
-
-
-_load_local_env_file()
-
-app.config["DATABASE_URL"] = os.getenv(
-    "DATABASE_URL",
-    "postgresql://postgres:postgres@localhost:5432/sistemaVacunacion",
-)
-
-
-def _database_url_hint():
-    parsed = urlparse(app.config["DATABASE_URL"])
-    host = parsed.hostname or "localhost"
-    port = parsed.port or 5432
-    db_name = parsed.path.lstrip("/") or "<database>"
-    user = parsed.username or "<user>"
-    return f"{user}@{host}:{port}/{db_name}"
+logger = logging.getLogger(__name__)
 
 
 @app.errorhandler(psycopg.OperationalError)
@@ -61,351 +30,7 @@ def handle_database_operational_error(error):
     return redirect(url_for("login"))
 
 
-# DATOS HARDCODEADOS  (simulan lo que devolvería PostgreSQL)
-
-# --- ADDRESSES -----------------------------------------------------------
-COUNTRIES = [
-    {"country_id": 1, "name": "México", "iso_code": "MX"},
-]
-
-STATES = [
-    {"state_id": 1, "country_id": 1, "name": "Nuevo León", "code": "NL"},
-]
-
-MUNICIPALITIES = [
-    {"municipality_id": 1, "state_id": 1, "name": "Monterrey"},
-    {"municipality_id": 2, "state_id": 1, "name": "Guadalupe"},
-]
-
-NEIGHBORHOODS = [
-    {"neighborhood_id": 1, "municipality_id": 1, "name": "Centro",     "zip_code": "64000"},
-    {"neighborhood_id": 2, "municipality_id": 1, "name": "Obispado",   "zip_code": "64010"},
-    {"neighborhood_id": 3, "municipality_id": 2, "name": "Topo Chico", "zip_code": "64260"},
-]
-
-# cross_street_2 fue eliminada del schema
-ADDRESSES = [
-    {"address_id": 1, "neighborhood_id": 1, "street": "Av. Constitución", "ext_number": "100", "cross_street_1": "Juárez",  "latitude": 25.6700, "longitude": -100.3099},
-    {"address_id": 2, "neighborhood_id": 2, "street": "Calle Obispado",   "ext_number": "45",  "cross_street_1": "Hidalgo", "latitude": 25.6780, "longitude": -100.3200},
-    {"address_id": 3, "neighborhood_id": 3, "street": "Blvd. Díaz Ordaz", "ext_number": "500", "cross_street_1": "Morones", "latitude": 25.7050, "longitude": -100.3500},
-]
-
-# --- CLINICS -------------------------------------------------------------
-# clues fue eliminada del schema
-CLINICS = [
-    {"clinic_id": 1, "name": "Centro de Salud Centro",  "address_id": 1, "phone": "8112223344", "institution_type": "SSA",  "is_active": True},
-    {"clinic_id": 2, "name": "Unidad Médica Obispado",  "address_id": 2, "phone": "8118887766", "institution_type": "IMSS", "is_active": True},
-    {"clinic_id": 3, "name": "Clínica DIF Guadalupe",   "address_id": 3, "phone": "8191234567", "institution_type": "DIF",  "is_active": True},
-]
-
-# area_type ahora es FK a area_types
-AREA_TYPES = [
-    {"area_type_id": 1, "area_type": "Recepcion"},
-    {"area_type_id": 2, "area_type": "Sala_Espera"},
-    {"area_type_id": 3, "area_type": "Consultorio"},
-    {"area_type_id": 4, "area_type": "Enfermeria"},
-    {"area_type_id": 5, "area_type": "Almacen"},
-]
-
-CLINIC_AREAS = [
-    {"area_id": 1, "clinic_id": 1, "name": "Recepción",      "area_type_id": 1, "floor": 1, "capacity": 20},
-    {"area_id": 2, "clinic_id": 1, "name": "Sala de Espera", "area_type_id": 2, "floor": 1, "capacity": 40},
-    {"area_id": 3, "clinic_id": 1, "name": "Consultorio 1",  "area_type_id": 3, "floor": 1, "capacity": 5},
-    {"area_id": 4, "clinic_id": 2, "name": "Enfermería A",   "area_type_id": 4, "floor": 1, "capacity": 10},
-    {"area_id": 5, "clinic_id": 3, "name": "Almacén Central","area_type_id": 5, "floor": 1, "capacity": None},
-]
-
-EQUIPMENT_CATALOG = [
-    {"equipment_id": 1, "name": "Refrigerador de vacunas", "category": "Refrigeración", "requires_calibration": True},
-    {"equipment_id": 2, "name": "Termómetro digital",      "category": "Medición",      "requires_calibration": True},
-]
-
-AREA_EQUIPMENT = [
-    {"area_equipment_id": 1, "area_id": 3, "equipment_id": 1, "quantity": 1, "serial_number": "SER-001", "condition": "Bueno"},
-    {"area_equipment_id": 2, "area_id": 4, "equipment_id": 2, "quantity": 2, "serial_number": None,      "condition": "Regular"},
-]
-
-# --- PATIENTS ------------------------------------------------------------
-# Normalizado: second_last, address_id, risk_level, is_active, registered_at eliminados
-# blood_type_id ahora es FK; agregados weight_kg y premature
-BLOOD_TYPES = [
-    {"blood_type_id": 1, "blood_type": "O+"},
-    {"blood_type_id": 2, "blood_type": "A+"},
-    {"blood_type_id": 3, "blood_type": "B+"},
-    {"blood_type_id": 4, "blood_type": "AB+"},
-    {"blood_type_id": 5, "blood_type": "O-"},
-    {"blood_type_id": 6, "blood_type": "A-"},
-    {"blood_type_id": 7, "blood_type": "B-"},
-    {"blood_type_id": 8, "blood_type": "AB-"},
-]
-
-PATIENTS = [
-    {"patient_id": 1, "first_name": "Ana",     "last_name": "Martínez", "curp": "MASA200515MNLRTN09", "birth_date": "2020-05-15", "gender": "F", "blood_type_id": 1, "nfc_token": "NFC001", "weight_kg": 12.5, "premature": False},
-    {"patient_id": 2, "first_name": "Carlos",  "last_name": "Sánchez",  "curp": "SARC190308HNLNRL05", "birth_date": "2019-03-08", "gender": "M", "blood_type_id": 2, "nfc_token": "NFC002", "weight_kg": 15.0, "premature": False},
-    {"patient_id": 3, "first_name": "Daniela", "last_name": "López",    "curp": "LOJD221003MNLPJN07", "birth_date": "2022-10-03", "gender": "F", "blood_type_id": 3, "nfc_token": "NFC003", "weight_kg": 10.2, "premature": True},
-    {"patient_id": 4, "first_name": "Miguel",  "last_name": "Flores",   "curp": "FOCM210720HNLLRG04", "birth_date": "2021-07-20", "gender": "M", "blood_type_id": 4, "nfc_token": "NFC004", "weight_kg": 13.8, "premature": False},
-]
-
-# allergies ahora es catálogo normalizado
-ALLERGIES = [
-    {"allergy_id": 1, "name": "Polen",      "allergy_type": "Ambiental"},
-    {"allergy_id": 2, "name": "Penicilina", "allergy_type": "Medicamento"},
-    {"allergy_id": 3, "name": "Látex",      "allergy_type": "Contacto"},
-]
-
-# patient_allergies ahora referencia allergy_id en vez de guardar allergen/reaction directo
-PATIENT_ALLERGIES = [
-    {"patient_allergy_id": 1, "patient_id": 2, "allergy_id": 1, "severity": "Leve",     "reaction_desc": "Rinitis"},
-    {"patient_allergy_id": 2, "patient_id": 3, "allergy_id": 2, "severity": "Moderada", "reaction_desc": "Urticaria – evitar derivados"},
-    {"patient_allergy_id": 3, "patient_id": 3, "allergy_id": 3, "severity": "Leve",     "reaction_desc": "Erupción"},
-]
-
-# --- GUARDIANS ----------------------------------------------------------
-# marital_status y occupation ahora son tablas normalizadas
-MARITAL_STATUS = [
-    {"marital_status_id": 1, "marital_status": "Casado"},
-    {"marital_status_id": 2, "marital_status": "Soltero"},
-    {"marital_status_id": 3, "marital_status": "Union_Libre"},
-    {"marital_status_id": 4, "marital_status": "Divorciado"},
-    {"marital_status_id": 5, "marital_status": "Viudo"},
-]
-
-OCCUPATIONS = [
-    {"occupation_id": 1, "occupation_name": "Profesora"},
-    {"occupation_id": 2, "occupation_name": "Contador"},
-    {"occupation_id": 3, "occupation_name": "Enfermera"},
-]
-
-# second_last eliminado; marital_status_id y occupation son FK int
-GUARDIANS = [
-    {"guardian_id": 1, "first_name": "María", "last_name": "Martínez", "curp": "MASM800501MNLRTRO8", "address_id": 1, "marital_status_id": 1, "occupation": 1},
-    {"guardian_id": 2, "first_name": "Jorge", "last_name": "Sánchez",  "curp": "SARJ790320HNLNYR02", "address_id": 2, "marital_status_id": 2, "occupation": 2},
-    {"guardian_id": 3, "first_name": "Laura", "last_name": "López",    "curp": "LOJL850715MNLPJR05", "address_id": 3, "marital_status_id": 3, "occupation": 3},
-]
-
-GUARDIAN_PHONES = [
-    {"phone_id": 1, "guardian_id": 1, "phone": "8112345678", "phone_type": "Celular",    "is_primary": True},
-    {"phone_id": 2, "guardian_id": 1, "phone": "8118889900", "phone_type": "Casa",       "is_primary": False},
-    {"phone_id": 3, "guardian_id": 2, "phone": "8187654321", "phone_type": "Celular",    "is_primary": True},
-    {"phone_id": 4, "guardian_id": 3, "phone": "8199911122", "phone_type": "Celular",    "is_primary": True},
-    {"phone_id": 5, "guardian_id": 3, "phone": "8005551234", "phone_type": "Emergencia", "is_primary": False},
-]
-
-GUARDIAN_EMAILS = [
-    {"email_id": 1, "guardian_id": 1, "email": "maria.martinez@mail.com", "is_primary": True},
-    {"email_id": 2, "guardian_id": 2, "email": "jorge.sanchez@mail.com",  "is_primary": True},
-    {"email_id": 3, "guardian_id": 3, "email": "laura.lopez@mail.com",    "is_primary": True},
-]
-
-# Tabla nueva: relación paciente-tutor normalizada (antes era guardian_id directo en patients)
-PATIENT_GUARDIAN_RELATIONS = [
-    {"relation_id": 1, "patient_id": 1, "guardian_id": 1, "relation_type": "Madre",  "is_primary": True,  "has_custody": True},
-    {"relation_id": 2, "patient_id": 2, "guardian_id": 2, "relation_type": "Padre",  "is_primary": True,  "has_custody": True},
-    {"relation_id": 3, "patient_id": 3, "guardian_id": 3, "relation_type": "Madre",  "is_primary": True,  "has_custody": True},
-    {"relation_id": 4, "patient_id": 4, "guardian_id": 1, "relation_type": "Madre",  "is_primary": True,  "has_custody": True},
-]
-
-# --- WORKERS ------------------------------------------------------------
-# second_last, email, phone, is_active eliminados del workers principal
-# email y teléfono ahora en worker_emails / worker_phones
-# specialty normalizada en specialties / institutions
-ROLES = [
-    {"role_id": 1, "name": "Administrador", "description": "Acceso total al sistema"},
-    {"role_id": 2, "name": "Médico",        "description": "Consulta y vacunación"},
-    {"role_id": 3, "name": "Enfermero",     "description": "Aplicación de vacunas"},
-    {"role_id": 4, "name": "Almacen",       "description": "Control de inventario"},
-    {"role_id": 5, "name": "Recepcionista", "description": "Registro de llegadas"},
-]
-
-SPECIALTIES = [
-    {"specialty_id": 1, "name": "Pediatría"},
-    {"specialty_id": 2, "name": "Enfermería General"},
-]
-
-INSTITUTIONS = [
-    {"institution_id": 1, "institution_name": "UANL",        "address_id": None},
-    {"institution_id": 2, "institution_name": "TecSalud NL", "address_id": None},
-]
-
-WORKERS = [
-    {"worker_id": 1, "role_id": 1, "first_name": "Admin",  "last_name": "Demo",   "curp": "ADMD800101HNLMMS09", "address_id": None, "birth_date": "1980-01-01", "hire_date": "2020-01-01", "password_hash": "hash:123"},
-    {"worker_id": 2, "role_id": 3, "first_name": "Elena",  "last_name": "Garza",  "curp": "GALE900215MNLRZL05", "address_id": 1,    "birth_date": "1990-02-15", "hire_date": "2021-03-10", "password_hash": "hash:elena"},
-    {"worker_id": 3, "role_id": 4, "first_name": "Mario",  "last_name": "Ruiz",   "curp": "RUPM850730HNLZXR08", "address_id": 2,    "birth_date": "1985-07-30", "hire_date": "2022-06-01", "password_hash": "hash:mario"},
-    {"worker_id": 4, "role_id": 2, "first_name": "Sofía",  "last_name": "Torres", "curp": "TOVS920410MNLRRG06", "address_id": 3,    "birth_date": "1992-04-10", "hire_date": "2023-01-15", "password_hash": "hash:sofia"},
-    {"worker_id": 5, "role_id": 5, "first_name": "Pedro",  "last_name": "Luna",   "curp": "LUMP781120HNLNND03", "address_id": 1,    "birth_date": "1978-11-20", "hire_date": "2020-09-05", "password_hash": "hash:pedro"},
-]
-
-WORKER_PHONES = [
-    {"phone_id": 1, "worker_id": 2, "phone": "8111122334", "phone_type": "Celular", "is_primary": True},
-    {"phone_id": 2, "worker_id": 3, "phone": "8199988776", "phone_type": "Celular", "is_primary": True},
-    {"phone_id": 3, "worker_id": 4, "phone": "8115566778", "phone_type": "Celular", "is_primary": True},
-    {"phone_id": 4, "worker_id": 5, "phone": "8182233445", "phone_type": "Celular", "is_primary": True},
-]
-
-WORKER_EMAILS = [
-    {"email_id": 1, "worker_id": 1, "email": "admin",             "is_primary": True},
-    {"email_id": 2, "worker_id": 2, "email": "elena@demo.local",  "is_primary": True},
-    {"email_id": 3, "worker_id": 3, "email": "mario@demo.local",  "is_primary": True},
-    {"email_id": 4, "worker_id": 4, "email": "sofia@demo.local",  "is_primary": True},
-    {"email_id": 5, "worker_id": 5, "email": "pedro@demo.local",  "is_primary": True},
-]
-
-# specialty ahora referencia specialty_id e institution_id (FKs)
-WORKER_PROFESSIONAL = [
-    {"worker_id": 4, "cedula_profesional": "CED-1234567", "specialty_id": 1, "institution_id": 1},
-    {"worker_id": 2, "cedula_profesional": "CED-9876543", "specialty_id": 2, "institution_id": 2},
-]
-
-# Renombrada: worker_clinic_assignments → worker_clinic_assignment (sin 's' final)
-WORKER_CLINIC_ASSIGNMENT = [
-    {"assignment_id": 1, "worker_id": 1, "clinic_id": 1, "area_id": None, "start_date": "2020-01-01", "end_date": None,         "is_active": True},
-    {"assignment_id": 2, "worker_id": 2, "clinic_id": 1, "area_id": 3,    "start_date": "2021-03-10", "end_date": None,         "is_active": True},
-    {"assignment_id": 3, "worker_id": 3, "clinic_id": 1, "area_id": 5,    "start_date": "2022-06-01", "end_date": None,         "is_active": True},
-    {"assignment_id": 4, "worker_id": 4, "clinic_id": 2, "area_id": 4,    "start_date": "2023-01-15", "end_date": None,         "is_active": True},
-    {"assignment_id": 5, "worker_id": 5, "clinic_id": 3, "area_id": 1,    "start_date": "2020-09-05", "end_date": "2024-12-31", "is_active": False},
-]
-
-WORKER_SCHEDULES = [
-    {"schedule_id": 1, "worker_id": 2, "clinic_id": 1, "day_of_week": 1, "entry_time": "08:00", "exit_time": "14:00", "shift_type": "Matutino"},
-    {"schedule_id": 2, "worker_id": 2, "clinic_id": 1, "day_of_week": 3, "entry_time": "08:00", "exit_time": "14:00", "shift_type": "Matutino"},
-    {"schedule_id": 3, "worker_id": 4, "clinic_id": 2, "day_of_week": 2, "entry_time": "14:00", "exit_time": "20:00", "shift_type": "Vespertino"},
-]
-
-# --- VACCINES -----------------------------------------------------------
-# manufacturer, disease_target, route etc. normalizados a tablas propias
-MANUFACTURERS = [
-    {"manufacturer_id": 1, "name": "Biofabrica MX", "country_id": 1, "contact_email": None},
-    {"manufacturer_id": 2, "name": "SaludVac",      "country_id": 1, "contact_email": None},
-    {"manufacturer_id": 3, "name": "GSK",           "country_id": None, "contact_email": None},
-    {"manufacturer_id": 4, "name": "MSD",           "country_id": None, "contact_email": None},
-    {"manufacturer_id": 5, "name": "Sanofi",        "country_id": None, "contact_email": None},
-]
-
-VACCINE_VIAS = [
-    {"via_id": 1, "via": "Intradérmica"},
-    {"via_id": 2, "via": "Intramuscular"},
-    {"via_id": 3, "via": "Oral"},
-    {"via_id": 4, "via": "Subcutánea"},
-]
-
-# Campos eliminados: disease_target, recommended_age_months, doses_required, interval_days, route, is_active
-VACCINES = [
-    {"vaccine_id": 1, "name": "BCG",          "commercial_name": None,             "manufacturer_id": 1, "via_id": 1, "ideal_age_months": 0,  "disease_prevented": "Tuberculosis"},
-    {"vaccine_id": 2, "name": "Hepatitis B",  "commercial_name": "Engerix-B",      "manufacturer_id": 2, "via_id": 2, "ideal_age_months": 0,  "disease_prevented": "Hepatitis B"},
-    {"vaccine_id": 3, "name": "Pentavalente", "commercial_name": None,             "manufacturer_id": 3, "via_id": 2, "ideal_age_months": 2,  "disease_prevented": "Difteria/Tos/Tétanos"},
-    {"vaccine_id": 4, "name": "Rotavirus",    "commercial_name": "RotaTeq",        "manufacturer_id": 4, "via_id": 3, "ideal_age_months": 2,  "disease_prevented": "Gastroenteritis"},
-    {"vaccine_id": 5, "name": "Influenza",    "commercial_name": "Vaxigrip Tetra", "manufacturer_id": 5, "via_id": 2, "ideal_age_months": 6,  "disease_prevented": "Influenza estacional"},
-]
-
-# quantity_remaining → quantity_available; reception_date → received_date; is_active y received_by eliminados
-VACCINE_LOTS = [
-    {"lot_id": 1, "vaccine_id": 1, "clinic_id": 1, "lot_number": "LOT-BCG-2025-01", "quantity_received": 200, "quantity_available": 120, "expiration_date": "2026-06-30", "received_date": "2025-01-05"},
-    {"lot_id": 2, "vaccine_id": 2, "clinic_id": 1, "lot_number": "LOT-HEB-2025-02", "quantity_received": 150, "quantity_available": 95,  "expiration_date": "2025-12-31", "received_date": "2025-01-10"},
-    {"lot_id": 3, "vaccine_id": 3, "clinic_id": 1, "lot_number": "LOT-PEN-2025-03", "quantity_received": 100, "quantity_available": 80,  "expiration_date": "2026-03-15", "received_date": "2025-02-01"},
-    {"lot_id": 4, "vaccine_id": 4, "clinic_id": 2, "lot_number": "LOT-ROT-2025-04", "quantity_received": 60,  "quantity_available": 30,  "expiration_date": "2025-08-01", "received_date": "2025-02-15"},
-    {"lot_id": 5, "vaccine_id": 5, "clinic_id": 3, "lot_number": "LOT-INF-2024-09", "quantity_received": 300, "quantity_available": 0,   "expiration_date": "2025-06-30", "received_date": "2024-09-01"},
-]
-
-# --- OFFICIAL SCHEME ----------------------------------------------------
-VACCINATION_SCHEME = [
-    {"scheme_id": 1, "name": "Esquema Nacional de Vacunación", "issuing_body": "SS México", "year": 2024, "is_current": True},
-]
-
-SCHEME_DOSES = [
-    {"dose_id": 1, "scheme_id": 1, "vaccine_id": 1, "dose_number": 1, "dose_label": "Dosis 1", "ideal_age_months": 0,  "min_interval_days": None},
-    {"dose_id": 2, "scheme_id": 1, "vaccine_id": 2, "dose_number": 1, "dose_label": "Dosis 1", "ideal_age_months": 0,  "min_interval_days": None},
-    {"dose_id": 3, "scheme_id": 1, "vaccine_id": 2, "dose_number": 2, "dose_label": "Dosis 3", "ideal_age_months": 6,  "min_interval_days": 30},
-    {"dose_id": 4, "scheme_id": 1, "vaccine_id": 3, "dose_number": 1, "dose_label": "Dosis 1", "ideal_age_months": 2,  "min_interval_days": None},
-    {"dose_id": 5, "scheme_id": 1, "vaccine_id": 3, "dose_number": 2, "dose_label": "Dosis 2", "ideal_age_months": 4,  "min_interval_days": 60},
-    {"dose_id": 6, "scheme_id": 1, "vaccine_id": 4, "dose_number": 1, "dose_label": "Dosis 1", "ideal_age_months": 2,  "min_interval_days": None},
-    {"dose_id": 7, "scheme_id": 1, "vaccine_id": 5, "dose_number": 1, "dose_label": "Dosis 1", "ideal_age_months": 6,  "min_interval_days": None},
-]
-
-# --- APPOINTMENTS -------------------------------------------------------
-# vaccine_id eliminado; agregados area_id, duration_min, reason
-# status → appointment_status; notes → appointment_notes
-APPOINTMENTS = [
-    {"appointment_id": 1, "patient_id": 1, "clinic_id": 1, "area_id": 3, "worker_id": 2, "scheduled_at": "2025-06-10 09:00", "duration_min": 15, "reason": "Segunda dosis Hep B",      "appointment_status": "Programada", "appointment_notes": None},
-    {"appointment_id": 2, "patient_id": 2, "clinic_id": 1, "area_id": 3, "worker_id": 2, "scheduled_at": "2025-04-15 10:30", "duration_min": 15, "reason": "Pentavalente refuerzo",    "appointment_status": "Programada", "appointment_notes": None},
-    {"appointment_id": 3, "patient_id": 3, "clinic_id": 2, "area_id": 4, "worker_id": 4, "scheduled_at": "2025-05-20 08:00", "duration_min": 20, "reason": "Influenza",                "appointment_status": "Cancelada",  "appointment_notes": "Paciente no asistió"},
-    {"appointment_id": 4, "patient_id": 4, "clinic_id": 1, "area_id": 3, "worker_id": 2, "scheduled_at": "2025-03-22 11:00", "duration_min": 15, "reason": "BCG",                      "appointment_status": "Completada", "appointment_notes": "Aplicada sin incidentes"},
-]
-
-# --- VACCINATION RECORDS ------------------------------------------------
-# Antes llamada APPLICATIONS; campos eliminados: dose_applied, next_dose_date, clinic_location, notes
-# Nuevos campos: scheme_dose_id, application_site_id, patient_temp_c, had_reaction
-APPLICATION_SITES = [
-    {"application_site_id": 1, "application_site": "Deltoides_Izquierdo"},
-    {"application_site_id": 2, "application_site": "Deltoides_Derecho"},
-    {"application_site_id": 3, "application_site": "Muslo_Izquierdo"},
-    {"application_site_id": 4, "application_site": "Muslo_Derecho"},
-    {"application_site_id": 5, "application_site": "Oral"},
-]
-
-VACCINATION_RECORDS = [
-    {"record_id": 1, "patient_id": 1, "vaccine_id": 1, "worker_id": 2, "clinic_id": 1, "lot_id": 1, "scheme_dose_id": 1, "applied_date": "2025-01-10", "application_site_id": 3, "patient_temp_c": 36.5, "had_reaction": False},
-    {"record_id": 2, "patient_id": 2, "vaccine_id": 2, "worker_id": 2, "clinic_id": 1, "lot_id": 2, "scheme_dose_id": 2, "applied_date": "2025-02-15", "application_site_id": 1, "patient_temp_c": 36.8, "had_reaction": False},
-    {"record_id": 3, "patient_id": 1, "vaccine_id": 3, "worker_id": 1, "clinic_id": 1, "lot_id": 3, "scheme_dose_id": 3, "applied_date": "2025-03-20", "application_site_id": 4, "patient_temp_c": 37.0, "had_reaction": False},
-    {"record_id": 4, "patient_id": 3, "vaccine_id": 2, "worker_id": 4, "clinic_id": 2, "lot_id": 2, "scheme_dose_id": 2, "applied_date": "2025-03-01", "application_site_id": 2, "patient_temp_c": 36.6, "had_reaction": False},
-    {"record_id": 5, "patient_id": 4, "vaccine_id": 4, "worker_id": 2, "clinic_id": 2, "lot_id": 4, "scheme_dose_id": 4, "applied_date": "2025-03-22", "application_site_id": 5, "patient_temp_c": 36.9, "had_reaction": False},
-]
-
-POST_VACCINE_REACTIONS = []  # vacío en demo
-
-# --- SCHEME COMPLETION ALERTS -------------------------------------------
-# vaccine_id → scheme_dose_id; resolved_at, resolved_by, notes, generated_at eliminados
-# expected_date → due_date; agregado notified_at
-SCHEME_COMPLETION_ALERTS = [
-    {"alert_id": 1, "patient_id": 3, "scheme_dose_id": 3, "due_date": "2023-12-03", "status": "Pendiente", "notified_at": None},
-    {"alert_id": 2, "patient_id": 2, "scheme_dose_id": 6, "due_date": "2025-03-08", "status": "Enviada",   "notified_at": "2025-03-09 08:00"},
-    {"alert_id": 3, "patient_id": 1, "scheme_dose_id": 2, "due_date": "2025-04-15", "status": "Resuelta",  "notified_at": "2025-03-10 09:00"},
-]
-
-# --- NFC ----------------------------------------------------------------
-# notes → nfc_card_notes
-NFC_CARDS = [
-    {"nfc_card_id": 1, "patient_id": 1, "uid": "NFC001AA", "card_type": "Tarjeta", "issued_date": "2024-01-10", "issued_by": 1, "status": "Activa",      "last_scanned_at": "2025-03-20 09:15", "nfc_card_notes": None},
-    {"nfc_card_id": 2, "patient_id": 2, "uid": "NFC002BB", "card_type": "Pulsera", "issued_date": "2024-02-14", "issued_by": 1, "status": "Activa",      "last_scanned_at": "2025-02-15 10:05", "nfc_card_notes": None},
-    {"nfc_card_id": 3, "patient_id": 3, "uid": "NFC003CC", "card_type": "Llavero", "issued_date": "2024-03-20", "issued_by": 1, "status": "Desactivada", "last_scanned_at": None,               "nfc_card_notes": "Reportado extraviado"},
-    {"nfc_card_id": 4, "patient_id": 4, "uid": "NFC004DD", "card_type": "Tarjeta", "issued_date": "2024-04-05", "issued_by": 1, "status": "Activa",      "last_scanned_at": "2025-03-22 11:00", "nfc_card_notes": None},
-]
-
-NFC_DEVICES = [
-    {"device_id": "DEV-001", "clinic_id": 1, "area_id": 3, "device_name": "Lector Consultorio 1", "model": "ACR122U", "serial_number": "SN-ACR-001", "nfc_device_status": "Activo", "registered_at": "2024-01-01"},
-]
-
-# result → nfc_scan_result; agregado device_id
-NFC_SCAN_EVENTS = [
-    {"scan_event_id": 1, "nfc_card_id": 1, "scanned_by": 2, "clinic_id": 1, "area_id": 3, "scanned_at": "2025-03-20 09:15", "action_triggered": "Abrir_Expediente",    "device_id": "DEV-001", "nfc_scan_result": "Expediente abierto correctamente"},
-    {"scan_event_id": 2, "nfc_card_id": 2, "scanned_by": 2, "clinic_id": 1, "area_id": 3, "scanned_at": "2025-02-15 10:05", "action_triggered": "Confirmar_Vacunacion", "device_id": "DEV-001", "nfc_scan_result": "Vacunación registrada"},
-    {"scan_event_id": 3, "nfc_card_id": 4, "scanned_by": 2, "clinic_id": 1, "area_id": 1, "scanned_at": "2025-03-22 11:00", "action_triggered": "Registrar_Llegada",    "device_id": None,      "nfc_scan_result": "Llegada registrada"},
-]
-
-# --- SUPPLY / INVENTORY -------------------------------------------------
-# supply_catalog: eliminado description; clinic_inventory: eliminado updated_by; last_updated solo DATE
-SUPPLY_CATALOG = [
-    {"supply_id": 1, "name": "Jeringa 1mL",       "unit": "pieza",   "category": "Jeringa"},
-    {"supply_id": 2, "name": "Jeringa 5mL",       "unit": "pieza",   "category": "Jeringa"},
-    {"supply_id": 3, "name": "Algodón estéril",   "unit": "paquete", "category": "Desechable"},
-    {"supply_id": 4, "name": "Guantes nitrilo M", "unit": "caja",    "category": "Desechable"},
-    {"supply_id": 5, "name": "Paracetamol 500mg", "unit": "tableta", "category": "Medicamento"},
-]
-
-CLINIC_INVENTORY = [
-    {"inventory_id": 1, "clinic_id": 1, "supply_id": 1, "quantity": 500,  "min_stock": 50,  "last_updated": "2025-03-01"},
-    {"inventory_id": 2, "clinic_id": 1, "supply_id": 3, "quantity": 30,   "min_stock": 20,  "last_updated": "2025-03-01"},
-    {"inventory_id": 3, "clinic_id": 1, "supply_id": 4, "quantity": 8,    "min_stock": 10,  "last_updated": "2025-03-10"},  # bajo stock
-    {"inventory_id": 4, "clinic_id": 2, "supply_id": 2, "quantity": 200,  "min_stock": 30,  "last_updated": "2025-02-20"},
-    {"inventory_id": 5, "clinic_id": 3, "supply_id": 5, "quantity": 1000, "min_stock": 100, "last_updated": "2025-01-15"},
-]
-
-# Tablas nuevas del schema
-BEACONS = []
-SCAN_LOGS = []
-AUDIT_LOG = []
-
-
-# --- USERS (login) -------------------------------------------------------
+# --- USERS (login) - Fallback temporal (será reemplazado por SP_authenticate_worker en FASE 6)
 USERS = {
     "admin": {"password": "123", "worker_id": 1, "name": "Admin", "lastname": "Demo", "role": "Administrador"},
 }
@@ -2477,4 +2102,14 @@ def api_alertas_esquema():
 
 
 if __name__ == "__main__":
+    # Inicializar base de datos antes de ejecutar
+    try:
+        from db_init import init_database
+        with app.app_context():
+            init_database()
+    except Exception as e:
+        logger.error(f"Error durante inicialización de DB: {e}")
+        raise
+
+    logger.info("✓ Flask iniciando en http://127.0.0.1:5000")
     app.run(debug=True)

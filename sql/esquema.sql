@@ -58,7 +58,7 @@ CREATE TABLE clinics (
 
 CREATE TABLE clinic_area_types (
     area_type_id  SERIAL PRIMARY KEY,
-    area_type     VARCHAR(50) NOT NULL UNIQUE
+    area_type     VARCHAR(50) NOT NULL UNIQUE CHECK (area_type IN ('Administración','Enfermería','Médico','Recepción','Almacén'))
 );
 
 CREATE TABLE clinic_areas (
@@ -176,7 +176,7 @@ CREATE TABLE patient_guardian_relations (
 --  MÓDULO: WORKERS
 CREATE TABLE roles (
     role_id      SERIAL PRIMARY KEY,
-    name         VARCHAR(100) NOT NULL UNIQUE,
+    name         VARCHAR(100) NOT NULL UNIQUE CHECK (name IN ('Administrador','Enfermero','Médico','Recepcionista','Almacén')),
     description  TEXT
 );
 
