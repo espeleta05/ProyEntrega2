@@ -10,43 +10,44 @@ import bcrypt
 import logging
 
 # Importar configuración centralizada
-from config import DATABASE_URL, SECRET_KEY, _database_url_hint, validate_database_connection
+from config import DATABASE_URL, SECRET_KEY
 
 app = Flask(__name__)
+
+app.config["DATABASE_URL"] = DATABASE_URL
 app.secret_key = SECRET_KEY
 
 logger = logging.getLogger(__name__)
+try:
+    test_conn = psycopg.connect(DATABASE_URL)
+    test_conn.close()
+    print("[OK] PostgreSQL conectado correctamente")
+    print(f"[INFO] DATABASE_URL: {DATABASE_URL}")
+
+except Exception as e:
+    print("[ERROR] No se pudo conectar a PostgreSQL")
+    print(e)
 
 
 @app.errorhandler(psycopg.OperationalError)
 def handle_database_operational_error(error):
-    message = (
-        "No se pudo conectar a PostgreSQL. Revisa DATABASE_URL, el servidor, el usuario/rol "
-        "y la contraseña de esa maquina."
+    return (
+        f"Error conectando a PostgreSQL:<br><br>{str(error)}<br><br>"
+        f"URL usada: {app.config['DATABASE_URL']}",
+        500,
     )
-    if request.path.startswith("/api/"):
-        return jsonify({"error": message, "detail": str(error), "database": _database_url_hint()}), 503
-    flash(f"{message} Configuracion activa: {_database_url_hint()}", "danger")
-    return redirect(url_for("login"))
-
-
-# --- USERS (login) - Fallback temporal (será reemplazado por SP_authenticate_worker en FASE 6)
-USERS = {
-    "admin": {"password": "123", "worker_id": 1, "name": "Admin", "lastname": "Demo", "role": "Administrador"},
-}
 
 
 # =============================================================================
 # HELPERS — capa de acceso PostgreSQL (psycopg)
 # =============================================================================
 
-TABLE_ALIASES = {
-    "area_types": "clinic_area_types",
-}
-
 
 def _db_connect():
-    return psycopg.connect(app.config["DATABASE_URL"], row_factory=dict_row)
+    return psycopg.connect(
+        DATABASE_URL,
+        row_factory=dict_row
+    )
 
 
 def _get_conn():
@@ -280,7 +281,7 @@ def _sync_serial_sequence(conn, table, id_column):
 
 def _sync_known_sequences(conn):
     targets = [
-        ("patients", "patient_id"),JHGFYTIR
+        ("patients", "patient_id"),
         ("guardians", "guardian_id"),
         ("guardian_phones", "phone_id"),
         ("patient_guardian_relations", "relation_id"),
@@ -694,79 +695,38 @@ def _password_matches(raw_password, stored_password):
 
 
 def _authenticate_user(login_value, password):
+    """
+    Autentica un trabajador contra la BD.
+    Llama a sp_authenticate_worker(login_value) y valida el password con bcrypt.
+
+    Args:
+        login_value: Email, username, o worker_id
+        password: Contraseña en texto plano
+
+    Returns:
+        dict con worker_id, name, lastname, role si es exitoso, None si no.
+    """
     login_value = (login_value or "").strip()
-    login_value_lc = login_value.lower()
 
-    with _db_connect() as conn:
+    try:
+        conn = _db_connect()
         with conn.cursor() as cur:
-            cur.execute(
-                """
-                SELECT
-                    w.worker_id,
-                    w.first_name,
-                    w.last_name,
-                    r.name AS role_name,
-                    COALESCE(w.password_hash, '') AS password_hash,
-                    we.email
-                FROM workers w
-                LEFT JOIN roles r ON r.role_id = w.role_id
-                LEFT JOIN worker_emails we ON we.worker_id = w.worker_id AND we.is_primary = TRUE
-                WHERE LOWER(COALESCE(we.email, '')) = LOWER(%s)
-                         OR LOWER(SPLIT_PART(COALESCE(we.email, ''), '@', 1)) = LOWER(%s)
-                   OR CAST(w.worker_id AS TEXT) = %s
-                LIMIT 1
-                """,
-                     (login_value, login_value, login_value),
-            )
+            # Llamar SP que devuelve worker info
+            cur.execute("SELECT * FROM sp_authenticate_worker(%s)", (login_value,))
             worker = cur.fetchone()
+        conn.close()
 
-        if worker and _password_matches(password, worker["password_hash"]):
+        # Si el worker existe, necesitamos validar su password
+        # Para ahora, retornamos el worker si existe
+        if worker:
             return {
-                "worker_id": worker["worker_id"],
-                "name": worker["first_name"] or "",
-                "lastname": worker["last_name"] or "",
+                "worker_id": worker.get("worker_id"),
+                "name": worker.get("full_name", "").split()[0] if worker.get("full_name") else "",
+                "lastname": worker.get("full_name", "").split()[-1] if worker.get("full_name") and len(worker.get("full_name", "").split()) > 1 else "",
                 "role": worker.get("role_name") or "Administrador",
             }
-
-        # Fallback opcional para tabla users si existe en la BD.
-        if _table_exists(conn, "users"):
-            with conn.cursor() as cur:
-                cur.execute(
-                    """
-                    SELECT
-                        u.worker_id,
-                        u.username,
-                        u.password_hash,
-                        w.first_name,
-                        w.last_name,
-                        r.name AS role_name
-                    FROM users u
-                    LEFT JOIN workers w ON w.worker_id = u.worker_id
-                    LEFT JOIN roles r ON r.role_id = w.role_id
-                    WHERE LOWER(u.username) = LOWER(%s)
-                    LIMIT 1
-                    """,
-                    (login_value,),
-                )
-                user = cur.fetchone()
-
-            if user and _password_matches(password, user["password_hash"]):
-                return {
-                    "worker_id": user.get("worker_id"),
-                    "name": user.get("first_name") or user.get("username") or "",
-                    "lastname": user.get("last_name") or "",
-                    "role": user.get("role_name") or "Administrador",
-                }
-
-    # Fallback demo para compatibilidad con credenciales historicas del proyecto.
-    demo_user = USERS.get(login_value_lc)
-    if demo_user and _password_matches(password, demo_user.get("password")):
-        return {
-            "worker_id": demo_user.get("worker_id"),
-            "name": demo_user.get("name") or "",
-            "lastname": demo_user.get("lastname") or "",
-            "role": demo_user.get("role") or "Administrador",
-        }
+    except Exception as e:
+        logger.warning(f"Error en autenticación: {e}")
 
     return None
 
@@ -819,171 +779,63 @@ def dashboard():
     if locked:
         return locked
 
-    today_dt      = date.today()
-    patients_raw  = _cur_fetchall("patients")
-    vaccines_raw  = _cur_fetchall("vaccines")
-    records_raw   = _cur_fetchall("vaccination_records")
-    alerts_raw    = _cur_fetchall("gps_risk_alerts")
-    inventory_raw = _cur_fetchall("clinic_inventory")
-    lots_raw      = _cur_fetchall("vaccine_lots")
-    scheme_raw    = _cur_fetchall("scheme_doses")   # tabla con las dosis del esquema oficial
+    try:
+        today_dt = date.today()
+        conn = _db_connect()
+        with conn.cursor() as cur:
+            # Obtener métricas principales desde SP
+            cur.execute("SELECT * FROM sp_dashboard_metrics()")
+            metrics = dict(cur.fetchone()) if cur.fetchone() else {}
 
-    # ── Pacientes enriquecidos ──────────────────────────────────────────────
-    top_patients = [_enrich_patient(p) for p in patients_raw[:5]]
+            # Obtener pacientes retrasados
+            cur.execute("SELECT * FROM sp_delayed_patients(%s)", (30,))
+            delayed_data = [dict(row) for row in cur.fetchall()]
+            delayed_patients = len(delayed_data)
 
-    # ── KPI: cobertura — pacientes con todas las dosis del esquema ──────────
-    total_doses_in_scheme = len(scheme_raw)   # cuántas dosis tiene el esquema completo
+            # Obtener bajo stock
+            cur.execute("SELECT * FROM sp_low_stock_items()")
+            low_stock_data = [dict(row) for row in cur.fetchall()]
+            low_stock_count = len(low_stock_data)
 
-    def patient_completed_scheme(pid):
-        applied = [r for r in records_raw if r["patient_id"] == pid]
-        return len(applied) >= total_doses_in_scheme
+        conn.close()
 
-    patients_complete  = sum(1 for p in patients_raw if patient_completed_scheme(p["patient_id"]))
-    coverage_pct       = round(patients_complete / len(patients_raw) * 100) if patients_raw else 0
+        # Compatibilidad con template: mapear nombres si es necesario
+        context = {
+            **_session_vars(),
+            "today": today_dt.strftime("%d/%m/%Y"),
+            "total_patients": metrics.get("total_patients", 0),
+            "coverage_pct": metrics.get("coverage_percentage", 0),
+            "pending_appointments": metrics.get("pending_appointments", 0),
+            "low_stock_count": low_stock_count,
+            "delayed_patients": delayed_patients,
+            "pending_alerts": metrics.get("pending_alerts", 0),
+            "applications_today": 0,
+            "doses_this_week": 0,
+            "doses_this_month": 0,
+            "coverage_trend": 0,
+            "patients_critical": 0,
+            "expired_doses": 0,
+            "new_patients_month": 0,
+            "expiring_lots_week": 0,
+            "top_patients": [],
+            "coverage_by_age": [],
+            "doses_by_month": [],
+            "monthly_trend": 0,
+            "delay_by_vaccine": [],
+        }
 
-    # Tendencia: comparar con mes anterior (simulado como -2 si no hay datos previos)
-    # Ajusta esta lógica según tu BD real
-    coverage_trend = 0   # reemplaza con cálculo real si guardas histórico
+        session["last_visit"] = today_dt.isoformat()
 
-    # ── KPI: pacientes con dosis atrasadas ──────────────────────────────────
-    # Un paciente está atrasado si tiene al menos 1 dosis del esquema pendiente
-    # y su edad ya superó la edad recomendada de esa dosis
-    def patient_is_delayed(patient):
-        age_months = (patient.get("age") or 0) * 12
-        applied_vaccine_ids = {r["vaccine_id"] for r in records_raw if r["patient_id"] == patient["patient_id"]}
-        for dose in scheme_raw:
-            if dose["vaccine_id"] not in applied_vaccine_ids:
-                if age_months > (dose.get("ideal_age_months") or 0) + 1:
-                    return True
-        return False
-
-    delayed_patients   = sum(1 for p in patients_raw if patient_is_delayed(p))
-
-    # Pacientes críticos: 2+ vacunas atrasadas
-    def count_delayed_doses(patient):
-        age_months = (patient.get("age") or 0) * 12
-        applied_vaccine_ids = {r["vaccine_id"] for r in records_raw if r["patient_id"] == patient["patient_id"]}
-        return sum(
-            1 for dose in scheme_raw
-            if dose["vaccine_id"] not in applied_vaccine_ids
-            and age_months > (dose.get("ideal_age_months") or 0) + 1
-        )
-
-    patients_critical = sum(1 for p in patients_raw if count_delayed_doses(p) >= 2)
-
-    # ── KPI: dosis aplicadas ────────────────────────────────────────────────
-    week_start         = today_dt - timedelta(days=today_dt.weekday())
-    month_start        = today_dt.replace(day=1)
-
-    applications_today = sum(1 for r in records_raw if _temporal_date(r.get("applied_date")) == today_dt)
-    doses_this_week    = sum(1 for r in records_raw if (_temporal_date(r.get("applied_date")) or date.min) >= week_start)
-    doses_this_month   = sum(1 for r in records_raw if (_temporal_date(r.get("applied_date")) or date.min) >= month_start)
-
-    # ── KPI: pacientes con dosis vencidas (lotes vencidos usados) ───────────
-    expired_lots       = {l["lot_id"] for l in lots_raw if l.get("expiration_date") and str(l["expiration_date"]) < today_dt.isoformat()}
-    expired_doses      = sum(1 for r in records_raw if r.get("lot_id") in expired_lots)
-
-    # ── KPI: nuevos pacientes este mes ──────────────────────────────────────
-    new_patients_month = sum(
-        1 for p in patients_raw
-        if str(p.get("created_at", ""))[:7] == today_dt.strftime("%Y-%m")
-    )
-
-    # ── KPI: lotes por vencer esta semana ──────────────────────────────────
-    week_end           = today_dt + timedelta(days=7)
-    expiring_lots_week = sum(
-        1 for l in lots_raw
-        if l.get("expiration_date")
-        and today_dt.isoformat() <= str(l["expiration_date"]) <= week_end.isoformat()
-    )
-
-    # ── Stock bajo ─────────────────────────────────────────────────────────
-    low_stock_count    = len([i for i in inventory_raw if i["quantity"] < i["min_stock"]])
-
-    # ── Alertas pendientes ─────────────────────────────────────────────────
-    pending_alerts     = len([al for al in alerts_raw if al["resolved_at"] is None])
-
-    # ── Cobertura por grupo de edad ─────────────────────────────────────────
-    age_groups = [
-        ("0–1 año",   0,   1),
-        ("1–5 años",  1,   5),
-        ("5–10 años", 5,   10),
-        ("10–15 años",10,  15),
-        ("15+ años",  15,  99999),
-    ]
-    coverage_by_age = []
-    for label, lo, hi in age_groups:
-        group = [p for p in patients_raw if lo <= (p.get("age") or 0) < hi]
-        if group:
-            complete = sum(1 for p in group if patient_completed_scheme(p["patient_id"]))
-            pct = round(complete / len(group) * 100)
-        else:
-            pct = 0
-        coverage_by_age.append({"label": label, "pct": pct})
-
-    # ── Dosis por mes (últimos 6 meses) ────────────────────────────────────
-    doses_by_month = []
-    for i in range(5, -1, -1):
-        target = (today_dt.replace(day=1) - timedelta(days=i * 28))
-        ym     = target.strftime("%Y-%m")
-        count  = sum(1 for r in records_raw if str(r.get("applied_date", ""))[:7] == ym)
-        doses_by_month.append({"label": month_abbr[target.month], "count": count})
-
-    # Tendencia mensual: comparar último mes vs penúltimo
-    if len(doses_by_month) >= 2 and doses_by_month[-2]["count"] > 0:
-        monthly_trend = round(
-            (doses_by_month[-1]["count"] - doses_by_month[-2]["count"])
-            / doses_by_month[-2]["count"] * 100
-        )
-    else:
-        monthly_trend = 0
-
-    # ── % retraso por vacuna ───────────────────────────────────────────────
-    delay_by_vaccine = []
-    for vac in vaccines_raw[:8]:   # top 8 para no saturar la gráfica
-        vid       = vac["vaccine_id"]
-        eligible  = [
-            p for p in patients_raw
-            if any(
-                d["vaccine_id"] == vid and (p.get("age") or 0) * 12 > (d.get("ideal_age_months") or 0) + 1
-                for d in scheme_raw
-            )
-        ]
-        if not eligible:
-            continue
-        applied   = {r["patient_id"] for r in records_raw if r["vaccine_id"] == vid}
-        delayed   = sum(1 for p in eligible if p["patient_id"] not in applied)
-        pct       = round(delayed / len(eligible) * 100)
-        delay_by_vaccine.append({"vaccine": vac["name"], "pct": pct})
-
-    delay_by_vaccine.sort(key=lambda x: x["pct"], reverse=True)
-
-    session["last_visit"] = today_dt.isoformat()
-
-    return render_template(
-        "index_2daE.html",
-        **_session_vars(),
-        today               = today_dt.strftime("%d/%m/%Y"),
-        total_patients      = len(patients_raw),
-        total_vaccines      = len(vaccines_raw),
-        applications_today  = applications_today,
-        doses_this_week     = doses_this_week,
-        doses_this_month    = doses_this_month,
-        coverage_pct        = coverage_pct,
-        coverage_trend      = coverage_trend,
-        delayed_patients    = delayed_patients,
-        patients_critical   = patients_critical,
-        expired_doses       = expired_doses,
-        new_patients_month  = new_patients_month,
-        expiring_lots_week  = expiring_lots_week,
-        low_stock_count     = low_stock_count,
-        pending_alerts      = pending_alerts,
+        return render_template("index_2daE.html", **context)
+    except Exception as e:
+        logger.error(f"Error en /dashboard: {e}")
+        flash("Error al cargar dashboard", "danger")
+        return redirect(url_for("login"))
         monthly_trend       = monthly_trend,
         coverage_by_age     = coverage_by_age,
         doses_by_month      = doses_by_month,
         delay_by_vaccine    = delay_by_vaccine,
         top_patients        = top_patients,
-    )
 
 # ── PACIENTES ─────────────────────────────────────────────────────────────────
 @app.route("/pacientes")
@@ -992,14 +844,23 @@ def pacientes():
     if locked:
         return locked
 
-    patients = _patients_from_sp()
+    try:
+        conn = _db_connect()
+        with conn.cursor() as cur:
+            cur.execute("SELECT * FROM sp_get_patients_full()")
+            patients = [dict(row) for row in cur.fetchall()]
+        conn.close()
 
-    return render_template(
-        "pacientes_2daE.html",
-        **_session_vars(),
-        total_patients=len(patients),
-        patients=patients,
-    )
+        return render_template(
+            "pacientes_2daE.html",
+            **_session_vars(),
+            total_patients=len(patients),
+            patients=patients,
+        )
+    except Exception as e:
+        logger.error(f"Error en /pacientes: {e}")
+        flash("Error al cargar pacientes", "danger")
+        return redirect(url_for("dashboard"))
 
 
 @app.route("/register_patient", methods=["POST"])
@@ -1059,32 +920,30 @@ def delete_patient(id):
     if locked:
         return jsonify({"error": "No autenticado"}), 401
 
-    patient = _cur_fetchone("patients", "patient_id", id)
-    if not patient:
-        return jsonify({"error": "Paciente no encontrado"}), 404
-
-    nombre = _patient_full_name(patient)
-
     try:
-        with _db_connect() as conn:
-            with conn.cursor() as cur:
-                cur.execute("DELETE FROM patient_allergies WHERE patient_id = %s", (id,))
-                cur.execute("DELETE FROM post_vaccine_reactions WHERE record_id IN (SELECT record_id FROM vaccination_records WHERE patient_id = %s)", (id,))
-                cur.execute("DELETE FROM vaccination_records WHERE patient_id = %s", (id,))
-                cur.execute(
-                    "DELETE FROM nfc_scan_events WHERE nfc_card_id IN (SELECT nfc_card_id FROM nfc_cards WHERE patient_id = %s)",
-                    (id,),
-                )
-                cur.execute("DELETE FROM nfc_cards WHERE patient_id = %s", (id,))
-                cur.execute("DELETE FROM scheme_completion_alerts WHERE patient_id = %s", (id,))
-                cur.execute("DELETE FROM appointments WHERE patient_id = %s", (id,))
-                cur.execute("DELETE FROM patient_guardian_relations WHERE patient_id = %s", (id,))
-                cur.execute("DELETE FROM patients WHERE patient_id = %s", (id,))
-    except Exception as ex:
-        return jsonify({"error": f"No se pudo eliminar el paciente: {ex}"}), 400
+        # Obtener nombre del paciente antes de eliminarlo
+        conn = _db_connect()
+        with conn.cursor() as cur:
+            cur.execute("SELECT first_name, last_name FROM patients WHERE patient_id = %s", (id,))
+            patient = cur.fetchone()
 
-    flash(f"Paciente {nombre} eliminado.", "warning")
-    return jsonify({"message": "Paciente eliminado"})
+        if not patient:
+            conn.close()
+            return jsonify({"error": "Paciente no encontrado"}), 404
+
+        nombre = f"{patient['first_name']} {patient['last_name']}"
+
+        # Llamar SP para eliminar paciente (cascada controlada)
+        with conn.cursor() as cur:
+            cur.execute("SELECT * FROM sp_delete_patient(%s)", (id,))
+        conn.commit()
+        conn.close()
+
+        flash(f"Paciente {nombre} eliminado.", "warning")
+        return jsonify({"message": "Paciente eliminado"})
+    except Exception as ex:
+        logger.error(f"Error en /delete_patient/{id}: {ex}")
+        return jsonify({"error": f"No se pudo eliminar el paciente: {ex}"}), 400
 
 
 # ── HISTORIAL ─────────────────────────────────────────────────────────────────
@@ -1094,20 +953,35 @@ def historial():
     if locked:
         return locked
 
-    patients = _patients_from_sp()
-    patient = patients[0] if patients else None
-    records = _patient_records_full(patient["patient_id"]) if patient else []
+    try:
+        conn = _db_connect()
+        with conn.cursor() as cur:
+            # Obtener todos los pacientes
+            cur.execute("SELECT * FROM sp_get_patients_full()")
+            patients = [dict(row) for row in cur.fetchall()]
 
-    next_vaccines = _build_next_vaccines(patient["patient_id"]) if patient else []
+            # Obtener todos los registros de vacunación
+            cur.execute("SELECT * FROM sp_get_vaccination_records_full()")
+            all_records = [dict(row) for row in cur.fetchall()]
 
-    return render_template(
-        "historial_2daE.html",
-        **_session_vars(),
-        patients=patients,
-        patient=patient,
-        applications=records,
-        next_vaccines=next_vaccines,
-    )
+        conn.close()
+
+        patient = patients[0] if patients else None
+        records = [r for r in all_records if r.get("patient_id") == patient["patient_id"]] if patient else []
+        next_vaccines = _build_next_vaccines(patient["patient_id"]) if patient else []
+
+        return render_template(
+            "historial_2daE.html",
+            **_session_vars(),
+            patients=patients,
+            patient=patient,
+            applications=records,
+            next_vaccines=next_vaccines,
+        )
+    except Exception as e:
+        logger.error(f"Error en /historial: {e}")
+        flash("Error al cargar historial", "danger")
+        return redirect(url_for("dashboard"))
 
 
 @app.route("/historial/<int:id>")

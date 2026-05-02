@@ -1,6 +1,13 @@
 -- COUNTRIES
 INSERT INTO countries (name, iso_code) VALUES
-('México','MX');
+('México','MX'),
+('Rusia','RU'),
+('Japón','JP'),
+('Alemania', 'DE'),
+('Reino Unido', 'GB'),
+('Francia', 'FR'),
+('Italia', 'IT'),
+('China', 'CN');
 
 -- STATES
 INSERT INTO states (country_id, name, code) VALUES
@@ -31,74 +38,121 @@ INSERT INTO municipalities (state_id, name) VALUES
 (7,'Chihuahua'),
 (8,'Mérida'),
 (9,'Puebla'),
-(10,'Querétaro'),
-(11,'León'),
-(12,'Culiacán'),
-(13,'Durango'),
-(14,'Veracruz'),
-(15,'Oaxaca de Juárez');
+(10,'Querétaro');
 
 -- NEIGHBORHOODS
-INSERT INTO neighborhoods (municipality_id, name, zip_code) VALUES
-(1,'Centro','64000'),
-(2,'Americana','44160'),
-(3,'Del Valle','03100'),
-(4,'República','25280'),
-(5,'Vista Hermosa','88710'),
-(6,'Centro','83000'),
-(7,'Panamericana','31210'),
-(8,'Montecristo','97133'),
-(9,'La Paz','72160'),
-(10,'Juriquilla','76230'),
-(11,'Obregón','37320'),
-(12,'Tres Ríos','80020'),
-(13,'Zona Centro','34000'),
-(14,'Costa Verde','94294'),
-(15,'Reforma','68050');
+INSERT INTO neighborhoods (neighborhood_id, municipality_id, name, zip_code) VALUES
+(1,1,'Centro','64000'),
+(2,1,'Monterrey','64010'),
+(3,1,'Apodaca', '66600'),
+(4,1,'San Nicolás de los Garza','64020'),
+(5,1,'Guadalupe','64030'),
+(6,1,'San Pedro Garza García','64040'),
+(7,1,'Escobedo','64050'),
+(8,1,'Santa Catarina','64060'),
+(9,1,'Cuauhtémoc','64070'),
+(10,1,'García','64080'),
+(11,1,'Cadereyta Jiménez','64090'),
+(12,1,'Santiago','64100'),
+(13,1,'Allende','64120'),
+(14,1,'Anáhuac','64130'),
+(15,2,'Americana','44160'),
+(16,3,'Del Valle','03100'),
+(17,4,'República','25280'),
+(18,5,'Vista Hermosa','88710'),
+(19,6,'Centro','83000'),
+(20,7,'Panamericana','31210'),
+(21,8,'Montecristo','97133'),
+(22,9,'La Paz','72160'),
+(23,10,'Juriquilla','76230');
 
 -- ADDRESSES
-INSERT INTO addresses (neighborhood_id, street, ext_number, cross_street_1, latitude, longitude) VALUES
-(1,'Av. Juárez','101','Padre Mier',25.6866,-100.3161),
-(2,'Av. Vallarta','202','Chapultepec',20.6736,-103.3440),
-(3,'Insurgentes Sur','303','Félix Cuevas',19.3889,-99.1680),
-(4,'Venustiano Carranza','404','Allende',25.4267,-100.9950),
-(5,'Hidalgo','505','Juárez',26.0806,-98.2883),
-(6,'Morelos','606','Rosales',29.0729,-110.9559),
-(7,'Tecnológico','707','Homero',28.6353,-106.0889),
-(8,'Paseo Montejo','808','Colón',20.9674,-89.5926),
-(9,'Juárez','909','5 de Mayo',19.0414,-98.2063),
-(10,'Antea','111','Universidad',20.5888,-100.3899),
-(11,'Madero','222','Hidalgo',21.1220,-101.6823),
-(12,'Álvaro Obregón','333','Universitarios',24.8091,-107.3940),
-(13,'20 de Noviembre','444','Victoria',24.0277,-104.6532),
-(14,'Ruiz Cortines','555','Martí',19.1738,-96.1342),
-(15,'Calzada Porfirio Díaz','666','Escuela Naval',17.0732,-96.7266);
+INSERT INTO addresses (address_id, neighborhood_id, street, ext_number, cross_street_1, latitude, longitude) VALUES
+(1, 1,  'Av. Constitución', '100',  'Av. Pino Suárez',       25.6686, -100.3092),
+(2, 2,  'Calle Ruiz Cortines', '320',  'Blvd. Las Torres',      25.7804, -100.1880),
+(3, 3, 'Blvd. Díaz Ordaz',   '890',  'Av. Universidad',       25.7319, -100.2988),
+(4, 4,  'Av. Miguel Alemán',  '450',  'Calle Nogal',           25.6826, -100.2197),
+(5, 5,  'Av. Vasconcelos',  '230',  'Av. Morones Prieto',    25.6506, -100.3951),
+(6, 6,  'Blvd. Escobedo', '1100', 'Av. Las Torres',        25.7990, -100.3210),
+(7, 7,  'Av. Santa Catarina', '500',  'Calle Los Pinos',       25.6729, -100.4591),
+(8, 8,  'Calle Benito Juárez', '75',   'Av. Juárez',            25.6427, -100.0869),
+(9, 9,  'Av. Ignacio Morones', '210',  'Calle Tamaulipas',      25.6692, -100.3325),
+(10, 10, 'Calle Las Flores', '88',   'Blvd. Solidaridad',     25.7890, -100.1760),
+(11, 11,  'Calle Moctezuma', '55',   'Av. Zaragoza',          25.6720, -100.3100),
+(12, 12,  'Av. Churubusco', '430',  'Calle Independencia',   25.7300, -100.3010),
+(13, 13, 'Av. Vallarta','202','Chapultepec',20.6736,-103.3440),
+(14, 14,'Insurgentes Sur','303','Félix Cuevas',19.3889,-99.1680),
+(15, 15,'Venustiano Carranza','404','Allende',25.4267,-100.9950),
+(16, 16,'Hidalgo','505','Juárez',26.0806,-98.2883),
+(17, 17,'Morelos','606','Rosales',29.0729,-110.9559),
+(18, 18,'Tecnológico','707','Homero',28.6353,-106.0889),
+(19, 19,'Paseo Montejo','808','Colón',20.9674,-89.5926),
+(20, 20,'Juárez','909','5 de Mayo',19.0414,-98.2063),
+(21, 21,'Antea','111','Universidad',20.5888,-100.3899);
 
 -- CLINICS
-INSERT INTO clinics (name, address_id, phone, institution_type, is_active) VALUES
-('Clínica Monterrey Norte',1,'8111111111','IMSS',TRUE),
-('Clínica Guadalajara Centro',2,'3311111111','ISSSTE',TRUE),
-('Clínica Del Valle',3,'5511111111','SSA',TRUE),
-('Clínica Saltillo',4,'8441111111','IMSS',TRUE),
-('Clínica Reynosa',5,'8991111111','SSA',TRUE),
-('Clínica Hermosillo',6,'6621111111','ISSSTE',TRUE),
-('Clínica Chihuahua',7,'6141111111','IMSS',TRUE),
-('Clínica Mérida',8,'9991111111','SSA',TRUE),
-('Clínica Puebla',9,'2221111111','ISSSTE',TRUE),
-('Clínica Querétaro',10,'4421111111','IMSS',TRUE),
-('Clínica León',11,'4771111111','SSA',TRUE),
-('Clínica Culiacán',12,'6671111111','ISSSTE',TRUE),
-('Clínica Durango',13,'6181111111','IMSS',TRUE),
-('Clínica Veracruz',14,'2291111111','SSA',TRUE),
-('Clínica Oaxaca',15,'9511111111','ISSSTE',TRUE);
+INSERT INTO clinics (clinic_id, name, address_id, phone, institution_type, is_active) VALUES
+(1, 'Clínica Immunicare Centro',          1,  '81-2000-0101', 'SSA', TRUE),
+(2, 'Clínica Immunicare Monterrey',       2,  '81-2000-0102', 'SSA', TRUE),
+(3, 'Clínica Immunicare Apodaca',         3,  '81-2000-0103', 'SSA', TRUE),
+(4, 'Clínica Immunicare San Nicolás',     4,  '81-2000-0104', 'SSA', TRUE),
+(5, 'Clínica Immunicare Guadalupe',       5,  '81-2000-0105', 'SSA', TRUE),
+(6, 'Clínica Immunicare San Pedro',       6,  '81-2000-0106', 'SSA', TRUE),
+(7, 'Clínica Immunicare Escobedo',        7,  '81-2000-0107', 'SSA', TRUE),
+(8, 'Clínica Immunicare Santa Catarina',  8,  '81-2000-0108', 'SSA', TRUE),
+(9, 'Clínica Immunicare Juárez',          9,  '81-2000-0109', 'SSA', TRUE),
+(10, 'Clínica Immunicare Obispado',        10, '81-2000-0110', 'SSA', TRUE);
 
 -- CLINIC AREA TYPES
-INSERT INTO clinic_area_types (area_type) VALUES
-('Administración'),
-('Enfermería'),
-('Médico'),
-('Recepción'),
-('Almacén');
+INSERT INTO clinic_area_types (code, area_type) VALUES
+('WAIT', 'Sala de Espera'),
+('VACC', 'Área de Vacunación'),
+('CONS', 'Consultorio'),
+('NURS', 'Enfermería'),
+('RECP', 'Recepción'),
+('STOR', 'Almacén');
+
+INSERT INTO clinic_areas (clinic_id, name, area_type_id, code, floor, capacity) VALUES
+(1, 'Sala de Espera Principal',       1, 'WAIT-01', 1, 30),
+(1, 'Consultorio 1 — Pediatría',      2, 'CONS-01', 1, 4),
+(1, 'Área de Vacunación',             6, 'VACC-01', 1, 6),
+(1, 'Almacén de Biológicos',          4, 'STOR-01', 1, 2),
+(1, 'Recepción',                      5, 'RECP-01', 1, 3),
+(2, 'Sala de Espera A',               1, 'WAIT-02', 1, 25),
+(2, 'Consultorio 1 — Vacunación',     2, 'CONS-02', 1, 4),
+(2, 'Área de Vacunación',             6, 'VACC-02', 1, 6),
+(2, 'Almacén de Biológicos',          4, 'STOR-02', 1, 2),
+(3, 'Sala de Espera B',               1, 'WAIT-03', 1, 20),
+(3, 'Consultorio Pediátrico',         2, 'CONS-03', 1, 4),
+(3, 'Área de Vacunación',             6, 'VACC-03', 1, 5),
+(3, 'Sala de Espera C',               1, 'WAIT-04', 1, 20),
+(4, 'Área de Vacunación',             6, 'VACC-04', 1, 5),
+(4, 'Sala de Espera D',               1, 'WAIT-05', 1, 20),
+(4, 'Consultorio Pediátrico',         2, 'CONS-04', 1, 4);
+
+INSERT INTO equipment_catalog (equipment_id, name, category, requires_calibration) VALUES
+(1,  'Refrigerador Haier 2-8°C',            'Refrigeración', TRUE),
+(2,  'Silla de Exploración Pediátrica',     'Mobiliario',    FALSE),
+(3,  'Termómetro Digital Infrarrojo',       'Diagnóstico',   TRUE),
+(4,  'Báscula Pediátrica Digital',          'Diagnóstico',   TRUE),
+(5,  'Carro de Vacunación',                 'Mobiliario',    FALSE),
+(6,  'Congelador de Vacunas -20°C',         'Refrigeración', TRUE),
+(7,  'Tensiómetro Pediátrico',              'Diagnóstico',   TRUE),
+(8,  'Esterilizador UV portátil',           'Esterilización',TRUE),
+(9,  'Negatoscopio',                        'Diagnóstico',   FALSE),
+(10, 'Escritorio Clínico',                  'Mobiliario',    FALSE);
+
+INSERT INTO area_equipment (area_equipment_id, area_id, equipment_id, quantity, serial_number, condition) VALUES
+(1,  4,  1, 2, 'REF-2024-001', 'Bueno'),
+(2,  4,  6, 1, 'CON-2023-002', 'Bueno'),
+(3,  3,  2, 2, 'SIL-2022-003', 'Bueno'),
+(4,  3,  3, 2, 'TER-2023-004', 'Bueno'),
+(5,  3,  4, 1, 'BAS-2022-005', 'Regular'),
+(6,  3,  5, 1, 'CAR-2024-006', 'Bueno'),
+(7,  2,  2, 1, 'SIL-2021-007', 'Bueno'),
+(8,  2,  7, 1, 'TEN-2023-008', 'Bueno'),
+(9,  2, 10, 1, 'ESC-2020-009', 'Regular'),
+(10, 9,  1, 1, 'REF-2024-010', 'Bueno');
 
 -- BLOOD TYPES
 INSERT INTO blood_types (blood_type) VALUES
@@ -140,6 +194,23 @@ INSERT INTO patients (first_name, last_name, birth_date, blood_type_id, gender, 
 ('Victoria','Ruiz','2017-09-27',6,'F','NFC014','RUVV170927MNLRKLA5',30.20,FALSE),
 ('Ángel','Navarro','2021-04-11',7,'M','NFC015','NAAA210411HNLRVSA6',14.50,FALSE);
 
+INSERT INTO patient_allergies (patient_allergy_id, patient_id, allergy_id, severity, reaction_desc) VALUES
+(1,  3,  2, 'Moderada', 'Eritema cutáneo en zona de aplicación'),
+(2,  5,  4, 'Leve',     'Urticaria leve post-ingesta'),
+(3,  7,  3, 'Severa',   'Anafilaxia documentada en 2020'),
+(4,  9,  1, 'Moderada', 'Erupción cutánea y prurito generalizado'),
+(5,  11, 5, 'Leve',     'Náuseas leves'),
+(6,  13, 6, 'Leve',     'Estornudos y lagrimeo'),
+(7,  14, 8, 'Moderada', 'Dolor abdominal e inflamación'),
+(8,  2,  7, 'Leve',     'Rinitis alérgica'),
+(9,  6,  9, 'Severa',   'Reacción anafiláctica previa'),
+(10, 8, 10, 'Leve',     'Eritema leve'),
+(11, 10, 11, 'Moderada', 'Diarrea y dolor abdominal'),
+(12, 12, 12, 'Leve',     'Irritación cutánea leve'),
+(13, 1,  13, 'Moderada', 'Inflamación local y fiebre'),
+(14, 4,  14, 'Leve',     'Estornudos y congestión nasal'),
+(15, 15, 15, 'Severa',   'Anafilaxia documentada en 2021');
+
 -- MARITAL STATUS
 INSERT INTO marital_status (marital_status) VALUES
 ('Soltero'),('Casado'),('Divorciado'),('Viudo');
@@ -167,6 +238,32 @@ INSERT INTO guardians (first_name, last_name, curp, address_id, marital_status_i
 ('Ricardo','Morales','MORR970101HNLRRC13',13,2,13),
 ('Daniela','Ruiz','RUDD980202MNLRZN14',14,2,14),
 ('Hugo','Navarro','NAHH990303HNLRVG15',15,1,15);
+
+-- GUARDIAN PHONES
+INSERT INTO guardian_phones (guardian_id, phone, phone_type, is_primary) VALUES
+(1,'8110000001','Móvil',TRUE),(2,'8110000002','Móvil',TRUE),(3,'8110000003','Casa',TRUE),
+(4,'8110000004','Móvil',TRUE),(5,'8110000005','Trabajo',TRUE),(6,'8110000006','Casa',TRUE),
+(7,'8110000007','Móvil',TRUE),(8,'8110000008','Trabajo',TRUE),(9,'8110000009','Casa',TRUE),
+(10,'8110000010','Móvil',TRUE),(11,'8110000011','Trabajo',TRUE),(12,'8110000012','Casa',TRUE),
+(13,'8110000013','Móvil',TRUE),(14,'8110000014','Trabajo',TRUE),(15,'8110000015','Casa',TRUE);
+
+-- GUARDIAN EMAILS
+INSERT INTO guardian_emails (email_id, guardian_id, email, is_primary) VALUES
+(1, 1, 'carlos.garcia@gmail.com', TRUE),
+(2, 2, 'maria.martinez@gmail.com', TRUE),
+(3, 3, 'luis.lopez@gmail.com', TRUE),
+(4, 4, 'ana.hernandez@gmail.com', TRUE),
+(5, 5, 'jorge.ramirez@gmail.com', TRUE),
+(6, 6, 'laura.torres@gmail.com', TRUE),
+(7, 7, 'pedro.flores@gmail.com', TRUE),
+(8, 8, 'elena.rivera@gmail.com', TRUE),
+(9, 9, 'miguel.gomez@gmail.com', TRUE),
+(10, 10, 'patricia.diaz@gmail.com', TRUE),
+(11, 11, 'fernando.castro@gmail.com', TRUE),
+(12, 12, 'gabriela.ortiz@gmail.com', TRUE),
+(13, 13, 'ricardo.morales@gmail.com', TRUE),
+(14, 14, 'daniela.ruiz@gmail.com', TRUE),
+(15, 15, 'hugo.navarro@gmail.com', TRUE);
 
 -- PATIENT GUARDIAN RELATIONS
 INSERT INTO patient_guardian_relations (patient_id, guardian_id, relation_type, is_primary, has_custody) VALUES
@@ -196,108 +293,455 @@ INSERT INTO roles (name, description) VALUES
 
 -- SPECIALTIES
 INSERT INTO specialties (name) VALUES
-('Pediatría'),('Medicina General'),('Inmunología'),('Enfermería Pediátrica'),('Urgencias'),
-('Cardiología'),('Neurología'),('Dermatología'),('Nutrición'),('Traumatología'),
-('Ginecología'),('Radiología'),('Oncología'),('Psiquiatría'),('Oftalmología');
-
--- CLINIC AREAS
-INSERT INTO clinic_areas (clinic_id, name, area_type_id, floor, capacity) VALUES
-(1,'Área Norte',1,1,20),(2,'Área Centro',2,1,15),(3,'Área Pediátrica',3,2,10),
-(4,'Recepción A',4,1,25),(5,'Almacén Principal',5,0,30),(6,'Consultorio 1',3,2,10),
-(7,'Enfermería A',2,1,12),(8,'Administración',1,2,8),(9,'Vacunación',2,1,20),
-(10,'Urgencias',3,1,15),(11,'Recepción B',4,1,25),(12,'Farmacia',5,0,18),
-(13,'Consultorio 2',3,2,10),(14,'Área Sur',1,1,20),(15,'Enfermería B',2,1,15);
-
--- EQUIPMENT CATALOG
-INSERT INTO equipment_catalog (name, category, requires_calibration) VALUES
-('Refrigerador Médico','Frío',TRUE),('Termómetro Digital','Medición',FALSE),
-('Báscula Pediátrica','Peso',TRUE),('Camilla','Mobiliario',FALSE),('Computadora','Tecnología',FALSE),
-('Monitor Signos','Monitoreo',TRUE),('Oxímetro','Monitoreo',FALSE),('Jeringa Automática','Vacunación',TRUE),
-('Lector NFC','Tecnología',FALSE),('Impresora','Tecnología',FALSE),('Mesa Clínica','Mobiliario',FALSE),
-('Silla de Espera','Mobiliario',FALSE),('Estante','Almacén',FALSE),('Laptop','Tecnología',FALSE),('Ultracongelador','Frío',TRUE);
-
--- AREA EQUIPMENT
-INSERT INTO area_equipment (area_id, equipment_id, quantity, serial_number, condition) VALUES
-(1,1,1,'SN001','Bueno'),(2,2,2,'SN002','Bueno'),(3,3,1,'SN003','Excelente'),
-(4,4,3,'SN004','Bueno'),(5,5,2,'SN005','Excelente'),(6,6,1,'SN006','Bueno'),
-(7,7,2,'SN007','Bueno'),(8,8,1,'SN008','Excelente'),(9,9,1,'SN009','Bueno'),
-(10,10,2,'SN010','Excelente'),(11,11,1,'SN011','Bueno'),(12,12,6,'SN012','Bueno'),
-(13,13,2,'SN013','Excelente'),(14,14,1,'SN014','Bueno'),(15,15,1,'SN015','Excelente');
-
--- PATIENT ALLERGIES
-INSERT INTO patient_allergies (patient_id, allergy_id, severity, reaction_desc) VALUES
-(1,1,'Moderada','Erupción'),(2,2,'Leve','Estornudos'),(3,3,'Moderada','Dolor estomacal'),
-(4,4,'Alta','Inflamación'),(5,5,'Alta','Ronchas'),(6,6,'Leve','Tos'),
-(7,7,'Moderada','Irritación'),(8,8,'Leve','Náuseas'),(9,9,'Alta','Fiebre'),
-(10,10,'Moderada','Mareo'),(11,11,'Leve','Dolor abdominal'),(12,12,'Leve','Dolor cabeza'),
-(13,13,'Moderada','Inflamación'),(14,14,'Leve','Estornudos'),(15,15,'Moderada','Fiebre');
-
--- GUARDIAN PHONES
-INSERT INTO guardian_phones (guardian_id, phone, phone_type, is_primary) VALUES
-(1,'8110000001','Móvil',TRUE),(2,'8110000002','Móvil',TRUE),(3,'8110000003','Casa',TRUE),
-(4,'8110000004','Móvil',TRUE),(5,'8110000005','Trabajo',TRUE),(6,'8110000006','Casa',TRUE),
-(7,'8110000007','Móvil',TRUE),(8,'8110000008','Trabajo',TRUE),(9,'8110000009','Casa',TRUE),
-(10,'8110000010','Móvil',TRUE),(11,'8110000011','Trabajo',TRUE),(12,'8110000012','Casa',TRUE),
-(13,'8110000013','Móvil',TRUE),(14,'8110000014','Trabajo',TRUE),(15,'8110000015','Casa',TRUE);
-
--- GUARDIAN EMAILS
-INSERT INTO guardian_emails (guardian_id, email, is_primary) VALUES
-(1,'guardian1@mail.com',TRUE),(2,'guardian2@mail.com',TRUE),(3,'guardian3@mail.com',TRUE),
-(4,'guardian4@mail.com',TRUE),(5,'guardian5@mail.com',TRUE),(6,'guardian6@mail.com',TRUE),
-(7,'guardian7@mail.com',TRUE),(8,'guardian8@mail.com',TRUE),(9,'guardian9@mail.com',TRUE),
-(10,'guardian10@mail.com',TRUE),(11,'guardian11@mail.com',TRUE),(12,'guardian12@mail.com',TRUE),
-(13,'guardian13@mail.com',TRUE),(14,'guardian14@mail.com',TRUE),(15,'guardian15@mail.com',TRUE);
+('Pediatría'),('Medicina General'),('Inmunología'),('Enfermería Pediátrica'), ('Vacunología'),('Atención Primaria'),('Salud Pública'), ('Infectología'),('Epidemiología'),('Medicina Familiar'),('Cuidados Intensivos'),('Medicina Preventiva');
 
 -- INSTITUTIONS
 INSERT INTO institutions (institution_name, address_id) VALUES
-('UANL',1),('UNAM',2),('IPN',3),('TEC',4),('UDEM',5),('BUAP',6),('UDG',7),('UAQ',8),('UV',9),('UAS',10),('UACH',11),('UAN',12),('UABC',13),('UAEM',14),('UOAX',15);
+('UANL',1),('UNAM',2),('IPN',3),('TEC',4),('UDEM',5),('BUAP',6),('UDG',7);
 
 -- WORKERS
-INSERT INTO workers (role_id, first_name, last_name, curp, address_id, birth_date, hire_date, password_hash) VALUES
-(1,'José','Pérez','PEPJ850101HNLRRS01',1,'1985-01-01','2020-01-01','hash1'),
-(2,'Lucía','Santos','SALU860202MNLRNC02',2,'1986-02-02','2020-02-01','hash2'),
-(3,'Mario','Luna','LUMM870303HNLRNR03',3,'1987-03-03','2020-03-01','hash3'),
-(4,'Elisa','Campos','CAEE880404MNLRML04',4,'1988-04-04','2020-04-01','hash4'),
-(5,'Raúl','Mora','MORR890505HNLRRA05',5,'1989-05-05','2020-05-01','hash5'),
-(1,'Paty','Ríos','RIPP900606MNLRRT06',6,'1990-06-06','2020-06-01','hash6'),
-(2,'Andrés','León','LEAA910707HNLRNN07',7,'1991-07-07','2020-07-01','hash7'),
-(3,'Diana','Paz','PADD920808MNLRDZ08',8,'1992-08-08','2020-08-01','hash8'),
-(4,'Iván','Silva','SIII930909HNLRLV09',9,'1993-09-09','2020-09-01','hash9'),
-(5,'Karen','Vega','VEKK941010MNLRGR10',10,'1994-10-10','2020-10-01','hash10'),
-(1,'Tomás','Gil','GITT951111HNLRLM11',11,'1995-11-11','2020-11-01','hash11'),
-(2,'Nora','Reyes','RENN961212MNLRYR12',12,'1996-12-12','2020-12-01','hash12'),
-(3,'Alan','Cruz','CUAA970101HNLRRL13',13,'1997-01-01','2021-01-01','hash13'),
-(4,'Mónica','Peña','PEMM980202MNLRXN14',14,'1998-02-02','2021-02-01','hash14'),
-(5,'Víctor','Soto','SOVV990303HNLRCT15',15,'1999-03-03','2021-03-01','hash15');
+INSERT INTO workers (role_id, first_name, last_name, curp, address_id, birth_date, hire_date) VALUES
+(1,'José','Pérez','PEPJ850101HNLRRS01',1,'1985-01-01','2020-01-01'),
+(2,'Lucía','Santos','SALU860202MNLRNC02',2,'1986-02-02','2020-02-01'),
+(3,'Mario','Luna','LUMM870303HNLRNR03',3,'1987-03-03','2020-03-01'),
+(4,'Elisa','Campos','CAEE880404MNLRML04',4,'1988-04-04','2020-04-01'),
+(5,'Raúl','Mora','MORR890505HNLRRA05',5,'1989-05-05','2020-05-01'),
+(1,'Paty','Ríos','RIPP900606MNLRRT06',6,'1990-06-06','2020-06-01'),
+(2,'Andrés','León','LEAA910707HNLRNN07',7,'1991-07-07','2020-07-01'),
+(3,'Diana','Paz','PADD920808MNLRDZ08',8,'1992-08-08','2020-08-01'),
+(4,'Iván','Silva','SIII930909HNLRLV09',9,'1993-09-09','2020-09-01'),
+(5,'Karen','Vega','VEKK941010MNLRGR10',10,'1994-10-10','2020-10-01'),
+(1,'Tomás','Gil','GITT951111HNLRLM11',11,'1995-11-11','2020-11-01'),
+(2,'Nora','Reyes','RENN961212MNLRYR12',12,'1996-12-12','2020-12-01'),
+(3,'Alan','Cruz','CUAA970101HNLRRL13',13,'1997-01-01','2021-01-01'),
+(4,'Mónica','Peña','PEMM980202MNLRXN14',14,'1998-02-02','2021-02-01'),
+(5,'Víctor','Soto','SOVV990303HNLRCT15',15,'1999-03-03','2021-03-01');
+
+INSERT INTO worker_professional (worker_id, cedula_profesional, specialty_id, institution_id) VALUES
+(1, '5432109', 1,  1),
+(1,  '5432109', 5,  2),
+(2,  '5432876', 1,  1),
+(2,  '5432876', 3,  3),
+(3,  '6789012', 2,  6),
+(4,  '4321098', 4,  4),
+(5,  '4123456', 1,  2),
+(5,  '4123456', 4,  5),
+(6,  '7654321', 5,  5),
+(7,  '8765432', 8,  7),
+(8,  '3456789', 1,  3),
+(8,  '3456789', 6,  3),
+(9,  '6543210', 2,  3),
+(10, '7890123', 4,  5),
+(11, '9012345', 2,  6),
+(12, '2345678', 1,  1),
+(13, '2345678', 7,  4),
+(14, '5678901', 3,  4),
+(15, '6789012', 5,  2);
+
+INSERT INTO worker_phones (phone_id, worker_id, phone, phone_type, is_primary) VALUES
+(1,  1,  '81-3001-1111', 'Celular', TRUE),
+(2,  2,  '81-3001-2222', 'Celular', TRUE),
+(3,  3,  '81-3001-3333', 'Celular', TRUE),
+(4,  4,  '81-3001-4444', 'Celular', TRUE),
+(5,  5,  '81-3001-5555', 'Celular', TRUE),
+(6,  6,  '81-3001-6666', 'Celular', TRUE),
+(7,  7,  '81-3001-7777', 'Celular', TRUE),
+(8,  8,  '81-3001-8888', 'Celular', TRUE),
+(9,  9,  '81-3001-9999', 'Celular', TRUE),
+(10, 10, '81-3002-0000', 'Celular', TRUE),
+(11, 11, '81-3002-1111', 'Celular', TRUE),
+(12, 12, '81-3002-2222', 'Celular', TRUE),
+(13, 13, '81-3002-3333', 'Celular', TRUE),
+(14, 14, '81-3002-4444', 'Celular', TRUE),
+(15, 15, '81-3002-5555', 'Celular', TRUE);
+
+INSERT INTO worker_emails (email_id, worker_id, email, is_primary) VALUES
+(1, 1, 'jose.perez@gmail.com', TRUE),
+(2, 2, 'lucia.santos@gmail.com', TRUE),
+(3, 3, 'mario.luna@gmail.com', TRUE),
+(4, 4, 'elisa.campos@gmail.com', TRUE),
+(5, 5, 'raul.mora@gmail.com', TRUE),
+(6, 6, 'paty.rios@gmail.com', TRUE),
+(7, 7, 'andres.leon@gmail.com', TRUE),
+(8, 8, 'diana.paz@gmail.com', TRUE),
+(9, 9, 'ivan.silva@gmail.com', TRUE),
+(10, 10, 'karen.vega@gmail.com', TRUE),
+(11, 11, 'tomas.gil@gmail.com', TRUE),
+(12, 12, 'nora.reyes@gmail.com', TRUE),
+(13, 13, 'alan.cruz@gmail.com', TRUE),
+(14, 14, 'monica.pena@gmail.com', TRUE),
+(15, 15, 'victor.soto@gmail.com', TRUE);
+
+INSERT INTO worker_clinic_assignment (assignment_id, worker_id, clinic_id, area_id, start_date, end_date, is_active) VALUES
+(1,  1,  1, 5,  '2015-03-01', NULL, TRUE),
+(2,  2,  1, 2,  '2010-07-20', NULL, TRUE),
+(3,  3,  1, 3,  '2018-01-10', NULL, TRUE),
+(4,  4,  1, 4,  '2020-06-15', NULL, TRUE),
+(5,  5,  2, 7,  '2012-09-01', NULL, TRUE),
+(6,  6,  2, 8,  '2019-04-01', NULL, TRUE),
+(7,  7,  3, 12, '2017-11-15', NULL, TRUE),
+(8,  8,  3, 11, '2008-03-20', NULL, TRUE),
+(9,  9,  2, 9,  '2022-01-05', NULL, TRUE),
+(10, 10, 4, 13, '2016-08-01', NULL, TRUE),
+(11, 11, 4, 14, '2021-03-10', NULL, TRUE),
+(12, 12, 5, 15, '2009-11-01', NULL, TRUE),
+(13, 13, 5, 14, '2014-05-20', NULL, TRUE),
+(14, 14, 1, 3,  '2013-02-01', NULL, TRUE),
+(15, 15, 1, 2,  '2011-10-10', NULL, TRUE);
+
+INSERT INTO worker_schedules (worker_id, clinic_id, day_of_week, entry_time, exit_time, shift_type) VALUES
+(1,  1, 1, '08:00', '14:00', 'Matutino'),
+(1,  1, 2, '08:00', '14:00', 'Matutino'),
+(1,  1, 3, '08:00', '14:00', 'Matutino'),
+(2,  1, 1, '08:00', '15:00', 'Matutino'),
+(2,  1, 2, '08:00', '15:00', 'Matutino'),
+(3,  1, 1, '08:00', '14:00', 'Matutino'),
+(3,  1, 2, '08:00', '14:00', 'Matutino'),
+(4,  1, 1, '08:00', '14:00', 'Matutino'),
+(5,  2, 1, '14:00', '20:00', 'Vespertino'),
+(5,  2, 2, '14:00', '20:00', 'Vespertino'),
+(6,  2, 1, '14:00', '20:00', 'Vespertino'),
+(7,  3, 1, '08:00', '14:00', 'Matutino'),
+(7,  3, 2, '08:00', '14:00', 'Matutino'),
+(8,  3, 1, '08:00', '14:00', 'Matutino'),
+(9,  2, 1, '14:00', '20:00', 'Vespertino'),
+(10, 4, 1, '08:00', '14:00', 'Matutino'),
+(11, 4, 2, '08:00', '14:00', 'Matutino'),
+(12, 5, 1, '14:00', '20:00', 'Vespertino'),
+(13, 5, 2, '14:00', '20:00', 'Vespertino'),
+(14, 1, 1, '08:00', '14:00', 'Matutino'),
+(15, 1, 2, '08:00', '14:00', 'Matutino');
 
 -- USERS
 INSERT INTO users (worker_id, username, password_hash, is_active) VALUES
-(1,'admin1','hash1',TRUE),(2,'enfermero1','hash2',TRUE),(3,'medico1','hash3',TRUE),
-(4,'recepcion1','hash4',TRUE),(5,'almacen1','hash5',TRUE),(6,'admin2','hash6',TRUE),
-(7,'enfermero2','hash7',TRUE),(8,'medico2','hash8',TRUE),(9,'recepcion2','hash9',TRUE),
-(10,'almacen2','hash10',TRUE),(11,'admin3','hash11',TRUE),(12,'enfermero3','hash12',TRUE),
-(13,'medico3','hash13',TRUE),(14,'recepcion3','hash14',TRUE),(15,'almacen3','hash15',TRUE);
+(1,'jose.perez',crypt('admin123', gen_salt('bf')),TRUE),
+(2,'lucia.santos',crypt('enfermero123', gen_salt('bf')),TRUE),
+(3,'mario.luna',crypt('medico123', gen_salt('bf')),TRUE),
+(4,'elisa.campos',crypt('recepcion123', gen_salt('bf')),TRUE),
+(5,'raul.mora',crypt('almacen123', gen_salt('bf')),TRUE);
 
 -- MANUFACTURERS
-INSERT INTO manufacturers (name, country_id, contact_email) VALUES
-('Pfizer',1,'pfizer@mail.com'),('Moderna',2,'moderna@mail.com'),('AstraZeneca',3,'astra@mail.com'),
-('Sanofi',4,'sanofi@mail.com'),('GSK',5,'gsk@mail.com'),('Bayer',6,'bayer@mail.com'),
-('BioNTech',7,'bio@mail.com'),('Novavax',8,'nova@mail.com'),('Sinovac',9,'sino@mail.com'),
-('Sputnik',10,'sputnik@mail.com'),('Janssen',11,'janssen@mail.com'),('Merck',12,'merck@mail.com'),
-('Abbott',13,'abbott@mail.com'),('Takeda',14,'takeda@mail.com'),('Roche',15,'roche@mail.com');
+INSERT INTO manufacturers (manufacturer_id,name, country_id, contact_email) VALUES
+(1, 'Pfizer',1,'pfizer@gmail.com'),
+(2, 'AstraZeneca',5,'astra@mail.com'),
+(3, 'Sanofi',6,'sanofi@gmail.com'),
+(4, 'GSK',5,'gsk@mail.com'),
+(5, 'Bayer',4,'bayer@mail.com'),
+(6, 'BioNTech',4,'bio@gmail.com'),
+(7, 'Sinovac',8,'sino@mail.com'),
+(8, 'Sputnik',2,'sputnik@gmail.com'),
+(9, 'Abbott',2,'abbott@gmail.com'),
+(10, 'Takeda',3,'takeda@mail.com');
 
 -- VACCINE VIAS
 INSERT INTO vaccine_vias (via) VALUES
 ('Intramuscular'),('Subcutánea'),('Oral'),('Intravenosa'),('Intradérmica');
 
 -- VACCINES
-INSERT INTO vaccines (name, commercial_name, manufacturer_id, via_id, ideal_age_months, disease_prevented) VALUES
-('BCG','BCG Plus',1,1,0,'Tuberculosis'),('Hepatitis B','HepaSafe',2,1,1,'Hepatitis B'),
-('Pentavalente','PentaKids',3,1,2,'Difteria'),('Rotavirus','RotaFree',4,3,2,'Rotavirus'),
-('Neumococo','NeumoCare',5,1,2,'Neumonía'),('Influenza','FluKids',6,1,6,'Influenza'),
-('SRP','TripleViral',7,2,12,'Sarampión'),('Varicela','VariSafe',8,2,12,'Varicela'),
-('COVID-19','CovidShield',9,1,60,'COVID-19'),('Polio','PolioVac',10,3,4,'Polio'),
-('Tétanos','TetaSafe',11,1,6,'Tétanos'),('Rabia','RabVac',12,1,24,'Rabia'),
-('Hepatitis A','HepaA',13,1,12,'Hepatitis A'),('VPH','VPHCare',14,1,96,'VPH'),('Meningococo','Meningo',15,1,6,'Meningitis');
+INSERT INTO vaccines (vaccine_id, name, commercial_name, manufacturer_id, via_id, ideal_age_months, disease_prevented) VALUES
+(1,  'BCG', 'BCG Birmex', 1, 1,  0,  'Tuberculosis — dosis única al nacimiento'),
+(2,  'Hepatitis B', 'Engerix-B',  5, 2,  0,  'Hepatitis B — primera dosis al nacimiento'),
+(3,  'Pentavalente acelular','Pentaxim', 2, 2,  2,  'DPT + Hib + Polio inactivado — 3 dosis'),
+(4,  'Hepatitis B (serie)',  'Engerix-B pediátrica',5,2,  2,  'Hepatitis B — dosis 2 y 3 de la serie'),
+(5,  'Rotavirus', 'RotaTeq', 3, 4,  2,  'Diarrea por Rotavirus — 3 dosis orales'),
+(6,  'Neumococo conjugada',  'Prevenar 13', 4, 2,  2,  'Neumococo 13V — 3 dosis + refuerzo'),
+(7,  'Influenza', 'Fluvax Pediátrica', 10,2,  6,  'Influenza estacional — anual desde 6 meses'),
+(8,  'SRP', 'M-M-R II', 3, 3,  12, 'Sarampión, Rubeola, Parotiditis — 2 dosis'),
+(9,  'Pentavalente refuerzo','Pentaxim refuerzo', 2, 2,  18, 'DPT + Hib + Polio — refuerzo 18 meses'),
+(10, 'DPT (refuerzo)', 'Tripacel',  2, 2,  48, 'Difteria, Pertussis, Tétanos — refuerzo 4 años'),
+(11, 'OPV','Polio oral',    1, 4,  60, 'Polio oral — Semanas Nacionales de Salud'),
+(12, 'VPH',  'Gardasil 9', 3, 2,  132,'Virus del Papiloma Humano — 5to grado primaria');
 
-```
+    INSERT INTO vaccine_lots (lot_id, vaccine_id, clinic_id, lot_number, quantity_received, quantity_available, expiration_date, received_date) VALUES
+    (1,  1,  1, 'BCG-2025-A001',   200, 182, '2026-03-31', '2025-01-05'),
+    (2,  2,  1, 'HEPB-2025-B001',  150, 121, '2026-10-15', '2025-01-05'),
+    (3,  3,  1, 'PENT-2025-C001',  100,  87, '2026-08-31', '2025-01-15'),
+    (4,  4,  1, 'HEPBS-2025-D001', 100,  93, '2026-10-15', '2025-01-15'),
+    (5,  5,  1, 'ROTA-2025-E001',   80,  61, '2025-12-15', '2025-01-10'),
+    (6,  6,  1, 'NEUM-2025-F001',  120,  98, '2026-12-31', '2025-01-20'),
+    (7,  7,  1, 'INFL-2025-G001',  200, 155, '2025-06-30', '2025-01-03'),
+    (8,  8,  1, 'SRP-2025-H001',    60,  47, '2026-06-30', '2025-02-01'),
+    (9,  9,  2, 'PENTR-2025-I001',  80,  72, '2026-08-31', '2025-01-15'),
+    (10, 10, 2, 'DPT-2025-J001',    70,  63, '2026-09-30', '2025-02-10'),
+    (11, 11, 3, 'OPV-2025-K001',   100,  88, '2025-09-30', '2025-01-10'),
+    (12, 12, 4, 'VPH-2025-L001',    50,  48, '2027-06-30', '2025-03-01');
+
+INSERT INTO vaccination_scheme (scheme_id, name, issuing_body, year, is_current) VALUES
+    (1, 'Cartilla Nacional de Vacunación 2024', 'SSA México', 2024, TRUE),
+    (2, 'Cartilla Nacional de Vacunación 2023', 'SSA México', 2023, FALSE);
+
+INSERT INTO scheme_doses (dose_id, scheme_id, vaccine_id, dose_number, dose_label, ideal_age_months, min_interval_days) VALUES
+    -- Nacimiento
+    (1,  1, 1,  1, 'BCG — Dosis única',              0,   NULL),
+    (2,  1, 2,  1, 'Hepatitis B — 1ra dosis',         0,   NULL),
+    -- 2 meses
+    (3,  1, 3,  1, 'Pentavalente — 1ra dosis',        2,   NULL),
+    (4,  1, 4,  2, 'Hepatitis B — 2da dosis',         2,   56),
+    (5,  1, 5,  1, 'Rotavirus — 1ra dosis',           2,   NULL),
+    (6,  1, 6,  1, 'Neumococo — 1ra dosis',           2,   NULL),
+    -- 4 meses
+    (7,  1, 3,  2, 'Pentavalente — 2da dosis',        4,   56),
+    (8,  1, 5,  2, 'Rotavirus — 2da dosis',           4,   28),
+    (9,  1, 6,  2, 'Neumococo — 2da dosis',           4,   56),
+    -- 6 meses
+    (10, 1, 3,  3, 'Pentavalente — 3ra dosis',        6,   56),
+    (11, 1, 4,  3, 'Hepatitis B — 3ra dosis',         6,   56),
+    (12, 1, 5,  3, 'Rotavirus — 3ra dosis',           6,   28),
+    (13, 1, 7,  1, 'Influenza — 1ra dosis',           6,   NULL),
+    -- 7 meses
+    (14, 1, 7,  2, 'Influenza — 2da dosis',           7,   28),
+    -- 12 meses
+    (15, 1, 8,  1, 'SRP — 1ra dosis',                12,  NULL),
+    (16, 1, 6,  3, 'Neumococo — 3ra dosis',           12,  56),
+    -- 18 meses
+    (17, 1, 9,  1, 'Pentavalente — Refuerzo',         18,  NULL),
+    -- 24 meses (2 años)
+    (18, 1, 7,  3, 'Influenza refuerzo anual',        24,  365),
+    -- 36 meses (3 años)
+    (19, 1, 7,  4, 'Influenza refuerzo anual',        36,  365),
+    -- 48 meses (4 años)
+    (20, 1, 10, 1, 'DPT — Refuerzo',                 48,  NULL),
+    (21, 1, 7,  5, 'Influenza refuerzo anual',        48,  365),
+    -- 59 meses (5 años)
+    (22, 1, 7,  6, 'Influenza refuerzo anual oct-ene',59,  365),
+    (23, 1, 11, 1, 'OPV — Semanas Nacionales Salud',  60,  NULL),
+    -- 72 meses (6 años)
+    (24, 1, 8,  2, 'SRP — Refuerzo',                 72,  NULL),
+    -- 11 años / 5to primaria
+    (25, 1, 12, 1, 'VPH — 1ra dosis',               132,  NULL),
+    (26, 1, 12, 2, 'VPH — 2da dosis',               138,  180);
+
+    INSERT INTO application_sites (application_site_id, application_site) VALUES
+    (1, 'Muslo_Izq'),
+    (2, 'Muslo_Der'),
+    (3, 'Brazo_Izq'),
+    (4, 'Brazo_Der'),
+    (5, 'Oral'),
+    (6, 'Intradermica_Hombro_Der'),
+    (7, 'Glúteo_Izq'),
+    (8, 'Glúteo_Der');
+
+ -- ─────────────────────────────────────────────
+    --  APPOINTMENTS
+    -- ─────────────────────────────────────────────
+INSERT INTO appointments 
+(appointment_id, patient_id, clinic_id, area_id, worker_id, vaccine_id, scheme_dose_id, scheduled_at, duration_min, reason, appointment_status, appointment_notes) 
+VALUES
+(1,  1,  1, 3, 3, 1, 1,  '2024-02-10 09:00', 20, 'Vacuna BCG y Hepatitis B — nacimiento', 'Completada', 'Sin incidencias'),
+
+(2,  2,  1, 3, 3, 2, 2,  '2023-08-15 10:00', 20, 'Pentavalente 1ra dosis — 2 meses', 'Completada', 'Sin incidencias'),
+
+(3,  3,  2, 8, 6, 3, 3,  '2023-01-25 09:30', 20, 'Pentavalente 1ra dosis', 'Completada', NULL),
+
+(4,  4,  1, 3, 3, 4, 4,  '2021-06-10 11:00', 20, 'Hepatitis B 2da dosis — 4 meses', 'Completada', NULL),
+
+(5,  5,  2, 7, 5, 5, 5,  '2020-10-05 09:00', 20, 'Rotavirus 1ra dosis — 2 meses', 'Completada', NULL),
+
+(6,  6,  3,12, 7, 6, 6,  '2020-03-22 10:30', 20, 'SRP 1ra dosis', 'Completada', NULL),
+
+-- Ajustados (worker 3 mismo día)
+(7,  7,  1, 3, 3, 7, 7,  '2019-07-30 09:00', 20, 'BCG nacimiento', 'Completada', 'Paciente prematura'),
+(15, 15, 1, 3, 3, 1, 1,  '2019-07-30 09:30', 20, 'BCG nacimiento', 'Completada', NULL),
+
+-- Ajustados (worker 6 mismo día)
+(8,  8,  2, 8, 6, 8, 8,  '2019-12-12 11:00', 20, 'DPT refuerzo — 4 años', 'Completada', NULL),
+
+(9,  9,  1, 3, 3, 9, 9,  '2018-08-03 09:00', 20, 'BCG nacimiento', 'Completada', NULL),
+
+(10, 10, 1, 3, 3, 10,10, '2017-04-05 10:00', 20, 'SRP 1ra dosis', 'Completada', NULL),
+
+(11, 11, 2, 7, 5, 8, 15, '2022-09-18 09:00', 20, 'SRP 1ra dosis', 'Completada', NULL),
+
+-- Ajustados (worker 5 mismo día)
+(12, 12, 2, 7, 5, 7, 18, '2022-09-20 09:00', 20, 'Influenza refuerzo anual', 'Completada', NULL),
+(13, 13, 3,12, 7, 8, 15, '2020-03-22 11:00', 20, 'SRP 1ra dosis', 'Completada', NULL),
+
+-- Ajustados (worker 10 mismo día)
+(14, 14, 4,13,10,10,20, '2023-03-22 10:30', 20, 'DPT refuerzo — 4 años', 'Completada', NULL);
+
+    -- ─────────────────────────────────────────────
+    --  VACCINATION RECORDS
+    -- ─────────────────────────────────────────────
+
+INSERT INTO vaccination_records 
+(record_id, patient_id, vaccine_id, worker_id, clinic_id, lot_id, scheme_dose_id, applied_date, application_site_id, appointment_id, patient_temp_c, had_reaction) 
+VALUES
+
+-- appointment 1
+(1,  1,  1, 3, 1, 1, 1, '2024-02-10', 6, 1, 36.5, FALSE),
+
+-- appointment 2
+(2,  2,  2, 3, 1, 2, 2, '2023-08-15', 1, 2, 36.5, FALSE),
+
+-- appointment 3
+(3,  3,  3, 6, 2, 3, 3, '2023-01-25', 1, 3, 36.7, FALSE),
+
+-- appointment 4
+(4,  4,  4, 3, 1, 4, 4, '2021-06-10', 2, 4, 36.7, FALSE),
+
+-- appointment 5
+(5,  5,  5, 5, 2, 5, 5, '2020-10-05', 5, 5, 36.7, FALSE),
+
+-- appointment 6
+(6,  6,  6, 7, 3, 6, 6, '2020-03-22', 3, 6, 36.5, FALSE),
+
+-- appointment 7
+(7,  7,  7, 3, 1, 7, 7, '2019-07-30', 6, 7, 36.4, FALSE),
+
+-- appointment 8
+(8,  8,  8, 6, 2, 8, 8, '2019-12-12', 4, 8, 37.0, FALSE),
+
+-- appointment 9
+(9,  9,  9, 3, 1, 9, 9, '2018-08-03', 3, 9, 36.6, FALSE),
+
+-- appointment 10
+(10, 10, 10, 3, 1, 10, 10, '2017-04-05', 2, 10, 36.6, FALSE),
+
+-- appointment 11
+(11, 11, 8, 5, 2, 8, 15, '2022-09-18', 3, 11, 36.6, FALSE),
+
+-- appointment 12
+(12, 12, 7, 5, 2, 7, 18, '2022-09-20', 2, 12, 36.6, FALSE),
+
+-- appointment 13
+(13, 13, 8, 7, 3, 8, 15, '2020-03-22', 3, 13, 36.6, FALSE),
+
+-- appointment 14
+(14, 14, 10,10,4,10,20, '2023-03-22', 2, 14, 36.7, FALSE),
+
+-- appointment 15
+(15, 15, 1, 3, 1, 1, 1, '2019-07-30', 6, 15, 36.5, FALSE);  -- Luciana: SRP refuerzo
+
+INSERT INTO post_vaccine_reactions (reaction_id, record_id, reported_by, symptom, severity, onset_hours, treatment, notified_authority) VALUES
+    (1,  11, 6, 'Eritema leve en sitio de aplicación',    'Leve',     4,  'Compresas frías',              FALSE),
+    (2,  11, 6, 'Llanto persistente 2h',                  'Leve',     2,  'Observación — cedió solo',     FALSE),
+    (3,  3,  3, 'Fiebre 37.8°C transitoria',              'Leve',     12, 'Paracetamol 60mg/kg oral',     FALSE),
+    (4,  8,  3, 'Endurecimiento en zona de punción',      'Leve',     6,  'Compresas tibias',             FALSE),
+    (5,  15, 6, 'Fiebre 38.0°C',                          'Leve',     12, 'Paracetamol 150mg oral',       FALSE),
+    (6,  12, 3, 'Eritema leve post-SRP',                  'Leve',     24, 'Observación',                  FALSE),
+    (7,  13, 7, 'Dolor local en sitio de inyección',      'Leve',     2,  'Compresas frías',              FALSE),
+    (8,  15, 6, 'Rinorrea leve post-influenza',           'Leve',     48, 'Observación',                  FALSE),
+    (9,  4, 3, 'Fiebre 38.2°C post-SRP refuerzo',       'Moderada', 24, 'Paracetamol + hidratación',    FALSE),
+    (10, 5,  3, 'Malestar gástrico leve post-rotavirus',  'Leve',     6,  'Hidratación oral',             FALSE);
+
+     INSERT INTO nfc_cards (nfc_card_id, patient_id, uid, card_type, issued_date, issued_by, status, last_scanned_at, nfc_card_notes) VALUES
+    (1,  1,  '04:A1:2B:11:5C:22:80', 'Pulsera', '2024-01-15', 3, 'Activa',      '2025-03-10 09:00', NULL),
+    (2,  2,  '04:B2:3C:22:6D:33:91', 'Pulsera', '2023-06-10', 3, 'Activa',      '2025-03-15 10:30', NULL),
+    (3,  3,  '04:C3:4D:33:7E:44:A2', 'Pulsera', '2022-11-20', 6, 'Activa',      '2025-02-28 09:15', NULL),
+    (4,  4,  '04:D4:5E:44:8F:55:B3', 'Tarjeta', '2021-04-05', 3, 'Activa',      '2025-01-20 11:00', NULL),
+    (5,  5,  '04:E5:6F:55:90:66:C4', 'Pulsera', '2020-09-18', 6, 'Activa',      '2025-03-01 09:45', NULL),
+    (6,  6,  '04:F6:70:66:A1:77:D5', 'Pulsera', '2019-03-22', 7, 'Activa',      '2025-02-14 10:00', NULL),
+    (7,  7,  '04:07:81:77:B2:88:E6', 'Pulsera', '2018-07-30', 3, 'Activa',      '2025-03-05 08:50', 'Paciente prematura'),
+    (8,  8,  '04:18:92:88:C3:99:F7', 'Tarjeta', '2017-12-12', 6, 'Activa',      '2025-02-20 09:30', NULL),
+    (9,  9,  '04:29:A3:99:D4:AA:08', 'Pulsera', '2016-08-03', 3, 'Activa',      '2025-01-15 10:10', NULL),
+    (10, 10, '04:3A:B4:AA:E5:BB:19', 'Pulsera', '2024-07-20', 3, 'Activa',      NULL,               'Paciente prematuro'),
+    (11, 11, '04:4B:C5:BB:F6:CC:2A', 'Pulsera', '2023-02-14', 6, 'Activa',      '2025-03-12 09:00', NULL),
+    (12, 12, '04:5C:D6:CC:07:DD:3B', 'Pulsera', '2022-05-25', 6, 'Activa',      '2025-03-08 10:20', NULL);
+
+    INSERT INTO nfc_devices (device_id, clinic_id, area_id, device_name, model, serial_number, nfc_device_status, registered_at) VALUES
+    ('TABLET-REC-01',  1, 5,  'Recepción Principal Sede Centro',  'ACR122U',   'SN-001', 'Activo', '2023-01-10'),
+    ('TABLET-VAC-01',  1, 3,  'Área Vacunación Sede Centro',      'ACR1252U',  'SN-002', 'Activo', '2023-01-10'),
+    ('TABLET-REC-02',  2, 6,  'Recepción Sede Apodaca',           'ACR122U',   'SN-003', 'Activo', '2023-06-15'),
+    ('TABLET-VAC-02',  2, 8,  'Área Vacunación Sede Apodaca',     'ACR1252U',  'SN-004', 'Activo', '2023-06-15'),
+    ('TABLET-REC-03',  3, 10, 'Recepción Sede San Nicolás',       'ACR122U',   'SN-005', 'Activo', '2023-09-01'),
+    ('TABLET-VAC-03',  3, 12, 'Área Vacunación Sede San Nicolás', 'ACR1252U',  'SN-006', 'Activo', '2023-09-01'),
+    ('TABLET-REC-04',  4, 13, 'Recepción Sede Guadalupe',         'ACR122U',   'SN-007', 'Activo', '2024-01-15'),
+    ('TABLET-VAC-04',  4, 14, 'Área Vacunación Sede Guadalupe',   'ACR1252U',  'SN-008', 'Activo', '2024-01-15'),
+    ('TABLET-REC-05',  5, 15, 'Recepción Sede San Pedro',         'ACR122U',   'SN-009', 'Activo', '2024-03-01'),
+    ('TABLET-CONS-01', 1, 2,  'Consultorio 1 Sede Centro',        'ACR1252U',  'SN-010', 'Activo', '2023-01-10');
+
+    INSERT INTO nfc_scan_events (scan_event_id, nfc_card_id, scanned_by, clinic_id, area_id, scanned_at, action_triggered, device_id, nfc_scan_result) VALUES
+    (1,  1, 3, 1, 5, '2025-03-10 08:55', 'Registrar_Llegada', 'TABLET-REC-01',  'OK'),
+    (2,  1, 3, 1, 3, '2025-03-10 09:02', 'Abrir_Expediente',  'TABLET-VAC-01',  'OK'),
+    (3,  2, 3, 1, 5, '2025-03-15 10:25', 'Registrar_Llegada', 'TABLET-REC-01',  'OK'),
+    (4,  2, 3, 1, 3, '2025-03-15 10:32', 'Abrir_Expediente',  'TABLET-VAC-01',  'OK'),
+    (5,  3, 6, 2, 6, '2025-02-28 09:10', 'Registrar_Llegada', 'TABLET-REC-02',  'OK'),
+    (6,  3, 6, 2, 8, '2025-02-28 09:18', 'Abrir_Expediente',  'TABLET-VAC-02',  'OK'),
+    (7,  5, 6, 2, 6, '2025-03-01 09:40', 'Registrar_Llegada', 'TABLET-REC-02',  'OK'),
+    (8,  6, 7, 3,10, '2025-02-14 09:55', 'Registrar_Llegada', 'TABLET-REC-03',  'OK'),
+    (9,  7, 3, 1, 5, '2025-03-05 08:45', 'Registrar_Llegada', 'TABLET-REC-01',  'OK'),
+    (10, 9, 3, 1, 5, '2025-01-15 10:05', 'Registrar_Llegada', 'TABLET-REC-01',  'OK'),
+    (11,11, 6, 2, 6, '2025-03-12 08:58', 'Registrar_Llegada', 'TABLET-REC-02',  'OK'),
+    (12,12, 6, 2, 6, '2025-03-08 10:15', 'Registrar_Llegada', 'TABLET-REC-02',  'OK');
+
+    INSERT INTO scheme_completion_alerts (alert_id, patient_id, scheme_dose_id, due_date, status, notified_at) VALUES
+    (1,  1,  6,  '2024-03-15', 'Completada',  '2024-03-01 09:00'),  -- Sofía: Neumococo 1ra
+    (2,  1,  7,  '2024-05-15', 'Pendiente', NULL),                 -- Sofía: Penta 2da
+    (3,  2,  7,  '2023-10-10', 'Completada',  '2023-09-25 09:00'),  -- Mateo: Penta 2da (aprox)
+    (4,  2,  15, '2024-06-10', 'Pendiente', NULL),                 -- Mateo: SRP 1ra
+    (5,  3,  7,  '2023-03-20', 'Completada',  '2023-03-05 09:00'),  -- Valentina: Penta 2da
+    (6,  4,  17, '2022-10-05', 'Completada',  '2022-09-20 09:00'),  -- Santiago: Penta refuerzo
+    (7,  5,  19, '2023-09-18', 'Pendiente', NULL),                 -- Isabella: Influenza 3 años
+    (8,  6,  20, '2023-03-22', 'Completada',  '2023-03-08 09:00'),  -- Emiliano: DPT refuerzo
+    (9,  10, 2,  '2024-07-20', 'Pendiente', NULL),                 -- Nicolás: HepB 1ra
+    (10, 11, 3,  '2023-04-14', 'Completada',  '2023-04-01 09:00'),  -- Regina: Penta 1ra
+    (11, 12, 7,  '2022-07-25', 'Completada',  '2022-07-10 09:00'),  -- Rodrigo: Penta 2da
+    (12, 13, 15, '2022-10-10', 'Completada',  '2022-09-25 09:00');  -- Mariana: SRP 1ra
+
+    INSERT INTO supply_catalog (supply_id, name, unit, category) VALUES
+    (1,  'Jeringa 0.5ml 25Gx1"',               'Pieza',  'Jeringa'),
+    (2,  'Jeringa 1ml 23Gx1"',                 'Pieza',  'Jeringa'),
+    (3,  'Torunda de algodón con alcohol',     'Pieza',  'Desechable'),
+    (4,  'Guante de látex talla S',            'Par',    'Desechable'),
+    (5,  'Guante de látex talla M',            'Par',    'Desechable'),
+    (6,  'Guante de látex talla L',            'Par',    'Desechable'),
+    (7,  'Bandita adhesiva pediátrica',        'Pieza',  'Desechable'),
+    (8,  'Cubre bocas tricapa',                'Pieza',  'Desechable'),
+    (9,  'Contenedor de punzocortantes 1L',    'Pieza',  'Residuos'),
+    (10, 'Solución salina 10ml',               'Ampolleta','Solución'),
+    (11, 'Paracetamol 120mg/5ml gotas',        'Frasco', 'Medicamento'),
+    (12, 'Adrenalina 1mg/ml jeringa prellenada','Pieza', 'Emergencia');
+
+    INSERT INTO clinic_inventory (inventory_id, clinic_id, supply_id, quantity, min_stock, last_updated) VALUES
+    (1,  1,  1, 500, 100, '2025-03-20'),
+    (2,  1,  2, 300,  80, '2025-03-20'),
+    (3,  1,  3, 800, 200, '2025-03-20'),
+    (4,  1,  5, 150,  50, '2025-03-20'),
+    (5,  1,  7, 400, 100, '2025-03-20'),
+    (6,  1,  9,  20,   5, '2025-03-20'),
+    (7,  2,  1, 350,  80, '2025-03-22'),
+    (8,  2,  3, 600, 150, '2025-03-22'),
+    (9,  2,  5, 120,  40, '2025-03-22'),
+    (10, 3,  1, 250,  80, '2025-03-18'),
+    (11, 3,  3, 400, 100, '2025-03-18'),
+    (12, 4,  1, 200,  80, '2025-03-15');
+
+    INSERT INTO beacons (beacon_id, uuid, major, minor, area_id, clinic_id, beacon_status, last_ping) VALUES
+    (1,  '550e8400-e29b-41d4-a001', 1, 1, 5,  1, 'Online',  '2025-03-24 07:55'),
+    (2,  '550e8400-e29b-41d4-a002', 1, 2, 3,  1, 'Online',  '2025-03-24 07:57'),
+    (3,  '550e8400-e29b-41d4-a003', 1, 3, 2,  1, 'Online',  '2025-03-24 07:58'),
+    (4,  '550e8400-e29b-41d4-a004', 2, 1, 6,  2, 'Online',  '2025-03-24 08:00'),
+    (5,  '550e8400-e29b-41d4-a005', 2, 2, 8,  2, 'Online',  '2025-03-24 08:01'),
+    (6,  '550e8400-e29b-41d4-a006', 3, 1, 10, 3, 'Online',  '2025-03-24 07:59'),
+    (7,  '550e8400-e29b-41d4-a007', 3, 2, 12, 3, 'Offline', '2025-03-22 18:00'),
+    (8,  '550e8400-e29b-41d4-a008', 4, 1, 13, 4, 'Online',  '2025-03-24 08:02'),
+    (9,  '550e8400-e29b-41d4-a009', 4, 2, 14, 4, 'Online',  '2025-03-24 08:03'),
+    (10, '550e8400-e29b-41d4-a010', 5, 1, 15, 5, 'Online',  '2025-03-24 08:05');
+
+    INSERT INTO scan_logs (log_id, patient_id, beacon_id, rssi, scanned_at, scan_type) VALUES
+    (1,  1,  2, -65, '2025-03-10 09:00', 'NFC'),
+    (2,  2,  2, -70, '2025-03-15 10:30', 'NFC'),
+    (3,  3,  4, -72, '2025-02-28 09:15', 'BLE'),
+    (4,  5,  5, -68, '2025-03-01 09:42', 'NFC'),
+    (5,  6,  6, -75, '2025-02-14 09:58', 'BLE'),
+    (6,  7,  1, -62, '2025-03-05 08:47', 'NFC'),
+    (7,  9,  1, -66, '2025-01-15 10:08', 'NFC'),
+    (8,  11, 4, -71, '2025-03-12 09:02', 'NFC'),
+    (9,  12, 5, -69, '2025-03-08 10:18', 'BLE'),
+    (10, 4,  8, -74, '2025-01-20 10:58', 'NFC'),
+    (11, 8,  4, -73, '2025-02-20 09:28', 'NFC'),
+    (12, 1,  3, -64, '2025-03-10 09:05', 'BLE');
+
+    INSERT INTO audit_log (audit_id, table_name, record_id, action, worker_id, changed_at, ip_address) VALUES
+    (1,  'vaccination_records', 1,  'INSERT', 3,  '2024-01-15 09:10', '192.168.1.45'),
+    (2,  'vaccination_records', 2,  'INSERT', 3,  '2024-01-15 09:11', '192.168.1.45'),
+    (3,  'patients',            1,  'UPDATE', 1,  '2024-03-15 10:20', '192.168.1.12'),
+    (4,  'vaccination_records', 3,  'INSERT', 3,  '2024-03-15 09:05', '192.168.1.45'),
+    (5,  'vaccine_lots',        1,  'UPDATE', 4,  '2024-03-15 09:06', '192.168.1.50'),
+    (6,  'appointments',        1,  'INSERT', 1,  '2024-01-10 08:00', '192.168.1.12'),
+    (7,  'nfc_cards',           1,  'INSERT', 3,  '2024-01-15 09:15', '192.168.1.45'),
+    (8,  'gps_devices',         1,  'INSERT', 3,  '2024-02-01 10:00', '192.168.1.45'),
+    (9,  'guardians',           1,  'UPDATE', 1,  '2024-05-20 11:30', '192.168.1.12'),
+    (10, 'vaccination_records', 11, 'INSERT', 6,  '2023-01-20 09:30', '192.168.2.10'),
+    (11, 'post_vaccine_reactions',1,'INSERT', 6,  '2023-01-20 09:45', '192.168.2.10'),
+    (12, 'vaccine_lots',        5,  'UPDATE', 9,  '2024-01-20 08:00', '192.168.1.55');

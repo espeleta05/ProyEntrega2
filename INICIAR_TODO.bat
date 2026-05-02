@@ -34,13 +34,19 @@ if errorlevel 1 (
 )
 
 echo [3/4] Verificando base de datos PostgreSQL...
+
 if "%DATABASE_URL%"=="" (
-    set "DATABASE_URL=postgresql://postgres:postgres@localhost:5432/sistemaVacunacion"
+    echo [ERROR] DATABASE_URL no encontrada.
+    echo [TIP] Verifica tu archivo .env
+    pause
+    exit /b 1
 )
+
 "%VENV_PY%" scripts\bootstrap_postgres.py
+
 if errorlevel 1 (
     echo [ERROR] No se pudo inicializar la base de datos.
-    echo [TIP] Verifica que PostgreSQL este encendido y que DATABASE_URL sea valida.
+    echo [TIP] Verifica PostgreSQL y DATABASE_URL.
     pause
     exit /b 1
 )

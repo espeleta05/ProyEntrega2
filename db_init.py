@@ -15,8 +15,8 @@ logger = logging.getLogger(__name__)
 
 # Rutas a archivos SQL
 SQL_DIR = os.path.join(os.path.dirname(__file__), 'sql')
-SCHEMA_FILE = os.path.join(SQL_DIR, 'esquema_postgres_2daE.sql')
-SEED_FILE = os.path.join(SQL_DIR, 'datos_postgres_2daE.sql')
+SCHEMA_FILE = os.path.join(SQL_DIR, 'esquema.sql')
+SEED_FILE = os.path.join(SQL_DIR, 'datos.sql')
 SP_FILE = os.path.join(SQL_DIR, 'SP.sql')
 VIEWS_FILE = os.path.join(SQL_DIR, 'vistas.sql')
 TRIGGERS_FILE = os.path.join(SQL_DIR, 'triggers.sql')

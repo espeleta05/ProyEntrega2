@@ -1,7 +1,14 @@
 -- ============================================================
---  Base de datos: sistemaVacunacion
+--  Base de datos: sistemavacunacion
 -- ============================================================
+CREATE DATABASE sistemavacunacion;
+CREATE USER vaccine_user WITH PASSWORD '666-999';
 
+GRANT CONNECT ON DATABASE sistemavacunacion TO vaccine_user;
+GRANT USAGE ON SCHEMA public TO vaccine_user;
+GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO vaccine_user;
+GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO vaccine_user;
+ALTER DATABASE sistemavacunacion OWNER TO vaccine_user;
 
 --  MÓDULO: ADDRESSES
 CREATE TABLE countries (
@@ -58,7 +65,8 @@ CREATE TABLE clinics (
 
 CREATE TABLE clinic_area_types (
     area_type_id  SERIAL PRIMARY KEY,
-    area_type     VARCHAR(50) NOT NULL UNIQUE CHECK (area_type IN ('Administración','Enfermería','Médico','Recepción','Almacén'))
+    code          VARCHAR(20) NOT NULL UNIQUE,
+    name          VARCHAR(50) NOT NULL UNIQUE
 );
 
 CREATE TABLE clinic_areas (
@@ -66,9 +74,11 @@ CREATE TABLE clinic_areas (
     clinic_id     INT          NOT NULL REFERENCES clinics(clinic_id),
     name          VARCHAR(200) NOT NULL,
     area_type_id  INT          NOT NULL REFERENCES clinic_area_types(area_type_id),
+    code          VARCHAR(20),    -- "VACC-01"
     floor         SMALLINT,
     capacity      SMALLINT,
-    UNIQUE(clinic_id, name)
+    UNIQUE(clinic_id, name),
+    UNIQUE(clinic_id, code);
 );
 
 CREATE TABLE equipment_catalog (
@@ -200,8 +210,10 @@ CREATE TABLE workers (
     address_id     INT           REFERENCES addresses(address_id),
     birth_date     DATE,
     hire_date      DATE,
-    password_hash  VARCHAR(255)
+    created_at     TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+ALTER TABLE workers ADD COLUMN created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
 
 CREATE TABLE worker_professional (
     worker_id           INT NOT NULL REFERENCES workers(worker_id),

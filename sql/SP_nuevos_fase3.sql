@@ -3,68 +3,249 @@
 -- SPs críticos para CRUD + Autenticación
 -- ==============================================
 
--- CRUD PACIENTES
--- 9. Crear un nuevo paciente (simplificado)
-CREATE OR REPLACE PROCEDURE sp_create_patient(
-    p_first_name     VARCHAR,
-    p_last_name      VARCHAR,
-    p_birth_date     DATE,
-    p_blood_type_id  INT,
-    p_gender         CHAR(1),
-    p_curp           VARCHAR,
-    p_weight_kg      NUMERIC,
-    p_premature      BOOLEAN
-)
-RETURNS TABLE (patient_id INT)
-LANGUAGE plpgsql
-AS $$
-DECLARE
-    v_patient_id INT;
-BEGIN
-    INSERT INTO patients (
-        first_name, last_name, birth_date, blood_type_id,
-        gender, curp, weight_kg, premature, created_at
-    )
-    VALUES (
-        p_first_name, p_last_name, p_birth_date, p_blood_type_id,
-        p_gender, p_curp, p_weight_kg, p_premature, NOW()
-    )
-    RETURNING patients.patient_id INTO v_patient_id;
+-- ==============================================
+-- Stored Procedures
+--===============================================
 
-    RETURN QUERY SELECT v_patient_id;
+--  2. Obtener pacientes (vista)
+CREATE OR REPLACE PROCEDURE sp_get_patients(
+    INOUT p_patients REFCURSOR
+)
+LANGUAGE plpgsql AS $$
+BEGIN 
+    OPEN p_patients FOR
+    SELECT *
+    FROM v_patients_full
+    ORDER BY patient_id;
+END ;
+$$ ;
+
+--  3. Obtener historial de vacunación (vista)
+CREATE OR REPLACE FUNCTION sp_get_vaccination_records_full(
+    INOUT p_vaccination_records REFCURSOR
+)
+LANGUAGE plpgsql AS $$
+BEGIN
+    OPEN p_vaccination_records FOR
+    SELECT *
+    FROM v_vaccination_records_full
+    ORDER BY applied_date DESC, record_id DESC;
+END ;
+$$ ;
+
+
+--  4. Obtener status de inventario (wrapper de vista)
+CREATE OR REPLACE FUNCTION sp_get_inventory_status(
+    INOUT p_inventory_status REFCURSOR
+)
+LANGUAGE plpgsql AS $$
+BEGIN
+    OPEN p_inventory_status FOR
+    SELECT *
+    FROM v_inventory_status
+    ORDER BY clinic_name, supply_name;
+END ;
+$$ ;
+
+
+--  5. Obtener citas (vista)
+CREATE OR REPLACE PROCEDURE sp_get_appointments_full(
+    INOUT p_appointments REFCURSOR
+)
+LANGUAGE plpgsql AS $$
+BEGIN
+    OPEN p_appointments FOR
+        SELECT *
+        FROM v_appointments_full
+        ORDER BY scheduled_at DESC;
 END;
 $$;
 
 
--- 10. Actualizar paciente
-CREATE OR REPLACE PROCEDURE sp_update_patient(
-    p_patient_id     INT,
-    p_first_name     VARCHAR,
-    p_last_name      VARCHAR,
-    p_blood_type_id  INT,
-    p_weight_kg      NUMERIC
+--  6. Obtener dosis pendientes (wrapper de vista)
+CREATE OR REPLACE PROCEDURE sp_get_pending_scheme_doses(
+    IN    p_patient_id  INT DEFAULT NULL,
+    INOUT p_results REFCURSOR
 )
-RETURNS TABLE (success BOOLEAN)
+LANGUAGE plpgsql AS $$
+BEGIN
+    OPEN p_results FOR
+        SELECT
+            v.patient_id,
+            v.vaccine_name,
+            v.dose_label,
+            v.ideal_age_months
+        FROM v_pending_scheme_doses v
+        WHERE p_patient_id IS NULL OR v.patient_id = p_patient_id
+        ORDER BY v.patient_id, v.ideal_age_months NULLS LAST, v.vaccine_name;
+END;
+$$;
+
+--  7. Registrar vacuna
+CREATE OR REPLACE FUNCTION sp_register_vaccine(
+    IN p_name              VARCHAR,
+    IN p_commercial_name   VARCHAR,
+    IN p_manufacturer_id   INT,
+    IN p_via_id            INT,
+    IN p_ideal_age_months  SMALLINT,
+    IN p_disease_prevented TEXT,
+    INOUT p_results REFCURSOR
+)
+LANGUAGE plpgsql AS $$
+DECLARE
+    v_vaccine_id INT;
+BEGIN
+    INSERT INTO vaccines (
+        name,
+        commercial_name,
+        manufacturer_id,
+        via_id,
+        ideal_age_months,
+        disease_prevented
+    )
+    VALUES (
+        p_name,
+        p_commercial_name,
+        p_manufacturer_id,
+        p_via_id,
+        p_ideal_age_months,
+        p_disease_prevented
+    )
+    RETURNING vaccines.vaccine_id INTO v_vaccine_id;
+
+    OPEN p_results FOR
+        SELECT v_vaccine_id AS vaccine_id;
+END;
+$$;
+
+
+--  8. Registrar aplicación de vacuna
+CREATE OR REPLACE FUNCTION sp_register_vaccination_record(
+    IN p_patient_id           INT,
+    IN p_vaccine_id           INT,
+    IN p_worker_id            INT,
+    IN p_clinic_id            INT,
+    IN p_lot_id               INT,
+    IN p_scheme_dose_id       INT,
+    IN p_applied_date         DATE,
+    IN p_application_site_id  INT,
+    IN p_patient_temp_c       NUMERIC,
+    IN p_had_reaction         BOOLEAN,
+    INOUT p_results REFCURSOR
+)
 LANGUAGE plpgsql
 AS $$
+DECLARE
+    v_record_id INT;
+BEGIN
+    INSERT INTO vaccination_records (
+        patient_id,
+        vaccine_id,
+        worker_id,
+        clinic_id,
+        lot_id,
+        scheme_dose_id,
+        applied_date,
+        application_site_id,
+        patient_temp_c,
+        had_reaction
+    )
+    VALUES (
+        p_patient_id,
+        p_vaccine_id,
+        p_worker_id,
+        p_clinic_id,
+        p_lot_id,
+        p_scheme_dose_id,
+        p_applied_date,
+        p_application_site_id,
+        p_patient_temp_c,
+        COALESCE(p_had_reaction, FALSE)
+    )
+    RETURNING vaccination_records.record_id INTO v_record_id;
+
+    OPEN p_results FOR
+        SELECT v_record_id AS record_id;
+END;
+$$;
+
+-- CRUD PACIENTES
+--  1. Registrar a un nuevo paciente
+CREATE OR REPLACE PROCEDURE sp_register_patient(
+    IN    p_first_name     VARCHAR,
+    IN    p_last_name      VARCHAR,
+    IN    p_curp           VARCHAR,
+    IN    p_birth_date     DATE,
+    IN    p_gender         CHAR(1),
+    IN    p_blood_type_id  INT,
+    IN    p_weight_kg      NUMERIC,
+    IN    p_premature      BOOLEAN,
+    IN    p_guardian_name  VARCHAR,
+    IN    p_guardian_last  VARCHAR,
+    IN    p_guardian_phone VARCHAR,
+    INOUT p_resultados     REFCURSOR
+)
+LANGUAGE plpgsql AS $$
+DECLARE
+    v_guardian_id INT;
+    v_patient_id  INT;
+BEGIN
+    -- 1. Insertar guardián
+    INSERT INTO guardians (first_name, last_name)
+    VALUES (p_guardian_name, p_guardian_last)
+    RETURNING guardian_id INTO v_guardian_id;
+ 
+    -- 2. Insertar teléfono del guardián
+    IF p_guardian_phone IS NOT NULL THEN
+        INSERT INTO guardian_phones (guardian_id, phone, phone_type, is_primary)
+        VALUES (v_guardian_id, p_guardian_phone, 'Celular', TRUE);
+    END IF;
+ 
+    -- 3. Insertar paciente
+    INSERT INTO patients (first_name, last_name, curp, birth_date, gender, blood_type_id, weight_kg, premature, created_at)
+    VALUES (p_first_name, p_last_name, p_curp, p_birth_date, p_gender, COALESCE(p_blood_type_id, 1), p_weight_kg, p_premature, NOW())
+    RETURNING patients.patient_id INTO v_patient_id;
+ 
+    -- 4. Crear relación paciente-tutor
+    INSERT INTO patient_guardian_relations (patient_id, guardian_id, relation_type, is_primary, has_custody)
+    VALUES (v_patient_id, v_guardian_id, 'Tutor', TRUE, TRUE);
+ 
+    OPEN p_resultados FOR
+        SELECT v_patient_id AS patient_id;
+END;
+$$;
+
+-- 10. Actualizar paciente
+CREATE OR REPLACE PROCEDURE sp_update_patient(
+    IN p_patient_id     INT,
+    IN p_first_name     VARCHAR,
+    IN p_last_name      VARCHAR,
+    IN p_blood_type_id  INT,
+    IN p_weight_kg      NUMERIC,
+    INOUT p_results REFCURSOR
+)
+RETURNS TABLE (success BOOLEAN)
+LANGUAGE plpgsql AS $$
 BEGIN
     UPDATE patients SET
-        first_name = COALESCE(p_first_name, first_name),
-        last_name = COALESCE(p_last_name, last_name),
+        first_name    = COALESCE(p_first_name, first_name),
+        last_name     = COALESCE(p_last_name, last_name),
         blood_type_id = COALESCE(p_blood_type_id, blood_type_id),
-        weight_kg = COALESCE(p_weight_kg, weight_kg)
+        weight_kg     = COALESCE(p_weight_kg, weight_kg)
     WHERE patient_id = p_patient_id;
-
-    RETURN QUERY SELECT FOUND;
+ 
+    OPEN p_resultados FOR
+        SELECT FOUND AS success;
 END;
 $$;
 
 
 -- 11. Eliminar paciente (cascada controlada)
-CREATE OR REPLACE PROCEDURE sp_delete_patient(p_patient_id INT)
-RETURNS TABLE (success BOOLEAN)
-LANGUAGE plpgsql
-AS $$
+CREATE OR REPLACE PROCEDURE sp_delete_patient(
+    IN    p_patient_id  INT,
+    INOUT p_results  REFCURSOR
+)
+LANGUAGE plpgsql AS $$
 BEGIN
     -- Eliminar en orden de dependencias (FKs)
     DELETE FROM patient_allergies WHERE patient_id = p_patient_id;
@@ -78,38 +259,58 @@ BEGIN
         (SELECT record_id FROM vaccination_records WHERE patient_id = p_patient_id);
     DELETE FROM vaccination_records WHERE patient_id = p_patient_id;
     DELETE FROM patients WHERE patient_id = p_patient_id;
-
-    RETURN QUERY SELECT FOUND;
+ 
+    OPEN p_results FOR
+        SELECT FOUND AS success;
 END;
 $$;
 
-
--- 12. Obtener un paciente por ID
-CREATE OR REPLACE PROCEDURE sp_get_patient(p_patient_id INT)
-RETURNS SETOF v_patients_full
-LANGUAGE plpgsql
-AS $$
+-- Calcular el porcentaje de avance del paciente respecto al esquema de vacunación vigente. Identifica qué pacientes tienen un esquema incompleto para enviar campañas de recordatorio.
+CREATE OR REPLACE PROCEDURE sp_calculate_patient_adherence(
+    IN p_patient_id INT,
+    INOUT p_results REFCURSOR
+)
+LANGUAGE plpgsql AS $$
 BEGIN
-    RETURN QUERY
-    SELECT * FROM v_patients_full
-    WHERE patient_id = p_patient_id;
+    OPEN p_results FOR
+    WITH esquema_actual AS (
+        SELECT sd.dose_id, sd.vaccine_id, v.name AS vacuna
+        FROM scheme_doses sd
+        JOIN vaccination_scheme vs ON sd.scheme_id = vs.scheme_id
+        JOIN vaccines v ON sd.vaccine_id = v.vaccine_id
+        WHERE vs.is_current = TRUE
+    ),
+    dosis_aplicadas AS (
+        SELECT patient_id, vaccine_id, COUNT(*) as total_aplicadas
+        FROM vaccination_records
+        GROUP BY patient_id, vaccine_id
+    )
+    SELECT 
+        p.curp,
+        p.first_name || ' ' || p.last_name AS paciente,
+        COUNT(ea.dose_id) AS dosis_requeridas,
+        COALESCE(SUM(da.total_aplicadas), 0) AS dosis_totales_recibidas,
+        ROUND((COALESCE(SUM(da.total_aplicadas), 0) * 100.0 / COUNT(ea.dose_id)), 2) || '%' AS porcentaje_adherencia
+    FROM patients p
+    CROSS JOIN esquema_actual ea
+    LEFT JOIN dosis_aplicadas da ON p.patient_id = da.patient_id AND ea.vaccine_id = da.vaccine_id
+    WHERE p.patient_id = p_patient_id
+    GROUP BY p.patient_id;
 END;
 $$;
-
 
 -- CRUD CITAS
 -- 13. Crear cita
 CREATE OR REPLACE PROCEDURE sp_create_appointment(
-    p_patient_id    INT,
-    p_worker_id     INT,
-    p_clinic_id     INT,
-    p_area_id       INT,
-    p_scheduled_at  TIMESTAMP,
-    p_reason        VARCHAR
+    IN p_patient_id    INT,
+    IN p_worker_id     INT,
+    IN p_clinic_id     INT,
+    IN p_area_id       INT,
+    IN p_scheduled_at  TIMESTAMP,
+    IN p_reason        VARCHAR,
+    INOUT p_results    REFCURSOR
 )
-RETURNS TABLE (appointment_id INT)
-LANGUAGE plpgsql
-AS $$
+LANGUAGE plpgsql AS $$
 DECLARE
     v_appointment_id INT;
 BEGIN
@@ -123,37 +324,40 @@ BEGIN
     )
     RETURNING appointments.appointment_id INTO v_appointment_id;
 
-    RETURN QUERY SELECT v_appointment_id;
+    OPEN p_results FOR
+        SELECT v_appointment_id AS appointment_id;
 END;
 $$;
 
 
 -- 14. Actualizar estado de cita
 CREATE OR REPLACE PROCEDURE sp_update_appointment(
-    p_appointment_id INT,
-    p_status         VARCHAR
+    IN p_appointment_id INT,
+    IN p_status         VARCHAR,
+    INOUT p_results     REFCURSOR
 )
-RETURNS TABLE (success BOOLEAN)
-LANGUAGE plpgsql
-AS $$
+LANGUAGE plpgsql AS $$
 BEGIN
     UPDATE appointments SET
         appointment_status = p_status
     WHERE appointment_id = p_appointment_id;
 
-    RETURN QUERY SELECT FOUND;
+    OPEN p_results FOR
+        SELECT FOUND AS success WHERE p_status IN ('Programada', 'Completada', 'Cancelada');
 END;
 $$;
 
 
 -- 15. Eliminar cita
-CREATE OR REPLACE PROCEDURE sp_delete_appointment(p_appointment_id INT)
-RETURNS TABLE (success BOOLEAN)
-LANGUAGE plpgsql
-AS $$
+CREATE OR REPLACE PROCEDURE sp_delete_appointment(
+    IN p_appointment_id INT,
+    INOUT p_results REFCURSOR
+)
+LANGUAGE plpgsql AS $$
 BEGIN
     DELETE FROM appointments WHERE appointment_id = p_appointment_id;
-    RETURN QUERY SELECT FOUND;
+    OPEN p_results FOR
+        SELECT FOUND AS success;
 END;
 $$;
 
@@ -161,15 +365,14 @@ $$;
 -- CRUD VACUNAS
 -- 16. Crear lote de vacunas
 CREATE OR REPLACE PROCEDURE sp_create_vaccine_lot(
-    p_vaccine_id           INT,
-    p_clinic_id            INT,
-    p_lot_number           VARCHAR,
-    p_quantity_received    INT,
-    p_expiration_date      DATE
+    IN    p_vaccine_id           INT,
+    IN    p_clinic_id            INT,
+    IN    p_lot_number           VARCHAR,
+    IN    p_quantity_received    INT,
+    IN    p_expiration_date      DATE,
+    INOUT p_results              REFCURSOR
 )
-RETURNS TABLE (lot_id INT)
-LANGUAGE plpgsql
-AS $$
+LANGUAGE plpgsql AS $$
 DECLARE
     v_lot_id INT;
 BEGIN
@@ -182,39 +385,38 @@ BEGIN
         p_quantity_received, p_quantity_received, p_expiration_date, NOW()::DATE
     )
     RETURNING vaccine_lots.lot_id INTO v_lot_id;
-
-    RETURN QUERY SELECT v_lot_id;
+ 
+    OPEN p_results FOR
+        SELECT v_lot_id AS lot_id;
 END;
 $$;
 
-
 -- 17. Actualizar stock de lote
 CREATE OR REPLACE PROCEDURE sp_update_vaccine_lot_stock(
-    p_lot_id             INT,
-    p_quantity_available INT
+    IN    p_lot_id              INT,
+    IN    p_quantity_available  INT,
+    INOUT p_results             REFCURSOR
 )
-RETURNS TABLE (success BOOLEAN)
-LANGUAGE plpgsql
-AS $$
+LANGUAGE plpgsql AS $$
 BEGIN
     UPDATE vaccine_lots SET
         quantity_available = p_quantity_available
     WHERE lot_id = p_lot_id;
-
-    RETURN QUERY SELECT FOUND;
+ 
+    OPEN p_results FOR
+        SELECT FOUND AS success;
 END;
 $$;
 
 
 -- 18. Registrar reacción adversa post-vacunación
 CREATE OR REPLACE PROCEDURE sp_record_vaccine_reaction(
-    p_vaccination_record_id INT,
-    p_reaction_desc         TEXT,
-    p_severity              VARCHAR
+    IN    p_vaccination_record_id  INT,
+    IN    p_reaction_desc          TEXT,
+    IN    p_severity               VARCHAR,
+    INOUT p_results             REFCURSOR
 )
-RETURNS TABLE (reaction_id INT)
-LANGUAGE plpgsql
-AS $$
+LANGUAGE plpgsql AS $$
 DECLARE
     v_reaction_id INT;
 BEGIN
@@ -225,8 +427,9 @@ BEGIN
         p_vaccination_record_id, p_reaction_desc, p_severity, NOW()
     )
     RETURNING post_vaccine_reactions.reaction_id INTO v_reaction_id;
-
-    RETURN QUERY SELECT v_reaction_id;
+ 
+    OPEN p_results FOR
+        SELECT v_reaction_id AS reaction_id;
 END;
 $$;
 
@@ -234,140 +437,116 @@ $$;
 -- AUTENTICACIÓN
 -- 19. Autenticar trabajador (usa bcrypt)
 CREATE OR REPLACE PROCEDURE sp_authenticate_worker(
-    p_email      VARCHAR,
-    p_password   VARCHAR
+    IN    p_login       VARCHAR,   -- acepta username O email
+    IN    p_password    VARCHAR,
+    INOUT p_results  REFCURSOR
 )
-RETURNS TABLE (
-    worker_id   INT,
-    role_name   VARCHAR,
-    full_name   VARCHAR
-)
-LANGUAGE plpgsql
-AS $$
+LANGUAGE plpgsql AS $$
 BEGIN
-    RETURN QUERY
-    SELECT
-        w.worker_id,
-        r.name,
-        CONCAT(w.first_name, ' ', w.last_name)
-    FROM worker_emails we
-    JOIN workers w ON we.worker_id = w.worker_id
-    JOIN roles r ON w.role_id = r.role_id
-    WHERE we.email = p_email
-      AND w.password_hash = crypt(p_password, w.password_hash)
-    LIMIT 1;
+    OPEN p_results FOR
+        SELECT
+            w.worker_id,
+            r.name                                  AS role_name,
+            CONCAT(w.first_name, ' ', w.last_name)  AS full_name
+        FROM users u
+        JOIN workers w      ON u.worker_id  = w.worker_id
+        JOIN roles   r      ON w.role_id    = r.role_id
+        LEFT JOIN worker_emails we ON we.worker_id = w.worker_id
+                                  AND we.is_primary = TRUE
+        WHERE u.is_active = TRUE
+          AND (
+              LOWER(u.username) = LOWER(p_login)
+              OR LOWER(we.email) = LOWER(p_login)
+          )
+          AND u.password_hash = crypt(p_password, u.password_hash)
+        LIMIT 1;
 END;
 $$;
-
 
 -- ALERTAS
 -- 20. Obtener alertas pendientes
-CREATE OR REPLACE PROCEDURE sp_get_pending_alerts()
-RETURNS TABLE (alert_id INT, patient_id INT, due_date DATE, status VARCHAR)
-LANGUAGE plpgsql
-AS $$
+CREATE OR REPLACE PROCEDURE sp_get_pending_alerts(
+    INOUT p_results REFCURSOR
+)
+LANGUAGE plpgsql AS $$
 BEGIN
-    RETURN QUERY
-    SELECT * FROM scheme_completion_alerts
-    WHERE status = 'Pendiente'
-    ORDER BY due_date ASC;
+    OPEN p_results FOR
+        SELECT * FROM scheme_completion_alerts
+        WHERE status = 'Pendiente'
+        ORDER BY due_date ASC;
 END;
 $$;
 
 
+-- ==============================================
 -- REPORTERÍA / MÉTRICAS
--- 21. Obtener métricas del dashboard (simplificado)
+-- ==============================================
+ 
+-- 20. Obtener métricas del dashboard (wrapper de vista, con filtro opcional de fechas)
 CREATE OR REPLACE PROCEDURE sp_dashboard_metrics(
-    p_date_from DATE DEFAULT NULL,
-    p_date_to   DATE DEFAULT NULL
+    IN    p_date_from   DATE DEFAULT NULL,
+    IN    p_date_to     DATE DEFAULT NULL,
+    INOUT p_resultados  REFCURSOR
 )
-RETURNS TABLE (
-    total_patients           BIGINT,
-    vaccinated_patients      BIGINT,
-    pending_appointments     BIGINT,
-    low_stock_items          BIGINT,
-    pending_alerts           BIGINT,
-    coverage_percentage      NUMERIC
-)
-LANGUAGE plpgsql
-AS $$
+LANGUAGE plpgsql AS $$
 BEGIN
-    RETURN QUERY
-    SELECT
-        COUNT(DISTINCT p.patient_id)::BIGINT,
-        COUNT(DISTINCT vr.patient_id)::BIGINT,
-        COUNT(DISTINCT a.appointment_id) FILTER (WHERE a.appointment_status = 'Programada')::BIGINT,
-        COUNT(DISTINCT ci.inventory_id) FILTER (WHERE ci.quantity < ci.min_stock)::BIGINT,
-        COUNT(DISTINCT sca.alert_id) FILTER (WHERE sca.status = 'Pendiente')::BIGINT,
-        ROUND(
-            COUNT(DISTINCT vr.patient_id)::NUMERIC /
-            NULLIF(COUNT(DISTINCT p.patient_id)::NUMERIC, 0) * 100, 2
-        )::NUMERIC
-    FROM patients p
-    LEFT JOIN vaccination_records vr ON p.patient_id = vr.patient_id
-        AND (p_date_from IS NULL OR vr.applied_date >= p_date_from)
-        AND (p_date_to IS NULL OR vr.applied_date <= p_date_to)
-    LEFT JOIN appointments a ON p.patient_id = a.patient_id
-    LEFT JOIN clinic_inventory ci ON ci.quantity < ci.min_stock
-    LEFT JOIN scheme_completion_alerts sca ON p.patient_id = sca.patient_id;
+    IF p_date_from IS NULL AND p_date_to IS NULL THEN
+        -- Sin filtro: usar directamente la vista
+        OPEN p_resultados FOR
+            SELECT * FROM v_dashboard_metrics;
+    ELSE
+        -- Con filtro de fechas: recalcular solo vaccination_records acotado
+        OPEN p_resultados FOR
+            SELECT
+                COUNT(DISTINCT p.patient_id)::BIGINT                                                          AS total_patients,
+                COUNT(DISTINCT vr.patient_id)::BIGINT                                                         AS vaccinated_patients,
+                COUNT(DISTINCT a.appointment_id)   FILTER (WHERE a.appointment_status = 'Programada')::BIGINT AS pending_appointments,
+                COUNT(DISTINCT ci.inventory_id)    FILTER (WHERE ci.quantity < ci.min_stock)::BIGINT           AS low_stock_items,
+                COUNT(DISTINCT sca.alert_id)       FILTER (WHERE sca.status  = 'Pendiente')::BIGINT            AS pending_alerts,
+                ROUND(
+                    COUNT(DISTINCT vr.patient_id)::NUMERIC /
+                    NULLIF(COUNT(DISTINCT p.patient_id)::NUMERIC, 0) * 100, 2
+                )::NUMERIC                                                                                     AS coverage_percentage
+            FROM patients p
+            LEFT JOIN vaccination_records      vr  ON p.patient_id = vr.patient_id
+                                                   AND vr.applied_date >= p_date_from
+                                                   AND vr.applied_date <= p_date_to
+            LEFT JOIN appointments             a   ON p.patient_id  = a.patient_id
+            LEFT JOIN clinic_inventory         ci  ON ci.quantity   < ci.min_stock
+            LEFT JOIN scheme_completion_alerts sca ON p.patient_id  = sca.patient_id;
+    END IF;
 END;
 $$;
-
-
--- 22. Obtener pacientes retrasados
-CREATE OR REPLACE PROCEDURE sp_delayed_patients(p_days_threshold INT DEFAULT 30)
-RETURNS TABLE (
-    patient_id  INT,
-    patient_name VARCHAR,
-    vaccine_name VARCHAR,
-    due_date    DATE,
-    days_late   INT
+ 
+ 
+-- 21. Obtener pacientes retrasados (wrapper de vista, con umbral de días)
+CREATE OR REPLACE PROCEDURE sp_delayed_patients(
+    IN    p_days_threshold  INT DEFAULT 30,
+    INOUT p_resultados      REFCURSOR
 )
-LANGUAGE plpgsql
-AS $$
+LANGUAGE plpgsql AS $$
 BEGIN
-    RETURN QUERY
-    SELECT
-        p.patient_id,
-        CONCAT(p.first_name, ' ', p.last_name),
-        v.name,
-        sca.due_date,
-        (NOW()::DATE - sca.due_date)::INT
-    FROM patients p
-    JOIN scheme_completion_alerts sca ON p.patient_id = sca.patient_id
-    JOIN scheme_doses sd ON sca.scheme_dose_id = sd.dose_id
-    JOIN vaccines v ON sd.vaccine_id = v.vaccine_id
-    WHERE sca.status = 'Pendiente'
-      AND (NOW()::DATE - sca.due_date) >= p_days_threshold
-    ORDER BY (NOW()::DATE - sca.due_date) DESC;
+    OPEN p_resultados FOR
+        SELECT *
+        FROM v_delayed_patients
+        WHERE days_late >= p_days_threshold
+        ORDER BY days_late DESC;
 END;
 $$;
-
-
--- 23. Obtener insumos con bajo stock
-CREATE OR REPLACE PROCEDURE sp_low_stock_items(p_clinic_id INT DEFAULT NULL)
-RETURNS TABLE (
-    inventory_id INT,
-    clinic_name  VARCHAR,
-    supply_name  VARCHAR,
-    quantity     INT,
-    min_stock    INT
+ 
+ 
+-- 22. Obtener insumos con bajo stock (wrapper de vista, con filtro opcional de clínica)
+CREATE OR REPLACE PROCEDURE sp_low_stock_items(
+    IN    p_clinic_id   INT DEFAULT NULL,
+    INOUT p_resultados  REFCURSOR
 )
-LANGUAGE plpgsql
-AS $$
+LANGUAGE plpgsql AS $$
 BEGIN
-    RETURN QUERY
-    SELECT
-        ci.inventory_id,
-        c.name,
-        sc.name,
-        ci.quantity,
-        ci.min_stock
-    FROM clinic_inventory ci
-    JOIN clinics c ON ci.clinic_id = c.clinic_id
-    JOIN supply_catalog sc ON ci.supply_id = sc.supply_id
-    WHERE ci.quantity < ci.min_stock
-      AND (p_clinic_id IS NULL OR c.clinic_id = p_clinic_id)
-    ORDER BY c.name, sc.name;
+    OPEN p_resultados FOR
+        SELECT inventory_id, clinic_name, supply_name, quantity, min_stock
+        FROM v_low_stock_items
+        WHERE p_clinic_id IS NULL OR clinic_id = p_clinic_id
+        ORDER BY clinic_name, supply_name;
 END;
 $$;
+ 

@@ -163,3 +163,136 @@ CREATE TRIGGER trg_decrement_vaccine_lot_stock
 AFTER INSERT ON vaccination_records
 FOR EACH ROW
 EXECUTE FUNCTION fn_decrement_vaccine_lot_stock();
+
+
+-- Trigger 5: Actualizar timestamp created_at automáticamente
+CREATE OR REPLACE FUNCTION fn_set_created_at()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    IF NEW.created_at IS NULL THEN
+        NEW.created_at := NOW();
+    END IF;
+    RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS trg_set_created_at_patients ON patients;
+CREATE TRIGGER trg_set_created_at_patients
+BEFORE INSERT ON patients
+FOR EACH ROW
+EXECUTE FUNCTION fn_set_created_at();
+
+
+-- Trigger 6: Actualizar timestamp updated_at automáticamente
+CREATE OR REPLACE FUNCTION fn_set_updated_at()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    NEW.updated_at := NOW();
+    RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS trg_set_updated_at_patients ON patients;
+CREATE TRIGGER trg_set_updated_at_patients
+BEFORE UPDATE ON patients
+FOR EACH ROW
+EXECUTE FUNCTION fn_set_updated_at();
+
+
+-- Trigger 7: Auditoría de cambios en pacientes
+CREATE OR REPLACE FUNCTION fn_audit_patient_changes()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    IF TG_OP = 'INSERT' THEN
+        INSERT INTO audit_log (table_name, operation, record_id, changed_data, changed_at)
+        VALUES ('patients', 'INSERT', NEW.patient_id, row_to_json(NEW), NOW());
+    ELSIF TG_OP = 'UPDATE' THEN
+        INSERT INTO audit_log (table_name, operation, record_id, changed_data, changed_at)
+        VALUES ('patients', 'UPDATE', NEW.patient_id, jsonb_build_object(
+            'old', row_to_json(OLD),
+            'new', row_to_json(NEW)
+        ), NOW());
+    ELSIF TG_OP = 'DELETE' THEN
+        INSERT INTO audit_log (table_name, operation, record_id, changed_data, changed_at)
+        VALUES ('patients', 'DELETE', OLD.patient_id, row_to_json(OLD), NOW());
+    END IF;
+    RETURN COALESCE(NEW, OLD);
+END;
+$$;
+
+DROP TRIGGER IF EXISTS trg_audit_patients ON patients;
+CREATE TRIGGER trg_audit_patients
+AFTER INSERT OR UPDATE OR DELETE ON patients
+FOR EACH ROW
+EXECUTE FUNCTION fn_audit_patient_changes();
+
+
+-- Trigger 8: Auditoría de cambios en registros de vacunación
+CREATE OR REPLACE FUNCTION fn_audit_vaccination_records()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    IF TG_OP = 'INSERT' THEN
+        INSERT INTO audit_log (table_name, operation, record_id, changed_data, changed_at)
+        VALUES ('vaccination_records', 'INSERT', NEW.record_id, row_to_json(NEW), NOW());
+    ELSIF TG_OP = 'UPDATE' THEN
+        INSERT INTO audit_log (table_name, operation, record_id, changed_data, changed_at)
+        VALUES ('vaccination_records', 'UPDATE', NEW.record_id, jsonb_build_object(
+            'old', row_to_json(OLD),
+            'new', row_to_json(NEW)
+        ), NOW());
+    ELSIF TG_OP = 'DELETE' THEN
+        INSERT INTO audit_log (table_name, operation, record_id, changed_data, changed_at)
+        VALUES ('vaccination_records', 'DELETE', OLD.record_id, row_to_json(OLD), NOW());
+    END IF;
+    RETURN COALESCE(NEW, OLD);
+END;
+$$;
+
+DROP TRIGGER IF EXISTS trg_audit_vaccination_records ON vaccination_records;
+CREATE TRIGGER trg_audit_vaccination_records
+AFTER INSERT OR UPDATE OR DELETE ON vaccination_records
+FOR EACH ROW
+EXECUTE FUNCTION fn_audit_vaccination_records();
+
+
+-- Trigger 9: Auditoría de cambios en trabajadores
+CREATE OR REPLACE FUNCTION fn_audit_worker_changes()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    IF TG_OP = 'INSERT' THEN
+        INSERT INTO audit_log (table_name, operation, record_id, changed_data, changed_at)
+        VALUES ('workers', 'INSERT', NEW.worker_id, row_to_json(NEW), NOW());
+    ELSIF TG_OP = 'UPDATE' THEN
+        INSERT INTO audit_log (table_name, operation, record_id, changed_data, changed_at)
+        VALUES ('workers', 'UPDATE', NEW.worker_id, jsonb_build_object(
+            'old', row_to_json(OLD),
+            'new', row_to_json(NEW)
+        ), NOW());
+    ELSIF TG_OP = 'DELETE' THEN
+        INSERT INTO audit_log (table_name, operation, record_id, changed_data, changed_at)
+        VALUES ('workers', 'DELETE', OLD.worker_id, row_to_json(OLD), NOW());
+    END IF;
+    RETURN COALESCE(NEW, OLD);
+END;
+$$;
+
+DROP TRIGGER IF EXISTS trg_audit_workers ON workers;
+CREATE TRIGGER trg_audit_workers
+AFTER INSERT OR UPDATE OR DELETE ON workers
+FOR EACH ROW
+EXECUTE FUNCTION fn_audit_worker_changes();
+
+
+-- ============================================================
+-- FIN TRIGGERS
+-- ============================================================
