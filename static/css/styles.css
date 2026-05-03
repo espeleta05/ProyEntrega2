@@ -8,6 +8,7 @@
 :root {
     --primary-color: #6B007C;
     --secondary-color: #4B1535;
+    --third-color: #45154b;
     --light-color: #FAD9FF;
     --button-color: #E8ABCE;
     --good-color: #1D7B00;
@@ -131,7 +132,8 @@ button{
     height:100px;
     background:white;
     border-bottom:1px solid rgba(99,99,99,0.61);
-    padding:0 40px;
+    padding-right:40px;
+    padding-left: 10px;
     z-index:100;
 }
 

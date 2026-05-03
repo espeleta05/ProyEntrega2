@@ -9,7 +9,7 @@ Módulo de inicialización automática de la base de datos.
 import os
 import logging
 from db import execute_sql_file, table_exists, get_db_connection, DatabaseError
-from config import DATABASE_URL, _database_url_hint
+from config import DB_ENGINE, _database_url_hint
 
 logger = logging.getLogger(__name__)
 
@@ -35,6 +35,7 @@ def init_database():
     """
     logger.info("=" * 60)
     logger.info("INICIALIZANDO BASE DE DATOS")
+    logger.info(f"Motor: {DB_ENGINE}")
     logger.info(f"Conexión: {_database_url_hint()}")
     logger.info("=" * 60)
 
@@ -42,10 +43,15 @@ def init_database():
     try:
         conn = get_db_connection()
         conn.close()
-        logger.info("✓ Conexión a PostgreSQL OK")
+        logger.info("✓ Conexión a base de datos OK")
     except Exception as e:
         logger.error(f"❌ Error de conexión: {e}")
         raise
+
+    # Para MariaDB se asume schema ya gestionado externamente.
+    if DB_ENGINE != "postgres":
+        logger.info("Motor MariaDB detectado: se omite inicialización SQL automática.")
+        return
 
     # 2. Crear schema si no existen las tablas
     if not table_exists('countries'):

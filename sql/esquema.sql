@@ -369,6 +369,17 @@ CREATE TABLE vaccination_records (
     had_reaction         BOOLEAN  NOT NULL DEFAULT FALSE
 );
 
+CREATE TABLE patient_vaccine_schedule (
+    schedule_id SERIAL PRIMARY KEY,
+    patient_id INT NOT NULL REFERENCES patients(patient_id),
+    scheme_dose_id INT NOT NULL REFERENCES scheme_doses(dose_id),
+    due_date DATE NOT NULL,
+    status VARCHAR(20) DEFAULT 'Pendiente' CHECK (status IN ('Pendiente','Aplicada','Atrasada')),
+    applied_record_id INT REFERENCES vaccination_records(record_id),
+
+    UNIQUE (patient_id, scheme_dose_id)
+);
+
 CREATE TABLE post_vaccine_reactions (
     reaction_id         SERIAL   PRIMARY KEY,
     record_id           INT      NOT NULL REFERENCES vaccination_records(record_id),

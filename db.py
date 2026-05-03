@@ -1,275 +1,199 @@
-"""
-Módulo centralizado para todas las operaciones con PostgreSQL.
-- execute_sp(): Llama un Stored Procedure
-- execute_view(): Consulta una vista
-- execute_raw(): Ejecuta SQL directo (fallback)
-"""
+"""Capa única de conexión DB para PostgreSQL o MariaDB."""
 
 import logging
-from typing import List, Dict, Any, Optional
-from config import get_db_connection, DATABASE_URL
-import psycopg
+import re
+from contextlib import contextmanager
+from typing import Any, Dict, List, Optional
+
+from config import (
+    DB_ENGINE,
+    MYSQL_DB,
+    MYSQL_HOST,
+    MYSQL_PASSWORD,
+    MYSQL_PORT,
+    MYSQL_USER,
+    PG_DB,
+    PG_HOST,
+    PG_PASSWORD,
+    PG_PORT,
+    PG_USER,
+)
 
 logger = logging.getLogger(__name__)
+_IDENTIFIER_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
+
+if DB_ENGINE == "postgres":
+    import psycopg
+    from psycopg.rows import dict_row
+
+    DBError = psycopg.DatabaseError
+    OperationalError = psycopg.OperationalError
+else:
+    import pymysql
+    from pymysql.cursors import DictCursor
+
+    DBError = pymysql.MySQLError
+    OperationalError = pymysql.err.OperationalError
 
 
 class DatabaseError(Exception):
-    """Excepción personalizada para errores de base de datos."""
     pass
 
 
+def quote_identifier(identifier: str) -> str:
+    if not _IDENTIFIER_RE.match(identifier or ""):
+        raise DatabaseError(f"Identificador SQL inválido: {identifier}")
+    if DB_ENGINE == "postgres":
+        return f'"{identifier}"'
+    return f"`{identifier}`"
+
+
+def _build_call_query(function_name: str, params: Optional[List[Any]]) -> str:
+    if not _IDENTIFIER_RE.match(function_name or ""):
+        raise DatabaseError(f"Nombre de rutina inválido: {function_name}")
+    placeholders = ", ".join(["%s"] * len(params or []))
+    if DB_ENGINE == "postgres":
+        return f"SELECT * FROM {quote_identifier(function_name)}({placeholders})"
+    return f"CALL {quote_identifier(function_name)}({placeholders})"
+
+
+def get_connection():
+    try:
+        if DB_ENGINE == "postgres":
+            return psycopg.connect(
+                host=PG_HOST,
+                port=int(PG_PORT),
+                user=PG_USER,
+                password=PG_PASSWORD,
+                dbname=PG_DB,
+                row_factory=dict_row,
+            )
+        return pymysql.connect(
+            host=MYSQL_HOST,
+            port=int(MYSQL_PORT),
+            user=MYSQL_USER,
+            password=MYSQL_PASSWORD,
+            database=MYSQL_DB,
+            cursorclass=DictCursor,
+            autocommit=False,
+        )
+    except Exception as exc:
+        raise DatabaseError(f"No se pudo abrir conexión ({DB_ENGINE}): {exc}") from exc
+
+
+def get_db_connection():
+    return get_connection()
+
+
+@contextmanager
+def connection_scope():
+    conn = get_connection()
+    try:
+        yield conn
+    finally:
+        conn.close()
+
+
 def execute_sp(sp_name: str, params: Optional[Dict[str, Any]] = None) -> List[Dict]:
-    """
-    Ejecuta un Stored Procedure y retorna los resultados.
-
-    Args:
-        sp_name: Nombre del SP (ej: 'sp_get_patients')
-        params: Diccionario de parámetros nombrados
-
-    Returns:
-        List[Dict]: Resultado como lista de diccionarios
-
-    Raises:
-        DatabaseError: Si hay error en la ejecución
-    """
     conn = None
     try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-
-        # Construir llamada al SP
-        if params:
-            param_names = ', '.join(params.keys())
-            param_values = ', '.join(['%s'] * len(params))
-            query = f"SELECT * FROM {sp_name}({param_values})"
-            param_list = list(params.values())
-            logger.debug(f"Ejecutando: {sp_name}({param_names})")
-            cursor.execute(query, param_list)
-        else:
-            query = f"SELECT * FROM {sp_name}()"
-            logger.debug(f"Ejecutando: {sp_name}()")
-            cursor.execute(query)
-
-        results = cursor.fetchall()
-        logger.debug(f"SP {sp_name} retornó {len(results)} filas")
+        conn = get_connection()
+        with conn.cursor() as cursor:
+            ordered_values = list((params or {}).values())
+            query = _build_call_query(sp_name, ordered_values)
+            cursor.execute(query, tuple(ordered_values))
+            results = cursor.fetchall() or []
+        conn.commit()
         return results
-
-    except psycopg.DatabaseError as e:
-        error_msg = f"Error ejecutando SP {sp_name}: {str(e)}"
-        logger.error(error_msg)
-        raise DatabaseError(error_msg)
+    except DBError as exc:
+        if conn:
+            conn.rollback()
+        raise DatabaseError(f"Error ejecutando rutina {sp_name}: {exc}") from exc
     finally:
         if conn:
             conn.close()
 
 
 def execute_view(view_name: str, where: Optional[str] = None) -> List[Dict]:
-    """
-    Consulta una vista (vista = tabla lógica con JOINs precompilados).
-
-    Args:
-        view_name: Nombre de la vista (ej: 'vw_patients_full')
-        where: Cláusula WHERE opcional (ej: "patient_id = %s")
-
-    Returns:
-        List[Dict]: Resultado como lista de diccionarios
-
-    Raises:
-        DatabaseError: Si hay error
-    """
     conn = None
     try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-
-        query = f"SELECT * FROM {view_name}"
-        if where:
-            query += f" WHERE {where}"
-
-        logger.debug(f"Consultando vista: {view_name}")
-        cursor.execute(query)
-        results = cursor.fetchall()
-        logger.debug(f"Vista {view_name} retornó {len(results)} filas")
-        return results
-
-    except psycopg.DatabaseError as e:
-        error_msg = f"Error consultando vista {view_name}: {str(e)}"
-        logger.error(error_msg)
-        raise DatabaseError(error_msg)
+        conn = get_connection()
+        with conn.cursor() as cursor:
+            query = f"SELECT * FROM {quote_identifier(view_name)}"
+            if where:
+                query += f" WHERE {where}"
+            cursor.execute(query)
+            return cursor.fetchall() or []
+    except DBError as exc:
+        raise DatabaseError(f"Error consultando vista {view_name}: {exc}") from exc
     finally:
         if conn:
             conn.close()
 
 
 def execute_raw(query: str, params: Optional[tuple] = None) -> List[Dict]:
-    """
-    Ejecuta SQL directo (fallback para queries especiales).
-    ⚠️ SOLO para queries que no pueden hacerse con SPs/Views.
-
-    Args:
-        query: Consulta SQL
-        params: Tupla de parámetros (para evitar SQL injection)
-
-    Returns:
-        List[Dict]: Resultado como lista de diccionarios
-
-    Raises:
-        DatabaseError: Si hay error
-    """
     conn = None
     try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-
-        logger.debug(f"Ejecutando SQL directo: {query[:80]}...")
-        if params:
-            cursor.execute(query, params)
-        else:
-            cursor.execute(query)
-
-        results = cursor.fetchall()
-        logger.debug(f"Query retornó {len(results)} filas")
-        return results
-
-    except psycopg.DatabaseError as e:
-        error_msg = f"Error ejecutando SQL directo: {str(e)}"
-        logger.error(error_msg)
-        raise DatabaseError(error_msg)
+        conn = get_connection()
+        with conn.cursor() as cursor:
+            cursor.execute(query, params or ())
+            if cursor.description:
+                return cursor.fetchall() or []
+            conn.commit()
+            return []
+    except DBError as exc:
+        if conn:
+            conn.rollback()
+        raise DatabaseError(f"Error ejecutando SQL: {exc}") from exc
     finally:
         if conn:
             conn.close()
 
 
 def execute_sp_modify(sp_name: str, params: Optional[Dict[str, Any]] = None) -> int:
-    """
-    Ejecuta un Stored Procedure que modifica datos (INSERT/UPDATE/DELETE).
-    Realiza COMMIT automático.
-
-    Args:
-        sp_name: Nombre del SP
-        params: Diccionario de parámetros
-
-    Returns:
-        int: Número de filas afectadas
-
-    Raises:
-        DatabaseError: Si hay error
-    """
-    conn = None
-    try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-
-        if params:
-            param_values = ', '.join(['%s'] * len(params))
-            query = f"SELECT * FROM {sp_name}({param_values})"
-            param_list = list(params.values())
-            logger.debug(f"Ejecutando (MODIFY): {sp_name}")
-            cursor.execute(query, param_list)
-        else:
-            query = f"SELECT * FROM {sp_name}()"
-            logger.debug(f"Ejecutando (MODIFY): {sp_name}()")
-            cursor.execute(query)
-
-        conn.commit()
-        rows_affected = cursor.rowcount
-        logger.debug(f"SP {sp_name} modificó {rows_affected} filas")
-        return rows_affected
-
-    except psycopg.DatabaseError as e:
-        if conn:
-            conn.rollback()
-        error_msg = f"Error ejecutando SP {sp_name}: {str(e)}"
-        logger.error(error_msg)
-        raise DatabaseError(error_msg)
-    finally:
-        if conn:
-            conn.close()
+    rows = execute_sp(sp_name, params=params)
+    return len(rows)
 
 
 def table_exists(table_name: str) -> bool:
-    """
-    Verifica si una tabla existe en PostgreSQL.
-
-    Args:
-        table_name: Nombre de la tabla
-
-    Returns:
-        bool: True si existe, False si no
-    """
-    conn = None
-    try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        cursor.execute(
-            "SELECT 1 FROM information_schema.tables WHERE table_name = %s",
-            (table_name,)
-        )
-        return cursor.fetchone() is not None
-    finally:
-        if conn:
-            conn.close()
+    result = execute_raw(
+        "SELECT 1 FROM information_schema.tables WHERE table_schema = %s AND table_name = %s LIMIT 1",
+        ("public" if DB_ENGINE == "postgres" else MYSQL_DB, table_name),
+    )
+    return bool(result)
 
 
 def sp_exists(sp_name: str) -> bool:
-    """
-    Verifica si un Stored Procedure existe.
-
-    Args:
-        sp_name: Nombre del SP
-
-    Returns:
-        bool: True si existe, False si no
-    """
-    conn = None
-    try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        cursor.execute(
-            "SELECT 1 FROM information_schema.routines WHERE routine_name = %s",
-            (sp_name,)
+    if DB_ENGINE == "postgres":
+        rows = execute_raw(
+            "SELECT 1 FROM pg_proc WHERE proname = %s LIMIT 1",
+            (sp_name,),
         )
-        return cursor.fetchone() is not None
-    finally:
-        if conn:
-            conn.close()
+    else:
+        rows = execute_raw(
+            "SELECT 1 FROM information_schema.routines WHERE routine_schema = %s AND routine_name = %s LIMIT 1",
+            (MYSQL_DB, sp_name),
+        )
+    return bool(rows)
 
 
 def execute_sql_file(file_path: str):
-    """
-    Ejecuta un archivo SQL completo (para inicialización de schema/SPs/triggers).
-
-    Args:
-        file_path: Ruta al archivo .sql
-
-    Raises:
-        DatabaseError: Si hay error
-    """
     conn = None
     try:
-        with open(file_path, 'r', encoding='utf-8') as f:
-            sql_content = f.read()
-
-        conn = get_db_connection()
-        cursor = conn.cursor()
-
-        # Dividir por punto y coma para ejecutar statements múltiples
-        statements = sql_content.split(';')
-        for statement in statements:
-            statement = statement.strip()
-            if statement:  # Saltar líneas vacías
-                logger.debug(f"Ejecutando: {statement[:60]}...")
-                cursor.execute(statement)
-
+        with open(file_path, "r", encoding="utf-8") as file:
+            sql_content = file.read()
+        conn = get_connection()
+        with conn.cursor() as cursor:
+            for statement in sql_content.split(";"):
+                stmt = statement.strip()
+                if stmt:
+                    cursor.execute(stmt)
         conn.commit()
-        logger.info(f"✓ Archivo SQL ejecutado: {file_path}")
-
-    except Exception as e:
+        logger.info("SQL ejecutado: %s", file_path)
+    except Exception as exc:
         if conn:
             conn.rollback()
-        error_msg = f"Error ejecutando archivo SQL {file_path}: {str(e)}"
-        logger.error(error_msg)
-        raise DatabaseError(error_msg)
+        raise DatabaseError(f"Error ejecutando archivo {file_path}: {exc}") from exc
     finally:
         if conn:
             conn.close()

@@ -292,7 +292,130 @@ AFTER INSERT OR UPDATE OR DELETE ON workers
 FOR EACH ROW
 EXECUTE FUNCTION fn_audit_worker_changes();
 
+--  (aplicado) Trigger 10: Después de insertar un nuevo paciente, generar un esquema de vacunacion esperado que tendria que tener segun su edad
+CREATE OR REPLACE FUNCTION fn_generate_expected_vaccination_scheme()
+RETURNS TRIGGER AS $$
+DECLARE
+    dosis RECORD;
+    fecha_aplicacion DATE;
+BEGIN
+    FOR dosis IN
+        SELECT dose_id, ideal_age_months
+        FROM scheme_doses
+    LOOP
+        -- calcular fecha esperada
+        fecha_aplicacion := NEW.birth_date 
+                            + (dosis.ideal_age_months || ' months')::INTERVAL;
 
--- ============================================================
--- FIN TRIGGERS
--- ============================================================
+        INSERT INTO patient_vaccine_schedule (
+            patient_id,
+            scheme_dose_id,
+            due_date,
+            status
+        )
+        VALUES (
+            NEW.patient_id,
+            dosis.dose_id, 
+            fecha_aplicacion,
+            CASE 
+                WHEN fecha_aplicacion < CURRENT_DATE THEN 'Atrasada'
+                ELSE 'Pendiente'
+            END
+        )
+        ON CONFLICT (patient_id, scheme_dose_id) DO NOTHING;
+    END LOOP;
+
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+
+CREATE TRIGGER trg_generate_expected_vaccination_scheme
+AFTER INSERT ON patients
+FOR EACH ROW
+EXECUTE FUNCTION fn_generate_expected_vaccination_scheme();
+
+
+-- Trigger 11: Actualizar el estado del esquema de vacunacion esperado despues de aplicar una dosis
+CREATE OR REPLACE FUNCTION fn_update_expected_vaccination_scheme()
+RETURNS TRIGGER
+LANGUAGE plpgsql AS $$
+BEGIN
+UPDATE patient_vaccine_schedule
+    SET 
+        status = 'Aplicada',
+        applied_record_id = NEW.record_id
+    WHERE patient_id = NEW.patient_id
+      AND scheme_dose_id = NEW.scheme_dose_id;
+
+    RETURN NEW;
+END ;
+$$ ;
+
+CREATE TRIGGER trg_update_expected_vaccination_scheme
+AFTER INSERT ON vaccination_records
+FOR EACH ROW
+EXECUTE FUNCTION fn_update_expected_vaccination_scheme();
+
+-- (aplicado) Trigger 12: Actualizar el estado del esquema de vacunacion esperado despues de cancelar una cita
+CREATE OR REPLACE FUNCTION fn_update_expected_vaccination_scheme_after_cancel_appointment()
+RETURNS TRIGGER
+LANGUAGE plpgsql AS $$
+BEGIN
+    UPDATE patient_vaccine_schedule
+    SET status = 'Pendiente'
+        AND applied_record_id IS NULL
+    WHERE patient_id = NEW.patient_id
+        AND scheme_dose_id = NEW.scheme_dose_id;
+    RETURN NEW;
+END ;
+$$;
+
+CREATE TRIGGER trg_update_expected_vaccination_scheme_after_cancel_appointment
+AFTER DELETE ON appointments 
+FOR EACH ROW
+EXECUTE FUNCTION fn_update_expected_vaccination_scheme_after_cancel_appointment();
+
+-- (aplicado) Trigger 13: Validar que no puedas aplicar una vacuna si no está en el esquema o ya fue aplicada
+CREATE OR REPLACE FUNCTION fn_validate_vaccine_application()
+RETURNS TRIGGER
+LANGUAGE plpgsql AS $$
+DECLARE
+    estado_actual TEXT;
+    ya_existe INT;
+BEGIN
+    -- 1. Validar que exista en el esquema
+    SELECT status
+    INTO estado_actual
+    FROM patient_vaccine_schedule
+    WHERE patient_id = NEW.patient_id
+      AND scheme_dose_id = NEW.scheme_dose_id;
+
+    IF estado_actual IS NULL THEN
+        RAISE EXCEPTION 
+        'La vacuna (dose_id=%) no está en el esquema del paciente (%)',
+        NEW.scheme_dose_id, NEW.patient_id;
+    END IF;
+
+    -- 2. Validar en registros reales (FUENTE DE VERDAD)
+    SELECT COUNT(*)
+    INTO ya_existe
+    FROM vaccination_records
+    WHERE patient_id = NEW.patient_id
+      AND scheme_dose_id = NEW.scheme_dose_id;
+
+    IF ya_existe > 0 THEN
+        RAISE EXCEPTION 
+        'La vacuna (dose_id=%) ya fue aplicada al paciente (%)',
+        NEW.scheme_dose_id, NEW.patient_id;
+    END IF;
+
+    RETURN NEW;
+
+END ; 
+$$ ;
+
+CREATE TRIGGER trg_validate_vaccine_application
+BEFORE INSERT ON vaccination_records
+FOR EACH ROW
+EXECUTE FUNCTION fn_validate_vaccine_application();

@@ -1,20 +1,18 @@
-# Segunda Entrega (PostgreSQL + psycopg)
+# Segunda Entrega (Flask + DB configurable)
 
-Aplicacion Flask conectada a PostgreSQL usando `psycopg`.
+Aplicacion Flask con conexion centralizada en `config.py` y `db.py`.
 
 ## Requisitos
 - Python 3.10+
-- PostgreSQL 14+
+- PostgreSQL 14+ o MariaDB/MySQL 10+
 - Dependencias de Python:
-  - `pip install -r requirements_2daE.txt`
+  - `pip install -r requirements.txt`
 
 ## Configuracion de entorno
 - Variable opcional `SECRET_KEY`
-- Variable `DATABASE_URL` con el host, usuario y contrasena reales de la maquina donde corre PostgreSQL.
+- Variable `DB_ENGINE` (`postgres` o `mariadb`)
+- Variables `PG_*` para PostgreSQL y `MYSQL_*` para MariaDB
 - Referencia de ejemplo: [.env.example](.env.example)
-- Si no se define `DATABASE_URL`, la app intenta el valor local:
-   - `postgresql://postgres:postgres@localhost:5432/sistemaVacunacion`
-- En otra maquina, ese valor solo funcionara si existe un usuario `postgres` con esa clave y esa base de datos.
 
 ## Orden recomendado de SQL
 1. `sql/esquema_postgres_2daE.sql`
@@ -24,8 +22,9 @@ Aplicacion Flask conectada a PostgreSQL usando `psycopg`.
 5. `sql/datos_postgres_2daE.sql`
 
 ## Ejecutar
-1. Ejecutar `CONFIGURAR_ENTORNO.bat` una sola vez para crear `.env`, entorno virtual, dependencias y base.
-2. Ejecutar `INICIAR_TODO.bat` para levantar la app.
+1. Ejecutar `INSTALAR_DEPENDENCIAS.bat` una sola vez.
+2. Configurar `.env` con `DB_ENGINE` y credenciales.
+3. Ejecutar `INICIAR.bat` para levantar la app.
 
 ## Nota operativa
 - El backend usa funciones SP para altas principales.
