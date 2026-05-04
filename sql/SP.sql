@@ -558,6 +558,112 @@ END;
 $$;
 
 
+CREATE OR REPLACE PROCEDURE sp_get_patient_scheme(
+    IN    p_patient_id INT,
+    INOUT p_results    REFCURSOR
+)
+LANGUAGE plpgsql AS $$
+DECLARE
+    v_exists BOOLEAN;
+BEGIN
+ 
+    -- -------------------------------------------------------------------------
+    -- Validación 1: el paciente debe existir
+    -- -------------------------------------------------------------------------
+    SELECT EXISTS(
+        SELECT 1 FROM patients
+        WHERE patient_id = p_patient_id
+    )
+    INTO v_exists;
+ 
+    IF NOT v_exists THEN
+        RAISE EXCEPTION 'El paciente con ID % no existe', p_patient_id;
+    END IF;
+ 
+    -- -------------------------------------------------------------------------
+    -- Validación 2: el paciente debe estar activo
+    -- -------------------------------------------------------------------------
+    SELECT EXISTS(
+        SELECT 1 FROM patients
+        WHERE patient_id = p_patient_id
+          AND is_active = TRUE
+    )
+    INTO v_exists;
+ 
+    IF NOT v_exists THEN
+        RAISE EXCEPTION 'El paciente con ID % está inactivo', p_patient_id;
+    END IF;
+ 
+    OPEN p_results FOR
+    SELECT
+        -- Identificadores
+        patient_id,
+        dose_id,
+        vaccine_id,
+        record_id,
+ 
+        -- Paciente
+        full_name,
+        birth_date,
+        age_years,
+ 
+        -- Vacuna / dosis
+        vaccine_name                                     AS name,
+        disease_prevented,
+        dose_label                                       AS dose,
+        dose_number,
+        ideal_age_months,
+        ideal_date,
+ 
+        -- Aplicación
+        applied_date                                     AS date,
+        doctor,
+        application_site,
+        had_reaction,
+        patient_temp_c,
+ 
+        -- Estado
+        estado,
+        dias_retraso,
+ 
+        -- Próxima dosis de la misma vacuna
+        CASE
+            WHEN next_dose_age_months IS NOT NULL THEN
+                'A los ' || next_dose_age_months || ' meses'
+            ELSE NULL
+        END                                              AS next_date,
+ 
+        -- Etiqueta de edad ideal legible
+        CASE
+            WHEN ideal_age_months = 0  THEN 'Al nacer'
+            WHEN ideal_age_months >= 12 THEN
+                (ideal_age_months / 12) || ' año(s)'
+            ELSE
+                ideal_age_months || ' meses'
+        END                                              AS edad_ideal_label,
+ 
+        -- Alerta de retraso
+        CASE
+            WHEN record_id IS NULL AND dias_retraso > 0 THEN
+                'Retraso de ' || dias_retraso || ' días'
+            WHEN record_id IS NULL AND dias_retraso <= 0 THEN
+                'Programada en ' || ABS(dias_retraso) || ' días'
+            ELSE NULL
+        END                                              AS alerta_retraso
+ 
+    FROM v_patient_vaccination_scheme_base
+    WHERE patient_id = p_patient_id
+    ORDER BY ideal_age_months, dose_number;
+END;
+$$;
+ 
+
+BEGIN;
+CALL sp_get_patient_scheme(1, 'cur_esquema');
+FETCH ALL FROM cur_esquema;
+COMMIT;
+
+
 
 -- ==============================================
 
