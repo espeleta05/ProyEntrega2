@@ -19,45 +19,45 @@
       <p>¿Estás seguro de que deseas eliminar este registro?</p>
     {% endcall %}
 
-  Para abrir: openModal('deleteModal')
+  Para abrir: openModal('deleteModal')   (o document.getElementById('deleteModal').classList.add('active'))
   Para cerrar: closeModal('deleteModal')
 #}
 
 {% macro modal(id, title='', icon=None, size='md', type='default', confirm_text='', cancel_text='Cancelar', confirm_onclick='', class='') %}
-  {%- set max_widths = {'sm': '400px', 'md': '600px', 'lg': '860px'} -%}
-  {%- set header_styles = {
+  {%- set size_class = {'sm': 'md3-modal--sm', 'md': '', 'lg': 'md3-modal--lg'} -%}
+  {%- set header_variant = {
     'default': '',
-    'danger':  'background: var(--md-error-container); color: var(--md-on-error-container);',
-    'success': 'background: var(--md-success-container); color: var(--md-on-success-container);'
+    'danger':  'md3-modal__header--danger',
+    'success': 'md3-modal__header--success'
   } -%}
 
-  <div class="modal-overlay {{ class }}" id="{{ id }}" role="dialog" aria-modal="true" aria-labelledby="{{ id }}-title">
-    <div class="modal-container" style="max-width: {{ max_widths[size] }};">
+  <div class="md3-modal-overlay {{ class }}" id="{{ id }}" role="dialog" aria-modal="true" aria-labelledby="{{ id }}-title">
+    <div class="md3-modal {{ size_class[size] }}">
 
-      <div class="modal-header"{% if header_styles[type] %} style="{{ header_styles[type] }}"{% endif %}>
-        <div class="flex-center gap-2">
+      <div class="md3-modal__header {{ header_variant[type] }}">
+        <div class="md3-modal__header-content">
           {% if icon %}
-            <i class="fa-solid {{ icon }}"></i>
+            <i class="fa-solid {{ icon }} md3-modal__header-icon"></i>
           {% endif %}
           {% if title %}
-            <h2 id="{{ id }}-title">{{ title }}</h2>
+            <h2 class="md3-modal__title" id="{{ id }}-title">{{ title }}</h2>
           {% endif %}
         </div>
-        <button class="modal-close" onclick="closeModal('{{ id }}')" aria-label="Cerrar">&times;</button>
+        <button class="md3-modal__close" onclick="closeModal('{{ id }}')" aria-label="Cerrar">&times;</button>
       </div>
 
-      <div class="modal-body">
+      <div class="md3-modal__body">
         {{ caller() }}
       </div>
 
       {% if confirm_text or cancel_text %}
-        <div class="modal-footer">
+        <div class="md3-modal__footer">
           {% if cancel_text %}
-            <button class="btn-cancel" onclick="closeModal('{{ id }}')">{{ cancel_text }}</button>
+            <button class="md3-btn md3-btn--outlined md3-btn--sm" onclick="closeModal('{{ id }}')">{{ cancel_text }}</button>
           {% endif %}
           {% if confirm_text %}
             <button
-              class="btn-confirm"
+              class="md3-btn md3-btn--filled md3-btn--sm"
               {% if confirm_onclick %}onclick="{{ confirm_onclick }}"{% else %}onclick="closeModal('{{ id }}')"{% endif %}
             >{{ confirm_text }}</button>
           {% endif %}
@@ -66,22 +66,4 @@
 
     </div>
   </div>
-
-  <script>
-    function openModal(modalId) {
-      document.getElementById(modalId).classList.add('active');
-    }
-    function closeModal(modalId) {
-      document.getElementById(modalId).classList.remove('active');
-    }
-    (function () {
-      const overlay = document.getElementById('{{ id }}');
-      overlay.addEventListener('click', function (e) {
-        if (e.target === overlay) closeModal('{{ id }}');
-      });
-      document.addEventListener('keydown', function (e) {
-        if (e.key === 'Escape' && overlay.classList.contains('active')) closeModal('{{ id }}');
-      });
-    })();
-  </script>
 {% endmacro %}

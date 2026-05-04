@@ -3,7 +3,7 @@
 {% block title %}Pacientes - Sistema Clínico{% endblock %}
 
 {% block head_extra %}
-<link rel="stylesheet" href="{{ url_for('static', filename='css/nuevoPaciente.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/crud.css') }}">
 <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/pacientes.css') }}">
 {% endblock %}
 
@@ -139,80 +139,8 @@
 
 {% include 'nuevoPaciente_2daE.html' %}
 
-<script>
-const container = document.getElementById('patientsContainer');
-const originalCards = container ? Array.from(container.querySelectorAll('.patient-card-wrapper')) : [];
-const searchInput = document.getElementById('searchInput');
-const bloodFilter = document.getElementById('roleFilterSelect');
-const sortSelect = document.getElementById('sortSelect');
+{% endblock %}
 
-function applyPatientsView() {
-    const searchTerm = (searchInput?.value || '').toLowerCase().trim();
-    const bloodTerm = (bloodFilter?.value || '').toLowerCase().trim();
-
-    originalCards.forEach(card => {
-        const patientId = (card.dataset.patientId || '').toLowerCase();
-        const patientName = (card.dataset.name || '').toLowerCase();
-        const blood = (card.dataset.blood || '').toLowerCase();
-        const matchesSearch = !searchTerm || patientId === searchTerm || patientName.includes(searchTerm);
-        const matchesBlood = !bloodTerm || blood === bloodTerm;
-        card.style.display = (matchesSearch && matchesBlood) ? 'block' : 'none';
-    });
-}
-
-function sortPatients() {
-    if (!container || !sortSelect) return;
-    const visibleCards = originalCards.filter(card => card.style.display !== 'none');
-    const key = sortSelect.value;
-    visibleCards.sort((left, right) => {
-        if (key === 'id') {
-            return Number(left.dataset.patientId || 0) - Number(right.dataset.patientId || 0);
-        }
-        if (key === 'edad') {
-            return (right.dataset.birth || '').localeCompare(left.dataset.birth || '', 'es');
-        }
-        return (left.dataset.name || '').localeCompare(right.dataset.name || '', 'es', { sensitivity: 'base' });
-    });
-    visibleCards.forEach(card => container.appendChild(card));
-}
-
-if (searchInput) searchInput.addEventListener('input', () => { applyPatientsView(); sortPatients(); });
-if (bloodFilter) bloodFilter.addEventListener('change', () => { applyPatientsView(); sortPatients(); });
-if (sortSelect) sortSelect.addEventListener('change', () => { sortPatients(); applyPatientsView(); });
-
-(() => {
-    const params = new URLSearchParams(window.location.search);
-    const q = (params.get('q') || '').trim();
-    if (!q || !searchInput) return;
-    searchInput.value = q;
-    applyPatientsView();
-    sortPatients();
-})();
-
-applyPatientsView();
-
-document.querySelectorAll('.delete-patient-btn').forEach(btn => {
-    btn.addEventListener('click', async function () {
-        const patientId = this.dataset.patientId;
-        if (!patientId) return;
-        if (!confirm('Esta accion eliminara al paciente y sus registros relacionados. Continuar?')) return;
-        try {
-            const response = await fetch(`/delete_patient/${patientId}`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' }
-            });
-            const result = await response.json();
-            if (!response.ok) { alert(result.error || 'No se pudo eliminar el paciente'); return; }
-            const card = document.getElementById(`patient-card-${patientId}`);
-            if (card) card.remove();
-            alert(result.message || 'Paciente eliminado correctamente');
-            window.location.reload();
-        } catch (err) {
-            alert('Error de conexion al eliminar paciente');
-            console.error(err);
-        }
-    });
-});
-</script>
-
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/pages/pacientes.js') }}"></script>
 {% endblock %}

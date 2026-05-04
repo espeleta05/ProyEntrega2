@@ -1,18 +1,19 @@
-<!-- Modal de confirmación genérico reutilizable -->
-<div class="modal-overlay" id="confirmModal">
-    <div class="modal-container">
-        <div class="modal-header">
-            <h2 id="confirmTitle">Confirmar acción</h2>
-            <button class="modal-close" onclick="closeConfirmModal()">&times;</button>
+<div class="md3-modal-overlay" id="confirmModal" role="dialog" aria-modal="true" aria-labelledby="confirmTitle">
+    <div class="md3-modal md3-modal--sm">
+        <div class="md3-modal__header">
+            <div class="md3-modal__header-content">
+                <h2 class="md3-modal__title" id="confirmTitle">Confirmar acción</h2>
+            </div>
+            <button class="md3-modal__close" onclick="closeConfirmModal()" aria-label="Cerrar">&times;</button>
         </div>
-        <div class="modal-body">
-            <p id="confirmMessage" class="text-muted">
+        <div class="md3-modal__body">
+            <p id="confirmMessage" style="margin:0; color: var(--md-on-surface-variant);">
                 ¿Estás seguro de que deseas continuar?
             </p>
         </div>
-        <div class="modal-footer">
-            <button class="btn-cancel" onclick="closeConfirmModal()">Cancelar</button>
-            <button class="btn-confirm" id="confirmBtn" onclick="executeConfirmAction()">Confirmar</button>
+        <div class="md3-modal__footer">
+            <button class="md3-btn md3-btn--outlined md3-btn--sm" onclick="closeConfirmModal()">Cancelar</button>
+            <button class="md3-btn md3-btn--filled md3-btn--sm" id="confirmBtn" onclick="executeConfirmAction()">Confirmar</button>
         </div>
     </div>
 </div>

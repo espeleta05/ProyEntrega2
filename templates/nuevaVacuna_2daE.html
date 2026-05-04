@@ -1,111 +1,92 @@
-<div class="modal-overlay" id="vaccineModal">
-    <div class="modal-container">
-        
-        <div class="modal-header">
-            <h3 class="modal-title">Nueva Vacuna</h3>
-            <button class="modal-close-btn" onclick="closeVaccineModal()">&times;</button>
+
+<div class="md3-modal-overlay" id="vaccineModal" role="dialog" aria-modal="true" aria-labelledby="vaccineModal-title">
+    <div class="md3-modal md3-modal--lg">
+
+        <div class="md3-modal__header">
+            <div class="md3-modal__header-content">
+                <i class="fa-solid fa-syringe md3-modal__header-icon"></i>
+                <h2 class="md3-modal__title" id="vaccineModal-title">Nueva vacuna</h2>
+            </div>
+            <button class="md3-modal__close" onclick="closeVaccineModal()" aria-label="Cerrar">&times;</button>
         </div>
 
-        <form id="formNewVaccine" onsubmit="submitNewVaccine(event)">
-            
-            <div class="form-section">
-                <h4 class="section-title">INFORMACIÓN DE LA VACUNA</h4>
-                
-                <div class="form-row">
-                    <div class="form-group">
-                        <label>Nombre de la vacuna *</label>
-                        <input type="text" id="v_name" placeholder="Ej: Pfizer-BioNTech" required>
+        <form id="formNewVaccine">
+
+            <div class="md3-modal__body">
+
+                <div class="md3-form__section">
+                    <h4 class="md3-form__section-title">Información de la vacuna</h4>
+
+                    <div class="md3-form__row">
+                        <div class="md3-field">
+                            <label class="md3-field__label" for="v_name">Nombre de la vacuna *</label>
+                            <input class="md3-input" type="text" id="v_name" placeholder="Ej: Pfizer-BioNTech" required>
+                        </div>
+                    </div>
+
+                    <div class="md3-form__row md3-form__row--2">
+                        <div class="md3-field">
+                            <label class="md3-field__label" for="v_manufacturer">Fabricante</label>
+                            <input class="md3-input" type="text" id="v_manufacturer" placeholder="Ej: Pfizer">
+                        </div>
+                        <div class="md3-field">
+                            <label class="md3-field__label" for="v_inventory">Inventario inicial</label>
+                            <input class="md3-input" type="number" id="v_inventory" placeholder="0" min="0">
+                        </div>
+                    </div>
+
+                    <div class="md3-form__row md3-form__row--2">
+                        <div class="md3-field">
+                            <label class="md3-field__label" for="v_min_age">Edad mínima (meses)</label>
+                            <input class="md3-input" type="number" id="v_min_age" placeholder="Ej: 0" min="0">
+                        </div>
+                        <div class="md3-field">
+                            <label class="md3-field__label" for="v_max_age">Edad máxima (meses)</label>
+                            <input class="md3-input" type="number" id="v_max_age" placeholder="Ej: 12" min="0">
+                        </div>
+                    </div>
+
+                    <div class="md3-form__row">
+                        <div class="md3-field">
+                            <label class="md3-field__label" for="v_description">Descripción / Lote</label>
+                            <input class="md3-input" type="text" id="v_description" placeholder="Detalles adicionales">
+                        </div>
                     </div>
                 </div>
 
-                <div class="form-row">
-                    <div class="form-group">
-                        <label>Fabricante</label>
-                        <input type="text" id="v_manufacturer" placeholder="Ej: Pfizer">
-                    </div>
-                    <div class="form-group">
-                        <label>Inventario inicial</label>
-                        <input type="number" id="v_inventory" placeholder="0" min="0">
-                    </div>
-                </div>
-
-                <div class="form-row">
-                    <div class="form-group">
-                        <label>Edad mínima (meses)</label>
-                        <input type="number" id="v_min_age" placeholder="Ej: 0" min="0">
-                    </div>
-                    <div class="form-group">
-                        <label>Edad máxima (meses)</label>
-                        <input type="number" id="v_max_age" placeholder="Ej: 12" min="0">
-                    </div>
-                </div>
-
-                <div class="form-row">
-                    <div class="form-group full-width">
-                        <label>Descripción / Lote</label>
-                        <input type="text" id="v_description" placeholder="Detalles adicionales">
-                    </div>
-                </div>
             </div>
 
-            <div class="modal-footer">
-                <button type="button" class="btn-cancel" onclick="closeVaccineModal()">Cancelar</button>
-                <button type="submit" class="btn-save">Guardar vacuna</button>
+            <div class="md3-modal__footer">
+                <button type="button" class="md3-btn md3-btn--outlined" onclick="closeVaccineModal()">Cancelar</button>
+                <button type="submit" class="md3-btn md3-btn--filled">
+                    <i class="fa-solid fa-syringe"></i> Guardar vacuna
+                </button>
             </div>
+
         </form>
     </div>
 </div>
 
 <script>
-    function openVaccineModal() {
-        document.getElementById('vaccineModal').classList.add('active');
-    }
+function openVaccineModal()  { document.getElementById('vaccineModal').classList.add('active'); }
+function closeVaccineModal() { document.getElementById('vaccineModal').classList.remove('active'); document.getElementById('formNewVaccine').reset(); }
+document.getElementById('vaccineModal').addEventListener('click', e => { if (e.target === document.getElementById('vaccineModal')) closeVaccineModal(); });
 
-    function closeVaccineModal() {
-        document.getElementById('vaccineModal').classList.remove('active');
-        document.getElementById('formNewVaccine').reset();
-    }
-
-    document.getElementById('vaccineModal').addEventListener('click', function(e) {
-        if (e.target === this) {
-            closeVaccineModal();
-        }
-    });
-
-    async function submitNewVaccine(e) {
-        e.preventDefault();
-
-        const val = (id) => document.getElementById(id).value || null;
-
-        const data = {
-            name: val('v_name'),
-            manufacturer: val('v_manufacturer'),
-            inventory: val('v_inventory') !== null ? parseInt(val('v_inventory')) : 0,
-            description: val('v_description'),
-            min_age_months: val('v_min_age') !== null ? parseInt(val('v_min_age')) : null,
-            max_age_months: val('v_max_age') !== null ? parseInt(val('v_max_age')) : null
-        };
-
-        try {
-            const response = await fetch('/register_vaccine', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(data)
-            });
-
-            const result = await response.json();
-
-            if (response.ok) {
-                alert(result.message || "Vacuna registrada");
-                closeVaccineModal();
-                window.location.reload();
-            } else {
-                alert(result.error || "Ocurrió un error");
-            }
-        } catch (err) {
-            console.error(err);
-            alert("Error de conexión");
-        }
-    }
+document.getElementById('formNewVaccine').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const val = id => document.getElementById(id)?.value || null;
+    const data = {
+        name: val('v_name'), manufacturer: val('v_manufacturer'),
+        inventory: val('v_inventory') !== null ? parseInt(val('v_inventory')) : 0,
+        description: val('v_description'),
+        min_age_months: val('v_min_age') !== null ? parseInt(val('v_min_age')) : null,
+        max_age_months: val('v_max_age') !== null ? parseInt(val('v_max_age')) : null,
+    };
+    try {
+        const res = await fetch('/register_vaccine', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+        const result = await res.json();
+        if (res.ok) { alert(result.message || 'Vacuna registrada'); closeVaccineModal(); window.location.reload(); }
+        else alert(result.error || 'Ocurrió un error');
+    } catch (err) { console.error(err); alert('Error de conexión'); }
+});
 </script>
-

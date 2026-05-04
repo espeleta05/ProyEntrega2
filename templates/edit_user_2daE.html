@@ -3,7 +3,7 @@
 {% block title %}Editar Usuario - Sistema Clínico{% endblock %}
 
 {% block head_extra %}
-<link rel="stylesheet" href="{{ url_for('static', filename='css/form.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/crud.css') }}">
 {% endblock %}
 
 {% block content %}
@@ -14,53 +14,56 @@
     </a>
 </div>
 
-<div class="container">
-    <div class="card">
+<div class="md3-form-card">
 
-        <h2 class="form-title">Editar usuario</h2>
+    <div class="md3-form-card__header">
+        <h2 class="md3-form-card__title">Editar usuario</h2>
+        <p class="md3-form-card__subtitle">ID: {{ worker.worker_id }}</p>
+    </div>
 
-        <form class="form" method="POST" action="{{ url_for('edit_user', worker_id=worker.worker_id) }}">
+    <form class="md3-form" method="POST" action="{{ url_for('edit_user', worker_id=worker.worker_id) }}">
 
-            <div class="row">
-                <div class="input-group">
-                    <label>Nombre(s)</label>
-                    <input type="text" name="first_name" value="{{ worker.name or '' }}" required>
+        <div class="md3-form__section">
+            <div class="md3-form__row md3-form__row--2">
+                <div class="md3-field">
+                    <label class="md3-field__label" for="edit_first_name">Nombre(s) *</label>
+                    <input class="md3-input" type="text" id="edit_first_name" name="first_name"
+                           value="{{ worker.name or '' }}" required>
                 </div>
-
-                <div class="input-group">
-                    <label>Apellidos</label>
-                    <input type="text" name="last_name" value="{{ worker.lastname or '' }}" required>
+                <div class="md3-field">
+                    <label class="md3-field__label" for="edit_last_name">Apellidos *</label>
+                    <input class="md3-input" type="text" id="edit_last_name" name="last_name"
+                           value="{{ worker.lastname or '' }}" required>
                 </div>
             </div>
 
-            <div class="row">
-                <div class="input-group">
-                    <label>Rol</label>
-                    <select name="role_id" required>
+            <div class="md3-form__row md3-form__row--2">
+                <div class="md3-field">
+                    <label class="md3-field__label" for="edit_role">Rol *</label>
+                    <select class="md3-select" id="edit_role" name="role_id" required>
                         <option value="" disabled {% if not worker.role_id %}selected{% endif %}>Seleccionar</option>
                         {% for role in roles %}
                         <option value="{{ role.role_id }}" {% if worker.role_id | string == role.role_id | string %}selected{% endif %}>{{ role.name }}</option>
                         {% endfor %}
                     </select>
                 </div>
-
-                <div class="input-group">
-                    <label>Email / Usuario</label>
-                    <input type="text" name="mail" value="{{ worker.mail or '' }}">
+                <div class="md3-field">
+                    <label class="md3-field__label" for="edit_mail">Email / Usuario</label>
+                    <input class="md3-input" type="text" id="edit_mail" name="mail"
+                           value="{{ worker.mail or '' }}">
                 </div>
             </div>
+        </div>
 
-            <div class="buttons">
-                <a href="{{ url_for('personal') }}" class="btn cancel">Cancelar</a>
-                <button type="submit" class="btn submit">
-                    <i class="fa-solid fa-pen-to-square"></i>
-                    Guardar cambios
-                </button>
-            </div>
+        <div class="md3-form__actions">
+            <a href="{{ url_for('personal') }}" class="md3-btn md3-btn--outlined">Cancelar</a>
+            <button type="submit" class="md3-btn md3-btn--filled">
+                <i class="fa-solid fa-pen-to-square"></i> Guardar cambios
+            </button>
+        </div>
 
-        </form>
+    </form>
 
-    </div>
 </div>
 
 {% endblock %}

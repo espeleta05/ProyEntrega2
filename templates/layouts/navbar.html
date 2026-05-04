@@ -35,7 +35,7 @@
 
 <div class="topbar {{ class }}">
 
-  {{- /* Logo */ -}}
+  {#-Logo -#}
   <a href="{{ logo_href }}" class="md3-topbar__logo">
     {% if logo_src %}
       <img src="{{ logo_src }}" alt="{{ logo_text }}" class="logo-img" style="height:32px; width:auto;">
@@ -43,7 +43,7 @@
     <span class="logo-text" style="font-family:var(--md-font-family-display); font-weight:var(--md-font-weight-bold); color:var(--md-primary); font-size:var(--md-font-size-title-md);">{{ logo_text }}</span>
   </a>
 
-  {{- /* Global search */ -}}
+  {#-Global search -#}
   {% if show_search %}
     <div class="search-bar-container global-search-wrapper" style="flex:1; max-width:480px; position:relative;">
       <i class="fa-solid fa-magnifying-glass" style="position:absolute; left:14px; top:50%; transform:translateY(-50%); color:var(--md-on-surface-variant); pointer-events:none; z-index:1;"></i>
@@ -60,7 +60,7 @@
     </div>
   {% endif %}
 
-  {{- /* Action buttons */ -}}
+  {#-Action buttons -#}
   <div class="d-flex gap-2">
     {% for action in actions %}
       {%- set btn_class = {
@@ -83,7 +83,7 @@
       {% endif %}
     {% endfor %}
 
-    {{- /* User avatar */ -}}
+    {#-User avatar -#}
     {% if user_initials %}
       <div class="md3-user-avatar" title="{{ user_name }}">{{ user_initials }}</div>
     {% endif %}

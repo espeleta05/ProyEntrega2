@@ -144,3 +144,114 @@
 .sidebar::-webkit-scrollbar-thumb:hover {
   background-color: var(--md-on-surface-variant);
 }
+
+/* ── Logo link ── */
+.sidebar-logo-link {
+  display: flex;
+  align-items: center;
+  gap: var(--md-spacing-3);
+  text-decoration: none;
+  width: 100%;
+}
+
+.sidebar-logo-img {
+  height: 32px;
+  width: auto;
+  flex-shrink: 0;
+}
+
+.sidebar-logo-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--md-shape-medium);
+  background: var(--md-primary);
+  color: var(--md-on-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: var(--md-font-weight-bold);
+  font-size: 1.1rem;
+  flex-shrink: 0;
+}
+
+.sidebar-logo-text {
+  font-size: var(--md-font-size-title-md);
+  font-weight: var(--md-font-weight-bold);
+  color: var(--md-primary);
+  margin: 0;
+}
+
+/* ── Nav badge ── */
+.sidebar-nav-badge {
+  margin-left: auto;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 var(--md-spacing-1);
+  border-radius: var(--md-shape-extra-large);
+  background: var(--md-error);
+  color: var(--md-on-error);
+  font-size: var(--md-font-size-label-sm);
+  font-weight: var(--md-font-weight-bold);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ── Bottom nav section ── */
+.sidebar-nav--bottom {
+  margin-top: auto;
+  border-top: 1px solid var(--md-outline-variant);
+  padding-top: var(--md-spacing-2);
+}
+
+/* ── User footer ── */
+.sidebar-user__row {
+  display: flex;
+  align-items: center;
+  gap: var(--md-spacing-3);
+}
+
+.sidebar-user__avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: var(--md-primary-container);
+  color: var(--md-on-primary-container);
+  font-weight: var(--md-font-weight-bold);
+  font-size: var(--md-font-size-label-lg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-transform: uppercase;
+}
+
+.sidebar-user__info {
+  min-width: 0;
+  flex: 1;
+}
+
+.sidebar-user__name {
+  font-weight: var(--md-font-weight-semibold);
+  font-size: var(--md-font-size-body-sm);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin: 0;
+}
+
+.sidebar-user__role {
+  font-size: var(--md-font-size-label-lg);
+  color: var(--md-on-surface-variant);
+  margin: 0;
+}
+
+.sidebar-logout {
+  color: var(--md-on-surface-variant);
+  transition: color var(--md-transition-short);
+  line-height: 1;
+}
+
+.sidebar-logout:hover {
+  color: var(--md-error);
+}

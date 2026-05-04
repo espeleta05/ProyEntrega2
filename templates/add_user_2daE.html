@@ -3,55 +3,57 @@
 {% block title %}Agregar Usuario - Sistema Clínico{% endblock %}
 
 {% block head_extra %}
-<link rel="stylesheet" href="{{ url_for('static', filename='css/form.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/crud.css') }}">
 {% endblock %}
 
 {% block content %}
 
-<!-- HEADER -->
 <div class="content-header">
     <a href="{{ url_for('personal') }}" class="back">
         <i class="fa-solid fa-arrow-left"></i> Regresar
     </a>
 </div>
 
-<div class="container">
-    <div class="card">
+<div class="md3-form-card">
 
-        <h2 class="form-title">Agregar usuario</h2>
+    <div class="md3-form-card__header">
+        <h2 class="md3-form-card__title">Agregar usuario</h2>
+    </div>
 
-        {% if error %}
-        <div class="form-error">
-            <i class="fa-solid fa-circle-exclamation"></i>
-            {{ error }}
-        </div>
-        {% endif %}
+    {% if error %}
+    <div class="md3-alert md3-alert--error" style="margin-bottom: var(--md-spacing-5);">
+        <i class="fa-solid fa-circle-exclamation"></i>
+        <span>{{ error }}</span>
+    </div>
+    {% endif %}
 
-        <h3 class="section-title">Datos personales</h3>
+    <form class="md3-form" method="POST" action="{{ url_for('add_user') }}">
 
-        <form class="form" method="POST" action="{{ url_for('add_user') }}">
+        <div class="md3-form__section">
+            <h3 class="md3-form__section-title">Datos personales</h3>
 
-            <div class="row">
-                <div class="input-group">
-                    <label>Nombre(s)</label>
-                    <input type="text" name="first_name" placeholder="Nombre(s)" value="{{ form.first_name or form.name or '' }}" required>
+            <div class="md3-form__row md3-form__row--2">
+                <div class="md3-field">
+                    <label class="md3-field__label" for="add_first_name">Nombre(s) *</label>
+                    <input class="md3-input" type="text" id="add_first_name" name="first_name"
+                           placeholder="Nombre(s)" value="{{ form.first_name or form.name or '' }}" required>
                 </div>
-
-                <div class="input-group">
-                    <label>Apellidos</label>
-                    <input type="text" name="last_name" placeholder="Apellidos paterno y materno" value="{{ form.last_name or form.lastname or '' }}" required>
+                <div class="md3-field">
+                    <label class="md3-field__label" for="add_last_name">Apellidos *</label>
+                    <input class="md3-input" type="text" id="add_last_name" name="last_name"
+                           placeholder="Apellidos paterno y materno" value="{{ form.last_name or form.lastname or '' }}" required>
                 </div>
             </div>
 
-            <div class="row">
-                <div class="input-group">
-                    <label>Fecha de nacimiento</label>
-                    <input type="date" name="birth_date" value="{{ form.birth_date or '' }}" required>
+            <div class="md3-form__row md3-form__row--2">
+                <div class="md3-field">
+                    <label class="md3-field__label" for="add_birth_date">Fecha de nacimiento *</label>
+                    <input class="md3-input" type="date" id="add_birth_date" name="birth_date"
+                           value="{{ form.birth_date or '' }}" required>
                 </div>
-
-                <div class="input-group">
-                    <label>Rol</label>
-                    <select name="role_id" required>
+                <div class="md3-field">
+                    <label class="md3-field__label" for="add_role">Rol *</label>
+                    <select class="md3-select" id="add_role" name="role_id" required>
                         <option value="" disabled {% if not form.role_id %}selected{% endif %}>Seleccionar</option>
                         {% for role in roles %}
                         <option value="{{ role.role_id }}" {% if form.role_id | string == role.role_id | string %}selected{% endif %}>{{ role.name }}</option>
@@ -60,46 +62,57 @@
                 </div>
             </div>
 
-            <div class="input-group full">
-                <label>CURP</label>
-                <input type="text" name="curp" placeholder="Clave Única de Registro de Población" value="{{ form.curp or '' }}" maxlength="18">
-            </div>
-
-            <div class="input-group full">
-                <label>Email / Usuario</label>
-                <input type="text" name="mail" placeholder="email@ejemplo.com o nombre de usuario" value="{{ form.mail or '' }}" required>
-            </div>
-
-            <div class="input-group full">
-                <label>Dirección</label>
-                <input type="text" name="address" placeholder="Calle, número, colonia" value="{{ form.address or '' }}">
-            </div>
-
-            <h3 class="section-title">Acceso al sistema</h3>
-
-            <div class="row">
-                <div class="input-group">
-                    <label>Contraseña</label>
-                    <input type="password" name="password" placeholder="••••••••" required>
-                </div>
-
-                <div class="input-group">
-                    <label>Confirmar contraseña</label>
-                    <input type="password" name="password_confirm" placeholder="••••••••" required>
+            <div class="md3-form__row">
+                <div class="md3-field">
+                    <label class="md3-field__label" for="add_curp">CURP</label>
+                    <input class="md3-input" type="text" id="add_curp" name="curp"
+                           placeholder="Clave Única de Registro de Población" value="{{ form.curp or '' }}" maxlength="18">
                 </div>
             </div>
 
-            <div class="buttons">
-                <a href="{{ url_for('personal') }}" class="btn cancel">Cancelar</a>
-                <button type="submit" class="btn submit">
-                    <i class="fa-solid fa-user-plus"></i>
-                    Agregar usuario
-                </button>
+            <div class="md3-form__row">
+                <div class="md3-field">
+                    <label class="md3-field__label" for="add_mail">Email / Usuario *</label>
+                    <input class="md3-input" type="text" id="add_mail" name="mail"
+                           placeholder="email@ejemplo.com o nombre de usuario" value="{{ form.mail or '' }}" required>
+                </div>
             </div>
 
-        </form>
+            <div class="md3-form__row">
+                <div class="md3-field">
+                    <label class="md3-field__label" for="add_address">Dirección</label>
+                    <input class="md3-input" type="text" id="add_address" name="address"
+                           placeholder="Calle, número, colonia" value="{{ form.address or '' }}">
+                </div>
+            </div>
+        </div>
 
-    </div>
+        <div class="md3-form__section">
+            <h3 class="md3-form__section-title">Acceso al sistema</h3>
+
+            <div class="md3-form__row md3-form__row--2">
+                <div class="md3-field">
+                    <label class="md3-field__label" for="add_password">Contraseña *</label>
+                    <input class="md3-input" type="password" id="add_password" name="password"
+                           placeholder="••••••••" required>
+                </div>
+                <div class="md3-field">
+                    <label class="md3-field__label" for="add_password_confirm">Confirmar contraseña *</label>
+                    <input class="md3-input" type="password" id="add_password_confirm" name="password_confirm"
+                           placeholder="••••••••" required>
+                </div>
+            </div>
+        </div>
+
+        <div class="md3-form__actions">
+            <a href="{{ url_for('personal') }}" class="md3-btn md3-btn--outlined">Cancelar</a>
+            <button type="submit" class="md3-btn md3-btn--filled">
+                <i class="fa-solid fa-user-plus"></i> Agregar usuario
+            </button>
+        </div>
+
+    </form>
+
 </div>
 
 {% endblock %}

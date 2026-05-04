@@ -35,64 +35,40 @@
 
 {% macro loader(type='spinner', size='md', color='primary', text='', overlay=False, fullscreen=False, id='', class='') %}
 
-  {%- set color_map = {
-    'primary':   'var(--md-primary)',
-    'secondary': 'var(--md-secondary)',
-    'neutral':   'var(--md-neutral)'
-  } -%}
-  {%- set size_px = {'sm': '24px', 'md': '40px', 'lg': '56px'}[size] -%}
-  {%- set border_px = {'sm': '3px', 'md': '4px', 'lg': '5px'}[size] -%}
-  {%- set dot_px = {'sm': '7px', 'md': '10px', 'lg': '14px'}[size] -%}
-  {%- set bar_h = {'sm': '3px', 'md': '4px', 'lg': '5px'}[size] -%}
-  {%- set text_size = {'sm': 'var(--md-font-size-body-sm)', 'md': 'var(--md-font-size-body-md)', 'lg': 'var(--md-font-size-body-lg)'}[size] -%}
-
   {%- if fullscreen -%}
-    {%- set loader_class = 'md3-loader md3-loader--fullscreen' -%}
+    {%- set base_class = 'md3-loader md3-loader--fullscreen' -%}
   {%- elif overlay -%}
-    {%- set loader_class = 'md3-loader md3-loader--overlay' -%}
+    {%- set base_class = 'md3-loader md3-loader--overlay' -%}
   {%- else -%}
-    {%- set loader_class = 'md3-loader' -%}
+    {%- set base_class = 'md3-loader' -%}
   {%- endif -%}
 
   <div
     {% if id %}id="{{ id }}"{% endif %}
-    class="{{ loader_class }} {{ class }}"
+    class="{{ base_class }} md3-loader--{{ size }} md3-loader--{{ color }} {{ class }}"
     role="status"
     aria-label="{{ text if text else 'Cargando' }}"
   >
 
     {% if type == 'spinner' %}
-      <div class="md3-loader__spinner" style="
-        width:{{ size_px }};
-        height:{{ size_px }};
-        border:{{ border_px }} solid color-mix(in srgb, {{ color_map[color] }} 22%, transparent);
-        border-top-color:{{ color_map[color] }};
-      "></div>
+      <div class="md3-loader__spinner"></div>
 
     {% elif type == 'dots' %}
-      <div class="d-flex gap-1">
-        {% for i in range(3) %}
-          <div class="md3-loader__dot" style="
-            width:{{ dot_px }};
-            height:{{ dot_px }};
-            animation:md3-dot-bounce 1.2s ease-in-out {{ (i * 0.2) | round(1) }}s infinite;
-            background:{{ color_map[color] }};
-          "></div>
-        {% endfor %}
+      <div class="md3-loader__dots">
+        <div class="md3-loader__dot"></div>
+        <div class="md3-loader__dot"></div>
+        <div class="md3-loader__dot"></div>
       </div>
 
     {% elif type == 'bar' %}
-      <div class="md3-loader__bar-container" style="width:{{ size_px }}; height:{{ bar_h }}; background:color-mix(in srgb, {{ color_map[color] }} 22%, transparent);">
-        <div class="md3-loader__bar-fill" style="
-          height:100%;
-          background:{{ color_map[color] }};
-        "></div>
+      <div class="md3-loader__bar-container">
+        <div class="md3-loader__bar-fill"></div>
       </div>
 
     {% endif %}
 
     {% if text %}
-      <span class="md3-loader__text" style="font-size:{{ text_size }};">{{ text }}</span>
+      <span class="md3-loader__text">{{ text }}</span>
     {% endif %}
 
     <span class="sr-only">Cargando{{ ('... ' ~ text) if text else '' }}</span>

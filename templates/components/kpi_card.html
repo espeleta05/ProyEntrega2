@@ -25,114 +25,33 @@
 
 {% macro kpi_card(value, label, icon='fa-chart-bar', color='primary', trend=None, trend_label='vs mes anterior', sub='', href=None, class='') %}
 
-  {%- set bg_map = {
-    'primary':   'var(--md-primary-container)',
-    'secondary': 'var(--md-secondary-container)',
-    'tertiary':  'var(--md-tertiary-container)',
-    'success':   'var(--md-success-container)',
-    'error':     'var(--md-error-container)',
-    'neutral':   'var(--md-neutral-container)'
-  } -%}
-  {%- set fg_map = {
-    'primary':   'var(--md-on-primary-container)',
-    'secondary': 'var(--md-on-secondary-container)',
-    'tertiary':  'var(--md-on-tertiary-container)',
-    'success':   'var(--md-on-success-container)',
-    'error':     'var(--md-on-error-container)',
-    'neutral':   'var(--md-on-neutral-container)'
-  } -%}
-  {%- set icon_bg_map = {
-    'primary':   'var(--md-primary)',
-    'secondary': 'var(--md-secondary)',
-    'tertiary':  'var(--md-tertiary)',
-    'success':   'var(--md-success)',
-    'error':     'var(--md-error)',
-    'neutral':   'var(--md-neutral)'
-  } -%}
-
   {%- set tag = 'a' if href else 'div' -%}
 
   <{{ tag }}
     {% if href %}href="{{ href }}"{% endif %}
-    class="md3-kpi {{ class }}"
-    style="
-      background: {{ bg_map[color] }};
-      color: {{ fg_map[color] }};
-      border-radius: var(--md-shape-large);
-      padding: var(--md-spacing-5);
-      box-shadow: var(--md-shadow-level-1);
-      display: flex;
-      flex-direction: column;
-      gap: var(--md-spacing-3);
-      text-decoration: none;
-      transition: box-shadow var(--md-transition-short), transform var(--md-transition-short);
-      position: relative;
-      overflow: hidden;
-    "
-    onmouseover="this.style.boxShadow='var(--md-shadow-level-2)'; this.style.transform='translateY(-2px)'"
-    onmouseout="this.style.boxShadow='var(--md-shadow-level-1)'; this.style.transform='translateY(0)'"
+    class="md3-kpi md3-kpi--{{ color }} {{ class }}"
   >
 
-    <div style="display:flex; align-items:flex-start; justify-content:space-between; gap: var(--md-spacing-3);">
-
-      <div style="flex:1; min-width:0;">
-        <span style="
-          font-family: var(--md-font-family-display);
-          font-size: var(--md-font-size-display-sm);
-          font-weight: var(--md-font-weight-bold);
-          line-height: 1.1;
-          display: block;
-          color: {{ fg_map[color] }};
-        ">{{ value }}</span>
-        <span style="
-          font-size: var(--md-font-size-body-md);
-          font-weight: var(--md-font-weight-medium);
-          opacity: 0.85;
-          display: block;
-          margin-top: var(--md-spacing-1);
-        ">{{ label }}</span>
+    <div class="md3-kpi__row">
+      <div class="md3-kpi__values">
+        <span class="md3-kpi__value">{{ value }}</span>
+        <span class="md3-kpi__label">{{ label }}</span>
       </div>
-
-      <div style="
-        width: 48px;
-        height: 48px;
-        border-radius: var(--md-shape-medium);
-        background: {{ icon_bg_map[color] }};
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        flex-shrink: 0;
-        opacity: 0.9;
-      ">
-        <i class="fa-solid {{ icon }}" style="font-size: 1.25rem; color: var(--md-on-primary);"></i>
+      <div class="md3-kpi__icon-box">
+        <i class="fa-solid {{ icon }}"></i>
       </div>
-
     </div>
 
     {% if trend is not none %}
       {%- set is_up = trend >= 0 -%}
-      <span style="
-        display: inline-flex;
-        align-items: center;
-        gap: var(--md-spacing-1);
-        font-size: var(--md-font-size-body-sm);
-        font-weight: var(--md-font-weight-semibold);
-        padding: 2px var(--md-spacing-2);
-        border-radius: var(--md-shape-extra-large);
-        background: {{ 'rgba(29,123,0,.15)' if is_up else 'rgba(196,0,0,.15)' }};
-        color: {{ 'var(--md-success)' if is_up else 'var(--md-error)' }};
-        width: fit-content;
-      ">
-        <i class="fa-solid fa-arrow-{{ 'up' if is_up else 'down' }}" style="font-size:0.65rem;"></i>
+      <span class="md3-kpi__trend md3-kpi__trend--{{ 'up' if is_up else 'down' }}">
+        <i class="fa-solid fa-arrow-{{ 'up' if is_up else 'down' }}"></i>
         {{ trend | abs }}% {{ trend_label }}
       </span>
     {% endif %}
 
     {% if sub %}
-      <span style="
-        font-size: var(--md-font-size-body-sm);
-        opacity: 0.72;
-      ">{{ sub }}</span>
+      <span class="md3-kpi__sub">{{ sub }}</span>
     {% endif %}
 
   </{{ tag }}>

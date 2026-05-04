@@ -39,12 +39,7 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='css/components/empty-states.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/components/toolbar.css') }}">
 
-  <!-- ④ Legacy: clases antiguas usadas por páginas no migradas aún -->
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/modal.css') }}">
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/alerts.css') }}">
-
-  <!-- ⑤ CSS específico de cada página -->
+  <!-- ④ CSS específico de cada página -->
   {% block head_extra %}{% endblock %}
 </head>
 

@@ -71,35 +71,8 @@
 
 </div>
 
-<script>
-const historialSearchInput = document.getElementById('historialSearchInput');
-const patientsGrid = document.getElementById('patientsGrid');
-const patientsNoResults = document.getElementById('patientsNoResults');
+{% endblock %}
 
-if (historialSearchInput && patientsGrid) {
-    const patientItems = Array.from(patientsGrid.querySelectorAll('.patient-item'));
-
-    const applyPatientFilter = (value) => {
-        const term = (value || '').toLowerCase().trim();
-        let visibleCount = 0;
-
-        patientItems.forEach((item) => {
-            const fullText = item.textContent.toLowerCase();
-            const isVisible = !term || fullText.includes(term);
-            item.classList.toggle('hidden', !isVisible);
-            if (isVisible) visibleCount += 1;
-        });
-
-        if (patientsNoResults) {
-            const shouldShowNoResults = term.length > 0 && visibleCount === 0;
-            patientsNoResults.classList.toggle('hidden', !shouldShowNoResults);
-        }
-    };
-
-    historialSearchInput.addEventListener('input', (event) => {
-        applyPatientFilter(event.target.value);
-    });
-}
-</script>
-
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/pages/historial.js') }}"></script>
 {% endblock %}

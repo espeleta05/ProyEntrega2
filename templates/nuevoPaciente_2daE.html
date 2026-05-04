@@ -1,175 +1,137 @@
-<!-- Fondo oscuro del modal -->
-<div class="modal-overlay" id="patientModal">
-    <div class="modal-container">
-        
-        <!-- Encabezado del Modal -->
-        <div class="modal-header">
-            <h3 class="modal-title">Nuevo paciente</h3>
-            <button class="modal-close-btn" onclick="closePatientModal()">&times;</button>
+<div class="md3-modal-overlay" id="patientModal" role="dialog" aria-modal="true" aria-labelledby="patientModal-title">
+    <div class="md3-modal md3-modal--lg">
+
+        <div class="md3-modal__header">
+            <div class="md3-modal__header-content">
+                <i class="fa-solid fa-user-plus md3-modal__header-icon"></i>
+                <h2 class="md3-modal__title" id="patientModal-title">Nuevo paciente</h2>
+            </div>
+            <button class="md3-modal__close" onclick="closePatientModal()" aria-label="Cerrar">&times;</button>
         </div>
 
-        <!-- Formulario -->
-        <form id="formNewPatient" onsubmit="submitNewPatient(event)">
-            
-            <!-- Sección: Datos del Paciente -->
-            <div class="form-section">
-                <h4 class="section-title">DATOS PACIENTE</h4>
-                
-                <div class="form-row">
-                    <div class="form-group">
-                        <label>Nombre del paciente</label>
-                        <input type="text" id="p_name" placeholder="Nombre(s)" required>
+        <form id="formNewPatient">
+
+            <div class="md3-modal__body">
+
+                <div class="md3-form__section">
+                    <h4 class="md3-form__section-title">Datos del paciente</h4>
+
+                    <div class="md3-form__row md3-form__row--2">
+                        <div class="md3-field">
+                            <label class="md3-field__label" for="p_name">Nombre(s) *</label>
+                            <input class="md3-input" type="text" id="p_name" placeholder="Nombre(s)" required>
+                        </div>
+                        <div class="md3-field">
+                            <label class="md3-field__label" for="p_lastname">Apellidos *</label>
+                            <input class="md3-input" type="text" id="p_lastname" placeholder="Apellidos" required>
+                        </div>
                     </div>
-                    <div class="form-group">
-                        <label>Apellidos del paciente</label>
-                        <input type="text" id="p_lastname" placeholder="Apellidos" required>
+
+                    <div class="md3-form__row md3-form__row--2">
+                        <div class="md3-field">
+                            <label class="md3-field__label" for="p_birthdate">Fecha de nacimiento *</label>
+                            <input class="md3-input" type="date" id="p_birthdate" required>
+                        </div>
+                        <div class="md3-field">
+                            <label class="md3-field__label" for="p_gender">Género *</label>
+                            <select class="md3-select" id="p_gender" required>
+                                <option value="Masculino">Masculino</option>
+                                <option value="Femenino">Femenino</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="md3-form__row md3-form__row--2">
+                        <div class="md3-field">
+                            <label class="md3-field__label" for="p_blood">Tipo de sangre</label>
+                            <select class="md3-select" id="p_blood">
+                                <option value="O+">O+</option>
+                                <option value="O-">O-</option>
+                                <option value="A+">A+</option>
+                                <option value="A-">A-</option>
+                                <option value="B+">B+</option>
+                                <option value="B-">B-</option>
+                                <option value="AB+">AB+</option>
+                                <option value="AB-">AB-</option>
+                            </select>
+                        </div>
+                        <div class="md3-field">
+                            <label class="md3-field__label" for="p_allergies">Alergias</label>
+                            <input class="md3-input" type="text" id="p_allergies" placeholder="Ej: Penicilina">
+                        </div>
                     </div>
                 </div>
 
-                <div class="form-row">
-                    <div class="form-group">
-                        <label>Fecha de Nacimiento</label>
-                        <input type="date" id="p_birthdate" required>
+                <div class="md3-form__section">
+                    <h4 class="md3-form__section-title">Datos del tutor</h4>
+
+                    <div class="md3-form__row md3-form__row--2">
+                        <div class="md3-field">
+                            <label class="md3-field__label" for="t_name">Nombre(s)</label>
+                            <input class="md3-input" type="text" id="t_name" placeholder="Nombre(s)">
+                        </div>
+                        <div class="md3-field">
+                            <label class="md3-field__label" for="t_lastname">Apellidos</label>
+                            <input class="md3-input" type="text" id="t_lastname" placeholder="Apellidos">
+                        </div>
                     </div>
-                    <div class="form-group">
-                        <label>Género</label>
-                        <select id="p_gender" required>
-                            <option value="Masculino">Masculino</option>
-                            <option value="Femenino">Femenino</option>
-                        </select>
+
+                    <div class="md3-form__row md3-form__row--2">
+                        <div class="md3-field">
+                            <label class="md3-field__label" for="t_curp">CURP</label>
+                            <input class="md3-input" type="text" id="t_curp" placeholder="18 caracteres" maxlength="18">
+                        </div>
+                        <div class="md3-field">
+                            <label class="md3-field__label" for="t_phone">Teléfono</label>
+                            <input class="md3-input" type="tel" id="t_phone" placeholder="+52 1234 5678">
+                        </div>
+                    </div>
+
+                    <div class="md3-form__row md3-form__row--2">
+                        <div class="md3-field">
+                            <label class="md3-field__label" for="t_email">Email</label>
+                            <input class="md3-input" type="email" id="t_email" placeholder="correo@ejemplo.com">
+                        </div>
+                        <div class="md3-field">
+                            <label class="md3-field__label" for="t_address">Dirección</label>
+                            <input class="md3-input" type="text" id="t_address" placeholder="Calle, Número, Colonia">
+                        </div>
                     </div>
                 </div>
 
-                <div class="form-row">
-                    <div class="form-group">
-                        <label>Tipo de Sangre</label>
-                        <select id="p_blood">
-                            <option value="O+">O+</option>
-                            <option value="O-">O-</option>
-                            <option value="A+">A+</option>
-                            <option value="A-">A-</option>
-                            <option value="B+">B+</option>
-                            <option value="B-">B-</option>
-                            <option value="AB+">AB+</option>
-                            <option value="AB-">AB-</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label>Alergias</label>
-                        <input type="text" id="p_allergies" placeholder="Ej: Penicilina">
-                    </div>
-                </div>
             </div>
 
-            <!-- Sección: Datos del Tutor -->
-            <div class="form-section">
-                <h4 class="section-title">DATOS TUTOR</h4>
-                
-                <div class="form-row">
-                    <div class="form-group">
-                        <label>Nombre del tutor</label>
-                        <input type="text" id="t_name" placeholder="Nombre(s)">
-                    </div>
-                    <div class="form-group">
-                        <label>Apellidos del tutor</label>
-                        <input type="text" id="t_lastname" placeholder="Apellidos">
-                    </div>
-                </div>
-
-                <div class="form-row">
-                    <div class="form-group">
-                        <label>CURP</label>
-                        <input type="text" id="t_curp" placeholder="18 caracteres" maxlength="18">
-                    </div>
-                    <div class="form-group">
-                        <label>Número de teléfono</label>
-                        <input type="tel" id="t_phone" placeholder="+52 1234 5678">
-                    </div>
-                </div>
-
-                <div class="form-row">
-                    <div class="form-group">
-                        <label>Email</label>
-                        <input type="email" id="t_email" placeholder="correo@ejemplo.com">
-                    </div>
-                    <div class="form-group">
-                        <label>Dirección</label>
-                        <input type="text" id="t_address" placeholder="Calle, Número, Colonia">
-                    </div>
-                </div>
+            <div class="md3-modal__footer">
+                <button type="button" class="md3-btn md3-btn--outlined" onclick="closePatientModal()">Cancelar</button>
+                <button type="submit" class="md3-btn md3-btn--filled">
+                    <i class="fa-solid fa-user-plus"></i> Agregar paciente
+                </button>
             </div>
 
-            <!-- Footer -->
-            <div class="modal-footer">
-                <button type="button" class="btn-cancel" onclick="closePatientModal()">Cancelar</button>
-                <button type="submit" class="btn-save">Agregar paciente</button>
-            </div>
         </form>
     </div>
 </div>
 
-<!-- Lógica JS del Modal -->
 <script>
-    // Función para abrir el modal
-    function openPatientModal() {
-        document.getElementById('patientModal').classList.add('active');
-    }
+function openPatientModal()  { document.getElementById('patientModal').classList.add('active'); }
+function closePatientModal() { document.getElementById('patientModal').classList.remove('active'); document.getElementById('formNewPatient').reset(); }
+document.getElementById('patientModal').addEventListener('click', e => { if (e.target === document.getElementById('patientModal')) closePatientModal(); });
 
-    // Función para cerrar el modal
-    function closePatientModal() {
-        document.getElementById('patientModal').classList.remove('active');
-        document.getElementById('formNewPatient').reset();
-    }
-
-    // Cerrar si da clic fuera
-    document.getElementById('patientModal').addEventListener('click', function(e) {
-        if (e.target === this) {
-            closePatientModal();
-        }
-    });
-
-    // Función para enviar datos
-    async function submitNewPatient(e) {
-        e.preventDefault();
-
-        const data = {
-            first_name: document.getElementById('p_name').value,
-            last_name: document.getElementById('p_lastname').value,
-            birth_date: document.getElementById('p_birthdate').value,
-            gender: document.getElementById('p_gender').value === 'Masculino' ? 'M' : 'F',
-            blood_type: document.getElementById('p_blood').value,
-            allergies: document.getElementById('p_allergies').value,
-            
-            tutor: {
-                name: document.getElementById('t_name').value,
-                lastname: document.getElementById('t_lastname').value,
-                curp: document.getElementById('t_curp').value,
-                number: document.getElementById('t_phone').value,
-                mail: document.getElementById('t_email').value,
-                address: document.getElementById('t_address').value
-            }
-        };
-
-        try {
-            const response = await fetch('/register_patient', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(data)
-            });
-
-            const result = await response.json();
-
-            if (response.ok) {
-                alert(result.message || "Paciente registrado");
-                closePatientModal();
-                window.location.reload();
-            } else {
-                alert(result.error || "Ocurrió un error");
-            }
-        } catch (err) {
-            console.error(err);
-            alert("Error de conexión");
-        }
-    }
+document.getElementById('formNewPatient').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const val = id => document.getElementById(id)?.value || '';
+    const data = {
+        first_name: val('p_name'), last_name: val('p_lastname'),
+        birth_date: val('p_birthdate'),
+        gender: val('p_gender') === 'Masculino' ? 'M' : 'F',
+        blood_type: val('p_blood'), allergies: val('p_allergies'),
+        tutor: { name: val('t_name'), lastname: val('t_lastname'), curp: val('t_curp'), number: val('t_phone'), mail: val('t_email'), address: val('t_address') },
+    };
+    try {
+        const res = await fetch('/register_patient', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+        const result = await res.json();
+        if (res.ok) { alert(result.message || 'Paciente registrado'); closePatientModal(); window.location.reload(); }
+        else alert(result.error || 'Ocurrió un error');
+    } catch (err) { console.error(err); alert('Error de conexión'); }
+});
 </script>
-

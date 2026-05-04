@@ -28,7 +28,7 @@
         {% endif %}
 
         {% if is_last %}
-          {{- /* Último item: activo, sin enlace */ -}}
+          {#- Último item: activo, sin enlace -#}
           <span aria-current="page" class="md3-breadcrumb__current">
             {% if item.icon is defined and item.icon %}
               <i class="fa-solid {{ item.icon }} md3-breadcrumb__icon"></i>
@@ -37,7 +37,7 @@
           </span>
 
         {% elif item.href is defined and item.href %}
-          {{- /* Item con enlace */ -}}
+          {#- Item con enlace -#}
           <a href="{{ item.href }}" class="md3-breadcrumb__link">
             {% if item.icon is defined and item.icon %}
               <i class="fa-solid {{ item.icon }} md3-breadcrumb__icon"></i>
@@ -46,7 +46,7 @@
           </a>
 
         {% else %}
-          {{- /* Item sin enlace (no activo) */ -}}
+          {#- Item sin enlace (no activo) -#}
           <span class="d-inline-flex gap-1">
             {% if item.icon is defined and item.icon %}
               <i class="fa-solid {{ item.icon }} md3-breadcrumb__icon"></i>

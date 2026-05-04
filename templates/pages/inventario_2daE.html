@@ -3,7 +3,7 @@
 {% block title %}Inventario - Personal Clínico{% endblock %}
 
 {% block head_extra %}
-<link rel="stylesheet" href="{{ url_for('static', filename='css/tables.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/crud.css') }}">
 {% endblock %}
 
 {% block content %}
@@ -105,38 +105,8 @@
 </div>
 <p class="tbl-footer">Mostrando {{ inventory|length }} de {{ inventory|length }} insumos</p>
 
-<script>
-const inventorySearch = document.getElementById('searchInput');
-const inventoryFilter = document.getElementById('roleFilterSelect');
-const inventorySort = document.getElementById('sortSelect');
-const inventoryRows = Array.from(document.querySelectorAll('#inventoryTable tr[data-clinic]'));
+{% endblock %}
 
-function applyInventoryView() {
-    const query = (inventorySearch?.value || '').toLowerCase();
-    const filter = (inventoryFilter?.value || '').toLowerCase();
-    inventoryRows.forEach(row => {
-        const clinic = row.dataset.clinic.toLowerCase();
-        const supply = row.dataset.supply.toLowerCase();
-        row.style.display = (!query || clinic.includes(query) || supply.includes(query)) && (!filter || supply.includes(filter)) ? '' : 'none';
-    });
-}
-
-function sortInventory() {
-    if (!inventorySort) return;
-    const key = inventorySort.value;
-    const tbody = document.getElementById('inventoryTable');
-    const visibleRows = inventoryRows.filter(row => row.style.display !== 'none');
-    const idxMap = { clinica: 0, insumo: 1, unidad: 2, stock: 3, categoria: 5, estado: 6 };
-    const idx = idxMap[key] ?? 0;
-    visibleRows.sort((left, right) => (left.children[idx]?.innerText || '').localeCompare(right.children[idx]?.innerText || '', 'es', { numeric: true, sensitivity: 'base' }));
-    visibleRows.forEach(row => tbody.appendChild(row));
-}
-
-if (inventorySearch) inventorySearch.addEventListener('input', () => { applyInventoryView(); sortInventory(); });
-if (inventoryFilter) inventoryFilter.addEventListener('change', () => { applyInventoryView(); sortInventory(); });
-if (inventorySort) inventorySort.addEventListener('change', () => { sortInventory(); applyInventoryView(); });
-
-applyInventoryView();
-</script>
-
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/pages/inventario.js') }}"></script>
 {% endblock %}

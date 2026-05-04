@@ -3,16 +3,10 @@
 {% block title %}Dashboard - Personal Clínico{% endblock %}
 
 {% block head_extra %}
-<link rel="stylesheet" href="{{ url_for('static', filename='css/nuevoPaciente.css') }}">
-<link rel="stylesheet" href="{{ url_for('static', filename='css/nuevaVacuna.css') }}">
 <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/dashboard.css') }}">
 <style>
   .content-info { background-color: transparent !important; box-shadow: none !important; }
 </style>
-{% endblock %}
-
-{% block scripts %}
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 {% endblock %}
 
 {% block content %}
@@ -221,84 +215,14 @@
 {% include 'nuevoPaciente_2daE.html' %}
 {% include 'nuevaVacuna_2daE.html' %}
 
-<script>
-const coverageData = {{ coverage_by_age | tojson }};
-const dosesData    = {{ doses_by_month  | tojson }};
-const delayData    = {{ delay_by_vaccine | tojson }};
+<div id="dash-chart-data" hidden
+     data-coverage="{{ coverage_by_age  | tojson | e }}"
+     data-monthly="{{ doses_by_month   | tojson | e }}"
+     data-delays="{{ delay_by_vaccine  | tojson | e }}"></div>
 
-/* ── Cobertura por grupo de edad ── */
-new Chart(document.getElementById('coverageChart'), {
-    type: 'bar',
-    data: {
-        labels: coverageData.map(d => d.label),
-        datasets: [{
-            label: '% cobertura',
-            data: coverageData.map(d => d.pct),
-            backgroundColor: ['#4CAF7D','#5B8DD9','#29B6C5','#F4A84A','#AB6BD6'],
-            borderRadius: 6,
-            borderSkipped: false,
-        }]
-    },
-    options: {
-        responsive: true, maintainAspectRatio: false,
-        plugins: { legend: { display: false } },
-        scales: {
-            y: { beginAtZero: true, max: 100, ticks: { callback: v => v + '%' }, grid: { color: '#f0f0f0' } },
-            x: { grid: { display: false } }
-        }
-    }
-});
+{% endblock %}
 
-/* ── Dosis por mes ── */
-new Chart(document.getElementById('dosesChart'), {
-    type: 'line',
-    data: {
-        labels: dosesData.map(d => d.label),
-        datasets: [{
-            label: 'Dosis',
-            data: dosesData.map(d => d.count),
-            borderColor: '#4f46e5',
-            backgroundColor: 'rgba(79,70,229,.1)',
-            borderWidth: 2.5,
-            pointRadius: 4,
-            pointBackgroundColor: '#4f46e5',
-            tension: 0.4,
-            fill: true,
-        }]
-    },
-    options: {
-        responsive: true, maintainAspectRatio: false,
-        plugins: { legend: { display: false } },
-        scales: {
-            y: { beginAtZero: true, grid: { color: '#f0f0f0' } },
-            x: { grid: { display: false } }
-        }
-    }
-});
-
-/* ── Retraso por vacuna ── */
-new Chart(document.getElementById('delayChart'), {
-    type: 'bar',
-    data: {
-        labels: delayData.map(d => d.vaccine),
-        datasets: [{
-            label: '% retraso',
-            data: delayData.map(d => d.pct),
-            backgroundColor: '#E05252',
-            borderRadius: 6,
-            borderSkipped: false,
-        }]
-    },
-    options: {
-        indexAxis: 'y',
-        responsive: true, maintainAspectRatio: false,
-        plugins: { legend: { display: false } },
-        scales: {
-            x: { beginAtZero: true, max: 100, ticks: { callback: v => v + '%' }, grid: { color: '#f0f0f0' } },
-            y: { grid: { display: false } }
-        }
-    }
-});
-</script>
-
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="{{ url_for('static', filename='js/pages/dashboard.js') }}"></script>
 {% endblock %}

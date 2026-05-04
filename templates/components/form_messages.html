@@ -1,26 +1,14 @@
-<!-- Componente de mensajes flash reutilizable -->
 <div class="flash-messages">
     {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}
             {% for category, message in messages %}
-            <div class="alert alert-{{ category }}" role="alert">
-                <span class="alert-icon">
-                    {% if category == 'success' %}
-                        <i class="fa-solid fa-check-circle"></i>
-                    {% elif category == 'danger' %}
-                        <i class="fa-solid fa-exclamation-circle"></i>
-                    {% elif category == 'warning' %}
-                        <i class="fa-solid fa-triangle-exclamation"></i>
-                    {% elif category == 'info' %}
-                        <i class="fa-solid fa-circle-info"></i>
-                    {% endif %}
-                </span>
-                <div class="alert-content">
-                    <p class="alert-message">{{ message }}</p>
+            {% set alert_type = 'error' if category == 'danger' else category %}
+            <div class="md3-alert md3-alert--{{ alert_type }}" role="alert">
+                <i class="fa-solid {% if category == 'success' %}fa-circle-check{% elif category == 'danger' %}fa-circle-exclamation{% elif category == 'warning' %}fa-triangle-exclamation{% else %}fa-circle-info{% endif %} md3-alert__icon"></i>
+                <div class="md3-alert__body">
+                    <p class="md3-alert__text">{{ message }}</p>
                 </div>
-                <button class="alert-close" onclick="closeAlert(this)" aria-label="Cerrar notificación">
-                    <i class="fa-solid fa-times"></i>
-                </button>
+                <button class="md3-alert__close" aria-label="Cerrar notificación">&times;</button>
             </div>
             {% endfor %}
         {% endif %}
