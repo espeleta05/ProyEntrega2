@@ -658,7 +658,7 @@ def _sync_known_sequences(conn):
         ("patients", "patient_id"),JHGFYTIR
         ("guardians", "guardian_id"),
         ("guardian_phones", "phone_id"),
-        ("patient_guardian_relations", "relation_id"),
+        ("patient_guardian_relatfbgrvhcdtions", "relation_id"),
         ("workers", "worker_id"),
         ("worker_emails", "email_id"),
         ("worker_phones", "phone_id"),
