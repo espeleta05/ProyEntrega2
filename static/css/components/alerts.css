@@ -1,0 +1,124 @@
+/* Material Design 3 — Alerts / banners (requires design-system.css first) */
+
+@keyframes md3-alert-in {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.md3-alert {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--md-spacing-3);
+  padding: var(--md-spacing-4) var(--md-spacing-5);
+  border-radius: var(--md-shape-medium);
+  border-inline-start: 4px solid transparent;
+  font-family: var(--md-font-family-body);
+  font-size: var(--md-font-size-body-md);
+  line-height: var(--md-line-height-body-md);
+  box-shadow: var(--md-shadow-level-1);
+  animation: md3-alert-in 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition:
+    box-shadow var(--md-transition-short),
+    transform var(--md-transition-short);
+}
+
+.md3-alert:hover {
+  box-shadow: var(--md-shadow-level-2);
+}
+
+.md3-alert:active {
+  transform: scale(0.998);
+}
+
+.md3-alert:focus-within {
+  outline: none;
+  box-shadow:
+    var(--md-shadow-level-2),
+    0 0 0 2px color-mix(in srgb, var(--md-primary) 28%, transparent);
+}
+
+.md3-alert__icon {
+  flex-shrink: 0;
+  font-size: var(--md-font-size-title-md);
+  line-height: 1;
+  margin-top: 2px;
+}
+
+.md3-alert__body {
+  flex: 1;
+  min-width: 0;
+}
+
+.md3-alert__title {
+  font-family: var(--md-font-family-display);
+  font-size: var(--md-font-size-title-sm);
+  font-weight: var(--md-font-weight-semibold);
+  line-height: var(--md-line-height-title-sm);
+  margin-bottom: var(--md-spacing-1);
+}
+
+.md3-alert__text {
+  margin: 0;
+  opacity: 0.92;
+}
+
+.md3-alert__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--md-spacing-2);
+  margin-top: var(--md-spacing-3);
+}
+
+/* Variants */
+.md3-alert--success {
+  background-color: var(--md-success-container);
+  color: var(--md-on-success-container);
+  border-inline-start-color: var(--md-success);
+}
+
+.md3-alert--error {
+  background-color: var(--md-error-container);
+  color: var(--md-on-error-container);
+  border-inline-start-color: var(--md-error);
+}
+
+.md3-alert--warning {
+  background-color: var(--md-tertiary-container);
+  color: var(--md-on-tertiary-container);
+  border-inline-start-color: var(--md-tertiary);
+}
+
+.md3-alert--info {
+  background-color: var(--md-primary-container);
+  color: var(--md-on-primary-container);
+  border-inline-start-color: var(--md-primary);
+}
+
+.md3-alert--neutral {
+  background-color: var(--md-surface-container-high);
+  color: var(--md-on-surface);
+  border-inline-start-color: var(--md-outline);
+}
+
+/* Compact inline strip */
+.md3-alert--compact {
+  align-items: center;
+  padding: var(--md-spacing-3) var(--md-spacing-4);
+  border-radius: var(--md-shape-small);
+}
+
+.md3-alert--compact .md3-alert__title {
+  margin-bottom: 0;
+  display: inline;
+  margin-inline-end: var(--md-spacing-2);
+}
+
+.md3-alert--compact .md3-alert__icon {
+  margin-top: 0;
+}

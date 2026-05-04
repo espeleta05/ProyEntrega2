@@ -1,0 +1,70 @@
+/* ========================================
+   MD3 TOOLBAR - Material Design 3
+   ======================================== */
+
+.md3-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--md-spacing-4);
+  background: var(--md-surface-container);
+  border-bottom: 1px solid var(--md-outline-variant);
+  gap: var(--md-spacing-4);
+}
+
+.md3-toolbar__back-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--md-shape-medium);
+  background: transparent;
+  border: none;
+  color: var(--md-on-surface);
+  cursor: pointer;
+  transition: background var(--md-transition-short), color var(--md-transition-short);
+}
+
+.md3-toolbar__back-button:hover {
+  background: var(--md-surface-container-high);
+}
+
+.md3-toolbar__title {
+  font-family: var(--md-font-family-display);
+  font-size: var(--md-font-size-title-lg);
+  font-weight: var(--md-font-weight-bold);
+  color: var(--md-on-surface);
+  margin: 0;
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.md3-toolbar__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--md-spacing-2);
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+.md3-toolbar__action-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--md-shape-medium);
+  background: transparent;
+  border: none;
+  color: var(--md-on-surface);
+  cursor: pointer;
+  transition: background var(--md-transition-short);
+}
+
+.md3-toolbar__action-button:hover {
+  background: var(--md-surface-container-high);
+}

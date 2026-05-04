@@ -1,0 +1,302 @@
+/* ========================================
+   GRID SYSTEM - RESPONSIVE
+   ======================================== */
+
+.grid {
+  display: grid;
+  gap: var(--md-spacing-6);
+  width: 100%;
+}
+
+/* 12-column grid base */
+.grid.cols-12 {
+  grid-template-columns: repeat(12, 1fr);
+}
+
+/* Standard layouts */
+.grid.cols-6 {
+  grid-template-columns: repeat(6, 1fr);
+}
+
+.grid.cols-4 {
+  grid-template-columns: repeat(4, 1fr);
+}
+
+.grid.cols-3 {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.grid.cols-2 {
+  grid-template-columns: repeat(2, 1fr);
+}
+
+.grid.cols-1 {
+  grid-template-columns: 1fr;
+}
+
+/* Grid items with span */
+.col-span-12 { grid-column: span 12; }
+.col-span-11 { grid-column: span 11; }
+.col-span-10 { grid-column: span 10; }
+.col-span-9 { grid-column: span 9; }
+.col-span-8 { grid-column: span 8; }
+.col-span-7 { grid-column: span 7; }
+.col-span-6 { grid-column: span 6; }
+.col-span-5 { grid-column: span 5; }
+.col-span-4 { grid-column: span 4; }
+.col-span-3 { grid-column: span 3; }
+.col-span-2 { grid-column: span 2; }
+.col-span-1 { grid-column: span 1; }
+
+/* Content card styling */
+.grid-card {
+  background-color: var(--md-surface-container-lowest);
+  border: 1px solid var(--md-outline-variant);
+  border-radius: var(--md-shape-large);
+  padding: var(--md-spacing-6);
+  display: flex;
+  flex-direction: column;
+  gap: var(--md-spacing-4);
+  box-shadow: var(--md-shadow-level-1);
+  transition: var(--md-transition-standard);
+}
+
+.grid-card:hover {
+  box-shadow: var(--md-shadow-level-2);
+  border-color: var(--md-outline);
+}
+
+.grid-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--md-spacing-4);
+  border-bottom: 1px solid var(--md-outline-variant);
+  padding-bottom: var(--md-spacing-4);
+  margin-bottom: var(--md-spacing-4);
+}
+
+.grid-card-title {
+  font-size: var(--md-font-size-title-lg);
+  color: var(--md-on-surface);
+  font-weight: var(--md-font-weight-semibold);
+  margin: 0;
+}
+
+.grid-card-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--md-spacing-3);
+}
+
+.grid-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--md-spacing-4);
+  padding-top: var(--md-spacing-4);
+  border-top: 1px solid var(--md-outline-variant);
+}
+
+/* Desktop: 4-column layout */
+@media (min-width: 1025px) {
+  .grid.responsive {
+    grid-template-columns: repeat(4, 1fr);
+  }
+
+  .grid.responsive-2 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .grid.responsive-3 {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .grid.gap-sm {
+    gap: var(--md-spacing-4);
+  }
+
+  .grid.gap-md {
+    gap: var(--md-spacing-6);
+  }
+
+  .grid.gap-lg {
+    gap: var(--md-spacing-8);
+  }
+}
+
+/* Tablet: 2-3 columns */
+@media (min-width: 641px) and (max-width: 1024px) {
+  .grid.responsive {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .grid.responsive-2 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .grid.responsive-3 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .grid {
+    gap: var(--md-spacing-4);
+  }
+
+  .grid.cols-12 {
+    grid-template-columns: repeat(6, 1fr);
+  }
+
+  .grid.cols-6 {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .grid.cols-4 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .grid.cols-3 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .col-span-12 { grid-column: span 6; }
+  .col-span-11 { grid-column: span 5; }
+  .col-span-10 { grid-column: span 5; }
+  .col-span-9 { grid-column: span 5; }
+  .col-span-8 { grid-column: span 4; }
+  .col-span-7 { grid-column: span 4; }
+  .col-span-6 { grid-column: span 3; }
+  .col-span-5 { grid-column: span 3; }
+  .col-span-4 { grid-column: span 2; }
+  .col-span-3 { grid-column: span 2; }
+
+  .grid-card {
+    padding: var(--md-spacing-4);
+  }
+
+  .grid-card-title {
+    font-size: var(--md-font-size-title-md);
+  }
+}
+
+/* Mobile: Single column */
+@media (max-width: 640px) {
+  .grid.responsive,
+  .grid.responsive-2,
+  .grid.responsive-3,
+  .grid.cols-12,
+  .grid.cols-6,
+  .grid.cols-4,
+  .grid.cols-3,
+  .grid.cols-2 {
+    grid-template-columns: 1fr;
+  }
+
+  .grid {
+    gap: var(--md-spacing-4);
+  }
+
+  .col-span-12,
+  .col-span-11,
+  .col-span-10,
+  .col-span-9,
+  .col-span-8,
+  .col-span-7,
+  .col-span-6,
+  .col-span-5,
+  .col-span-4,
+  .col-span-3,
+  .col-span-2,
+  .col-span-1 {
+    grid-column: span 1;
+  }
+
+  .grid-card {
+    padding: var(--md-spacing-4);
+    gap: var(--md-spacing-3);
+  }
+
+  .grid-card-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--md-spacing-2);
+    padding-bottom: var(--md-spacing-3);
+    margin-bottom: var(--md-spacing-3);
+  }
+
+  .grid-card-title {
+    font-size: var(--md-font-size-title-md);
+    width: 100%;
+  }
+
+  .grid-card-footer {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--md-spacing-3);
+    padding-top: var(--md-spacing-3);
+    margin-top: var(--md-spacing-3);
+  }
+}
+
+/* Extra small mobile */
+@media (max-width: 480px) {
+  .grid {
+    gap: var(--md-spacing-3);
+  }
+
+  .grid-card {
+    padding: var(--md-spacing-3);
+    gap: var(--md-spacing-2);
+  }
+
+  .grid-card-title {
+    font-size: var(--md-font-size-title-sm);
+  }
+
+  .grid-card-header {
+    padding-bottom: var(--md-spacing-2);
+    margin-bottom: var(--md-spacing-2);
+  }
+
+  .grid-card-footer {
+    padding-top: var(--md-spacing-2);
+    margin-top: var(--md-spacing-2);
+  }
+}
+
+/* Grid alignment utilities */
+.grid-item-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.grid-item-start {
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-start;
+}
+
+.grid-item-between {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+/* Auto-fit grid for dynamic content */
+.grid-auto {
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+}
+
+@media (max-width: 768px) {
+  .grid-auto {
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  }
+}
+
+@media (max-width: 480px) {
+  .grid-auto {
+    grid-template-columns: 1fr;
+  }
+}

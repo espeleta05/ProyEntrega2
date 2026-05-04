@@ -1,0 +1,189 @@
+/**
+ * clinicas.css — Página de clínicas y áreas de servicio
+ * Solo variables --md-* del design-system. Sin colores hardcodeados.
+ */
+
+.section-info { margin-bottom: var(--md-spacing-8, 30px); }
+.section-info p {
+  color: var(--md-on-surface-variant, #49454f);
+  font-size: var(--md-font-size-body-md, 0.875rem);
+}
+
+/* ── Grid de tarjetas ─────────────────────────────────────────────────────── */
+.clinics-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+  gap: var(--md-spacing-5, 20px);
+}
+
+/* ── Tarjeta ──────────────────────────────────────────────────────────────── */
+.clinic-card {
+  background: var(--md-surface-container-lowest, #fff);
+  border-radius: var(--md-shape-medium, 12px);
+  overflow: hidden;
+  box-shadow: var(--md-shadow-level-1);
+  border: 1px solid var(--md-outline-variant, #c4c7c5);
+  transition: box-shadow var(--md-transition-short), transform var(--md-transition-short);
+}
+.clinic-card:hover {
+  box-shadow: var(--md-shadow-level-2);
+  transform: translateY(-2px);
+}
+
+/* ── Header de la tarjeta ─────────────────────────────────────────────────── */
+.clinic-header {
+  background: linear-gradient(135deg, var(--md-primary, #6B007C) 0%, var(--md-secondary, #4B1535) 100%);
+  color: var(--md-on-primary, #fff);
+  padding: var(--md-spacing-4, 16px);
+  border-bottom: 4px solid var(--md-secondary-container, #E8ABCE);
+}
+
+.clinic-header-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+.clinic-title-card {
+  margin: 0 0 var(--md-spacing-2, 6px);
+  font-size: var(--md-font-size-title-sm, 1.1rem);
+  font-weight: var(--md-font-weight-bold, 700);
+}
+
+.clinic-subtitle {
+  margin: 0;
+  font-size: var(--md-font-size-body-sm, 0.85rem);
+  opacity: 0.9;
+}
+
+/* ── Badge de estado ──────────────────────────────────────────────────────── */
+.status-badge {
+  padding: 4px 10px;
+  border-radius: var(--md-shape-extra-large, 20px);
+  font-size: var(--md-font-size-label-lg, 0.75rem);
+  font-weight: var(--md-font-weight-bold, 700);
+}
+.status-active {
+  background: var(--md-success-container, #CFFFC0);
+  color: var(--md-success, #1D7B00);
+}
+.status-inactive {
+  background: var(--md-surface-container, #f4eff8);
+  color: var(--md-on-surface-variant, #49454f);
+}
+
+/* ── Contacto ─────────────────────────────────────────────────────────────── */
+.clinic-contact {
+  padding: var(--md-spacing-4, 16px);
+  border-bottom: 1px solid var(--md-outline-variant, #c4c7c5);
+}
+
+.contact-row {
+  display: flex;
+  align-items: center;
+  gap: var(--md-spacing-2, 10px);
+  margin-bottom: var(--md-spacing-2, 10px);
+}
+.contact-row i { color: var(--md-primary, #6B007C); width: 20px; }
+
+.contact-text {
+  color: var(--md-on-surface, #1a1a1a);
+  font-size: var(--md-font-size-body-md, 0.875rem);
+}
+
+.contact-address { display: flex; align-items: flex-start; gap: var(--md-spacing-2, 10px); }
+.contact-address span {
+  color: var(--md-on-surface-variant, #49454f);
+  font-size: var(--md-font-size-body-md, 0.875rem);
+}
+
+/* ── Áreas ────────────────────────────────────────────────────────────────── */
+.clinic-areas { padding: var(--md-spacing-4, 16px); }
+
+.areas-title {
+  margin: 0 0 var(--md-spacing-3, 12px);
+  font-size: var(--md-font-size-body-md, 0.875rem);
+  font-weight: var(--md-font-weight-bold, 700);
+  color: var(--md-on-surface, #1a1a1a);
+}
+
+.areas-list { display: flex; flex-direction: column; gap: var(--md-spacing-2, 8px); }
+
+.area-item {
+  background: var(--md-surface-container-low, #f8f3f8);
+  padding: var(--md-spacing-2, 10px);
+  border-radius: var(--md-shape-small, 8px);
+  border-left: 3px solid var(--md-secondary-container, #E8ABCE);
+}
+
+.area-top { display: flex; justify-content: space-between; align-items: center; }
+
+.area-name {
+  margin: 0 0 3px;
+  font-size: var(--md-font-size-body-md, 0.875rem);
+  font-weight: var(--md-font-weight-semibold, 600);
+  color: var(--md-on-surface, #1a1a1a);
+}
+
+.area-meta {
+  font-size: var(--md-font-size-body-sm, 0.75rem);
+  color: var(--md-on-surface-variant, #49454f);
+}
+
+.area-capacity {
+  background: var(--md-secondary-container, #E8ABCE);
+  color: var(--md-secondary, #4B1535);
+  padding: 4px 10px;
+  border-radius: var(--md-shape-extra-large, 20px);
+  font-size: var(--md-font-size-label-lg, 0.75rem);
+  font-weight: var(--md-font-weight-bold, 700);
+}
+
+.no-areas {
+  margin: 0;
+  font-size: var(--md-font-size-body-md, 0.875rem);
+  color: var(--md-on-surface-variant, #49454f);
+  text-align: center;
+  padding: var(--md-spacing-5, 20px) 0;
+}
+
+/* ── Footer de la tarjeta ─────────────────────────────────────────────────── */
+.clinic-footer {
+  padding: var(--md-spacing-3, 12px) var(--md-spacing-4, 16px);
+  background: var(--md-surface-container-low, #f8f3f8);
+  border-top: 1px solid var(--md-outline-variant, #c4c7c5);
+  text-align: center;
+}
+.clinic-footer a {
+  color: var(--md-primary, #6B007C);
+  text-decoration: none;
+  font-size: var(--md-font-size-body-md, 0.875rem);
+  font-weight: var(--md-font-weight-semibold, 600);
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+/* ── Empty state ──────────────────────────────────────────────────────────── */
+.no-clinics {
+  background: var(--md-surface-container-low, #f8f3f8);
+  border: 2px dashed var(--md-outline-variant, #c4c7c5);
+  border-radius: var(--md-shape-medium, 12px);
+  padding: var(--md-spacing-10, 40px);
+  text-align: center;
+}
+.no-clinics i {
+  font-size: 2.5rem;
+  color: var(--md-outline, #79747e);
+  margin-bottom: var(--md-spacing-4, 16px);
+  opacity: 0.5;
+}
+.no-clinics p {
+  margin: 0;
+  color: var(--md-on-surface-variant, #49454f);
+  font-size: var(--md-font-size-body-lg, 1rem);
+}
+
+/* ── Responsive ───────────────────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .clinics-grid { grid-template-columns: 1fr; }
+}

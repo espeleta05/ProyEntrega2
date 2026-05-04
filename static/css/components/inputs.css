@@ -1,0 +1,143 @@
+/* Material Design 3 — Text fields & selects (requires design-system.css first) */
+
+.md3-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--md-spacing-1);
+  width: 100%;
+  max-width: 100%;
+}
+
+.md3-field__label {
+  font-family: var(--md-font-family-body);
+  font-size: var(--md-font-size-body-sm);
+  font-weight: var(--md-font-weight-medium);
+  line-height: var(--md-line-height-body-sm);
+  color: var(--md-on-surface-variant);
+  transition: color var(--md-transition-short);
+}
+
+.md3-field:focus-within .md3-field__label {
+  color: var(--md-primary);
+}
+
+.md3-field--error .md3-field__label {
+  color: var(--md-error);
+}
+
+.md3-input,
+.md3-select,
+.md3-textarea {
+  width: 100%;
+  font-family: var(--md-font-family-body);
+  font-size: var(--md-font-size-body-md);
+  line-height: var(--md-line-height-body-md);
+  color: var(--md-on-surface);
+  background-color: var(--md-surface-container-lowest);
+  border: 1px solid var(--md-outline-variant);
+  border-radius: var(--md-shape-small);
+  padding: var(--md-spacing-3) var(--md-spacing-4);
+  box-shadow: var(--md-shadow-none);
+  transition:
+    border-color var(--md-transition-short),
+    box-shadow var(--md-transition-short),
+    background-color var(--md-transition-short);
+}
+
+.md3-textarea {
+  min-height: 96px;
+  resize: vertical;
+}
+
+.md3-select {
+  cursor: pointer;
+  appearance: none;
+  background-image: linear-gradient(45deg, transparent 50%, var(--md-on-surface-variant) 50%),
+    linear-gradient(135deg, var(--md-on-surface-variant) 50%, transparent 50%);
+  background-position: calc(100% - 18px) calc(50% - 3px), calc(100% - 13px) calc(50% - 3px);
+  background-size: 6px 6px, 6px 6px;
+  background-repeat: no-repeat;
+  padding-right: var(--md-spacing-10);
+}
+
+.md3-input:hover:not(:disabled):not(:focus),
+.md3-select:hover:not(:disabled):not(:focus),
+.md3-textarea:hover:not(:disabled):not(:focus) {
+  border-color: var(--md-on-surface-variant);
+  box-shadow: var(--md-shadow-level-1);
+}
+
+.md3-input:focus,
+.md3-select:focus,
+.md3-textarea:focus {
+  outline: none;
+  border-color: var(--md-primary);
+  box-shadow:
+    var(--md-shadow-level-1),
+    0 0 0 3px color-mix(in srgb, var(--md-primary) 22%, transparent);
+}
+
+.md3-input:active:not(:disabled),
+.md3-select:active:not(:disabled),
+.md3-textarea:active:not(:disabled) {
+  box-shadow: var(--md-shadow-level-2);
+}
+
+.md3-field--error .md3-input,
+.md3-field--error .md3-select,
+.md3-field--error .md3-textarea {
+  border-color: var(--md-error);
+}
+
+.md3-field--error .md3-input:focus,
+.md3-field--error .md3-select:focus,
+.md3-field--error .md3-textarea:focus {
+  box-shadow:
+    var(--md-shadow-level-1),
+    0 0 0 3px color-mix(in srgb, var(--md-error) 22%, transparent);
+}
+
+.md3-input:disabled,
+.md3-select:disabled,
+.md3-textarea:disabled {
+  opacity: var(--md-state-disabled);
+  cursor: not-allowed;
+  background-color: var(--md-surface-container);
+}
+
+.md3-field__helper {
+  font-size: var(--md-font-size-body-sm);
+  line-height: var(--md-line-height-body-sm);
+  color: var(--md-on-surface-variant);
+  transition: color var(--md-transition-short);
+}
+
+.md3-field--error .md3-field__helper {
+  color: var(--md-error);
+}
+
+/* Filled variant */
+.md3-field--filled .md3-input,
+.md3-field--filled .md3-select,
+.md3-field--filled .md3-textarea {
+  background-color: var(--md-surface-container-high);
+  border-color: transparent;
+  border-bottom: 1px solid var(--md-outline-variant);
+  border-radius: var(--md-shape-small) var(--md-shape-small) 0 0;
+  padding-top: var(--md-spacing-4);
+  padding-bottom: var(--md-spacing-4);
+}
+
+.md3-field--filled .md3-input:focus,
+.md3-field--filled .md3-select:focus,
+.md3-field--filled .md3-textarea:focus {
+  border-bottom-color: var(--md-primary);
+  box-shadow: inset 0 -1px 0 0 var(--md-primary);
+}
+
+.md3-field--filled .md3-input:hover:not(:disabled):not(:focus),
+.md3-field--filled .md3-select:hover:not(:disabled):not(:focus),
+.md3-field--filled .md3-textarea:hover:not(:disabled):not(:focus) {
+  background-color: var(--md-surface-container-highest);
+  box-shadow: var(--md-shadow-none);
+}

@@ -1,0 +1,164 @@
+/* Material Design 3 — Chips (requires design-system.css first) */
+
+/* ── Base chip ───────────────────────────────────────────────────────────── */
+.md3-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--md-spacing-1);
+  height: 32px;
+  padding: 0 var(--md-spacing-4);
+  border: 1px solid var(--md-outline-variant);
+  border-radius: var(--md-shape-extra-large);
+  background: var(--md-surface-container-lowest);
+  color: var(--md-on-surface-variant);
+  font-family: var(--md-font-family-body);
+  font-size: var(--md-font-size-label-lg);
+  font-weight: var(--md-font-weight-medium);
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+  text-decoration: none;
+  transition:
+    background var(--md-transition-short),
+    border-color var(--md-transition-short),
+    color var(--md-transition-short),
+    box-shadow var(--md-transition-short);
+}
+
+.md3-chip:hover {
+  background: color-mix(in srgb, var(--md-on-surface) 8%, var(--md-surface-container-lowest));
+  box-shadow: var(--md-shadow-level-1);
+}
+
+.md3-chip:active {
+  transform: scale(0.97);
+}
+
+.md3-chip:focus-visible {
+  outline: 2px solid var(--md-primary);
+  outline-offset: 2px;
+}
+
+/* ── Icons ───────────────────────────────────────────────────────────────── */
+.md3-chip__leading-icon {
+  font-size: 1rem;
+  line-height: 1;
+  flex-shrink: 0;
+  margin-left: calc(var(--md-spacing-1) * -1);
+}
+
+.md3-chip__trailing-icon {
+  font-size: 0.875rem;
+  line-height: 1;
+  color: var(--md-on-surface-variant);
+  padding: 2px;
+  border-radius: 50%;
+  margin-right: calc(var(--md-spacing-2) * -1);
+  transition: background var(--md-transition-short);
+  flex-shrink: 0;
+}
+
+.md3-chip__trailing-icon:hover {
+  background: color-mix(in srgb, var(--md-on-surface) 14%, transparent);
+}
+
+/* ── Filter chip (toggleable) ────────────────────────────────────────────── */
+.md3-chip--filter {
+  background: var(--md-surface-container-low);
+}
+
+.md3-chip--filter.selected,
+.md3-chip--filter[aria-selected="true"] {
+  background: var(--md-secondary-container);
+  border-color: var(--md-secondary-container);
+  color: var(--md-on-secondary-container);
+  font-weight: var(--md-font-weight-semibold);
+}
+
+.md3-chip--filter.selected .md3-chip__check {
+  display: inline-block;
+}
+
+.md3-chip__check { display: none; }
+
+/* ── Input chip (removable tag) ──────────────────────────────────────────── */
+.md3-chip--input {
+  background: var(--md-surface-container);
+  border-color: var(--md-outline);
+  color: var(--md-on-surface);
+}
+
+/* ── Suggestion chip ─────────────────────────────────────────────────────── */
+.md3-chip--suggestion {
+  background: var(--md-surface-container-low);
+  border-color: var(--md-outline-variant);
+}
+
+.md3-chip--suggestion:hover {
+  background: var(--md-primary-container);
+  border-color: var(--md-primary-container);
+  color: var(--md-on-primary-container);
+}
+
+/* ── Color variants ──────────────────────────────────────────────────────── */
+.md3-chip--primary {
+  background: var(--md-primary-container);
+  border-color: var(--md-primary-container);
+  color: var(--md-on-primary-container);
+}
+
+.md3-chip--secondary {
+  background: var(--md-secondary-container);
+  border-color: var(--md-secondary-container);
+  color: var(--md-on-secondary-container);
+}
+
+.md3-chip--tertiary {
+  background: var(--md-tertiary-container);
+  border-color: var(--md-tertiary-container);
+  color: var(--md-on-tertiary-container);
+}
+
+.md3-chip--success {
+  background: var(--md-success-container);
+  border-color: var(--md-success-container);
+  color: var(--md-on-success-container);
+}
+
+.md3-chip--error {
+  background: var(--md-error-container);
+  border-color: var(--md-error-container);
+  color: var(--md-on-error-container);
+}
+
+.md3-chip--neutral {
+  background: var(--md-neutral-container);
+  border-color: var(--md-neutral-container);
+  color: var(--md-on-neutral-container);
+}
+
+/* ── Disabled ────────────────────────────────────────────────────────────── */
+.md3-chip--disabled,
+.md3-chip:disabled {
+  opacity: var(--md-state-disabled);
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* ── Chip group ──────────────────────────────────────────────────────────── */
+.md3-chip-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--md-spacing-2);
+  align-items: center;
+}
+
+.md3-chip-group--scroll {
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  padding-bottom: var(--md-spacing-1);
+}
+
+.md3-chip-group--scroll::-webkit-scrollbar { display: none; }

@@ -1,0 +1,992 @@
+﻿{% extends 'base_2daE.html' %}
+
+{% block title %}Reportes y KPIs - Sistema de Vacunación{% endblock %}
+
+{% block head_extra %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/reportesPublicos.css') }}">
+{% endblock %}
+
+{% block scripts %}
+<script src="https://code.highcharts.com/highcharts.js"></script>
+<script src="https://code.highcharts.com/highcharts-more.js"></script>
+<script src="https://code.highcharts.com/modules/solid-gauge.js"></script>
+{% endblock %}
+
+{% block content %}
+
+<div class="rp-wrap">
+
+  <!-- HEADER -->
+  <header class="rp-header">
+    <div class="rp-header-left">
+      <h1>Reportes Públicos de Vacunación</h1>
+      <p>Panel para organizaciones y gobierno</p>
+    </div>
+    <div class="rp-filters">
+      <label>Desde <input id="fromDate" type="date"></label>
+      <label>Hasta <input id="toDate" type="date"></label>
+      <label>Grupo mínimo <input id="minGroup" type="number" min="1" step="1" value="1"></label>
+      <button id="runReport" class="btn-run" type="button">
+        <i class="fa-solid fa-chart-column"></i> Generar reporte
+      </button>
+    </div>
+  </header>
+
+  <div id="rp-no-data" class="rp-no-data" hidden>
+    No hay registros en el rango seleccionado. Ajusta las fechas o verifica que existan aplicaciones cargadas.
+  </div>
+
+  <!-- ── SECCIÓN 1: KPIs RESUMEN ── -->
+  <h2 class="section-title">Resumen Ejecutivo</h2>
+  <p class="section-subtitle">Métricas de alto nivel del período seleccionado</p>
+
+  <div class="kpi-summary-grid">
+    <div class="kpi-summary-card blue">
+      <p>Dosis aplicadas</p>
+      <h3 id="kpiDoses">—</h3>
+    </div>
+    <div class="kpi-summary-card green">
+      <p>Cobertura (%)</p>
+      <h3 id="kpiCoverage">—</h3>
+    </div>
+    <div class="kpi-summary-card blue">
+      <p>Población objetivo</p>
+      <h3 id="kpiTarget">—</h3>
+    </div>
+    <div class="kpi-summary-card green">
+      <p>Personas alcanzadas</p>
+      <h3 id="kpiReached">—</h3>
+    </div>
+    <div class="kpi-summary-card amber">
+      <p>Retraso prom. (días)</p>
+      <h3 id="kpiDelay">—</h3>
+    </div>
+    <div class="kpi-summary-card blue">
+      <p>Zonas activas</p>
+      <h3 id="kpiZones">—</h3>
+    </div>
+  </div>
+
+  <!-- ── SECCIÓN 2: 15 KPIs DOCUMENTADOS ── -->
+  <h2 class="section-title">Indicadores Clave (KPIs)</h2>
+  <p class="section-subtitle">Cada indicador incluye nombre, descripción, fórmula, fuente de datos e interpretación</p>
+
+  <div class="kpi-detail-grid">
+
+    <!-- KPI 1 -->
+    <div class="kpi-card">
+      <div class="kpi-card-header">
+        <span class="kpi-card-num">KPI 01</span>
+        <span class="kpi-card-name">Tasa de Cobertura Vacunal General</span>
+      </div>
+      <div class="kpi-card-value loading" id="kpi01">—</div>
+      <span class="kpi-status info" id="kpi01-status">Calculando…</span>
+      <div class="kpi-divider"></div>
+      <div class="kpi-meta">
+        <div class="kpi-meta-item">
+          <label>Descripción</label>
+          <span>Porcentaje de pacientes que recibieron al menos una dosis en el período</span>
+        </div>
+        <div class="kpi-meta-item">
+          <label>Fórmula</label>
+          <span>(pacientes_vacunados / total_pacientes) × 100</span>
+        </div>
+        <div class="kpi-meta-item">
+          <label>Fuente</label>
+          <span>v_vaccination_records_full, patients</span>
+        </div>
+        <div class="kpi-meta-item">
+          <label>Unidad</label>
+          <span>Porcentaje (%)</span>
+        </div>
+      </div>
+      <div class="kpi-interpretation">
+        <strong>≥ 80%</strong> se considera cobertura adecuada según OMS. 
+        <strong>&lt; 50%</strong> indica riesgo de brotes y requiere intervención inmediata.
+      </div>
+    </div>
+
+    <!-- KPI 2 -->
+    <div class="kpi-card">
+      <div class="kpi-card-header">
+        <span class="kpi-card-num">KPI 02</span>
+        <span class="kpi-card-name">Total de Dosis Aplicadas</span>
+      </div>
+      <div class="kpi-card-value loading" id="kpi02">—</div>
+      <span class="kpi-status info" id="kpi02-status">Calculando…</span>
+      <div class="kpi-divider"></div>
+      <div class="kpi-meta">
+        <div class="kpi-meta-item">
+          <label>Descripción</label>
+          <span>Número absoluto de aplicaciones de vacunas registradas en el período</span>
+        </div>
+        <div class="kpi-meta-item">
+          <label>Fórmula</label>
+          <span>COUNT(*) FROM vaccination_records WHERE applied_date BETWEEN f AND t</span>
+        </div>
+        <div class="kpi-meta-item">
+          <label>Fuente</label>
+          <span>vaccination_records</span>
+        </div>
+        <div class="kpi-meta-item">
+          <label>Unidad</label>
+          <span>Número entero (dosis)</span>
+        </div>
+      </div>
+      <div class="kpi-interpretation">
+        Indicador base de productividad. Comparar con períodos anteriores para detectar 
+        <strong>tendencias de crecimiento o caída</strong> en la actividad de vacunación.
+      </div>
+    </div>
+
+    <!-- KPI 3 -->
+    <div class="kpi-card">
+      <div class="kpi-card-header">
+        <span class="kpi-card-num">KPI 03</span>
+        <span class="kpi-card-name">Promedio de Dosis por Paciente</span>
+      </div>
+      <div class="kpi-card-value loading" id="kpi03">—</div>
+      <span class="kpi-status info" id="kpi03-status">Calculando…</span>
+      <div class="kpi-divider"></div>
+      <div class="kpi-meta">
+        <div class="kpi-meta-item">
+          <label>Descripción</label>
+          <span>Promedio de dosis recibidas por cada paciente atendido en el período</span>
+        </div>
+        <div class="kpi-meta-item">
+          <label>Fórmula</label>
+          <span>total_dosis / COUNT(DISTINCT patient_id)</span>
+        </div>
+        <div class="kpi-meta-item">
+          <label>Fuente</label>
+          <span>vaccination_records</span>
+        </div>
+        <div class="kpi-meta-item">
+          <label>Unidad</label>
+          <span>Dosis / paciente</span>
+        </div>
+      </div>
+      <div class="kpi-interpretation">
+        Un valor <strong>mayor a 2</strong> indica buena adherencia al esquema multi-dosis. 
+        Valores cercanos a 1 sugieren abandono después de la primera dosis.
+      </div>
+    </div>
+
+    <!-- KPI 4 -->
+    <div class="kpi-card">
+      <div class="kpi-card-header">
+        <span class="kpi-card-num">KPI 04</span>
+        <span class="kpi-card-name">Tasa de Reacciones Adversas</span>
+      </div>
+      <div class="kpi-card-value loading" id="kpi04">—</div>
+      <span class="kpi-status info" id="kpi04-status">Calculando…</span>
+      <div class="kpi-divider"></div>
+      <div class="kpi-meta">
+        <div class="kpi-meta-item">
+          <label>Descripción</label>
+          <span>Proporción de aplicaciones que registraron una reacción adversa</span>
+        </div>
+        <div class="kpi-meta-item">
+          <label>Fórmula</label>
+          <span>(COUNT WHERE had_reaction=TRUE / total_dosis) × 100</span>
+        </div>
+        <div class="kpi-meta-item">
+          <label>Fuente</label>
+          <span>vaccination_records (had_reaction)</span>
+        </div>
+        <div class="kpi-meta-item">
+          <label>Unidad</label>
+          <span>Porcentaje (%)</span>
+        </div>
+      </div>
+      <div class="kpi-interpretation">
+        <strong>&lt; 2%</strong> es aceptable para la mayoría de vacunas. 
+        Un pico repentino puede indicar un lote defectuoso o error en la técnica de aplicación.
+      </div>
+    </div>
+
+    <!-- KPI 5 -->
+    <div class="kpi-card">
+      <div class="kpi-card-header">
+        <span class="kpi-card-num">KPI 05</span>
+        <span class="kpi-card-name">Pacientes con Esquema Completo</span>
+      </div>
+      <div class="kpi-card-value loading" id="kpi05">—</div>
+      <span class="kpi-status info" id="kpi05-status">Calculando…</span>
+      <div class="kpi-divider"></div>
+      <div class="kpi-meta">
+        <div class="kpi-meta-item">
+          <label>Descripción</label>
+          <span>Pacientes que han recibido todas las dosis del esquema de vacunación</span>
+        </div>
+        <div class="kpi-meta-item">
+          <label>Fórmula</label>
+          <span>COUNT(p) WHERE dosis_aplicadas = dosis_requeridas_esquema</span>
+        </div>
+        <div class="kpi-meta-item">
+          <label>Fuente</label>
+          <span>scheme_doses, vaccination_records</span>
+        </div>
+        <div class="kpi-meta-item">
+          <label>Unidad</label>
+          <span>Número de pacientes</span>
+        </div>
+      </div>
+      <div class="kpi-interpretation">
+        Meta recomendada: <strong>≥ 90%</strong> de pacientes con esquema completo. 
+        Mide la efectividad del programa de seguimiento y adherencia.
+      </div>
+    </div>
+
+    <!-- KPI 6 -->
+    <div class="kpi-card">
+      <div class="kpi-card-header">
+        <span class="kpi-card-num">KPI 06</span>
+        <span class="kpi-card-name">Pacientes con Vacunas Atrasadas</span>
+      </div>
+      <div class="kpi-card-value loading" id="kpi06">—</div>
+      <span class="kpi-status info" id="kpi06-status">Calculando…</span>
+      <div class="kpi-divider"></div>
+      <div class="kpi-meta">
+        <div class="kpi-meta-item">
+          <label>Descripción</label>
+          <span>Pacientes con al menos una dosis programada pero no aplicada en la fecha indicada</span>
+        </div>
+        <div class="kpi-meta-item">
+          <label>Fórmula</label>
+          <span>COUNT(p) con dosis pendientes según scheme_doses vs edad actual</span>
+        </div>
+        <div class="kpi-meta-item">
+          <label>Fuente</label>
+          <span>sp_delayed_patients, scheme_doses, patients</span>
+        </div>
+        <div class="kpi-meta-item">
+          <label>Unidad</label>
+          <span>Número de pacientes</span>
+        </div>
+      </div>
+      <div class="kpi-interpretation">
+        Un alto número de pacientes atrasados indica <strong>fallas en el seguimiento</strong> o barreras de acceso. 
+        Requiere campañas de recuperación activa.
+      </div>
+    </div>
+
+    <!-- KPI 7 -->
+    <div class="kpi-card">
+      <div class="kpi-card-header">
+        <span class="kpi-card-num">KPI 07</span>
+        <span class="kpi-card-name">Vacuna con Mayor Demanda</span>
+      </div>
+      <div class="kpi-card-value loading" id="kpi07" style="font-size:var(--md-font-size-title-sm,1.3rem);min-height:2rem">—</div>
+      <span class="kpi-status info" id="kpi07-status">Calculando…</span>
+      <div class="kpi-divider"></div>
+      <div class="kpi-meta">
+        <div class="kpi-meta-item">
+          <label>Descripción</label>
+          <span>Vacuna con mayor número de aplicaciones registradas en el período</span>
+        </div>
+        <div class="kpi-meta-item">
+          <label>Fórmula</label>
+          <span>MAX(COUNT(*) GROUP BY vaccine_id)</span>
+        </div>
+        <div class="kpi-meta-item">
+          <label>Fuente</label>
+          <span>vaccination_records, vaccines</span>
+        </div>
+        <div class="kpi-meta-item">
+          <label>Unidad</label>
+          <span>Nombre de vacuna</span>
+        </div>
+      </div>
+      <div class="kpi-interpretation">
+        Útil para <strong>priorizar el abastecimiento</strong> y garantizar stock suficiente 
+        de las vacunas de mayor rotación.
+      </div>
+    </div>
+
+    <!-- KPI 8 -->
+    <div class="kpi-card">
+      <div class="kpi-card-header">
+        <span class="kpi-card-num">KPI 08</span>
+        <span class="kpi-card-name">Tasa de Cumplimiento de Citas</span>
+      </div>
+      <div class="kpi-card-value loading" id="kpi08">—</div>
+      <span class="kpi-status info" id="kpi08-status">Calculando…</span>
+      <div class="kpi-divider"></div>
+      <div class="kpi-meta">
+        <div class="kpi-meta-item">
+          <label>Descripción</label>
+          <span>Porcentaje de citas programadas que se completaron exitosamente</span>
+        </div>
+        <div class="kpi-meta-item">
+          <label>Fórmula</label>
+          <span>(citas_completadas / total_citas_programadas) × 100</span>
+        </div>
+        <div class="kpi-meta-item">
+          <label>Fuente</label>
+          <span>appointments (appointment_status)</span>
+        </div>
+        <div class="kpi-meta-item">
+          <label>Unidad</label>
+          <span>Porcentaje (%)</span>
+        </div>
+      </div>
+      <div class="kpi-interpretation">
+        <strong>≥ 75%</strong> indica buena gestión de agenda. 
+        Tasas bajas señalan problemas de acceso, comunicación con pacientes o capacidad operativa.
+      </div>
+    </div>
+
+    <!-- KPI 9 -->
+    <div class="kpi-card">
+      <div class="kpi-card-header">
+        <span class="kpi-card-num">KPI 09</span>
+        <span class="kpi-card-name">Insumos en Stock Crítico</span>
+      </div>
+      <div class="kpi-card-value loading" id="kpi09">—</div>
+      <span class="kpi-status info" id="kpi09-status">Calculando…</span>
+      <div class="kpi-divider"></div>
+      <div class="kpi-meta">
+        <div class="kpi-meta-item">
+          <label>Descripción</label>
+          <span>Número de insumos o vacunas cuyo stock está por debajo del mínimo requerido</span>
+        </div>
+        <div class="kpi-meta-item">
+          <label>Fórmula</label>
+          <span>COUNT(*) WHERE quantity &lt; min_stock FROM clinic_inventory</span>
+        </div>
+        <div class="kpi-meta-item">
+          <label>Fuente</label>
+          <span>sp_low_stock_items, clinic_inventory</span>
+        </div>
+        <div class="kpi-meta-item">
+          <label>Unidad</label>
+          <span>Número de insumos</span>
+        </div>
+      </div>
+      <div class="kpi-interpretation">
+        <strong>0</strong> insumos en crítico es el estado ideal. Cualquier valor mayor 
+        requiere gestión inmediata de reabastecimiento para evitar interrupciones de servicio.
+      </div>
+    </div>
+
+    <!-- KPI 10 -->
+    <div class="kpi-card">
+      <div class="kpi-card-header">
+        <span class="kpi-card-num">KPI 10</span>
+        <span class="kpi-card-name">Nuevos Pacientes Registrados</span>
+      </div>
+      <div class="kpi-card-value loading" id="kpi10">—</div>
+      <span class="kpi-status info" id="kpi10-status">Calculando…</span>
+      <div class="kpi-divider"></div>
+      <div class="kpi-meta">
+        <div class="kpi-meta-item">
+          <label>Descripción</label>
+          <span>Número de nuevos pacientes dados de alta en el sistema durante el período</span>
+        </div>
+        <div class="kpi-meta-item">
+          <label>Fórmula</label>
+          <span>COUNT(*) FROM patients WHERE created_at BETWEEN f AND t</span>
+        </div>
+        <div class="kpi-meta-item">
+          <label>Fuente</label>
+          <span>patients</span>
+        </div>
+        <div class="kpi-meta-item">
+          <label>Unidad</label>
+          <span>Número de pacientes</span>
+        </div>
+      </div>
+      <div class="kpi-interpretation">
+        Mide el <strong>crecimiento de la población atendida</strong>. 
+        Tendencias crecientes indican expansión del programa; caídas pueden reflejar barreras de registro.
+      </div>
+    </div>
+
+    <!-- KPI 11 -->
+    <div class="kpi-card">
+      <div class="kpi-card-header">
+        <span class="kpi-card-num">KPI 11</span>
+        <span class="kpi-card-name">Productividad por Trabajador</span>
+      </div>
+      <div class="kpi-card-value loading" id="kpi11">—</div>
+      <span class="kpi-status info" id="kpi11-status">Calculando…</span>
+      <div class="kpi-divider"></div>
+      <div class="kpi-meta">
+        <div class="kpi-meta-item">
+          <label>Descripción</label>
+          <span>Promedio de dosis aplicadas por trabajador activo en el período</span>
+        </div>
+        <div class="kpi-meta-item">
+          <label>Fórmula</label>
+          <span>total_dosis / COUNT(DISTINCT worker_id FROM vaccination_records)</span>
+        </div>
+        <div class="kpi-meta-item">
+          <label>Fuente</label>
+          <span>vaccination_records, workers</span>
+        </div>
+        <div class="kpi-meta-item">
+          <label>Unidad</label>
+          <span>Dosis / trabajador</span>
+        </div>
+      </div>
+      <div class="kpi-interpretation">
+        Indicador de <strong>eficiencia operativa</strong>. 
+        Permite identificar trabajadores con carga desbalanceada y planificar distribución de tareas.
+      </div>
+    </div>
+
+    <!-- KPI 12 -->
+    <div class="kpi-card">
+      <div class="kpi-card-header">
+        <span class="kpi-card-num">KPI 12</span>
+        <span class="kpi-card-name">Dosis Aplicadas Este Mes</span>
+      </div>
+      <div class="kpi-card-value loading" id="kpi12">—</div>
+      <span class="kpi-status info" id="kpi12-status">Calculando…</span>
+      <div class="kpi-divider"></div>
+      <div class="kpi-meta">
+        <div class="kpi-meta-item">
+          <label>Descripción</label>
+          <span>Total de dosis aplicadas en el mes en curso (referencia rápida)</span>
+        </div>
+        <div class="kpi-meta-item">
+          <label>Fórmula</label>
+          <span>COUNT(*) WHERE to_char(applied_date,'YYYY-MM') = mes_actual</span>
+        </div>
+        <div class="kpi-meta-item">
+          <label>Fuente</label>
+          <span>vaccination_records</span>
+        </div>
+        <div class="kpi-meta-item">
+          <label>Unidad</label>
+          <span>Número de dosis</span>
+        </div>
+      </div>
+      <div class="kpi-interpretation">
+        Comparar con el <strong>promedio mensual histórico</strong> para detectar meses de baja actividad 
+        que requieran jornadas de recuperación o campañas especiales.
+      </div>
+    </div>
+
+    <!-- KPI 13 -->
+    <div class="kpi-card">
+      <div class="kpi-card-header">
+        <span class="kpi-card-num">KPI 13</span>
+        <span class="kpi-card-name">Temperatura Promedio al Aplicar</span>
+      </div>
+      <div class="kpi-card-value loading" id="kpi13">—</div>
+      <span class="kpi-status info" id="kpi13-status">Calculando…</span>
+      <div class="kpi-divider"></div>
+      <div class="kpi-meta">
+        <div class="kpi-meta-item">
+          <label>Descripción</label>
+          <span>Temperatura corporal promedio de los pacientes en el momento de la aplicación</span>
+        </div>
+        <div class="kpi-meta-item">
+          <label>Fórmula</label>
+          <span>AVG(patient_temp_c) FROM vaccination_records WHERE patient_temp_c IS NOT NULL</span>
+        </div>
+        <div class="kpi-meta-item">
+          <label>Fuente</label>
+          <span>vaccination_records (patient_temp_c)</span>
+        </div>
+        <div class="kpi-meta-item">
+          <label>Unidad</label>
+          <span>Grados Celsius (°C)</span>
+        </div>
+      </div>
+      <div class="kpi-interpretation">
+        Rango normal: <strong>36.0°C – 37.5°C</strong>. 
+        Promedios elevados pueden indicar que se está vacunando a pacientes febriles, lo cual es contraindicado.
+      </div>
+    </div>
+
+    <!-- KPI 14 -->
+    <div class="kpi-card">
+      <div class="kpi-card-header">
+        <span class="kpi-card-num">KPI 14</span>
+        <span class="kpi-card-name">Diversidad de Vacunas Aplicadas</span>
+      </div>
+      <div class="kpi-card-value loading" id="kpi14">—</div>
+      <span class="kpi-status info" id="kpi14-status">Calculando…</span>
+      <div class="kpi-divider"></div>
+      <div class="kpi-meta">
+        <div class="kpi-meta-item">
+          <label>Descripción</label>
+          <span>Número de vacunas distintas que se aplicaron al menos una vez en el período</span>
+        </div>
+        <div class="kpi-meta-item">
+          <label>Fórmula</label>
+          <span>COUNT(DISTINCT vaccine_id) FROM vaccination_records</span>
+        </div>
+        <div class="kpi-meta-item">
+          <label>Fuente</label>
+          <span>vaccination_records, vaccines</span>
+        </div>
+        <div class="kpi-meta-item">
+          <label>Unidad</label>
+          <span>Número de vacunas distintas</span>
+        </div>
+      </div>
+      <div class="kpi-interpretation">
+        Refleja la <strong>amplitud del programa</strong>. 
+        Baja diversidad puede indicar desabasto de ciertos biológicos o falta de seguimiento del esquema completo.
+      </div>
+    </div>
+
+    <!-- KPI 15 -->
+    <div class="kpi-card">
+      <div class="kpi-card-header">
+        <span class="kpi-card-num">KPI 15</span>
+        <span class="kpi-card-name">Comportamiento Histórico Mensual</span>
+      </div>
+      <div class="kpi-card-value loading" id="kpi15" style="font-size:1.1rem;min-height:2rem">—</div>
+      <span class="kpi-status info" id="kpi15-status">Calculando…</span>
+      <div class="kpi-divider"></div>
+      <div class="kpi-meta">
+        <div class="kpi-meta-item">
+          <label>Descripción</label>
+          <span>Tendencia de variación entre el mes con más y menos dosis aplicadas</span>
+        </div>
+        <div class="kpi-meta-item">
+          <label>Fórmula</label>
+          <span>((MAX_mes - MIN_mes) / MAX_mes) × 100</span>
+        </div>
+        <div class="kpi-meta-item">
+          <label>Fuente</label>
+          <span>vaccination_records (agrupado por YYYY-MM)</span>
+        </div>
+        <div class="kpi-meta-item">
+          <label>Unidad</label>
+          <span>Porcentaje de variación (%)</span>
+        </div>
+      </div>
+      <div class="kpi-interpretation">
+        Una variación <strong>&lt; 30%</strong> indica estabilidad operativa. 
+        Variaciones altas señalan picos estacionales o interrupciones de servicio que deben investigarse.
+      </div>
+    </div>
+
+  </div><!-- /kpi-detail-grid -->
+
+  <!-- ── SECCIÓN 3: GRÁFICAS ── -->
+  <h2 class="section-title">Análisis Visual</h2>
+  <p class="section-subtitle">Tendencias y distribuciones del período</p>
+
+  <div class="charts-row">
+    <div class="chart-panel">
+      <h4>Tendencia mensual de dosis</h4>
+      <div id="monthlyChart" style="height:var(--chart-height,280px)"></div>
+    </div>
+    <div class="chart-panel">
+      <h4>Top vacunas aplicadas</h4>
+      <div id="vaccineChart" style="height:var(--chart-height,280px)"></div>
+    </div>
+  </div>
+
+  <!-- ── SECCIÓN 4: TABLAS DE DETALLE ── -->
+  <h2 class="section-title">Detalle por Período y Vacuna</h2>
+  <p class="section-subtitle">Datos tabulares del resumen seleccionado</p>
+
+  <div class="charts-row">
+    <div class="table-panel">
+      <h4>Detalle mensual</h4>
+      <div class="table-wrap">
+        <table class="rp-table">
+          <thead>
+            <tr>
+              <th>Mes</th>
+              <th>Dosis aplicadas</th>
+              <th>Personas atendidas</th>
+            </tr>
+          </thead>
+          <tbody id="monthlyBody">
+            <tr><td colspan="3" style="color:var(--md-on-surface-variant);text-align:center;padding:1.5rem">Sin datos aún.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div class="table-panel">
+      <h4>Detalle por vacuna</h4>
+      <div class="table-wrap">
+        <table class="rp-table">
+          <thead>
+            <tr>
+              <th>Vacuna</th>
+              <th>Dosis</th>
+              <th>Personas</th>
+              <th>% del total</th>
+            </tr>
+          </thead>
+          <tbody id="vaccinesBody">
+            <tr><td colspan="4" style="color:var(--md-on-surface-variant);text-align:center;padding:1.5rem">Sin datos aún.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="table-panel">
+    <h4>Zonas con actividad (agregado)</h4>
+    <div class="table-wrap">
+      <table class="rp-table">
+        <thead>
+          <tr>
+            <th>Zona</th>
+            <th>Dosis</th>
+            <th>Personas</th>
+            <th>Nivel de riesgo</th>
+          </tr>
+        </thead>
+        <tbody id="zonesBody">
+          <tr><td colspan="4" style="color:var(--md-on-surface-variant);text-align:center;padding:1.5rem">Sin datos aún.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div><!-- /rp-wrap -->
+
+<script>
+(() => {
+  const fromInput    = document.getElementById('fromDate');
+  const toInput      = document.getElementById('toDate');
+  const minGroupInput= document.getElementById('minGroup');
+  const runButton    = document.getElementById('runReport');
+  const noDataBox    = document.getElementById('rp-no-data');
+
+  // Fechas por defecto: últimos 5 años
+  const now = new Date();
+  toInput.value = now.toISOString().slice(0, 10);
+  const past = new Date(now); past.setFullYear(now.getFullYear() - 5);
+  fromInput.value = past.toISOString().slice(0, 10);
+
+  const fmt    = new Intl.NumberFormat('es-MX');
+  const fmtDec = new Intl.NumberFormat('es-MX', { minimumFractionDigits:1, maximumFractionDigits:1 });
+
+  // ── Helpers de estado ──
+  function setVal(id, val, cls) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.textContent = val;
+    el.classList.remove('loading');
+    if (cls) { el.classList.add(cls); }
+  }
+
+  function setStatus(id, text, cls) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.textContent = text;
+    el.className = 'kpi-status ' + (cls || 'info');
+  }
+
+  function coverageStatus(pct) {
+    if (pct >= 80) return ['ok',   '✓ Óptimo'];
+    if (pct >= 50) return ['warn', '⚠ Moderado'];
+    return                ['alert','✗ Crítico'];
+  }
+
+  function reactionStatus(pct) {
+    if (pct < 2)   return ['ok',   '✓ Normal'];
+    if (pct < 5)   return ['warn', '⚠ Elevado'];
+    return                ['alert','✗ Alto'];
+  }
+
+  function tempStatus(t) {
+    if (!t) return ['info', '— Sin datos'];
+    if (t <= 37.5) return ['ok',   '✓ Normal'];
+    return                ['warn', '⚠ Revisar'];
+  }
+
+  // ── Pintar KPIs resumen ──
+  function paintSummary(kpis) {
+    document.getElementById('kpiDoses').textContent    = fmt.format(kpis.total_doses_applied || 0);
+    document.getElementById('kpiTarget').textContent   = fmt.format(kpis.target_population  || 0);
+    document.getElementById('kpiReached').textContent  = fmt.format(kpis.reached_population || 0);
+    document.getElementById('kpiCoverage').textContent = fmtDec.format(kpis.coverage_percent || 0) + '%';
+    document.getElementById('kpiDelay').textContent    = fmtDec.format(kpis.avg_delay_days  || 0);
+    document.getElementById('kpiZones').textContent    = fmt.format(kpis.active_zones       || 0);
+  }
+
+  // ── Calcular y pintar los 15 KPIs ──
+  function paintDetailKpis(kpis, vaccines, monthly) {
+    const doses   = kpis.total_doses_applied || 0;
+    const reached = kpis.reached_population  || 0;
+    const target  = kpis.target_population   || 1;
+    const cov     = kpis.coverage_percent    || 0;
+
+    // KPI 01 — Cobertura general
+    const [cs, cl] = coverageStatus(cov);
+    setVal('kpi01', fmtDec.format(cov) + '%', cov>=80?'green':cov>=50?'amber':'red');
+    setStatus('kpi01-status', cl, cs);
+
+    // KPI 02 — Total dosis
+    setVal('kpi02', fmt.format(doses));
+    setStatus('kpi02-status', doses > 0 ? '✓ Datos disponibles' : '— Sin registros', doses>0?'ok':'warn');
+
+    // KPI 03 — Promedio dosis/paciente
+    const avgDose = reached > 0 ? (doses / reached) : 0;
+    setVal('kpi03', fmtDec.format(avgDose), avgDose>=2?'green':avgDose>=1?'amber':'red');
+    setStatus('kpi03-status', avgDose>=2?'✓ Buena adherencia':avgDose>=1?'⚠ Revisar':'✗ Abandono temprano',
+              avgDose>=2?'ok':avgDose>=1?'warn':'alert');
+
+    // KPI 04 — Tasa reacciones (extraer de vaccines si viene, sino N/D)
+    const reactionPct = kpis.reaction_rate ?? null;
+    if (reactionPct !== null) {
+      const [rs, rl] = reactionStatus(reactionPct);
+      setVal('kpi04', fmtDec.format(reactionPct) + '%', rs==='ok'?'green':rs==='warn'?'amber':'red');
+      setStatus('kpi04-status', rl, rs);
+    } else {
+      setVal('kpi04', 'N/D', 'amber');
+      setStatus('kpi04-status', '— Requiere SP', 'warn');
+    }
+
+    // KPI 05 — Esquema completo (si viene del SP)
+    const completed = kpis.completed_scheme ?? null;
+    if (completed !== null) {
+      const pct = target > 0 ? (completed/target*100) : 0;
+      setVal('kpi05', fmt.format(completed), pct>=90?'green':pct>=70?'amber':'red');
+      setStatus('kpi05-status', pct>=90?'✓ Óptimo':pct>=70?'⚠ Moderado':'✗ Bajo', pct>=90?'ok':pct>=70?'warn':'alert');
+    } else {
+      setVal('kpi05', 'N/D', 'amber');
+      setStatus('kpi05-status', '— Requiere SP', 'warn');
+    }
+
+    // KPI 06 — Pacientes atrasados
+    const delayed = kpis.delayed_patients ?? null;
+    if (delayed !== null) {
+      const pctD = target > 0 ? (delayed/target*100) : 0;
+      setVal('kpi06', fmt.format(delayed), delayed===0?'green':pctD<20?'amber':'red');
+      setStatus('kpi06-status', delayed===0?'✓ Sin rezago':pctD<20?'⚠ Bajo rezago':'✗ Alto rezago',
+                delayed===0?'ok':pctD<20?'warn':'alert');
+    } else {
+      setVal('kpi06', 'N/D', 'amber');
+      setStatus('kpi06-status', '— Requiere SP', 'warn');
+    }
+
+    // KPI 07 — Vacuna más demandada
+    if (vaccines && vaccines.length > 0) {
+      const top = vaccines[0];
+      setVal('kpi07', top.vaccine_name, 'green');
+      setStatus('kpi07-status', fmt.format(top.doses_applied) + ' dosis aplicadas', 'ok');
+    } else {
+      setVal('kpi07', 'Sin datos', 'amber');
+      setStatus('kpi07-status', '— Sin registros', 'warn');
+    }
+
+    // KPI 08 — Tasa cumplimiento citas
+    const apptRate = kpis.appointment_completion_rate ?? null;
+    if (apptRate !== null) {
+      setVal('kpi08', fmtDec.format(apptRate) + '%', apptRate>=75?'green':apptRate>=50?'amber':'red');
+      setStatus('kpi08-status', apptRate>=75?'✓ Buena gestión':apptRate>=50?'⚠ Moderado':'✗ Bajo', apptRate>=75?'ok':apptRate>=50?'warn':'alert');
+    } else {
+      setVal('kpi08', 'N/D', 'amber');
+      setStatus('kpi08-status', '— Requiere datos de citas', 'warn');
+    }
+
+    // KPI 09 — Stock crítico
+    const lowStock = kpis.low_stock_count ?? null;
+    if (lowStock !== null) {
+      setVal('kpi09', fmt.format(lowStock), lowStock===0?'green':lowStock<5?'amber':'red');
+      setStatus('kpi09-status', lowStock===0?'✓ Stock OK':lowStock<5?'⚠ Revisar':'✗ Crítico',
+                lowStock===0?'ok':lowStock<5?'warn':'alert');
+    } else {
+      setVal('kpi09', 'N/D', 'amber');
+      setStatus('kpi09-status', '— Requiere inventario', 'warn');
+    }
+
+    // KPI 10 — Nuevos pacientes
+    const newPts = kpis.new_patients ?? null;
+    if (newPts !== null) {
+      setVal('kpi10', fmt.format(newPts), 'green');
+      setStatus('kpi10-status', newPts > 0 ? '✓ Crecimiento activo' : '— Sin altas nuevas', newPts>0?'ok':'warn');
+    } else {
+      setVal('kpi10', 'N/D', 'amber');
+      setStatus('kpi10-status', '— Sin columna created_at', 'warn');
+    }
+
+    // KPI 11 — Productividad por trabajador
+    const workerCount = kpis.active_workers ?? null;
+    if (workerCount && workerCount > 0) {
+      const prod = doses / workerCount;
+      setVal('kpi11', fmtDec.format(prod), 'blue');
+      setStatus('kpi11-status', fmt.format(workerCount) + ' trabajadores activos', 'info');
+    } else {
+      setVal('kpi11', 'N/D', 'amber');
+      setStatus('kpi11-status', '— Sin datos de personal', 'warn');
+    }
+
+    // KPI 12 — Dosis este mes
+    const thisMonth = new Date().toISOString().slice(0,7);
+    const monthRow  = (monthly || []).find(r => r.period_label === thisMonth);
+    const dosesMonth = monthRow ? monthRow.doses_applied : 0;
+    setVal('kpi12', fmt.format(dosesMonth), dosesMonth>0?'green':'amber');
+    setStatus('kpi12-status', dosesMonth>0?'✓ Actividad este mes':'— Sin actividad este mes', dosesMonth>0?'ok':'warn');
+
+    // KPI 13 — Temperatura promedio
+    const avgTemp = kpis.avg_temp_c ?? null;
+    const [ts, tl] = tempStatus(avgTemp);
+    setVal('kpi13', avgTemp ? fmtDec.format(avgTemp) + ' °C' : 'N/D', ts==='ok'?'green':ts==='warn'?'amber':'red');
+    setStatus('kpi13-status', tl, ts);
+
+    // KPI 14 — Diversidad de vacunas
+    const uniqueVax = vaccines ? vaccines.length : 0;
+    setVal('kpi14', fmt.format(uniqueVax), uniqueVax>=5?'green':uniqueVax>=2?'amber':'red');
+    setStatus('kpi14-status', uniqueVax>=5?'✓ Alta diversidad':uniqueVax>=2?'⚠ Moderada':'✗ Baja',
+              uniqueVax>=5?'ok':uniqueVax>=2?'warn':'alert');
+
+    // KPI 15 — Variación histórica mensual
+    if (monthly && monthly.length >= 2) {
+      const vals = monthly.map(r => r.doses_applied || 0);
+      const mx   = Math.max(...vals), mn = Math.min(...vals);
+      const varPct = mx > 0 ? ((mx - mn) / mx * 100) : 0;
+      setVal('kpi15', fmtDec.format(varPct) + '%', varPct<30?'green':varPct<60?'amber':'red');
+      setStatus('kpi15-status', varPct<30?'✓ Estable':varPct<60?'⚠ Variable':'✗ Muy variable',
+                varPct<30?'ok':varPct<60?'warn':'alert');
+    } else {
+      setVal('kpi15', 'N/D', 'amber');
+      setStatus('kpi15-status', '— Menos de 2 meses de datos', 'warn');
+    }
+  }
+
+  // ── Highcharts ──
+  let monthlyHC, vaccineHC;
+
+  const HC_THEME = {
+    chart: { backgroundColor: 'transparent', style: { fontFamily: "'DM Sans', sans-serif" } },
+    title: { text: null },
+    credits: { enabled: false },
+    legend: { itemStyle: { color: '#6b7a9f', fontWeight: '500' } },
+    xAxis: { lineColor: '#2a3050', tickColor: '#2a3050', labels: { style: { color: '#6b7a9f' } } },
+    yAxis: { gridLineColor: '#1f2436', labels: { style: { color: '#6b7a9f' } }, title: { text: null } },
+    tooltip: { backgroundColor: '#1f2436', borderColor: '#2a3050', style: { color: '#e8ecf4' } },
+  };
+
+  function paintMonthly(rows) {
+    const labels = rows.map(r => r.period_label);
+    const doses  = rows.map(r => r.doses_applied);
+    const unique = rows.map(r => r.unique_patients);
+
+    if (monthlyHC) monthlyHC.destroy();
+    monthlyHC = Highcharts.chart('monthlyChart', {
+      ...HC_THEME,
+      chart: { ...HC_THEME.chart, type: 'areaspline' },
+      xAxis: { ...HC_THEME.xAxis, categories: labels },
+      plotOptions: { areaspline: { fillOpacity: 0.15, marker: { enabled: false } } },
+      series: [
+        { name: 'Dosis aplicadas', data: doses,  color: '#4f8ef7', fillColor: 'rgba(79,142,247,.15)' },
+        { name: 'Personas atendidas', data: unique, color: '#34d399', fillColor: 'rgba(52,211,153,.1)' },
+      ],
+    });
+
+    if (!rows.length) {
+      document.getElementById('monthlyBody').innerHTML =
+        '<tr><td colspan="3" style="color:var(--md-on-surface-variant);text-align:center;padding:1.5rem">Sin datos para el rango seleccionado.</td></tr>';
+      return;
+    }
+    document.getElementById('monthlyBody').innerHTML = rows.map(r => `
+      <tr>
+        <td>${r.period_label}</td>
+        <td>${fmt.format(r.doses_applied || 0)}</td>
+        <td>${fmt.format(r.unique_patients || 0)}</td>
+      </tr>`).join('');
+  }
+
+  function paintVaccines(rows) {
+    if (vaccineHC) vaccineHC.destroy();
+    vaccineHC = Highcharts.chart('vaccineChart', {
+      ...HC_THEME,
+      chart: { ...HC_THEME.chart, type: 'bar' },
+      xAxis: { ...HC_THEME.xAxis, categories: rows.map(r => r.vaccine_name) },
+      series: [{ name: 'Dosis aplicadas', data: rows.map(r => r.doses_applied),
+                 color: '#4f8ef7', borderRadius: 4 }],
+      legend: { enabled: false },
+    });
+
+    if (!rows.length) {
+      document.getElementById('vaccinesBody').innerHTML =
+        '<tr><td colspan="4" style="color:var(--md-on-surface-variant);text-align:center;padding:1.5rem">Sin datos para el rango seleccionado.</td></tr>';
+      return;
+    }
+    document.getElementById('vaccinesBody').innerHTML = rows.map(r => `
+      <tr>
+        <td>${r.vaccine_name}</td>
+        <td>${fmt.format(r.doses_applied || 0)}</td>
+        <td>${fmt.format(r.unique_patients || 0)}</td>
+        <td>${fmtDec.format(r.share_percent || 0)}%</td>
+      </tr>`).join('');
+  }
+
+  function paintZones(rows) {
+    if (!rows.length) {
+      document.getElementById('zonesBody').innerHTML =
+        '<tr><td colspan="4" style="color:var(--md-on-surface-variant);text-align:center;padding:1.5rem">Sin zonas registradas.</td></tr>';
+      return;
+    }
+    document.getElementById('zonesBody').innerHTML = rows.map(r => `
+      <tr>
+        <td>${r.zone_name}</td>
+        <td>${fmt.format(r.doses_applied || 0)}</td>
+        <td>${fmt.format(r.unique_patients || 0)}</td>
+        <td><span class="risk-badge ${r.risk_level || ''}">${r.risk_label || '—'}</span></td>
+      </tr>`).join('');
+  }
+
+  // ── Cargar reporte ──
+  async function loadReport() {
+    runButton.disabled = true;
+    runButton.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Generando…';
+
+    // Poner loading en los KPIs de detalle
+    for (let i = 1; i <= 15; i++) {
+      const id = String(i).padStart(2, '0');
+      const el = document.getElementById('kpi' + id);
+      if (el) { el.textContent = '—'; el.classList.add('loading'); el.className = 'kpi-card-value loading'; }
+      const st = document.getElementById('kpi' + id + '-status');
+      if (st) { st.textContent = 'Calculando…'; st.className = 'kpi-status info'; }
+    }
+
+    const params = new URLSearchParams({
+      from: fromInput.value, to: toInput.value,
+      min_group: String(minGroupInput.value || 1),
+    });
+
+    try {
+      const res  = await fetch(`/api/reportes-publicos/resumen?${params}`);
+      const ct   = res.headers.get('content-type') || '';
+      const raw  = await res.text();
+
+      if (!ct.includes('application/json'))
+        throw new Error('El servidor no devolvió JSON. Verifica login o SPs en PostgreSQL.');
+
+      const data = raw ? JSON.parse(raw) : {};
+      if (!res.ok) throw new Error(data.error || 'Error al generar el reporte');
+
+      const kpis     = data.kpis     || {};
+      const vaccines = data.vaccines || [];
+      const monthly  = data.monthly  || [];
+      const zones    = data.zones    || [];
+
+      paintSummary(kpis);
+      paintDetailKpis(kpis, vaccines, monthly);
+      paintMonthly(monthly);
+      paintVaccines(vaccines);
+      paintZones(zones);
+
+      noDataBox.hidden = (kpis.total_doses_applied || 0) > 0;
+
+    } catch (err) {
+      alert(err.message || 'Error generando reporte');
+      noDataBox.hidden = false;
+    } finally {
+      runButton.disabled = false;
+      runButton.innerHTML = '<i class="fa-solid fa-chart-column"></i> Generar reporte';
+    }
+  }
+
+  runButton.addEventListener('click', loadReport);
+  loadReport();
+})();
+</script>
+{% endblock %}

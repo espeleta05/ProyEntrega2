@@ -1,0 +1,47 @@
+/* ========================================
+   MD3 BREADCRUMB - Material Design 3
+   ======================================== */
+
+.md3-breadcrumb {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--md-spacing-1);
+  margin-bottom: var(--md-spacing-4);
+  font-size: var(--md-font-size-body-sm);
+  color: var(--md-on-surface-variant);
+}
+
+.md3-breadcrumb__separator {
+  color: var(--md-outline);
+  font-size: 0.7rem;
+  user-select: none;
+}
+
+.md3-breadcrumb__link {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--md-spacing-1);
+  color: var(--md-on-surface-variant);
+  text-decoration: none;
+  border-radius: var(--md-shape-extra-small);
+  padding: 2px var(--md-spacing-1);
+  transition: color var(--md-transition-short), background var(--md-transition-short);
+}
+
+.md3-breadcrumb__link:hover {
+  color: var(--md-primary);
+  background: var(--md-primary-container);
+}
+
+.md3-breadcrumb__current {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--md-spacing-1);
+  color: var(--md-on-surface);
+  font-weight: var(--md-font-weight-semibold);
+}
+
+.md3-breadcrumb__icon {
+  font-size: 0.8rem;
+}

@@ -1,0 +1,133 @@
+/**
+ * aplicaciones.css — Página de aplicaciones de vacunas
+ * Solo variables --md-*. Sin colores hardcodeados.
+ */
+
+/* ── KPIs ─────────────────────────────────────────────────────────────────── */
+.kpi-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: var(--md-spacing-3, 12px);
+    margin-bottom: var(--md-spacing-5, 20px);
+}
+
+.kpi-mini {
+  background: var(--md-surface-container-lowest, #fff);
+  border-radius: var(--md-shape-medium, 12px);
+  border: 0.5px solid var(--md-outline-variant, #c4c7c5);
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--md-spacing-2, 6px);
+  box-shadow: var(--md-shadow-level-1);
+  position: relative;
+  overflow: hidden;
+}
+
+.kpi-mini::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%; height: 4px;
+  border-radius: var(--md-shape-large, 15px) var(--md-shape-large, 15px) 0 0;
+}
+
+.kpi-color1::before { background: var(--md-primary, #6B007C); }
+.kpi-color2::before { background: var(--md-secondary, #4B1535); }
+
+.kpi-icon {
+  font-size: 1.1rem;
+  margin-bottom: var(--md-spacing-1, 4px);
+}
+.kpi-icon-color1 { color: var(--md-primary, #6B007C); }
+.kpi-icon-color2 { color: var(--md-secondary, #4B1535); }
+
+.kpi-mini i {
+    font-size: 1.3rem;
+    flex-shrink: 0;
+}
+
+.kpi-mini > div {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+}
+.kpi-num {
+    font-size: var(--md-font-size-display-sm, 1.6rem);
+    font-weight: var(--md-font-weight-extrabold, 800);
+    line-height: 1;
+}
+.kpi-lbl {
+    font-size: var(--md-font-size-body-md, 0.875rem);
+    font-weight: var(--md-font-weight-semibold, 600);
+    color: var(--md-on-surface-variant, #49454f);
+}
+
+.extra {
+  align-items: flex-start;
+  justify-content: flex-start;
+}
+
+/* ── Píldoras de dosis / observación ─────────────────────────────────────── */
+.dose {
+  background: color-mix(in srgb, var(--md-primary, #6B007C) 12%, transparent);
+  color: var(--md-primary, #6B007C);
+  padding: 5px 10px;
+  border-radius: var(--md-shape-medium, 10px);
+  font-size: var(--md-font-size-label-lg, 0.75rem);
+}
+
+.observation {
+  display: block;
+  padding: var(--md-spacing-2, 8px);
+  background: var(--md-surface-container, #f4eff8);
+  border-radius: var(--md-shape-small, 8px);
+  font-size: var(--md-font-size-body-sm, 0.8rem);
+}
+
+/* Colores de fondo para filas / secciones — paleta data-viz (no semánticos) */
+.pink   { background: color-mix(in srgb, var(--md-secondary, #4B1535) 10%, transparent); }
+.yellow { background: var(--md-tertiary-container, #FFEEC0); }
+.purple { background: color-mix(in srgb, var(--md-primary, #6B007C) 12%, transparent); }
+
+/* ── Lista de aplicaciones ───────────────────────────────────────────────── */
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--md-spacing-5, 20px);
+}
+
+.item {
+  border: 1px solid var(--md-outline-variant, #c4c7c5);
+  border-radius: var(--md-shape-large, 15px);
+  padding: var(--md-spacing-5, 20px);
+}
+
+.item-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.item-header h3 {
+  margin: 0;
+  font-size: var(--md-font-size-title-lg, 1.5rem);
+}
+
+.item-header span {
+  color: var(--md-on-surface-variant, #49454f);
+}
+
+.badge {
+  background: var(--md-secondary-container, #E8ABCE);
+  color: var(--md-secondary, #4B1535);
+  padding: 5px 10px;
+  border-radius: var(--md-shape-extra-large, 20px);
+  font-size: var(--md-font-size-body-md, 0.875rem);
+}
+
+.item-body {
+  display: flex;
+  justify-content: space-between;
+  margin-top: var(--md-spacing-4, 15px);
+}

@@ -1,0 +1,157 @@
+/* Material Design 3 — Dropdowns / menus (requires design-system.css first) */
+
+@keyframes md3-dropdown-in {
+  from { opacity: 0; transform: translateY(-6px) scaleY(0.95); }
+  to   { opacity: 1; transform: translateY(0) scaleY(1); }
+}
+
+/* ── Wrapper ─────────────────────────────────────────────────────────────── */
+.md3-dropdown {
+  position: relative;
+  display: inline-block;
+}
+
+/* ── Trigger ─────────────────────────────────────────────────────────────── */
+.md3-dropdown__trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--md-spacing-2);
+  cursor: pointer;
+  user-select: none;
+}
+
+.md3-dropdown__trigger-arrow {
+  font-size: var(--md-font-size-label-md);
+  color: var(--md-on-surface-variant);
+  transition: transform var(--md-transition-short);
+  flex-shrink: 0;
+}
+
+.md3-dropdown.open .md3-dropdown__trigger-arrow {
+  transform: rotate(180deg);
+}
+
+/* ── Menu panel ──────────────────────────────────────────────────────────── */
+.md3-dropdown__menu {
+  display: none;
+  position: absolute;
+  top: calc(100% + var(--md-spacing-1));
+  left: 0;
+  min-width: 200px;
+  background: var(--md-surface-container-lowest);
+  border: 1px solid var(--md-outline-variant);
+  border-radius: var(--md-shape-medium);
+  box-shadow: var(--md-shadow-level-2);
+  z-index: 1000;
+  overflow: hidden;
+  animation: md3-dropdown-in 0.18s cubic-bezier(0.4, 0, 0.2, 1);
+  transform-origin: top left;
+}
+
+/* Alignment variants */
+.md3-dropdown__menu--right {
+  left: auto;
+  right: 0;
+  transform-origin: top right;
+}
+
+.md3-dropdown__menu--up {
+  top: auto;
+  bottom: calc(100% + var(--md-spacing-1));
+  transform-origin: bottom left;
+}
+
+.md3-dropdown.open .md3-dropdown__menu {
+  display: block;
+}
+
+/* ── Items ───────────────────────────────────────────────────────────────── */
+.md3-dropdown__item {
+  display: flex;
+  align-items: center;
+  gap: var(--md-spacing-3);
+  padding: var(--md-spacing-3) var(--md-spacing-4);
+  font-family: var(--md-font-family-body);
+  font-size: var(--md-font-size-body-md);
+  color: var(--md-on-surface);
+  cursor: pointer;
+  text-decoration: none;
+  white-space: nowrap;
+  border: none;
+  background: none;
+  width: 100%;
+  text-align: left;
+  transition: background var(--md-transition-short), color var(--md-transition-short);
+}
+
+.md3-dropdown__item:hover {
+  background: color-mix(in srgb, var(--md-primary) 8%, transparent);
+  color: var(--md-on-surface);
+  text-decoration: none;
+}
+
+.md3-dropdown__item:active {
+  background: color-mix(in srgb, var(--md-primary) 12%, transparent);
+}
+
+/* Active / selected */
+.md3-dropdown__item--active {
+  color: var(--md-primary);
+  font-weight: var(--md-font-weight-semibold);
+  background: var(--md-primary-container);
+}
+
+/* Danger */
+.md3-dropdown__item--danger {
+  color: var(--md-error);
+}
+
+.md3-dropdown__item--danger:hover {
+  background: var(--md-error-container);
+  color: var(--md-on-error-container);
+}
+
+.md3-dropdown__item--danger .md3-dropdown__item-icon {
+  color: var(--md-error);
+}
+
+/* Disabled */
+.md3-dropdown__item--disabled {
+  opacity: var(--md-state-disabled);
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* Leading icon */
+.md3-dropdown__item-icon {
+  width: 18px;
+  text-align: center;
+  color: var(--md-on-surface-variant);
+  flex-shrink: 0;
+  font-size: var(--md-font-size-body-md);
+}
+
+/* Trailing content (shortcut hint, badge, arrow) */
+.md3-dropdown__item-trailing {
+  margin-left: auto;
+  font-size: var(--md-font-size-label-md);
+  color: var(--md-on-surface-variant);
+  padding-left: var(--md-spacing-4);
+}
+
+/* ── Divider ─────────────────────────────────────────────────────────────── */
+.md3-dropdown__divider {
+  border: none;
+  border-top: 1px solid var(--md-outline-variant);
+  margin: var(--md-spacing-1) 0;
+}
+
+/* ── Section label ───────────────────────────────────────────────────────── */
+.md3-dropdown__label {
+  padding: var(--md-spacing-2) var(--md-spacing-4) var(--md-spacing-1);
+  font-size: var(--md-font-size-label-md);
+  font-weight: var(--md-font-weight-semibold);
+  color: var(--md-on-surface-variant);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}

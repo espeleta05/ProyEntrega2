@@ -1,9 +1,12 @@
+-- VER VISTAS
+-- \dv --
+
 -- ===================================================
 -- VISTAS PARA EL SISTEMA CLÍNICO DE VACUNACIÓN
 -- ===================================================
 
 -- Vista 1: Información completa de pacientes (con guardián y alergias)
-CREATE OR REPLACE VIEW v_patients_full AS
+CREATE OR REPLACE VIEW vw_patients AS
 SELECT
     p.patient_id,
     p.first_name,

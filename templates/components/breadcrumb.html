@@ -1,0 +1,62 @@
+{#
+  BREADCRUMB MACRO - Material Design 3
+
+  Parámetros:
+    - items: lista de dicts { label, href (opcional), icon (opcional) }
+             El último item es el activo (se muestra sin enlace si no tiene href)
+    - separator: carácter separador (default: '/')
+    - class: clases adicionales
+
+  Uso:
+    {% from 'components/breadcrumb.html' import breadcrumb %}
+
+    {{ breadcrumb(items=[
+        {'label': 'Dashboard',  'href': url_for('dashboard'), 'icon': 'fa-desktop'},
+        {'label': 'Pacientes',  'href': url_for('pacientes')},
+        {'label': 'Juan García'},
+    ]) }}
+#}
+
+{% macro breadcrumb(items=[], separator='/', class='') %}
+  {% if items %}
+    <nav aria-label="Breadcrumb" class="md3-breadcrumb {{ class }}">
+      {% for item in items %}
+        {%- set is_last = loop.last -%}
+
+        {% if not loop.first %}
+          <span aria-hidden="true" class="md3-breadcrumb__separator">{{ separator }}</span>
+        {% endif %}
+
+        {% if is_last %}
+          {{- /* Último item: activo, sin enlace */ -}}
+          <span aria-current="page" class="md3-breadcrumb__current">
+            {% if item.icon is defined and item.icon %}
+              <i class="fa-solid {{ item.icon }} md3-breadcrumb__icon"></i>
+            {% endif %}
+            {{ item.label }}
+          </span>
+
+        {% elif item.href is defined and item.href %}
+          {{- /* Item con enlace */ -}}
+          <a href="{{ item.href }}" class="md3-breadcrumb__link">
+            {% if item.icon is defined and item.icon %}
+              <i class="fa-solid {{ item.icon }} md3-breadcrumb__icon"></i>
+            {% endif %}
+            {{ item.label }}
+          </a>
+
+        {% else %}
+          {{- /* Item sin enlace (no activo) */ -}}
+          <span class="d-inline-flex gap-1">
+            {% if item.icon is defined and item.icon %}
+              <i class="fa-solid {{ item.icon }} md3-breadcrumb__icon"></i>
+            {% endif %}
+            {{ item.label }}
+          </span>
+
+        {% endif %}
+
+      {% endfor %}
+    </nav>
+  {% endif %}
+{% endmacro %}

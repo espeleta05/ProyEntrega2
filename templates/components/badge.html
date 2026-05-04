@@ -1,0 +1,26 @@
+{#
+  BADGE MACRO - Material Design 3
+  Parámetros:
+    - text: Texto del badge (requerido salvo dot=True)
+    - color: 'primary', 'secondary', 'tertiary', 'success', 'error', 'neutral' (default: 'primary')
+    - icon: Clase Font Awesome (ej: 'fa-star')
+    - size: 'sm', 'md', 'lg' (default: 'md')
+    - outlined: true/false (default: false)
+    - dot: true/false — muestra solo un punto de color, sin texto (default: false)
+    - class: Clases CSS adicionales
+
+  Uso:
+    {% from 'components/badge.html' import badge %}
+    {{ badge('Activo', color='success') }}
+    {{ badge('3', color='error', size='sm') }}
+    {{ badge(dot=True, color='primary') }}
+#}
+
+{% macro badge(text='', color='primary', icon=None, size='md', outlined=False, dot=False, class='') %}
+  <span class="md3-badge md3-badge--{{ color }}{% if size != 'md' %} md3-badge--{{ size }}{% endif %}{% if outlined %} md3-badge--outlined{% endif %}{% if dot %} md3-badge--dot{% endif %} {{ class }}">
+    {%- if not dot -%}
+      {%- if icon -%}<i class="fa-solid {{ icon }}"></i>{%- endif -%}
+      {%- if text -%}{{ text }}{%- endif -%}
+    {%- endif -%}
+  </span>
+{% endmacro %}

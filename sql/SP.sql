@@ -1,33 +1,25 @@
--- ==============================================
+-- VER SPs EN POSTGRES
+SELECT routine_name 
+FROM information_schema.routines 
+WHERE routine_type = 'PROCEDURE' 
+AND routine_schema = 'public';
 
--- STORED PROCEDURES - Sistema de Vacunación
---
-
--- Orden: (1) Wrappers de vistas → (2) Dominios CRUD →
-
---        (3) Reportería/búsqueda → (4) Catálogos / formularios
-
--- ==============================================
-
--- =============================================================================
+-- =====================================
 -- WRAPPERS DE VISTAS
--- Funciones y procedimientos que exponen o filtran v_* (consultas enriquecidas)
--- =============================================================================
+-- =====================================
 
-
--- v_patients_full
-CREATE OR REPLACE PROCEDURE sp_get_patients_full(
-    IN p_results REFCURSOR
+-- (APLICADA) vw_patient
+CREATE OR REPLACE PROCEDURE sp_get_patients(
+    INOUT p_results REFCURSOR
 )
 LANGUAGE plpgsql AS $$
 BEGIN
-    OPEN p_results 
+    OPEN p_results FOR
         SELECT *
-        FROM v_patients_full
+        FROM vw_patients
         ORDER BY patient_id;
 END;
 $$;
-
 
 -- v_vaccination_records_full
 CREATE OR REPLACE PROCEDURE sp_get_vaccination_records_full(
@@ -166,341 +158,404 @@ $$;
 
 
 -- ==============================================
-
 -- MÓDULO: PACIENTES (CRUD y adherencia)
-
 -- ==============================================
 
-
-
--- Registrar nuevo paciente
+-- (APPLICADO) Registrar nuevo paciente
 CREATE OR REPLACE PROCEDURE sp_register_patient(
-
-    IN    p_first_name     VARCHAR,
-
-    IN    p_last_name      VARCHAR,
-
-    IN    p_curp           VARCHAR,
-
-    IN    p_birth_date     DATE,
-
-    IN    p_gender         CHAR(1),
-
-    IN    p_blood_type_id  INT,
-
-    IN    p_weight_kg      NUMERIC,
-
-    IN    p_premature      BOOLEAN,
-
-    IN    p_guardian_name  VARCHAR,
-
-    IN    p_guardian_last  VARCHAR,
-
-    IN    p_guardian_phone VARCHAR,
-
-    INOUT p_results     REFCURSOR
-
+    IN    p_first_name       VARCHAR,
+    IN    p_last_name        VARCHAR,
+    IN    p_curp             VARCHAR,
+    IN    p_birth_date       DATE,
+    IN    p_gender           CHAR(1),
+    IN    p_blood_type_id    INT,
+    IN    p_weight_kg        NUMERIC,
+    IN    p_premature        BOOLEAN,
+    IN    p_guardian_name    VARCHAR,
+    IN    p_guardian_last    VARCHAR,
+    IN    p_guardian_phone   VARCHAR,
+    INOUT p_results          REFCURSOR
 )
-
-LANGUAGE plpgsql AS $$
-
+LANGUAGE plpgsql
+AS $$
 DECLARE
-
     v_guardian_id INT;
-
     v_patient_id  INT;
-
+    v_age_years   INT;
 BEGIN
 
-    -- 1. Insertar guardián
+    IF TRIM(p_first_name) = '' THEN
+        RAISE EXCEPTION 'El nombre es obligatorio';
+    END IF;
 
-    INSERT INTO guardians (first_name, last_name)
+    IF TRIM(p_last_name) = '' THEN
+        RAISE EXCEPTION 'El apellido es obligatorio';
+    END IF;
 
-    VALUES (p_guardian_name, p_guardian_last)
+    IF p_birth_date > CURRENT_DATE THEN
+        RAISE EXCEPTION 'La fecha de nacimiento no puede ser futura';
+    END IF;
 
-    RETURNING guardian_id INTO v_guardian_id;
+    v_age_years := DATE_PART('year', AGE(CURRENT_DATE, p_birth_date));
 
+    IF v_age_years > 10 THEN
+        RAISE EXCEPTION 'El paciente excede la edad pediatrica permitida';
+    END IF;
 
+    IF p_gender NOT IN ('M', 'F') THEN
+        RAISE EXCEPTION 'Genero invalido';
+    END IF;
 
-    -- 2. Insertar teléfono del guardián
+    IF LENGTH(TRIM(p_curp)) <> 18 THEN
+        RAISE EXCEPTION 'CURP invalida';
+    END IF;
 
-    IF p_guardian_phone IS NOT NULL THEN
+    IF EXISTS (
+        SELECT 1
+        FROM patients
+        WHERE curp = p_curp
+    ) THEN
+        RAISE EXCEPTION 'El CURP ya existe';
+    END IF;
 
-        INSERT INTO guardian_phones (guardian_id, phone, phone_type, is_primary)
+    IF p_weight_kg <= 0 OR p_weight_kg > 80 THEN
+        RAISE EXCEPTION 'Peso fuera de rango pediatrico';
+    END IF;
 
-        VALUES (v_guardian_id, p_guardian_phone, 'Celular', TRUE);
+    IF NOT EXISTS (
+        SELECT 1
+        FROM blood_types
+        WHERE blood_type_id = p_blood_type_id
+    ) THEN
+        RAISE EXCEPTION 'Tipo sanguineo inexistente';
+    END IF;
+
+    SELECT guardian_id
+    INTO v_guardian_id
+    FROM guardians
+    WHERE first_name = p_guardian_name
+    AND last_name = p_guardian_last
+    LIMIT 1;
+
+    IF v_guardian_id IS NULL THEN
+
+        INSERT INTO guardians (
+            first_name,
+            last_name
+        )
+        VALUES (
+            p_guardian_name,
+            p_guardian_last
+        )
+        RETURNING guardian_id
+        INTO v_guardian_id;
 
     END IF;
 
+    IF p_guardian_phone IS NOT NULL THEN
 
+        IF LENGTH(TRIM(p_guardian_phone)) < 10 THEN
+            RAISE EXCEPTION 'Telefono invalido';
+        END IF;
 
-    -- 3. Insertar paciente
+        INSERT INTO guardian_phones (
+            guardian_id,
+            phone,
+            phone_type,
+            is_primary
+        )
+        VALUES (
+            v_guardian_id,
+            p_guardian_phone,
+            'Celular',
+            TRUE
+        );
 
-    INSERT INTO patients (first_name, last_name, curp, birth_date, gender, blood_type_id, weight_kg, premature, created_at)
+    END IF;
 
-    VALUES (p_first_name, p_last_name, p_curp, p_birth_date, p_gender, COALESCE(p_blood_type_id, 1), p_weight_kg, p_premature, NOW())
+    INSERT INTO patients (
+        first_name,
+        last_name,
+        curp,
+        birth_date,
+        gender,
+        blood_type_id,
+        weight_kg,
+        premature,
+        created_at,
+        is_active
+    )
+    VALUES (
+        p_first_name,
+        p_last_name,
+        p_curp,
+        p_birth_date,
+        p_gender,
+        p_blood_type_id,
+        p_weight_kg,
+        p_premature,
+        NOW(),
+        TRUE
+    )
+    RETURNING patient_id
+    INTO v_patient_id;
 
-    RETURNING patients.patient_id INTO v_patient_id;
-
-
-
-    -- 4. Crear relación paciente-tutor
-
-    INSERT INTO patient_guardian_relations (patient_id, guardian_id, relation_type, is_primary, has_custody)
-
-    VALUES (v_patient_id, v_guardian_id, 'Tutor', TRUE, TRUE);
-
-
+    INSERT INTO patient_guardian_relations (
+        patient_id,
+        guardian_id,
+        relation_type,
+        is_primary,
+        has_custody
+    )
+    VALUES (
+        v_patient_id,
+        v_guardian_id,
+        'Tutor',
+        TRUE,
+        TRUE
+    );
 
     OPEN p_results FOR
+    SELECT
+        TRUE AS success,
+        'Paciente registrado correctamente' AS message,
+        v_patient_id AS patient_id;
 
-        SELECT v_patient_id AS patient_id;
+EXCEPTION
+WHEN OTHERS THEN
+
+    OPEN p_results FOR
+    SELECT
+        FALSE AS success,
+        SQLERRM AS message,
+        NULL::INT AS patient_id;
 
 END;
-
 $$;
 
-
-
-BEGIN ;
-
-CALL
-
-sp_register_patient(
-
-    'Luisa', 
-
-    'Escobedo', 
-
-    'LESE850101HDFRRL09', 
-
-    '2026-02-15', 
-
-    'F', 
-
-    2, 
-
-    50.40, 
-
+BEGIN;
+CALL sp_register_patient(
+    'Diana',
+    'Ross',
+    'DIAR350503YGFERT06',
+    '2025-05-12',
+    'F',
+    4,
+    34.6,
     FALSE,
-
-    'Felipe', 
-
-    'Escobedo', 
-
-    '8110000017',
-
+    'Mike',
+    'Ross',
+    '8110000019',
     'p_results'
-
 );
-
 FETCH ALL FROM p_results;
-
-COMMIT ;
-
+COMMIT;
 
 
-
-
--- Actualizar paciente
-
+-- (APPLICADO) Actualizar paciente
 CREATE OR REPLACE PROCEDURE sp_update_patient(
-
-    IN    p_patient_id     INT,
-
-    IN    p_first_name     VARCHAR,
-
-    IN    p_last_name      VARCHAR,
-
-    IN    p_blood_type_id  INT,
-
-    IN    p_weight_kg      NUMERIC,
-
-    INOUT p_results        REFCURSOR
-
+    IN    p_patient_id      INT,
+    IN    p_first_name      VARCHAR,
+    IN    p_last_name       VARCHAR,
+    IN    p_blood_type_id   INT,
+    IN    p_weight_kg       NUMERIC,
+    INOUT p_results         REFCURSOR
 )
-
 LANGUAGE plpgsql AS $$
-
+DECLARE
+    v_exists BOOLEAN;
 BEGIN
+    
+    SELECT EXISTS(
+        SELECT 1
+        FROM patients
+        WHERE patient_id = p_patient_id
+        AND is_active = TRUE
+    )
+    INTO v_exists;
 
-    UPDATE patients SET
+    IF NOT v_exists THEN
+        RAISE EXCEPTION 'El paciente no existe o esta inactivo';
+    END IF;
 
-        first_name    = COALESCE(p_first_name, first_name),
+    IF p_first_name IS NOT NULL THEN
+        IF LENGTH(TRIM(p_first_name)) < 2 THEN
+            RAISE EXCEPTION 'Nombre invalido';
+        END IF;
+    END IF;
 
-        last_name     = COALESCE(p_last_name, last_name),
+    IF p_last_name IS NOT NULL THEN
+        IF LENGTH(TRIM(p_last_name)) < 2 THEN
+            RAISE EXCEPTION 'Apellido invalido';
+        END IF;
+    END IF;
 
-        blood_type_id = COALESCE(p_blood_type_id, blood_type_id),
+    IF p_weight_kg IS NOT NULL THEN
 
-        weight_kg     = COALESCE(p_weight_kg, weight_kg)
+        IF p_weight_kg <= 0 OR p_weight_kg > 80 THEN
+            RAISE EXCEPTION 'Peso fuera de rango pediatrico';
+        END IF;
 
+    END IF;
+
+    IF p_blood_type_id IS NOT NULL THEN
+
+        IF NOT EXISTS (
+            SELECT 1
+            FROM blood_types
+            WHERE blood_type_id = p_blood_type_id
+        ) THEN
+            RAISE EXCEPTION 'Tipo sanguineo inexistente';
+        END IF;
+
+    END IF;
+
+    UPDATE patients
+    SET
+        first_name = COALESCE(NULLIF(TRIM(p_first_name), ''), first_name),
+        last_name = COALESCE(NULLIF(TRIM(p_last_name), ''), last_name),
+        blood_type_id = COALESCE(
+            p_blood_type_id,
+            blood_type_id
+        ),
+        weight_kg = COALESCE(
+            p_weight_kg,
+            weight_kg
+        ),
+        updated_at = NOW()
     WHERE patient_id = p_patient_id;
 
+    OPEN p_results FOR
+    SELECT
+        TRUE AS success,
+        'Paciente actualizado correctamente' AS message,
+        p_patient_id AS patient_id;
 
+EXCEPTION
+WHEN OTHERS THEN
 
     OPEN p_results FOR
-
-        SELECT FOUND AS success;
-
+    SELECT
+        FALSE AS success,
+        SQLERRM AS message,
+        NULL::INT AS patient_id;
 END;
-
 $$;
 
-
-
-BEGIN ; 
-
-CALL
-
-sp_update_patient(
-
+BEGIN;
+CALL sp_update_patient(
     16,
-
     'Juan',
-
-    'Pérez',
-
+    'Perez',
     2,
-
-    80.0,
-
+    35.5,
     'p_results'
-
 );
-
 FETCH ALL FROM p_results;
-
-COMMIT ;
-
+COMMIT;
 
 
--- Eliminar paciente (cascada controlada)
-
+-- (CORREGIR) Eliminar paciente (cascada controlada)
 CREATE OR REPLACE PROCEDURE sp_delete_patient(
-
     IN    p_patient_id  INT,
-
     INOUT p_results     REFCURSOR
-
 )
-
-LANGUAGE plpgsql AS $$
-
+LANGUAGE plpgsql
+AS $$
+DECLARE
+    v_exists                BOOLEAN;
+    v_has_future_appointments BOOLEAN;
 BEGIN
 
-    -- Eliminar en orden de dependencias (FKs)
+    SELECT EXISTS(
+        SELECT 1
+        FROM patients
+        WHERE patient_id = p_patient_id
+        AND is_active = TRUE
+    )
+    INTO v_exists;
 
-    DELETE FROM patient_allergies WHERE patient_id = p_patient_id;
+    IF NOT v_exists THEN
+        RAISE EXCEPTION 'El paciente no existe o ya fue eliminado';
+    END IF;
 
-    DELETE FROM patient_guardian_relations WHERE patient_id = p_patient_id;
+    SELECT EXISTS(
+        SELECT 1
+        FROM appointments
+        WHERE patient_id = p_patient_id
+        AND scheduled_at >= CURRENT_DATE
+        AND appointment_status NOT IN ('Cancelada', 'Completada')
+    )
+    INTO v_has_future_appointments;
 
-    DELETE FROM scheme_completion_alerts WHERE patient_id = p_patient_id;
-
-    DELETE FROM nfc_scan_events WHERE nfc_card_id IN
-
-        (SELECT nfc_card_id FROM nfc_cards WHERE patient_id = p_patient_id);
-
-    DELETE FROM nfc_cards WHERE patient_id = p_patient_id;
-
-    DELETE FROM appointments WHERE patient_id = p_patient_id;
-
-    DELETE FROM post_vaccine_reactions WHERE vaccination_record_id IN
-
-        (SELECT record_id FROM vaccination_records WHERE patient_id = p_patient_id);
-
-    DELETE FROM vaccination_records WHERE patient_id = p_patient_id;
-
-    DELETE FROM patients WHERE patient_id = p_patient_id;
+    IF v_has_future_appointments THEN
+        RAISE EXCEPTION 'El paciente tiene citas futuras pendientes';
+    END IF;
 
 
+    UPDATE patients
+    SET
+        is_active = FALSE,
+        deleted_at = NOW(),
+        updated_at = NOW()
+    WHERE patient_id = p_patient_id;
 
     OPEN p_results FOR
+    SELECT
+        TRUE AS success,
+        'Paciente desactivado correctamente' AS message,
+        p_patient_id AS patient_id;
 
-        SELECT FOUND AS success;
+EXCEPTION
+WHEN OTHERS THEN
 
+    OPEN p_results FOR
+    SELECT
+        FALSE AS success,
+        SQLERRM AS message,
+        NULL::INT AS patient_id;
 END;
-
 $$;
 
-
-
 BEGIN ;
-
 CALL sp_delete_patient(16, 'p_results');
-
 FETCH ALL FROM p_results;
-
 COMMIT ;
-
 
 
 -- Calcular adherencia del paciente al esquema
-
 CREATE OR REPLACE PROCEDURE sp_calculate_patient_adherence(
-
     IN    p_patient_id INT,
-
     INOUT p_results    REFCURSOR
-
 )
-
 LANGUAGE plpgsql AS $$
-
 BEGIN
-
     OPEN p_results FOR
-
     WITH esquema_actual AS (
-
         SELECT sd.dose_id, sd.vaccine_id, v.name AS vacuna
-
         FROM scheme_doses sd
-
         JOIN vaccination_scheme vs ON sd.scheme_id = vs.scheme_id
-
         JOIN vaccines v ON sd.vaccine_id = v.vaccine_id
-
         WHERE vs.is_current = TRUE
-
     ),
-
     dosis_aplicadas AS (
-
         SELECT patient_id, vaccine_id, COUNT(*) as total_aplicadas
-
         FROM vaccination_records
-
         GROUP BY patient_id, vaccine_id
-
     )
-
     SELECT
-
         p.curp,
-
         p.first_name || ' ' || p.last_name AS paciente,
-
         COUNT(ea.dose_id) AS dosis_requeridas,
-
         COALESCE(SUM(da.total_aplicadas), 0) AS dosis_totales_recibidas,
-
         ROUND((COALESCE(SUM(da.total_aplicadas), 0) * 100.0 / COUNT(ea.dose_id)), 2) || '%' AS porcentaje_adherencia
-
     FROM patients p
-
     CROSS JOIN esquema_actual ea
-
     LEFT JOIN dosis_aplicadas da ON p.patient_id = da.patient_id AND ea.vaccine_id = da.vaccine_id
-
     WHERE p.patient_id = p_patient_id
-
     GROUP BY p.patient_id;
-
 END;
-
 $$;
-
-
 
 
 
@@ -510,166 +565,86 @@ $$;
 
 -- ==============================================
 
-
-
 CREATE OR REPLACE PROCEDURE sp_register_vaccine(
-
     IN    p_name              VARCHAR,
-
     IN    p_commercial_name   VARCHAR,
-
     IN    p_manufacturer_id   INT,
-
     IN    p_via_id            INT,
-
     IN    p_ideal_age_months  SMALLINT,
-
     IN    p_disease_prevented TEXT,
-
     INOUT p_results           REFCURSOR
-
 )
-
 LANGUAGE plpgsql AS $$
-
 DECLARE
-
     v_vaccine_id INT;
-
 BEGIN
-
     INSERT INTO vaccines (
-
         name,
-
         commercial_name,
-
         manufacturer_id,
-
         via_id,
-
         ideal_age_months,
-
         disease_prevented
-
     )
-
     VALUES (
-
         p_name,
-
         p_commercial_name,
-
         p_manufacturer_id,
-
         p_via_id,
-
         p_ideal_age_months,
-
         p_disease_prevented
-
     )
-
     RETURNING vaccines.vaccine_id INTO v_vaccine_id;
 
-
-
     OPEN p_results FOR
-
         SELECT v_vaccine_id AS vaccine_id;
-
 END;
-
 $$;
-
 
 
 CREATE OR REPLACE PROCEDURE sp_create_vaccine_lot(
-
     IN    p_vaccine_id           INT,
-
     IN    p_clinic_id            INT,
-
     IN    p_lot_number           VARCHAR,
-
     IN    p_quantity_received    INT,
-
     IN    p_expiration_date      DATE,
-
     INOUT p_results              REFCURSOR
-
 )
-
 LANGUAGE plpgsql AS $$
-
 DECLARE
-
     v_lot_id INT;
-
 BEGIN
-
     INSERT INTO vaccine_lots (
-
         vaccine_id, clinic_id, lot_number,
-
         quantity_received, quantity_available, expiration_date, received_date
-
     )
-
     VALUES (
-
         p_vaccine_id, p_clinic_id, p_lot_number,
-
         p_quantity_received, p_quantity_received, p_expiration_date, NOW()::DATE
-
     )
-
     RETURNING vaccine_lots.lot_id INTO v_lot_id;
 
-
-
     OPEN p_results FOR
-
         SELECT v_lot_id AS lot_id;
-
 END;
-
 $$;
 
-
-
 CREATE OR REPLACE PROCEDURE sp_update_vaccine_lot_stock(
-
     IN    p_lot_id              INT,
-
     IN    p_quantity_available  INT,
-
     INOUT p_results             REFCURSOR
-
 )
 
 LANGUAGE plpgsql AS $$
-
 BEGIN
-
     UPDATE vaccine_lots SET
-
         quantity_available = p_quantity_available
-
     WHERE lot_id = p_lot_id;
 
-
-
     OPEN p_results FOR
-
         SELECT FOUND AS success;
-
 END;
-
 $$;
-
-
-
 
 
 -- ==============================================

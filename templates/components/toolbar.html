@@ -1,0 +1,55 @@
+{#
+  TOOLBAR MACRO - Material Design 3
+  Barra de encabezado de página con título, subtítulo y zona de acciones.
+
+  Parámetros:
+    - title:     título principal (requerido)
+    - subtitle:  subtítulo o descripción (opcional)
+    - icon:      clase FA que precede al título (opcional)
+    - back_href: URL para flecha de volver (opcional)
+    - class:     clases adicionales
+
+  Uso — el caller define los botones de acción (área derecha):
+    {% from 'components/toolbar.html' import toolbar %}
+    {% from 'macros/button.html' import button %}
+
+    {% call toolbar(title='Gestión de pacientes', subtitle='Total: ' ~ total_patients) %}
+      {{ button('Agregar paciente', icon='fa-plus', onclick='openPatientModal()') }}
+    {% endcall %}
+
+    {# Sin acciones: #}
+    {{ toolbar('Historial médico', subtitle='Registro de aplicaciones') }}
+#}
+
+{% macro toolbar(title, subtitle='', icon=None, back_href=None, class='') %}
+  <div class="md3-toolbar {{ class }} flex-between gap-4 mb-6 flex-wrap">
+
+    <div class="flex-start gap-3">
+
+      {% if back_href %}
+        <a href="{{ back_href }}" class="md3-toolbar__back-button">
+          <i class="fa-solid fa-arrow-left"></i>
+        </a>
+      {% endif %}
+
+      {% if icon %}
+        <i class="fa-solid {{ icon }}" style="font-size:1.4rem; color:var(--md-primary); flex-shrink:0;"></i>
+      {% endif %}
+
+      <div>
+        <h2 class="title md3-toolbar__title">{{ title }}</h2>
+        {% if subtitle %}
+          <p class="subtitle text-muted" style="margin:var(--md-spacing-1) 0 0;">{{ subtitle }}</p>
+        {% endif %}
+      </div>
+
+    </div>
+
+    {% if caller is defined %}
+      <div class="md3-toolbar__actions flex-wrap">
+        {{ caller() }}
+      </div>
+    {% endif %}
+
+  </div>
+{% endmacro %}

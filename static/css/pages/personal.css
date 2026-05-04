@@ -1,0 +1,143 @@
+/**
+ * personal.css — Página de administración de personal
+ * Paleta de roles: data-viz intencional definida aquí.
+ */
+
+/* ── Paleta data-viz para roles (no semántica) ───────────────────────────── */
+:root {
+  --dv-blue:      #4285F4; --dv-blue-bg:   #E8F0FE; --dv-blue-txt:   #1967D2;
+  --dv-teal:      #00ACC1; --dv-teal-bg:   #E0F7FA; --dv-teal-txt:   #00838F;
+  --dv-purple:    #AB47BC; --dv-purple-bg: #F3E5F5; --dv-purple-txt: #7B1FA2;
+  --dv-amber:     #FFA000; --dv-amber-bg:  #FFF8E1; --dv-amber-txt:  #FF8F00;
+  --dv-green:     #43A047; --dv-green-bg:  #E8F5E9; --dv-green-txt:  #2E7D32;
+  --dv-coral:     #EF5350; --dv-coral-bg:  #FFEBEE; --dv-coral-txt:  #C62828;
+}
+
+/* ── Sección por rol ─────────────────────────────────────────────────────── */
+.role-section { margin-bottom: var(--md-spacing-7, 28px); }
+
+.role-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: var(--md-spacing-3, 10px);
+}
+.role-title-row {
+    display: flex;
+    align-items: center;
+    gap: var(--md-spacing-3, 10px);
+}
+.role-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+.role-title {
+    font-size: var(--md-font-size-body-lg, 1rem);
+    font-weight: var(--md-font-weight-bold, 700);
+    color: var(--md-on-surface, #1a1a1a);
+    margin: 0;
+}
+
+/* Badge contador de rol */
+.role-count-badge {
+    font-size: var(--md-font-size-label-lg, 0.72rem);
+    font-weight: var(--md-font-weight-extrabold, 800);
+    padding: 3px 10px;
+    border-radius: var(--md-shape-extra-large, 999px);
+}
+
+/* ── Dot y badge por color de rol ── */
+.rc-blue   .role-dot, .role-dot.rc-blue   { background: var(--dv-blue); }
+.rc-teal   .role-dot, .role-dot.rc-teal   { background: var(--dv-teal); }
+.rc-purple .role-dot, .role-dot.rc-purple { background: var(--dv-purple); }
+.rc-amber  .role-dot, .role-dot.rc-amber  { background: var(--dv-amber); }
+.rc-green  .role-dot, .role-dot.rc-green  { background: var(--dv-green); }
+.rc-coral  .role-dot, .role-dot.rc-coral  { background: var(--dv-coral); }
+
+.role-count-badge.rc-blue   { background: var(--dv-blue-bg);   color: var(--dv-blue-txt); }
+.role-count-badge.rc-teal   { background: var(--dv-teal-bg);   color: var(--dv-teal-txt); }
+.role-count-badge.rc-purple { background: var(--dv-purple-bg); color: var(--dv-purple-txt); }
+.role-count-badge.rc-amber  { background: var(--dv-amber-bg);  color: var(--dv-amber-txt); }
+.role-count-badge.rc-green  { background: var(--dv-green-bg);  color: var(--dv-green-txt); }
+.role-count-badge.rc-coral  { background: var(--dv-coral-bg);  color: var(--dv-coral-txt); }
+
+/* ── Avatar coloreado por rol ── */
+.rc-blue-avatar   { background: var(--dv-blue-bg)   !important; color: var(--dv-blue-txt)   !important; }
+.rc-teal-avatar   { background: var(--dv-teal-bg)   !important; color: var(--dv-teal-txt)   !important; }
+.rc-purple-avatar { background: var(--dv-purple-bg) !important; color: var(--dv-purple-txt) !important; }
+.rc-amber-avatar  { background: var(--dv-amber-bg)  !important; color: var(--dv-amber-txt)  !important; }
+.rc-green-avatar  { background: var(--dv-green-bg)  !important; color: var(--dv-green-txt)  !important; }
+.rc-coral-avatar  { background: var(--dv-coral-bg)  !important; color: var(--dv-coral-txt)  !important; }
+
+/* ── Pill de rol en celda ── */
+.role-pill {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: var(--md-shape-extra-large, 999px);
+    font-size: var(--md-font-size-body-sm, 0.8rem);
+    font-weight: var(--md-font-weight-bold, 700);
+    white-space: nowrap;
+}
+.role-pill.rc-blue   { background: var(--dv-blue-bg);   color: var(--dv-blue-txt); }
+.role-pill.rc-teal   { background: var(--dv-teal-bg);   color: var(--dv-teal-txt); }
+.role-pill.rc-purple { background: var(--dv-purple-bg); color: var(--dv-purple-txt); }
+.role-pill.rc-amber  { background: var(--dv-amber-bg);  color: var(--dv-amber-txt); }
+.role-pill.rc-green  { background: var(--dv-green-bg);  color: var(--dv-green-txt); }
+.role-pill.rc-coral  { background: var(--dv-coral-bg);  color: var(--dv-coral-txt); }
+
+/* ── ID badge ── */
+.emp-id-badge {
+    font-family: monospace;
+    font-size: var(--md-font-size-body-sm, 0.8rem);
+    color: var(--md-on-surface-variant, #49454f);
+    background: var(--md-surface-container-low, #f8f3f8);
+    padding: 2px 8px;
+    border-radius: var(--md-shape-small, 6px);
+    letter-spacing: .3px;
+}
+
+/* ── Mail cell ── */
+.mail-cell {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--md-spacing-2, 6px);
+    font-size: var(--md-font-size-body-sm, 0.82rem);
+    color: var(--md-on-surface-variant, #49454f);
+}
+.mail-cell i { font-size: .75rem; color: var(--md-outline, #79747e); }
+
+/* ── Botón de acción ── */
+.action-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    border-radius: var(--md-shape-small, 7px);
+    background: var(--md-surface-container-low, #f8f3f8);
+    color: var(--md-on-surface-variant, #49454f);
+    text-decoration: none;
+    font-size: var(--md-font-size-body-sm, 0.8rem);
+    transition: background var(--md-transition-short), color var(--md-transition-short);
+}
+.action-btn:hover {
+    background: color-mix(in srgb, var(--md-primary, #6B007C) 10%, transparent);
+    color: var(--md-primary, #6B007C);
+}
+
+/* ── Empty state ── */
+.empty-state {
+    text-align: center;
+    padding: var(--md-spacing-10, 60px) var(--md-spacing-5, 20px);
+    font-size: var(--md-font-size-body-md, 0.95rem);
+    color: var(--md-on-surface-variant, #49454f);
+}
+
+/* ── Anchos de columna tabla personal ─────────────────────────────────────── */
+.personal-col-name   { width: 32%; }
+.personal-col-mail   { width: 28%; }
+.personal-col-id     { width: 16%; }
+.personal-col-role   { width: 14%; }
+.personal-col-action { width: 10%; }

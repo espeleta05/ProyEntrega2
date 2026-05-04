@@ -1,0 +1,71 @@
+{#
+  EMPTY STATE MACRO - Material Design 3
+  CSS: usa clases de static/css/components/tables.css (md3-table__empty*)
+       o puede usarse de forma autónoma.
+
+  Parámetros:
+    - icon:          clase Font Awesome (ej: 'fa-users-slash') (requerido)
+    - title:         título (requerido)
+    - text:          descripción de apoyo (opcional)
+    - action_text:   texto del botón de acción (opcional)
+    - action_href:   URL del botón (opcional)
+    - action_onclick: función JS del botón (opcional)
+    - action_icon:   ícono del botón (default: 'fa-plus')
+    - size:          'sm' | 'md' | 'lg' (default: 'md')
+    - color:         'primary' | 'neutral' (default: 'primary') — color del ícono
+    - class:         clases adicionales
+
+  Uso:
+    {% from 'components/empty_state.html' import empty_state %}
+
+    {# Dentro de una tabla: #}
+    <tr>
+      <td colspan="5">
+        {{ empty_state(icon='fa-users-slash', title='Sin pacientes',
+                       text='Agrega el primer paciente para comenzar.',
+                       action_text='Agregar paciente', action_onclick='openPatientModal()') }}
+      </td>
+    </tr>
+
+    {# Como bloque de página: #}
+    {{ empty_state(icon='fa-calendar-xmark', title='Sin citas programadas',
+                   text='No hay citas para el período seleccionado.',
+                   size='lg') }}
+#}
+
+{% macro empty_state(icon, title, text='', action_text='', action_href='', action_onclick='', action_icon='fa-plus', size='md', color='primary', class='') %}
+
+  {%- set icon_color = 'var(--md-primary)' if color == 'primary' else 'var(--md-neutral)' -%}
+
+  <div class="md3-empty-state md3-empty-state--{{ size }} {{ class }}">
+
+    <div class="md3-empty-state__icon-circle" style="background:color-mix(in srgb, {{ icon_color }} 12%, transparent);">
+      <i class="fa-solid {{ icon }} md3-empty-state__icon" style="font-size:{{ {'sm':'1.75rem','md':'2.75rem','lg':'3.75rem'}[size] }}; color:{{ icon_color }};"></i>
+    </div>
+
+    <div>
+      <p class="md3-empty-state__title">{{ title }}</p>
+
+      {% if text %}
+        <p class="md3-empty-state__text">{{ text }}</p>
+      {% endif %}
+    </div>
+
+    {% if action_text %}
+      {% if action_href %}
+        <a href="{{ action_href }}" class="md3-btn md3-btn--filled md3-empty-state__action">
+          <i class="fa-solid {{ action_icon }}"></i>
+          {{ action_text }}
+        </a>
+      {% else %}
+        <button type="button" class="md3-btn md3-btn--filled md3-empty-state__action"
+          {% if action_onclick %}onclick="{{ action_onclick }}"{% endif %}>
+          <i class="fa-solid {{ action_icon }}"></i>
+          {{ action_text }}
+        </button>
+      {% endif %}
+    {% endif %}
+
+  </div>
+
+{% endmacro %}

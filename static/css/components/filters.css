@@ -1,0 +1,243 @@
+/* Material Design 3 — Filter bars & panels (requires design-system.css first) */
+
+/* ── Filter bar ──────────────────────────────────────────────────────────── */
+.md3-filter-bar {
+  display: flex;
+  align-items: center;
+  gap: var(--md-spacing-3);
+  padding: var(--md-spacing-4);
+  background: var(--md-surface-container-low);
+  border: 1px solid var(--md-outline-variant);
+  border-radius: var(--md-shape-medium);
+  flex-wrap: wrap;
+}
+
+.md3-filter-bar--borderless {
+  background: transparent;
+  border: none;
+  padding: var(--md-spacing-3) 0;
+}
+
+/* ── Search input ────────────────────────────────────────────────────────── */
+.md3-filter-search {
+  position: relative;
+  flex: 1;
+  min-width: 200px;
+}
+
+.md3-filter-search__icon {
+  position: absolute;
+  left: var(--md-spacing-3);
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--md-on-surface-variant);
+  font-size: var(--md-font-size-body-md);
+  pointer-events: none;
+}
+
+.md3-filter-search__input {
+  width: 100%;
+  height: 40px;
+  padding: 0 var(--md-spacing-4) 0 calc(var(--md-spacing-3) * 2 + 1em);
+  border: 1px solid var(--md-outline-variant);
+  border-radius: var(--md-shape-extra-large);
+  background: var(--md-surface-container-lowest);
+  font-family: var(--md-font-family-body);
+  font-size: var(--md-font-size-body-md);
+  color: var(--md-on-surface);
+  transition:
+    border-color var(--md-transition-short),
+    box-shadow var(--md-transition-short);
+}
+
+.md3-filter-search__input::placeholder {
+  color: var(--md-on-surface-variant);
+}
+
+.md3-filter-search__input:focus {
+  outline: none;
+  border-color: var(--md-primary);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--md-primary) 20%, transparent);
+}
+
+/* Clear button inside search */
+.md3-filter-search__clear {
+  position: absolute;
+  right: var(--md-spacing-3);
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: var(--md-on-surface-variant);
+  cursor: pointer;
+  font-size: var(--md-font-size-body-sm);
+  padding: 2px;
+  border-radius: 50%;
+  display: none;
+  transition: background var(--md-transition-short);
+}
+
+.md3-filter-search__clear:hover {
+  background: var(--md-surface-container-high);
+}
+
+.md3-filter-search__input:not(:placeholder-shown) ~ .md3-filter-search__clear {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ── Filter group ────────────────────────────────────────────────────────── */
+.md3-filter-group {
+  display: flex;
+  align-items: center;
+  gap: var(--md-spacing-2);
+}
+
+.md3-filter-group__label {
+  font-size: var(--md-font-size-body-sm);
+  font-weight: var(--md-font-weight-medium);
+  color: var(--md-on-surface-variant);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* ── Filter select ───────────────────────────────────────────────────────── */
+.md3-filter-select {
+  height: 36px;
+  padding: 0 var(--md-spacing-8) 0 var(--md-spacing-3);
+  border: 1px solid var(--md-outline-variant);
+  border-radius: var(--md-shape-extra-large);
+  background: var(--md-surface-container-lowest);
+  color: var(--md-on-surface);
+  font-family: var(--md-font-family-body);
+  font-size: var(--md-font-size-body-sm);
+  font-weight: var(--md-font-weight-medium);
+  cursor: pointer;
+  appearance: none;
+  background-image: linear-gradient(45deg, transparent 50%, var(--md-on-surface-variant) 50%),
+    linear-gradient(135deg, var(--md-on-surface-variant) 50%, transparent 50%);
+  background-position: calc(100% - 12px) calc(50% - 2px), calc(100% - 8px) calc(50% - 2px);
+  background-size: 4px 4px, 4px 4px;
+  background-repeat: no-repeat;
+  transition:
+    border-color var(--md-transition-short),
+    box-shadow var(--md-transition-short),
+    background-color var(--md-transition-short);
+}
+
+.md3-filter-select:focus {
+  outline: none;
+  border-color: var(--md-primary);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--md-primary) 20%, transparent);
+}
+
+/* Active: a non-default value is selected */
+.md3-filter-select.has-value {
+  background-color: var(--md-primary-container);
+  border-color: var(--md-primary-container);
+  color: var(--md-on-primary-container);
+  background-image:
+    linear-gradient(45deg, transparent 50%, var(--md-on-primary-container) 50%),
+    linear-gradient(135deg, var(--md-on-primary-container) 50%, transparent 50%);
+  background-position: calc(100% - 12px) calc(50% - 2px), calc(100% - 8px) calc(50% - 2px);
+  background-size: 4px 4px, 4px 4px;
+  background-repeat: no-repeat;
+}
+
+/* ── Active filter pills ─────────────────────────────────────────────────── */
+.md3-filter-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--md-spacing-2);
+  align-items: center;
+}
+
+.md3-filter-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--md-spacing-1);
+  height: 28px;
+  padding: 0 var(--md-spacing-1) 0 var(--md-spacing-3);
+  border-radius: var(--md-shape-extra-large);
+  background: var(--md-secondary-container);
+  color: var(--md-on-secondary-container);
+  font-size: var(--md-font-size-body-sm);
+  font-weight: var(--md-font-weight-medium);
+  white-space: nowrap;
+}
+
+.md3-filter-pill__label {
+  opacity: 0.7;
+  margin-right: var(--md-spacing-1);
+  font-size: var(--md-font-size-label-md);
+}
+
+.md3-filter-pill__remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: none;
+  background: none;
+  color: var(--md-on-secondary-container);
+  cursor: pointer;
+  font-size: 0.75rem;
+  padding: 0;
+  flex-shrink: 0;
+  transition: background var(--md-transition-short);
+}
+
+.md3-filter-pill__remove:hover {
+  background: color-mix(in srgb, var(--md-on-secondary-container) 15%, transparent);
+}
+
+/* ── Clear all ───────────────────────────────────────────────────────────── */
+.md3-filter-clear-all {
+  font-size: var(--md-font-size-body-sm);
+  font-weight: var(--md-font-weight-medium);
+  color: var(--md-primary);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  text-decoration: underline;
+  flex-shrink: 0;
+  transition: color var(--md-transition-short);
+}
+
+.md3-filter-clear-all:hover {
+  color: var(--md-secondary);
+}
+
+/* ── Result count ────────────────────────────────────────────────────────── */
+.md3-filter-count {
+  font-size: var(--md-font-size-body-sm);
+  color: var(--md-on-surface-variant);
+  margin-left: auto;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* ── Responsive ──────────────────────────────────────────────────────────── */
+@media (max-width: 640px) {
+  .md3-filter-bar {
+    gap: var(--md-spacing-2);
+  }
+
+  .md3-filter-search {
+    min-width: 100%;
+    flex: unset;
+    width: 100%;
+  }
+
+  .md3-filter-group {
+    flex-wrap: wrap;
+  }
+
+  .md3-filter-count {
+    margin-left: 0;
+  }
+}

@@ -1,0 +1,186 @@
+{% extends 'base_2daE.html' %}
+
+{% block title %}Personal - Sistema Clínico{% endblock %}
+
+{% block head_extra %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/tables.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/personal.css') }}">
+{% endblock %}
+
+{% block content %}
+
+<!-- HEADER -->
+<div class="content-header">
+    <div>
+        <h2 class="title">Administración de personal</h2>
+        <p class="subtitle">Total de empleados: {{ total_workers }}</p>
+    </div>
+    <a href="{{ url_for('add_user') }}" class="btn-agregar">
+        <i class="fa-solid fa-plus"></i>
+        Agregar usuario
+    </a>
+</div>
+
+<!-- SEARCH -->
+<div class="search-bar-container section">
+    <i class="fa-solid fa-magnifying-glass"></i>
+    <input type="text" id="personalSearchInput" placeholder="Buscar empleado por nombre, correo, rol o id...">
+</div>
+
+<div class="sort-and-filter">
+    <div class="sort-options">
+        <p class="sort-label">Filtrar por rol:</p>
+        <select id="roleFilterSelect" class="sort-select">
+            <option value="">Todos</option>
+            {% for role in roles %}
+            <option value="{{ role | lower }}">{{ role }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    
+    <div class="sort-options">
+        <p class="sort-label">Ordenar por:</p>
+        <select id="sortSelect" class="sort-select">
+            <option value="name">Nombre</option>
+            <option value="id">ID</option>
+            <option value="role">Rol</option>
+        </select>
+    </div>
+</div>
+
+<!-- SECCIONES POR ROL -->
+{% set roles = workers | groupby('role') %}
+{% set role_colors = ['rc-blue', 'rc-teal', 'rc-purple', 'rc-amber', 'rc-green', 'rc-coral'] %}
+
+{% for role, members in roles %}
+{% set rc = role_colors[loop.index0 % 6] %}
+<div class="role-section" data-role="{{ role | lower }}">
+
+    <div class="role-header">
+        <div class="role-title-row">
+            <span class="role-dot {{ rc }}"></span>
+            <h3 class="role-title">{{ role }}</h3>
+        </div>
+        <span class="role-count-badge {{ rc }}">{{ members | list | length }}</span>
+    </div>
+
+    <div class="tbl-wrapper">
+        <table class="tbl">
+            <thead>
+                <tr>
+                    <th class="personal-col-name">Empleado</th>
+                    <th class="personal-col-mail">Correo</th>
+                    <th class="personal-col-id">ID</th>
+                    <th class="personal-col-role">Rol</th>
+                    <th class="personal-col-action center">Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for w in members %}
+                <tr class="tbl-row employee-row bar-{{ loop.index0 % 12 }}">
+                    <td >
+                        <div class="patient-cell">
+                            <div class="avatar-sm {{ rc }}-avatar">
+                                {{ w.first_name[0] | upper }}{{ w.last_name[0] | upper if w.last_name else '' }}
+                            </div>
+                            <div class="cell-stack">
+                                <span class="cell-main">{{ w.first_name }} {{ w.last_name }}</span>
+                                {% if w.specialty %}
+                                <span class="cell-sub">{{ w.specialty }}</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </td>
+                    <td class="muted-td">
+                        {% if w.mail %}
+                        <span class="mail-cell">
+                            <i class="fa-solid fa-envelope"></i>
+                            {{ w.mail }}
+                        </span>
+                        {% else %}
+                        <span class="muted-td">—</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <span class="emp-id-badge">EMP{{ '%03d' % w.worker_id }}</span>
+                    </td>
+                    <td>
+                        <span class="role-pill {{ rc }}">{{ w.role }}</span>
+                    </td>
+                    <td class="center">
+                        <a href="{{ url_for('edit_user', worker_id=w.worker_id) }}"
+                           class="action-btn" title="Editar">
+                            <i class="fa-solid fa-pen-to-square"></i>
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+</div>
+{% else %}
+<p class="empty-state">No hay empleados registrados.</p>
+{% endfor %}
+
+<script>
+(() => {
+    const input = document.getElementById('personalSearchInput');
+    const roleFilter = document.getElementById('roleFilterSelect');
+    const sortSelect = document.getElementById('sortSelect');
+    if (!input) return;
+
+    const rows = Array.from(document.querySelectorAll('.employee-row'));
+    const sections = Array.from(document.querySelectorAll('.role-section'));
+
+    function applyFilter() {
+        const term = (input.value || '').toLowerCase().trim();
+        const roleTerm = (roleFilter?.value || '').toLowerCase().trim();
+        rows.forEach(row => {
+            const text = row.innerText.toLowerCase();
+            const sectionRole = (row.closest('.role-section')?.dataset.role || '').toLowerCase();
+            row.style.display = (!term || text.includes(term)) && (!roleTerm || sectionRole.includes(roleTerm)) ? '' : 'none';
+        });
+
+        // Ocultar secciones enteras si no tienen filas visibles
+        sections.forEach(section => {
+            const visible = section.querySelectorAll('.employee-row:not([style*="none"])').length;
+            section.style.display = visible > 0 ? '' : 'none';
+        });
+    }
+
+    function sortRows() {
+        const key = sortSelect?.value || 'name';
+        sections.forEach(section => {
+            const tbody = section.querySelector('tbody');
+            if (!tbody) return;
+            const sectionRows = Array.from(tbody.querySelectorAll('.employee-row'));
+            sectionRows.sort((left, right) => {
+                if (key === 'id') {
+                    return Number(left.querySelector('.emp-id-badge')?.innerText.replace(/\D/g, '') || 0) - Number(right.querySelector('.emp-id-badge')?.innerText.replace(/\D/g, '') || 0);
+                }
+                if (key === 'role') {
+                    return (left.closest('.role-section')?.dataset.role || '').localeCompare(right.closest('.role-section')?.dataset.role || '', 'es', { sensitivity: 'base' });
+                }
+                const leftName = left.querySelector('.cell-main')?.innerText.toLowerCase() || '';
+                const rightName = right.querySelector('.cell-main')?.innerText.toLowerCase() || '';
+                return leftName.localeCompare(rightName, 'es', { sensitivity: 'base' });
+            });
+            sectionRows.forEach(row => tbody.appendChild(row));
+        });
+    }
+
+    input.addEventListener('input', applyFilter);
+    if (roleFilter) roleFilter.addEventListener('change', applyFilter);
+    if (sortSelect) sortSelect.addEventListener('change', () => { sortRows(); applyFilter(); });
+
+    const params = new URLSearchParams(window.location.search);
+    const q = (params.get('q') || '').trim();
+    if (q) { input.value = q; }
+    sortRows();
+    applyFilter();
+})();
+</script>
+
+{% endblock %}

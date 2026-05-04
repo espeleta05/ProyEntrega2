@@ -1,0 +1,190 @@
+{#
+  NAVBAR MACRO - Material Design 3
+  CSS: static/css/layouts/navbar.css
+
+  Parámetros:
+    - logo_src:           ruta de la imagen del logo
+    - logo_text:          texto del logo (default: 'ImmuniCare')
+    - logo_href:          URL del logo (default: '#')
+    - show_search:        mostrar barra de búsqueda global (default: True)
+    - search_placeholder: placeholder del input (default: 'Buscar...')
+    - search_api:         endpoint de la API de búsqueda (default: '/api/global-search')
+    - actions:            lista de botones a la derecha
+                          { label, icon, href, onclick, type ('primary'|'secondary'|'tonal') }
+    - user_initials:      iniciales para el avatar del usuario
+    - user_name:          nombre del usuario (tooltip)
+    - class:              clases adicionales
+
+  Uso:
+    {% from 'components/navbar.html' import navbar %}
+
+    {{ navbar(
+        logo_src=url_for('static', filename='css/img/logo.png'),
+        logo_href=url_for('pagina_inicio'),
+        search_api='/api/global-search',
+        actions=[
+          {'label': 'Generar reporte', 'icon': 'fa-plus',
+           'href': url_for('reportes_publicos'), 'type': 'primary'}
+        ],
+        user_initials='RG',
+        user_name=name ~ ' ' ~ lastname,
+    ) }}
+#}
+
+{% macro navbar(logo_src=None, logo_text='ImmuniCare', logo_href='#', show_search=True, search_placeholder='Buscar paciente, vacuna o trabajador...', search_api='/api/global-search', actions=[], user_initials='', user_name='', class='') %}
+
+<div class="topbar {{ class }}">
+
+  {{- /* Logo */ -}}
+  <a href="{{ logo_href }}" class="md3-topbar__logo">
+    {% if logo_src %}
+      <img src="{{ logo_src }}" alt="{{ logo_text }}" class="logo-img" style="height:32px; width:auto;">
+    {% endif %}
+    <span class="logo-text" style="font-family:var(--md-font-family-display); font-weight:var(--md-font-weight-bold); color:var(--md-primary); font-size:var(--md-font-size-title-md);">{{ logo_text }}</span>
+  </a>
+
+  {{- /* Global search */ -}}
+  {% if show_search %}
+    <div class="search-bar-container global-search-wrapper" style="flex:1; max-width:480px; position:relative;">
+      <i class="fa-solid fa-magnifying-glass" style="position:absolute; left:14px; top:50%; transform:translateY(-50%); color:var(--md-on-surface-variant); pointer-events:none; z-index:1;"></i>
+      <input
+        type="text"
+        id="globalSearchInput"
+        placeholder="{{ search_placeholder }}"
+        autocomplete="off"
+        class="md3-search-input"
+        onfocus="this.classList.add('focused')"
+        onblur="this.classList.remove('focused')"
+      >
+      <div id="globalSearchResults" class="global-search-results" hidden></div>
+    </div>
+  {% endif %}
+
+  {{- /* Action buttons */ -}}
+  <div class="d-flex gap-2">
+    {% for action in actions %}
+      {%- set btn_class = {
+        'primary':   'md3-btn md3-btn--filled',
+        'secondary': 'md3-btn md3-btn--outlined',
+        'tonal':     'md3-btn md3-btn--tonal'
+      }[action.type | default('primary')] -%}
+
+      {% if action.href is defined and action.href %}
+        <a href="{{ action.href }}" class="{{ btn_class }}">
+          {% if action.icon is defined %}<i class="fa-solid {{ action.icon }}"></i>{% endif %}
+          <span class="d-none d-sm-inline">{{ action.label }}</span>
+        </a>
+      {% else %}
+        <button type="button" class="{{ btn_class }}"
+          {% if action.onclick is defined %}onclick="{{ action.onclick }}"{% endif %}>
+          {% if action.icon is defined %}<i class="fa-solid {{ action.icon }}"></i>{% endif %}
+          <span class="d-none d-sm-inline">{{ action.label }}</span>
+        </button>
+      {% endif %}
+    {% endfor %}
+
+    {{- /* User avatar */ -}}
+    {% if user_initials %}
+      <div class="md3-user-avatar" title="{{ user_name }}">{{ user_initials }}</div>
+    {% endif %}
+  </div>
+
+</div>
+
+{% if show_search %}
+<script>
+(() => {
+  const input = document.getElementById('globalSearchInput');
+  const resultsBox = document.getElementById('globalSearchResults');
+  if (!input || !resultsBox) return;
+
+  let debounceTimer;
+  let activeIndex = -1;
+
+  const typeLabel = { paciente: 'Paciente', vacuna: 'Vacuna', personal: 'Personal' };
+
+  function closeResults() {
+    resultsBox.hidden = true;
+    resultsBox.innerHTML = '';
+    activeIndex = -1;
+  }
+
+  function getItems() {
+    return Array.from(resultsBox.querySelectorAll('.search-item'));
+  }
+
+  function setActive(index) {
+    getItems().forEach((item, i) => {
+      const active = i === index;
+      item.classList.toggle('active', active);
+      if (active) item.scrollIntoView({ block: 'nearest' });
+    });
+  }
+
+  function moveActive(delta) {
+    const items = getItems();
+    if (!items.length) return;
+    activeIndex = (activeIndex + delta + items.length) % items.length;
+    setActive(activeIndex);
+  }
+
+  function goToActive() {
+    const items = getItems();
+    if (!items.length) return;
+    const url = items[activeIndex >= 0 ? activeIndex : 0].dataset.url;
+    if (url) window.location.href = url;
+  }
+
+  function renderResults(items) {
+    if (!items.length) {
+      resultsBox.innerHTML = '<div class="search-empty">Sin coincidencias</div>';
+    } else {
+      resultsBox.innerHTML = items.map(item => `
+        <button type="button" class="search-item" data-url="${item.url}">
+          <span class="search-type ${item.type}">${typeLabel[item.type] || item.type}</span>
+          <span class="search-main">${item.title || ''}</span>
+          <span class="search-sub">${item.subtitle || ''}</span>
+        </button>
+      `).join('');
+      activeIndex = -1;
+    }
+    resultsBox.hidden = false;
+  }
+
+  async function fetchResults(q) {
+    try {
+      const res = await fetch(`{{ search_api }}?q=${encodeURIComponent(q)}`);
+      if (!res.ok) { closeResults(); return; }
+      const data = await res.json();
+      renderResults(data.results || []);
+    } catch { closeResults(); }
+  }
+
+  input.addEventListener('input', () => {
+    const q = input.value.trim();
+    clearTimeout(debounceTimer);
+    if (q.length < 1) { closeResults(); return; }
+    debounceTimer = setTimeout(() => fetchResults(q), 180);
+  });
+
+  resultsBox.addEventListener('click', e => {
+    const btn = e.target.closest('.search-item');
+    if (btn?.dataset.url) window.location.href = btn.dataset.url;
+  });
+
+  document.addEventListener('click', e => {
+    if (!resultsBox.contains(e.target) && e.target !== input) closeResults();
+  });
+
+  input.addEventListener('keydown', e => {
+    if (e.key === 'Escape') { closeResults(); return; }
+    if (resultsBox.hidden) return;
+    if (e.key === 'ArrowDown') { e.preventDefault(); moveActive(1); }
+    else if (e.key === 'ArrowUp') { e.preventDefault(); moveActive(-1); }
+    else if (e.key === 'Enter') { e.preventDefault(); goToActive(); }
+  });
+})();
+</script>
+{% endif %}
+
+{% endmacro %}

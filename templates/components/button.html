@@ -1,0 +1,51 @@
+{#
+  BUTTON MACRO - Material Design 3
+  Parámetros:
+    - text: Texto del botón (requerido)
+    - type: 'primary', 'secondary', 'tertiary', 'danger', 'success' (default: 'primary')
+    - size: 'sm', 'md', 'lg' (default: 'md')
+    - icon: Clase Font Awesome (ej: 'fa-plus')
+    - icon_position: 'left', 'right' (default: 'left')
+    - disabled: true/false
+    - onclick: Función JavaScript
+    - class: Clases CSS adicionales
+    - form_action: URL para formularios
+#}
+
+{% macro button(text, type='primary', size='md', icon=None, icon_position='left', disabled=False, onclick=None, class='', form_action=None) %}
+  {%- set size_class = {
+    'sm': 'btn-sm',
+    'md': 'btn-md',
+    'lg': 'btn-lg'
+  }[size] -%}
+
+  {%- set type_class = {
+    'primary': 'btn-primary',
+    'secondary': 'btn-secondary',
+    'tertiary': 'btn-tertiary',
+    'danger': 'btn-danger',
+    'success': 'btn-success'
+  }[type] -%}
+
+  {% if form_action %}
+    <a href="{{ form_action }}" class="btn {{ type_class }} {{ size_class }} {{ class }}" {% if disabled %}disabled{% endif %}>
+  {% else %}
+    <button class="btn {{ type_class }} {{ size_class }} {{ class }}" {% if disabled %}disabled{% endif %} {% if onclick %}onclick="{{ onclick }}"{% endif %}>
+  {% endif %}
+
+    {% if icon and icon_position == 'left' %}
+      <i class="fa-solid {{ icon }} btn-icon"></i>
+    {% endif %}
+
+    <span class="btn-text">{{ text }}</span>
+
+    {% if icon and icon_position == 'right' %}
+      <i class="fa-solid {{ icon }} btn-icon"></i>
+    {% endif %}
+
+  {% if form_action %}
+    </a>
+  {% else %}
+    </button>
+  {% endif %}
+{% endmacro %}

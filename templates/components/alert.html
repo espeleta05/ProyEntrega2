@@ -1,0 +1,45 @@
+{#
+  ALERT MACRO - Material Design 3
+  Parámetros:
+    - text: Texto principal (requerido)
+    - type: 'success', 'error', 'warning', 'info', 'neutral' (default: 'info')
+    - title: Título del alert (opcional)
+    - icon: Clase Font Awesome — si se omite, usa el ícono por defecto del tipo
+    - compact: true/false (default: false)
+    - dismissible: true/false — muestra botón de cierre (default: false)
+    - class: Clases CSS adicionales
+
+  Uso:
+    {% from 'components/alert.html' import alert %}
+    {{ alert('Guardado correctamente', type='success', title='Éxito', dismissible=True) }}
+#}
+
+{% macro alert(text, type='info', title='', icon=None, compact=False, dismissible=False, class='') %}
+  {%- set default_icons = {
+    'success': 'fa-circle-check',
+    'error':   'fa-circle-exclamation',
+    'warning': 'fa-triangle-exclamation',
+    'info':    'fa-circle-info',
+    'neutral': 'fa-circle'
+  } -%}
+  {%- set icon_class = icon if icon else default_icons[type] -%}
+
+  <div class="md3-alert md3-alert--{{ type }}{% if compact %} md3-alert--compact{% endif %} {{ class }}" role="alert">
+    <i class="fa-solid {{ icon_class }} md3-alert__icon"></i>
+
+    <div class="md3-alert__body">
+      {% if title %}
+        <p class="md3-alert__title">{{ title }}</p>
+      {% endif %}
+      <p class="md3-alert__text">{{ text }}</p>
+    </div>
+
+    {% if dismissible %}
+      <button
+        class="modal-close"
+        onclick="this.closest('.md3-alert').remove()"
+        aria-label="Cerrar alerta"
+      >&times;</button>
+    {% endif %}
+  </div>
+{% endmacro %}

@@ -1,0 +1,82 @@
+/* ========================================
+   MD3 EMPTY STATE - Material Design 3
+   ======================================== */
+
+.md3-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: var(--md-spacing-3);
+}
+
+.md3-empty-state--sm {
+  padding: var(--md-spacing-8) var(--md-spacing-6);
+}
+
+.md3-empty-state--md {
+  padding: var(--md-spacing-12) var(--md-spacing-6);
+}
+
+.md3-empty-state--lg {
+  padding: var(--md-spacing-16) var(--md-spacing-6);
+}
+
+.md3-empty-state__icon-circle {
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.md3-empty-state--sm .md3-empty-state__icon-circle {
+  width: 56px;
+  height: 56px;
+}
+
+.md3-empty-state--md .md3-empty-state__icon-circle {
+  width: 80px;
+  height: 80px;
+}
+
+.md3-empty-state--lg .md3-empty-state__icon-circle {
+  width: 104px;
+  height: 104px;
+}
+
+.md3-empty-state__icon {
+  opacity: 0.6;
+}
+
+.md3-empty-state__title {
+  font-family: var(--md-font-family-display);
+  font-weight: var(--md-font-weight-semibold);
+  color: var(--md-on-surface);
+  margin: 0 0 var(--md-spacing-2);
+}
+
+.md3-empty-state--sm .md3-empty-state__title {
+  font-size: var(--md-font-size-title-sm);
+}
+
+.md3-empty-state--md .md3-empty-state__title {
+  font-size: var(--md-font-size-title-md);
+}
+
+.md3-empty-state--lg .md3-empty-state__title {
+  font-size: var(--md-font-size-title-lg);
+}
+
+.md3-empty-state__text {
+  font-size: var(--md-font-size-body-md);
+  color: var(--md-on-surface-variant);
+  line-height: var(--md-line-height-body-md);
+  margin: 0;
+  max-width: 360px;
+}
+
+.md3-empty-state__action {
+  margin-top: var(--md-spacing-2);
+}

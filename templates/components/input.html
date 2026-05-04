@@ -1,0 +1,83 @@
+{#
+  INPUT MACRO - Material Design 3
+  Parámetros:
+    - name: Nombre del input (requerido)
+    - label: Etiqueta (requerido)
+    - type: 'text', 'email', 'password', 'number', 'date', 'select', 'textarea' (default: 'text')
+    - placeholder: Placeholder del input
+    - value: Valor inicial
+    - required: true/false
+    - disabled: true/false
+    - icon: Clase Font Awesome
+    - helper_text: Texto de ayuda debajo
+    - error: Mensaje de error
+    - options: Lista de opciones para select [{'value': '', 'label': ''}]
+    - rows: Filas para textarea (default: 4)
+    - class: Clases CSS adicionales
+#}
+
+{% macro input(name, label, type='text', placeholder='', value='', required=False, disabled=False, icon=None, helper_text='', error='', options=None, rows=4, class='') %}
+  <div class="form-group {% if error %}form-group--error{% endif %} {{ class }}">
+    {% if label %}
+      <label for="{{ name }}" class="form-label">
+        {{ label }}
+        {% if required %}<span class="form-required">*</span>{% endif %}
+      </label>
+    {% endif %}
+
+    <div class="form-input-wrapper {% if icon %}form-input-wrapper--icon{% endif %}">
+      {% if icon %}
+        <i class="fa-solid {{ icon }} form-icon"></i>
+      {% endif %}
+
+      {% if type == 'textarea' %}
+        <textarea
+          id="{{ name }}"
+          name="{{ name }}"
+          class="form-input form-textarea"
+          placeholder="{{ placeholder }}"
+          rows="{{ rows }}"
+          {% if required %}required{% endif %}
+          {% if disabled %}disabled{% endif %}
+        >{{ value }}</textarea>
+
+      {% elif type == 'select' %}
+        <select
+          id="{{ name }}"
+          name="{{ name }}"
+          class="form-input form-select"
+          {% if required %}required{% endif %}
+          {% if disabled %}disabled{% endif %}
+        >
+          {% for option in options or [] %}
+            <option value="{{ option.value }}" {% if option.value == value %}selected{% endif %}>
+              {{ option.label }}
+            </option>
+          {% endfor %}
+        </select>
+        <i class="fa-solid fa-chevron-down form-select-arrow"></i>
+
+      {% else %}
+        <input
+          type="{{ type }}"
+          id="{{ name }}"
+          name="{{ name }}"
+          class="form-input"
+          placeholder="{{ placeholder }}"
+          value="{{ value }}"
+          {% if required %}required{% endif %}
+          {% if disabled %}disabled{% endif %}
+        />
+      {% endif %}
+    </div>
+
+    {% if error %}
+      <p class="form-error">
+        <i class="fa-solid fa-exclamation-circle"></i>
+        {{ error }}
+      </p>
+    {% elif helper_text %}
+      <p class="form-helper-text">{{ helper_text }}</p>
+    {% endif %}
+  </div>
+{% endmacro %}

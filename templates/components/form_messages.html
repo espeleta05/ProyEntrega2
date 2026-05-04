@@ -26,28 +26,4 @@
         {% endif %}
     {% endwith %}
 </div>
-
-<script>
-function closeAlert(button) {
-    const alert = button.closest('.alert');
-    alert.classList.add('removing');
-    setTimeout(() => {
-        alert.remove();
-    }, 300);
-}
-
-// Auto-cerrar alertas después de 5 segundos (excepto errores críticos)
-document.addEventListener('DOMContentLoaded', function() {
-    const alerts = document.querySelectorAll('.alert');
-    alerts.forEach(alert => {
-        if (!alert.classList.contains('alert-danger')) {
-            setTimeout(() => {
-                if (alert.parentElement) {
-                    alert.classList.add('removing');
-                    setTimeout(() => alert.remove(), 300);
-                }
-            }, 5000);
-        }
-    });
-});
-</script>
+{# closeAlert y auto-dismiss son manejados por js/components/alerts.js #}

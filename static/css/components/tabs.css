@@ -1,0 +1,151 @@
+/* Material Design 3 — Tabs (requires design-system.css first) */
+
+@keyframes md3-tab-fade {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Container ───────────────────────────────────────────────────────────── */
+.md3-tabs {
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── Tab bar ─────────────────────────────────────────────────────────────── */
+.md3-tab-bar {
+  display: flex;
+  align-items: stretch;
+  border-bottom: 1px solid var(--md-outline-variant);
+  background: var(--md-surface-container-lowest);
+  overflow-x: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.md3-tab-bar::-webkit-scrollbar { display: none; }
+
+/* ── Individual tab ──────────────────────────────────────────────────────── */
+.md3-tab {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--md-spacing-2);
+  padding: var(--md-spacing-3) var(--md-spacing-5);
+  font-family: var(--md-font-family-body);
+  font-size: var(--md-font-size-body-md);
+  font-weight: var(--md-font-weight-medium);
+  color: var(--md-on-surface-variant);
+  cursor: pointer;
+  border: none;
+  background: none;
+  white-space: nowrap;
+  text-decoration: none;
+  border-bottom: 3px solid transparent;
+  margin-bottom: -1px;
+  flex-shrink: 0;
+  transition:
+    color var(--md-transition-short),
+    border-color var(--md-transition-short),
+    background var(--md-transition-short);
+}
+
+.md3-tab:hover {
+  color: var(--md-on-surface);
+  background: color-mix(in srgb, var(--md-primary) 6%, transparent);
+  text-decoration: none;
+}
+
+.md3-tab:focus-visible {
+  outline: 2px solid var(--md-primary);
+  outline-offset: -2px;
+}
+
+/* Active state */
+.md3-tab.active,
+.md3-tab[aria-selected="true"] {
+  color: var(--md-primary);
+  font-weight: var(--md-font-weight-semibold);
+  border-bottom-color: var(--md-primary);
+}
+
+/* Tab icon */
+.md3-tab__icon {
+  font-size: var(--md-font-size-title-sm);
+  line-height: 1;
+}
+
+/* Count badge inside tab */
+.md3-tab__count {
+  min-width: 20px;
+  height: 20px;
+  padding: 0 var(--md-spacing-1);
+  border-radius: var(--md-shape-extra-large);
+  background: var(--md-primary-container);
+  color: var(--md-on-primary-container);
+  font-size: var(--md-font-size-label-sm);
+  font-weight: var(--md-font-weight-bold);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+
+.md3-tab.active .md3-tab__count {
+  background: var(--md-primary);
+  color: var(--md-on-primary);
+}
+
+/* ── Tab panels ──────────────────────────────────────────────────────────── */
+.md3-tab-panel {
+  display: none;
+  padding: var(--md-spacing-6) 0;
+}
+
+.md3-tab-panel.active {
+  display: block;
+  animation: md3-tab-fade 0.2s ease;
+}
+
+/* ── Filled / pill variant ───────────────────────────────────────────────── */
+.md3-tab-bar--filled {
+  background: var(--md-surface-container-high);
+  border-bottom: none;
+  border-radius: var(--md-shape-medium);
+  padding: var(--md-spacing-1);
+  gap: var(--md-spacing-1);
+}
+
+.md3-tab-bar--filled .md3-tab {
+  border-bottom: none;
+  border-radius: var(--md-shape-small);
+  margin-bottom: 0;
+}
+
+.md3-tab-bar--filled .md3-tab.active {
+  background: var(--md-surface-container-lowest);
+  box-shadow: var(--md-shadow-level-1);
+  color: var(--md-primary);
+}
+
+/* ── Vertical tabs ───────────────────────────────────────────────────────── */
+.md3-tab-bar--vertical {
+  flex-direction: column;
+  border-bottom: none;
+  border-right: 1px solid var(--md-outline-variant);
+  overflow-x: visible;
+  overflow-y: auto;
+}
+
+.md3-tab-bar--vertical .md3-tab {
+  border-bottom: none;
+  border-right: 3px solid transparent;
+  margin-bottom: 0;
+  margin-right: -1px;
+  justify-content: flex-start;
+  padding: var(--md-spacing-3) var(--md-spacing-4);
+}
+
+.md3-tab-bar--vertical .md3-tab.active {
+  border-right-color: var(--md-primary);
+  border-bottom: none;
+}

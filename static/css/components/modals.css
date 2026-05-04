@@ -1,0 +1,197 @@
+/* Material Design 3 — Modals / dialogs (requires design-system.css first) */
+
+@keyframes md3-modal-in {
+  from { opacity: 0; transform: translateY(16px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes md3-overlay-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* ── Overlay ─────────────────────────────────────────────────────────────── */
+.md3-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+  padding: var(--md-spacing-4);
+  animation: md3-overlay-in 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.md3-modal-overlay.active {
+  display: flex;
+}
+
+/* ── Dialog container ────────────────────────────────────────────────────── */
+.md3-modal {
+  background: var(--md-surface-container-lowest);
+  border-radius: var(--md-shape-large);
+  box-shadow: var(--md-shadow-level-3);
+  width: 100%;
+  max-width: 560px;
+  max-height: 85vh;
+  overflow-y: auto;
+  animation: md3-modal-in 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  flex-direction: column;
+}
+
+.md3-modal--sm   { max-width: 400px; }
+.md3-modal--lg   { max-width: 860px; }
+.md3-modal--full { max-width: 96vw; max-height: 92vh; }
+
+/* ── Header ──────────────────────────────────────────────────────────────── */
+.md3-modal__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--md-spacing-5) var(--md-spacing-6) var(--md-spacing-4);
+  border-bottom: 1px solid var(--md-outline-variant);
+  gap: var(--md-spacing-3);
+  flex-shrink: 0;
+}
+
+.md3-modal__header-content {
+  display: flex;
+  align-items: center;
+  gap: var(--md-spacing-3);
+  min-width: 0;
+}
+
+.md3-modal__header-icon {
+  font-size: var(--md-font-size-title-lg);
+  flex-shrink: 0;
+  color: var(--md-primary);
+}
+
+.md3-modal__title {
+  font-family: var(--md-font-family-display);
+  font-size: var(--md-font-size-title-lg);
+  font-weight: var(--md-font-weight-semibold);
+  color: var(--md-on-surface);
+  line-height: var(--md-line-height-title-lg);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Type variants */
+.md3-modal__header--danger {
+  background: var(--md-error-container);
+  border-bottom-color: transparent;
+}
+
+.md3-modal__header--danger .md3-modal__title,
+.md3-modal__header--danger .md3-modal__header-icon {
+  color: var(--md-on-error-container);
+}
+
+.md3-modal__header--success {
+  background: var(--md-success-container);
+  border-bottom-color: transparent;
+}
+
+.md3-modal__header--success .md3-modal__title,
+.md3-modal__header--success .md3-modal__header-icon {
+  color: var(--md-on-success-container);
+}
+
+.md3-modal__header--warning {
+  background: var(--md-tertiary-container);
+  border-bottom-color: transparent;
+}
+
+.md3-modal__header--warning .md3-modal__title,
+.md3-modal__header--warning .md3-modal__header-icon {
+  color: var(--md-on-tertiary-container);
+}
+
+/* Close button */
+.md3-modal__close {
+  flex-shrink: 0;
+  background: none;
+  border: none;
+  color: var(--md-on-surface-variant);
+  width: 36px;
+  height: 36px;
+  border-radius: var(--md-shape-small);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.25rem;
+  cursor: pointer;
+  transition: background var(--md-transition-short), color var(--md-transition-short);
+}
+
+.md3-modal__close:hover {
+  background: var(--md-surface-container-high);
+  color: var(--md-on-surface);
+}
+
+/* ── Body ────────────────────────────────────────────────────────────────── */
+.md3-modal__body {
+  padding: var(--md-spacing-5) var(--md-spacing-6);
+  color: var(--md-on-surface);
+  font-size: var(--md-font-size-body-md);
+  line-height: var(--md-line-height-body-md);
+  flex: 1;
+  overflow-y: auto;
+}
+
+/* ── Footer ──────────────────────────────────────────────────────────────── */
+.md3-modal__footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--md-spacing-3);
+  padding: var(--md-spacing-4) var(--md-spacing-6);
+  border-top: 1px solid var(--md-outline-variant);
+  background: var(--md-surface-container-low);
+  flex-shrink: 0;
+  flex-wrap: wrap;
+  border-radius: 0 0 var(--md-shape-large) var(--md-shape-large);
+}
+
+/* ── Scrollbar ───────────────────────────────────────────────────────────── */
+.md3-modal::-webkit-scrollbar       { width: 6px; }
+.md3-modal::-webkit-scrollbar-track { background: transparent; }
+.md3-modal::-webkit-scrollbar-thumb {
+  background: var(--md-outline-variant);
+  border-radius: 3px;
+}
+.md3-modal::-webkit-scrollbar-thumb:hover { background: var(--md-outline); }
+
+/* ── Responsive — bottom sheet on mobile ─────────────────────────────────── */
+@media (max-width: 640px) {
+  .md3-modal-overlay {
+    align-items: flex-end;
+    padding: 0;
+  }
+
+  .md3-modal {
+    max-width: 100%;
+    max-height: 90vh;
+    border-radius: var(--md-shape-large) var(--md-shape-large) 0 0;
+    animation-name: md3-modal-in-mobile;
+  }
+
+  @keyframes md3-modal-in-mobile {
+    from { opacity: 0; transform: translateY(24px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .md3-modal__footer {
+    border-radius: 0;
+    flex-direction: column-reverse;
+  }
+
+  .md3-modal__footer > * {
+    width: 100%;
+    justify-content: center;
+  }
+}

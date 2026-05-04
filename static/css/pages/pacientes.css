@@ -1,0 +1,183 @@
+/**
+ * pacientes.css — Grid de tarjetas de pacientes
+ * Solo variables --md-*. Sin vars legacy.
+ */
+
+.patients-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: var(--md-spacing-4, 16px);
+}
+
+/* ── Card ─────────────────────────────────────────────────────────────────── */
+.pt-card {
+    background: var(--md-surface-container-lowest, #fff);
+    border: 0.5px solid var(--md-outline-variant, #c4c7c5);
+    border-radius: var(--md-shape-medium, 12px);
+    box-shadow: var(--md-shadow-level-1);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    transition: transform var(--md-transition-short), box-shadow var(--md-transition-short);
+}
+.pt-card:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--md-shadow-level-2);
+}
+
+/* Strip de color superior según riesgo */
+.pt-card-strip {
+    height: 3px;
+    width: 100%;
+    flex-shrink: 0;
+    background: var(--md-secondary, #4B1535);
+}
+
+/* ── Header de card ── */
+.pt-card-header {
+    display: flex;
+    align-items: center;
+    gap: var(--md-spacing-3, 12px);
+    padding: 16px 16px 10px;
+}
+
+.pt-avatar {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: var(--md-secondary-container, #E8ABCE);
+    color: var(--md-secondary, #4B1535);
+    font-size: var(--md-font-size-body-sm, 0.88rem);
+    font-weight: var(--md-font-weight-extrabold, 800);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    text-transform: uppercase;
+}
+
+.pt-header-info {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+.pt-name {
+    font-size: var(--md-font-size-body-md, 0.95rem);
+    font-weight: var(--md-font-weight-extrabold, 800);
+    color: var(--md-on-surface, #1a1a1a);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: block;
+}
+.pt-id {
+    font-size: var(--md-font-size-label-lg, 0.72rem);
+    color: var(--md-on-surface-variant, #49454f);
+    display: block;
+}
+
+.pt-delete-btn {
+    background: none;
+    border: none;
+    color: var(--md-outline, #79747e);
+    cursor: pointer;
+    font-size: var(--md-font-size-body-sm, 0.85rem);
+    padding: 4px;
+    border-radius: var(--md-shape-small, 6px);
+    transition: color var(--md-transition-short), background var(--md-transition-short);
+    flex-shrink: 0;
+}
+.pt-delete-btn:hover {
+    color: var(--md-error, #C40000);
+    background: var(--md-error-container, #FFB9B9);
+}
+
+/* ── Body de card ── */
+.pt-card-body {
+    padding: 4px 16px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: var(--md-spacing-2, 6px);
+    flex: 1;
+}
+
+.pt-detail {
+    display: flex;
+    align-items: center;
+    gap: var(--md-spacing-2, 8px);
+    font-size: var(--md-font-size-body-sm, 0.8rem);
+    color: var(--md-on-surface-variant, #49454f);
+}
+.pt-detail i {
+    font-size: .78rem;
+    color: var(--md-outline, #79747e);
+    width: 14px;
+    text-align: center;
+    flex-shrink: 0;
+}
+.pt-detail span {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* ── Footer de card ── */
+.pt-card-footer {
+    border-top: 0.5px solid var(--md-outline-variant, #c4c7c5);
+    padding: 10px 16px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--md-spacing-2, 6px);
+    background: var(--md-surface-container-low, #f8f3f8);
+}
+
+.pt-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 9px;
+    border-radius: var(--md-shape-extra-large, 999px);
+    font-size: var(--md-font-size-label-lg, 0.7rem);
+    font-weight: var(--md-font-weight-bold, 700);
+    white-space: nowrap;
+    max-width: 130px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.pt-blood {
+    background: var(--md-error-container, #FFB9B9);
+    color: var(--md-error, #C40000);
+}
+.pt-allergy {
+    background: var(--md-tertiary-container, #FFEEC0);
+    color: var(--md-tertiary, #7B6800);
+    flex: 1;
+    max-width: none;
+}
+
+/* Riesgo badge — paleta data-viz intencional */
+.pt-risk { color: #fff; text-transform: capitalize; }
+.pt-risk.rc-green { background: #4CAF7D; }
+.pt-risk.rc-amber { background: #F4A84A; }
+.pt-risk.rc-red   { background: #E05252; }
+
+/* ── Estado vacío ── */
+.pt-empty {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: var(--md-spacing-10, 60px) var(--md-spacing-5, 20px);
+    color: var(--md-on-surface-variant, #49454f);
+}
+.pt-empty i {
+    font-size: 2.5rem;
+    color: var(--md-outline-variant, #c4c7c5);
+    display: block;
+    margin-bottom: var(--md-spacing-3, 12px);
+}
+.pt-empty p {
+    font-size: var(--md-font-size-body-md, 0.95rem);
+    margin: 0;
+}

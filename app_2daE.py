@@ -610,19 +610,19 @@ def _authenticate_user(login_value, password):
 
 @app.route("/")
 def pagina_inicio():
-    return render_template("inicioPP.html")
+    return render_template("pages/inicioPP.html")
 
 @app.route("/servicios")
 def pagina_servicios():
-    return render_template("serviciosPP.html")
+    return render_template("pages/serviciosPP.html")
 
 @app.route("/nosotros")
 def pagina_nosotros():
-    return render_template("nosotrosPP.html")
+    return render_template("pages/nosotrosPP.html")
 
 @app.route("/contacto")
 def pagina_contacto():
-    return render_template("contactoPP.html")
+    return render_template("pages/contactoPP.html")
 
 
 # =============================================================================
@@ -652,7 +652,7 @@ def login():
         error = "Credenciales inválidas."
         flash(error, "danger")
 
-    return render_template("login_2daE.html", error=error)
+    return render_template("pages/login_2daE.html", error=error)
 
 
 @app.route("/logout")
@@ -704,7 +704,7 @@ def dashboard():
         }
 
         session["last_visit"] = today_dt.isoformat()
-        return render_template("index_2daE.html", **context)
+        return render_template("pages/index_2daE.html", **context)
 
     except Exception as e:
         logger.error(f"Error en /dashboard: {e}")
@@ -721,17 +721,36 @@ def pacientes():
     locked = _require_login()
     if locked:
         return locked
-
+ 
     try:
-        patients = _patients_from_sp()
+        conn, should_close = _get_conn()
+        old_autocommit = conn.autocommit
+        try:
+            conn.autocommit = False
+            with conn.cursor() as cur:
+                cur.execute("CALL sp_get_patients(%s)", ("p_results",))
+                cur.execute('FETCH ALL FROM "p_results"')
+                patients = [dict(r) for r in cur.fetchall()]
+            conn.commit()
+        except Exception as sp_err:
+            import traceback
+            logger.error(f"[SP ERROR] sp_get_patients falló:\n{traceback.format_exc()}")
+            _safe_rollback(conn)
+            patients = []
+        finally:
+            conn.autocommit = old_autocommit
+            if should_close and not _conn_is_closed(conn):
+                conn.close()
+ 
         return render_template(
-            "pacientes_2daE.html",
+            "pages/pacientes_2daE.html",
             **_session_vars(),
             total_patients=len(patients),
             patients=patients,
         )
     except Exception as e:
-        logger.error(f"Error en /pacientes: {e}")
+        import traceback
+        logger.error(f"Error en /pacientes: {e}\n{traceback.format_exc()}")
         flash("Error al cargar pacientes", "danger")
         return redirect(url_for("dashboard"))
 
@@ -816,7 +835,7 @@ def historial():
         next_vaccines = _build_next_vaccines(patient["patient_id"]) if patient else []
 
         return render_template(
-            "historial_2daE.html",
+            "pages/historial_2daE.html",
             **_session_vars(),
             patients=patients,
             patient=patient,
@@ -844,7 +863,7 @@ def historial_paciente(id):
     session["last_patient_viewed"] = id
 
     return render_template(
-        "historial_2daE.html",
+        "pages/historial_2daE.html",
         **_session_vars(),
         patients=patients,
         patient=patient,
@@ -873,7 +892,7 @@ def esquema_paciente(id):
     records     = [_enrich_record(r) for r in records_raw]
 
     return render_template(
-        "esquemaPaciente_2daE.html",
+        "pages/esquemaPaciente_2daE.html",
         **_session_vars(),
         patient=patient,
         patient_name=patient["full_name"],
@@ -894,7 +913,7 @@ def esquema_vacunacion():
         scheme_data.append((dose, vaccine or {}))
 
     return render_template(
-        "esquemaVacunacion_2daE.html",
+        "pages/esquemaVacunacion_2daE.html",
         **_session_vars(),
         esquema=scheme_data,
     )
@@ -925,7 +944,7 @@ def vacunas_page():
         )
 
     return render_template(
-        "vacunas_2daE.html",
+        "pages/vacunas_2daE.html",
         **_session_vars(),
         total_vaccines=len(vaccines),
         vaccines=vaccines,
@@ -1006,7 +1025,7 @@ def aplicaciones():
     )
 
     return render_template(
-        "aplicaciones_2daE.html",
+        "pages/aplicaciones_2daE.html",
         **_session_vars(),
         total_applications=len(records),
         total_patients_attended=unique_patients,
@@ -1112,7 +1131,7 @@ def personal():
         })
 
     return render_template(
-        "personal_2daE.html",
+        "pages/personal_2daE.html",
         **_session_vars(),
         workers=workers,
         total_workers=len(workers),
@@ -1262,7 +1281,7 @@ def reportes_publicos():
     locked = _require_login()
     if locked:
         return locked
-    return render_template("reportesPublicos_2daE.html", **_session_vars())
+    return render_template("pages/reportesPublicos_2daE.html", **_session_vars())
 
 
 @app.route("/inventario")
@@ -1277,7 +1296,7 @@ def inventario():
 
     session["last_section"] = "inventario"
     return render_template(
-        "inventario_2daE.html",
+        "pages/inventario_2daE.html",
         **_session_vars(),
         inventory=inventory,
         supply_catalog=_cur_fetchall("supply_catalog"),
@@ -1294,7 +1313,7 @@ def citas():
     session["last_section"] = "citas"
     appointments = _appointments_from_sp()
     return render_template(
-        "citas_2daE.html",
+        "pages/citas_2daE.html",
         **_session_vars(),
         appointments=appointments,
         total_appointments=len(appointments),
@@ -1316,7 +1335,7 @@ def nfc():
 
     session["last_section"] = "nfc"
     return render_template(
-        "nfc_2daE.html",
+        "pages/nfc_2daE.html",
         **_session_vars(),
         cards=[_enrich_nfc_card(c) for c in cards_raw],
         scans=[_enrich_nfc_scan(s) for s in scan_events_raw],
@@ -1334,7 +1353,7 @@ def clinicas():
     clinics_raw = _cur_fetchall("clinics")
     session["last_section"] = "clinicas"
     return render_template(
-        "clinicas_2daE.html",
+        "pages/clinicas_2daE.html",
         **_session_vars(),
         clinics=[_enrich_clinic(c) for c in clinics_raw],
         total_clinics=len(clinics_raw),

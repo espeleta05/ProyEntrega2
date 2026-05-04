@@ -1,0 +1,127 @@
+/**
+ * vacunas.css — Tabla de inventario de vacunas
+ * Solo variables --md-*. Sin vars legacy ni `:root` local.
+ * Barras de color (bar-*) son paleta data-viz intencional.
+ */
+
+/* ── Tabla wrapper ── */
+.inv-table-wrapper {
+    background: var(--md-surface-container-lowest, #fff);
+    border: 0.5px solid var(--md-outline-variant, #c4c7c5);
+    border-radius: var(--md-shape-large, 14px);
+    overflow: hidden;
+    box-shadow: var(--md-shadow-level-1);
+}
+
+/* ── Tabla ── */
+.inv-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: var(--md-font-size-body-md, 0.88rem);
+    table-layout: fixed;
+}
+
+/* Header */
+.inv-table thead th {
+    background: var(--md-primary, #6B007C);
+    color: var(--md-on-primary, #fff);
+    font-size: var(--md-font-size-label-lg, 0.75rem);
+    font-weight: var(--md-font-weight-bold, 700);
+    text-transform: uppercase;
+    letter-spacing: .6px;
+    padding: 13px 16px;
+    border: none;
+    text-align: left;
+}
+.inv-table thead th.num { text-align: right; }
+
+/* Anchos de columnas */
+.inv-table thead th:nth-child(1) { width: 20%; }
+.inv-table thead th:nth-child(2) { width: 10%; }
+.inv-table thead th:nth-child(3) { width: 16%; }
+.inv-table thead th:nth-child(4),
+.inv-table thead th:nth-child(5),
+.inv-table thead th:nth-child(6) { width: 12%; }
+.inv-table thead th:nth-child(7) { width: 14%; }
+
+/* Filas */
+.inv-row {
+    border-bottom: 1px solid var(--md-outline-variant, #c4c7c5);
+    transition: background var(--md-transition-short);
+}
+.inv-row:last-child { border-bottom: none; }
+.inv-row:nth-child(odd)  { background: var(--md-surface-container-lowest, #fff); }
+.inv-row:nth-child(even) { background: var(--md-surface-container-low, #f8f3f8); }
+.inv-row:hover { background: color-mix(in srgb, var(--md-primary, #6B007C) 8%, transparent); }
+
+.inv-table td {
+    padding: 13px 16px;
+    border: none;
+    vertical-align: middle;
+    color: var(--md-on-surface, #1a1a1a);
+}
+.inv-table td.num { text-align: right; font-weight: var(--md-font-weight-bold, 700); }
+
+/* ── Barra de color en la celda de nombre — data-viz ─────────────────────── */
+td.name-td {
+    border-left: 5px solid transparent;
+    padding-left: 14px !important;
+    border-radius: 0;
+}
+
+.inv-row.bar-0  td.name-td { border-left-color: #4CAF7D; }
+.inv-row.bar-1  td.name-td { border-left-color: #5B8DD9; }
+.inv-row.bar-2  td.name-td { border-left-color: #29B6C5; }
+.inv-row.bar-3  td.name-td { border-left-color: #F4A84A; }
+.inv-row.bar-4  td.name-td { border-left-color: #E8C94A; }
+.inv-row.bar-5  td.name-td { border-left-color: #A0C94A; }
+.inv-row.bar-6  td.name-td { border-left-color: #E05252; }
+.inv-row.bar-7  td.name-td { border-left-color: #AB6BD6; }
+.inv-row.bar-8  td.name-td { border-left-color: #FF8A65; }
+.inv-row.bar-9  td.name-td { border-left-color: #78909C; }
+.inv-row.bar-10 td.name-td { border-left-color: #26A69A; }
+.inv-row.bar-11 td.name-td { border-left-color: #EC407A; }
+
+.vax-name {
+    font-weight: var(--md-font-weight-extrabold, 800);
+    font-size: var(--md-font-size-body-md, 0.95rem);
+    color: var(--md-on-surface, #1a1a1a);
+}
+
+/* ── Lote ── */
+.lot-td {
+    font-family: monospace;
+    font-size: var(--md-font-size-body-sm, 0.82rem);
+    color: var(--md-on-surface-variant, #49454f);
+    letter-spacing: .3px;
+}
+
+/* ── Fecha vencimiento ── */
+.exp-badge {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: var(--md-shape-extra-large, 999px);
+    font-size: var(--md-font-size-label-lg, 0.75rem);
+    font-weight: var(--md-font-weight-bold, 700);
+}
+.exp-ok   { background: color-mix(in srgb, var(--md-primary, #6B007C) 12%, transparent); color: var(--md-primary, #6B007C); }
+.exp-warn { background: var(--md-tertiary-container, #FFEEC0); color: var(--md-tertiary, #7B6800); }
+
+/* ── Stock pill ── */
+.stock-pill {
+    display: inline-block;
+    padding: 3px 12px;
+    border-radius: var(--md-shape-extra-large, 999px);
+    font-size: var(--md-font-size-body-sm, 0.8rem);
+    font-weight: var(--md-font-weight-bold, 700);
+}
+.stock-ok  { background: var(--md-success-container, #CFFFC0); color: var(--md-success, #1D7B00); }
+.stock-low { background: var(--md-error-container, #FFB9B9); color: var(--md-error, #C40000); }
+
+/* ── Empty state ── */
+.empty-state {
+    text-align: center;
+    padding: var(--md-spacing-10, 40px);
+    color: var(--md-on-surface-variant, #49454f);
+    font-size: var(--md-font-size-body-sm, 0.9rem);
+}

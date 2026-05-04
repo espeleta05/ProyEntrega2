@@ -1,0 +1,242 @@
+/* Material Design 3 — Data Tables (requires design-system.css first) */
+
+/* ── Wrapper ─────────────────────────────────────────────────────────────── */
+.md3-table-wrapper {
+  background: var(--md-surface-container-lowest);
+  border: 1px solid var(--md-outline-variant);
+  border-radius: var(--md-shape-medium);
+  overflow: hidden;
+  box-shadow: var(--md-shadow-level-1);
+}
+
+.md3-table-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* ── Table ───────────────────────────────────────────────────────────────── */
+.md3-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--md-font-family-body);
+  font-size: var(--md-font-size-body-md);
+  table-layout: auto;
+}
+
+/* ── Sticky header ───────────────────────────────────────────────────────── */
+.md3-table thead {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+
+.md3-table thead tr {
+  background: var(--md-secondary);
+}
+
+.md3-table thead th {
+  color: var(--md-on-secondary);
+  font-family: var(--md-font-family-display);
+  font-size: var(--md-font-size-label-lg);
+  font-weight: var(--md-font-weight-semibold);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: var(--md-spacing-4);
+  text-align: left;
+  border: none;
+  white-space: nowrap;
+}
+
+.md3-table thead th.col-right  { text-align: right; }
+.md3-table thead th.col-center { text-align: center; }
+
+/* Sortable column */
+.md3-table thead th.col-sortable {
+  cursor: pointer;
+  user-select: none;
+}
+
+.md3-table thead th.col-sortable:hover {
+  background: color-mix(in srgb, var(--md-on-secondary) 10%, var(--md-secondary));
+}
+
+.md3-table thead th .sort-icon {
+  margin-left: var(--md-spacing-1);
+  opacity: 0.6;
+  font-size: var(--md-font-size-label-sm);
+  vertical-align: middle;
+}
+
+.md3-table thead th.col-asc  .sort-icon,
+.md3-table thead th.col-desc .sort-icon {
+  opacity: 1;
+}
+
+/* ── Body rows ───────────────────────────────────────────────────────────── */
+.md3-table tbody tr {
+  border-bottom: 1px solid var(--md-outline-variant);
+  transition: background var(--md-transition-short);
+}
+
+.md3-table tbody tr:last-child {
+  border-bottom: none;
+}
+
+.md3-table tbody tr:nth-child(even) {
+  background: var(--md-surface-container-low);
+}
+
+.md3-table tbody tr:nth-child(odd) {
+  background: var(--md-surface-container-lowest);
+}
+
+/* Hover state layer */
+.md3-table tbody tr:hover {
+  background: var(--md-primary-container);
+}
+
+/* Selected row */
+.md3-table tbody tr.row--selected {
+  background: color-mix(in srgb, var(--md-primary) 12%, var(--md-surface-container-lowest));
+}
+
+.md3-table tbody tr.row--clickable {
+  cursor: pointer;
+}
+
+/* ── Cells ───────────────────────────────────────────────────────────────── */
+.md3-table td {
+  padding: var(--md-spacing-3) var(--md-spacing-4);
+  border: none;
+  vertical-align: middle;
+  color: var(--md-on-surface);
+  font-size: var(--md-font-size-body-md);
+}
+
+.md3-table td.col-right  { text-align: right; }
+.md3-table td.col-center { text-align: center; }
+.md3-table td.col-muted  { color: var(--md-on-surface-variant); font-size: var(--md-font-size-body-sm); }
+.md3-table td.col-mono   { font-family: var(--md-font-family-monospace); font-size: var(--md-font-size-body-sm); color: var(--md-on-surface-variant); letter-spacing: 0.02em; }
+.md3-table td.col-bold   { font-weight: var(--md-font-weight-semibold); }
+
+/* ── Left accent bar ─────────────────────────────────────────────────────── */
+td.col-accent {
+  border-left: 4px solid transparent;
+  padding-left: calc(var(--md-spacing-4) - 4px) !important;
+}
+
+.row--accent-primary  td.col-accent { border-left-color: var(--md-primary); }
+.row--accent-secondary td.col-accent { border-left-color: var(--md-secondary); }
+.row--accent-success  td.col-accent { border-left-color: var(--md-success); }
+.row--accent-error    td.col-accent { border-left-color: var(--md-error); }
+.row--accent-tertiary td.col-accent { border-left-color: var(--md-tertiary); }
+.row--accent-neutral  td.col-accent { border-left-color: var(--md-neutral); }
+
+/* ── Compound cell content ───────────────────────────────────────────────── */
+.cell-stack { display: flex; flex-direction: column; gap: 2px; }
+.cell-main  { font-weight: var(--md-font-weight-semibold); font-size: var(--md-font-size-body-md); color: var(--md-on-surface); }
+.cell-sub   { font-size: var(--md-font-size-body-sm); color: var(--md-on-surface-variant); }
+
+/* Avatar + stack */
+.cell-avatar {
+  display: flex;
+  align-items: center;
+  gap: var(--md-spacing-3);
+}
+
+.md3-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--md-primary-container);
+  color: var(--md-on-primary-container);
+  font-size: var(--md-font-size-label-lg);
+  font-weight: var(--md-font-weight-bold);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  text-transform: uppercase;
+}
+
+/* ── Empty state ─────────────────────────────────────────────────────────── */
+.md3-table__empty {
+  text-align: center;
+  padding: var(--md-spacing-16) var(--md-spacing-6);
+  color: var(--md-on-surface-variant);
+}
+
+.md3-table__empty-icon {
+  font-size: 2.75rem;
+  margin-bottom: var(--md-spacing-4);
+  opacity: 0.35;
+  display: block;
+  color: var(--md-primary);
+}
+
+.md3-table__empty-title {
+  font-family: var(--md-font-family-display);
+  font-size: var(--md-font-size-title-md);
+  font-weight: var(--md-font-weight-semibold);
+  color: var(--md-on-surface);
+  margin-bottom: var(--md-spacing-2);
+}
+
+.md3-table__empty-text {
+  font-size: var(--md-font-size-body-md);
+  color: var(--md-on-surface-variant);
+  max-width: 320px;
+  margin: 0 auto;
+}
+
+/* ── Toolbar ─────────────────────────────────────────────────────────────── */
+.md3-table-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--md-spacing-4);
+  border-bottom: 1px solid var(--md-outline-variant);
+  gap: var(--md-spacing-3);
+  flex-wrap: wrap;
+}
+
+.md3-table-toolbar__title {
+  font-family: var(--md-font-family-display);
+  font-size: var(--md-font-size-title-md);
+  font-weight: var(--md-font-weight-semibold);
+  color: var(--md-on-surface);
+}
+
+.md3-table-toolbar__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--md-spacing-2);
+}
+
+/* ── Footer ──────────────────────────────────────────────────────────────── */
+.md3-table-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--md-spacing-3) var(--md-spacing-4);
+  border-top: 1px solid var(--md-outline-variant);
+  background: var(--md-surface-container-low);
+  font-size: var(--md-font-size-body-sm);
+  color: var(--md-on-surface-variant);
+  flex-wrap: wrap;
+  gap: var(--md-spacing-2);
+}
+
+/* ── Responsive ──────────────────────────────────────────────────────────── */
+@media (max-width: 640px) {
+  .md3-table thead th,
+  .md3-table td {
+    padding: var(--md-spacing-2) var(--md-spacing-3);
+    font-size: var(--md-font-size-body-sm);
+  }
+
+  .md3-table-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}

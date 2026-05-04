@@ -1,0 +1,129 @@
+{#
+  PAGINATOR MACRO - Material Design 3
+  CSS: static/css/components/pagination.css
+
+  Parámetros:
+    - page:        página actual, base 1 (requerido)
+    - total_pages: total de páginas (requerido)
+    - total_items: total de registros, para el texto informativo (opcional)
+    - per_page:    registros por página (opcional)
+    - url_base:    URL base a la que se añade ?page=N (ej: '/pacientes?page=')
+                   Si se omite, los botones usan onclick con window.location
+    - show_info:   mostrar texto "Mostrando X – Y de Z" (default: True)
+    - window:      cuántas páginas mostrar a cada lado de la actual (default: 2)
+    - class:       clases adicionales
+
+  Uso con URL:
+    {% from 'components/paginator.html' import paginator %}
+
+    {{ paginator(page=current_page, total_pages=pages,
+                 total_items=total, per_page=per_page,
+                 url_base='/pacientes?page=') }}
+
+  Uso con JS (formulario / fetch):
+    {{ paginator(page=current_page, total_pages=pages,
+                 total_items=total, per_page=per_page) }}
+    <script>
+      function goToPage(n) {
+        const url = new URL(window.location);
+        url.searchParams.set('page', n);
+        window.location = url;
+      }
+    </script>
+#}
+
+{% macro paginator(page, total_pages, total_items=None, per_page=None, url_base='', show_info=True, window=2, class='') %}
+
+  {%- if total_pages <= 1 and not total_items -%}
+    {# No renderizar nada si sólo hay una página y no hay info que mostrar #}
+  {%- else -%}
+
+  {%- set page = page | int -%}
+  {%- set total_pages = total_pages | int -%}
+  {%- set prev_page = [page - 1, 1] | max -%}
+  {%- set next_page = [page + 1, total_pages] | min -%}
+
+  {# Calcular rango de páginas a mostrar #}
+  {%- set range_start = [page - window, 1] | max -%}
+  {%- set range_end   = [page + window, total_pages] | min -%}
+
+  {# Ajustar para siempre mostrar (2*window+1) páginas cuando sea posible #}
+  {%- if range_end - range_start < 2 * window -%}
+    {%- if range_start == 1 -%}
+      {%- set range_end = [1 + 2 * window, total_pages] | min -%}
+    {%- else -%}
+      {%- set range_start = [total_pages - 2 * window, 1] | max -%}
+    {%- endif -%}
+  {%- endif -%}
+
+  {# Helper para generar href de una página #}
+  {%- macro page_href(n) -%}
+    {%- if url_base -%}{{ url_base }}{{ n }}{%- else -%}javascript:goToPage({{ n }}){%- endif -%}
+  {%- endmacro -%}
+
+  <div class="md3-pagination-bar {{ class }}">
+
+    {{- /* Info text */ -}}
+    {% if show_info and total_items is not none %}
+      {%- if per_page -%}
+        {%- set from_item = (page - 1) * per_page + 1 -%}
+        {%- set to_item   = [page * per_page, total_items] | min -%}
+        <span class="md3-pagination-info">{{ from_item }}–{{ to_item }} de {{ total_items }}</span>
+      {%- else -%}
+        <span class="md3-pagination-info">{{ total_items }} registros</span>
+      {%- endif -%}
+    {% else %}
+      <span></span>
+    {% endif %}
+
+    {{- /* Controls */ -}}
+    <nav class="md3-pagination" aria-label="Paginación">
+
+      {{- /* Anterior */ -}}
+      <a href="{{ page_href(prev_page) }}"
+         class="md3-page-btn md3-page-btn--prev {% if page <= 1 %}disabled{% endif %}"
+         {% if page <= 1 %}aria-disabled="true" tabindex="-1"{% endif %}
+         aria-label="Página anterior">
+        <i class="fa-solid fa-chevron-left"></i>
+        <span>Anterior</span>
+      </a>
+
+      {{- /* Primera página si queda fuera del rango */ -}}
+      {% if range_start > 1 %}
+        <a href="{{ page_href(1) }}" class="md3-page-btn" aria-label="Página 1">1</a>
+        {% if range_start > 2 %}
+          <span class="md3-page-ellipsis" aria-hidden="true">&hellip;</span>
+        {% endif %}
+      {% endif %}
+
+      {{- /* Rango central */ -}}
+      {% for n in range(range_start, range_end + 1) %}
+        <a href="{{ page_href(n) }}"
+           class="md3-page-btn {% if n == page %}active{% endif %}"
+           {% if n == page %}aria-current="page"{% endif %}
+           aria-label="Página {{ n }}">{{ n }}</a>
+      {% endfor %}
+
+      {{- /* Última página si queda fuera del rango */ -}}
+      {% if range_end < total_pages %}
+        {% if range_end < total_pages - 1 %}
+          <span class="md3-page-ellipsis" aria-hidden="true">&hellip;</span>
+        {% endif %}
+        <a href="{{ page_href(total_pages) }}" class="md3-page-btn" aria-label="Página {{ total_pages }}">{{ total_pages }}</a>
+      {% endif %}
+
+      {{- /* Siguiente */ -}}
+      <a href="{{ page_href(next_page) }}"
+         class="md3-page-btn md3-page-btn--next {% if page >= total_pages %}disabled{% endif %}"
+         {% if page >= total_pages %}aria-disabled="true" tabindex="-1"{% endif %}
+         aria-label="Página siguiente">
+        <span>Siguiente</span>
+        <i class="fa-solid fa-chevron-right"></i>
+      </a>
+
+    </nav>
+
+  </div>
+
+  {%- endif -%}
+{% endmacro %}

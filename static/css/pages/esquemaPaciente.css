@@ -1,0 +1,223 @@
+/**
+ * esquemaPaciente.css — Esquema de vacunación por paciente
+ * Sin variables legacy (--primary-color, etc.). Solo --md-*.
+ */
+
+/* ── Tabla de esquema ─────────────────────────────────────────────────────── */
+.tbl tbody tr {
+  border-bottom: 1px solid var(--md-outline-variant, #c4c7c5);
+  transition: background var(--md-transition-short);
+}
+.tbl tbody tr:last-child { border-bottom: none; }
+.tbl tbody tr.row-odd   { background: var(--md-surface-container-lowest, #fff); }
+.tbl tbody tr.row-even  { background: var(--md-surface-container-low, #f8f3f8); }
+.tbl tbody tr:hover     { background: color-mix(in srgb, var(--md-primary, #6B007C) 6%, transparent); }
+
+.tbl td {
+  padding: 13px 16px;
+  font-size: var(--md-font-size-body-md, 0.875rem);
+  color: var(--md-on-surface, #1a1a1a);
+  vertical-align: middle;
+  border: none;
+}
+
+.tbl td.name-td {
+  padding-left: 14px;
+  border-left: 5px solid transparent;
+  font-weight: var(--md-font-weight-bold, 700);
+}
+
+/* Colores de barra por índice — paleta data-viz intencional (no color semántico) */
+.tbl tr.bar-0 td.name-td { border-left-color: #4CAF7D; }
+.tbl tr.bar-1 td.name-td { border-left-color: #5B8DD9; }
+.tbl tr.bar-2 td.name-td { border-left-color: #29B6C5; }
+.tbl tr.bar-3 td.name-td { border-left-color: #F4A84A; }
+.tbl tr.bar-4 td.name-td { border-left-color: #E8C94A; }
+.tbl tr.bar-5 td.name-td { border-left-color: #A0C94A; }
+.tbl tr.bar-6 td.name-td { border-left-color: #E05252; }
+.tbl tr.bar-7 td.name-td { border-left-color: #AB6BD6; }
+.tbl tr.bar-8 td.name-td { border-left-color: #FF8A65; }
+
+.tbl td.muted-td {
+  font-size: var(--md-font-size-body-sm, 0.8rem);
+  color: var(--md-on-surface-variant, #49454f);
+}
+
+/* ── KPI grid de resumen ──────────────────────────────────────────────────── */
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--md-spacing-3, 14px);
+  margin: var(--md-spacing-5, 20px) 0;
+}
+
+.kpi-card {
+  background: var(--md-surface-container-lowest, #fff);
+  border-radius: var(--md-shape-large, 15px);
+  border: 0.5px solid var(--md-outline-variant, #c4c7c5);
+  padding: 18px 20px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--md-spacing-2, 6px);
+  box-shadow: var(--md-shadow-level-1);
+  position: relative;
+  overflow: hidden;
+}
+.kpi-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%; height: 4px;
+  border-radius: var(--md-shape-large, 15px) var(--md-shape-large, 15px) 0 0;
+}
+.kpi-color1::before { background: var(--md-primary, #6B007C); }
+.kpi-color2::before { background: var(--md-secondary, #4B1535); }
+
+.kpi-icon { font-size: 1.1rem; margin-bottom: var(--md-spacing-1, 4px); }
+.kpi-color1 .kpi-icon { color: var(--md-primary, #6B007C); }
+.kpi-color2 .kpi-icon { color: var(--md-secondary, #4B1535); }
+
+.kpi-body  { display: flex; flex-direction: column; gap: 2px; }
+.kpi-value { font-size: var(--md-font-size-headline-sm, 1.5rem); font-weight: var(--md-font-weight-extrabold, 800); line-height: 1; }
+.kpi-label { font-size: var(--md-font-size-body-md, 0.875rem); font-weight: var(--md-font-weight-semibold, 600); color: var(--md-on-surface-variant, #49454f); }
+
+.kpi-trend,
+.kpi-sub  { font-size: var(--md-font-size-label-lg, 0.72rem); font-weight: var(--md-font-weight-bold, 700); margin-top: 2px; }
+.trend-up { color: var(--md-success, #1D7B00); }
+.trend-down { color: var(--md-error, #C40000); }
+.kpi-sub  { color: var(--md-on-surface-variant, #49454f); }
+
+/* ── Tarjeta de progreso ──────────────────────────────────────────────────── */
+.progress-card {
+  background: var(--md-surface-container-lowest, #fff);
+  border-radius: var(--md-shape-medium, 12px);
+  padding: var(--md-spacing-5, 20px) var(--md-spacing-6, 24px);
+  margin-bottom: var(--md-spacing-7, 28px);
+  box-shadow: var(--md-shadow-level-1);
+}
+.progress-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--md-spacing-2, 8px);
+  font-size: var(--md-font-size-body-md, 0.875rem);
+  font-weight: var(--md-font-weight-semibold, 600);
+}
+.progress-bar {
+  width: 100%;
+  height: 10px;
+  background: var(--md-surface-container, #f4eff8);
+  border-radius: var(--md-shape-extra-large, 99px);
+  overflow: hidden;
+  margin-bottom: var(--md-spacing-2, 8px);
+}
+.progress-fill {
+  height: 100%;
+  width: var(--pct, 0%);
+  background: linear-gradient(90deg, var(--md-primary, #6B007C), var(--md-secondary, #4B1535));
+  border-radius: var(--md-shape-extra-large, 99px);
+  transition: width 0.4s ease;
+}
+.progress-pct {
+  font-size: var(--md-font-size-body-sm, 0.8rem);
+  opacity: 0.6;
+  margin-bottom: var(--md-spacing-2, 8px);
+}
+.stats { display: flex; gap: var(--md-spacing-2, 8px); flex-wrap: wrap; }
+.stat {
+  font-size: var(--md-font-size-body-sm, 0.78rem);
+  font-weight: var(--md-font-weight-semibold, 600);
+  padding: 4px 12px;
+  border-radius: var(--md-shape-extra-large, 99px);
+}
+.stat.green  { background: var(--md-success-container, #CFFFC0); color: var(--md-success, #1D7B00); }
+.stat.orange { background: var(--md-tertiary-container, #FFEEC0); color: var(--md-tertiary, #7B6800); }
+.stat.blue   { background: color-mix(in srgb, var(--md-primary, #6B007C) 12%, transparent); color: var(--md-primary, #6B007C); }
+
+/* ── Tabla de vacunación ──────────────────────────────────────────────────── */
+.table-header, .patient-row {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1.5fr 1.2fr;
+  align-items: center;
+  gap: var(--md-spacing-2, 8px);
+  padding: var(--md-spacing-2, 8px) 0;
+}
+.table-header {
+  font-size: var(--md-font-size-label-lg, 0.72rem);
+  font-weight: var(--md-font-weight-bold, 700);
+  letter-spacing: 0.04em;
+  opacity: 0.5;
+  border-bottom: 1px solid var(--md-outline-variant, #c4c7c5);
+}
+.patient-row {
+  border-bottom: 1px solid var(--md-outline-variant, #c4c7c5);
+  font-size: var(--md-font-size-body-md, 0.875rem);
+}
+.patient-row:last-child { border-bottom: none; }
+
+/* ── Sección inferior dos columnas ───────────────────────────────────────── */
+.second-section {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--md-spacing-5, 20px);
+}
+@media (max-width: 860px) {
+  .second-section   { grid-template-columns: 1fr; }
+  .kpi-grid         { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 480px) {
+  .kpi-grid { grid-template-columns: 1fr; }
+}
+
+.section-card {
+  background: var(--md-surface-container-lowest, #fff);
+  border-radius: var(--md-shape-medium, 12px);
+  padding: var(--md-spacing-5, 20px) var(--md-spacing-6, 24px);
+  box-shadow: var(--md-shadow-level-1);
+}
+
+/* ── Próximas dosis ───────────────────────────────────────────────────────── */
+.next-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--md-spacing-2, 8px) 0;
+  border-bottom: 1px solid var(--md-outline-variant, #c4c7c5);
+  font-size: var(--md-font-size-body-md, 0.875rem);
+}
+.next-card:last-child { border-bottom: none; }
+.next-card strong { font-size: var(--md-font-size-body-md, 0.875rem); }
+.next-card span {
+  font-size: var(--md-font-size-body-sm, 0.8rem);
+  font-weight: var(--md-font-weight-semibold, 600);
+  color: var(--md-primary, #6B007C);
+  white-space: nowrap;
+}
+
+/* ── Dosis pendientes ─────────────────────────────────────────────────────── */
+.pending-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--md-spacing-2, 8px) 0;
+  border-bottom: 1px solid var(--md-outline-variant, #c4c7c5);
+  font-size: var(--md-font-size-body-md, 0.875rem);
+}
+.pending-card:last-child { border-bottom: none; }
+.pending-card strong { font-size: var(--md-font-size-body-md, 0.875rem); }
+.pending-card span {
+  font-size: var(--md-font-size-body-sm, 0.75rem);
+  background: var(--md-tertiary-container, #FFEEC0);
+  color: var(--md-tertiary, #7B6800);
+  font-weight: var(--md-font-weight-semibold, 600);
+  padding: 3px var(--md-spacing-2, 8px);
+  border-radius: var(--md-shape-extra-large, 99px);
+  white-space: nowrap;
+}
+
+.empty-state {
+  font-size: var(--md-font-size-body-sm, 0.85rem);
+  opacity: 0.5;
+  text-align: center;
+  padding: var(--md-spacing-6, 24px) 0;
+}

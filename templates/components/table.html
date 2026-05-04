@@ -1,0 +1,82 @@
+{#
+  TABLE MACRO - Material Design 3
+  CSS: static/css/components/tables.css
+
+  Parámetros:
+    - headers:      lista de dicts { label, align ('left'|'right'|'center'), sortable (bool) }
+    - rows:         iterable de datos (requerido)
+    - empty_icon:   clase FA para el empty state (default: 'fa-table')
+    - empty_title:  título del empty state (default: 'Sin resultados')
+    - empty_text:   descripción del empty state (opcional)
+    - footer_text:  texto en el footer de la tabla (opcional)
+    - class:        clases adicionales al wrapper
+
+  Uso — el caller recibe cada fila y debe devolver un <tr>:
+    {% from 'components/table.html' import table %}
+
+    {% call(p) table(headers=[
+        {'label': 'Paciente'},
+        {'label': 'Edad', 'align': 'right'},
+        {'label': 'Estado', 'align': 'center'}
+      ], rows=patients,
+      empty_icon='fa-users-slash', empty_title='Sin pacientes',
+      footer_text='Mostrando ' ~ patients|length ~ ' registros') %}
+
+      <tr class="row--clickable">
+        <td>{{ p.full_name }}</td>
+        <td class="col-right">{{ p.age }}</td>
+        <td class="col-center">{{ p.status }}</td>
+      </tr>
+
+    {% endcall %}
+#}
+
+{% macro table(headers, rows, empty_icon='fa-table', empty_title='Sin resultados', empty_text='', footer_text='', class='') %}
+  <div class="md3-table-wrapper {{ class }}">
+    <div class="md3-table-scroll">
+      <table class="md3-table">
+
+        <thead>
+          <tr>
+            {% for h in headers %}
+              <th class="{{ 'col-' ~ h.align if h.align is defined else '' }} {{ 'col-sortable' if h.sortable is defined and h.sortable else '' }}">
+                {{ h.label }}
+                {% if h.sortable is defined and h.sortable %}
+                  <i class="fa-solid fa-sort sort-icon"></i>
+                {% endif %}
+              </th>
+            {% endfor %}
+          </tr>
+        </thead>
+
+        <tbody>
+          {% if rows %}
+            {% for row in rows %}
+              {{ caller(row) }}
+            {% endfor %}
+          {% else %}
+            <tr>
+              <td colspan="{{ headers | length }}">
+                <div class="md3-table__empty">
+                  <i class="fa-solid {{ empty_icon }} md3-table__empty-icon"></i>
+                  <p class="md3-table__empty-title">{{ empty_title }}</p>
+                  {% if empty_text %}
+                    <p class="md3-table__empty-text">{{ empty_text }}</p>
+                  {% endif %}
+                </div>
+              </td>
+            </tr>
+          {% endif %}
+        </tbody>
+
+      </table>
+    </div>
+
+    {% if footer_text %}
+      <div class="md3-table-footer">
+        <span>{{ footer_text }}</span>
+      </div>
+    {% endif %}
+
+  </div>
+{% endmacro %}

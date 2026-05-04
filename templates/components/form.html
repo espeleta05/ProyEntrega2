@@ -1,0 +1,71 @@
+{#
+  FORM MACRO - Material Design 3
+  CSS: static/css/components/forms.css + inputs.css
+
+  Parámetros:
+    - action:    URL del formulario (requerido)
+    - method:    'post' | 'get' (default: 'post')
+    - title:     título del form card (opcional)
+    - subtitle:  subtítulo (opcional)
+    - enctype:   ej. 'multipart/form-data' (opcional)
+    - id:        id del <form> (opcional)
+    - cancel_href: URL del botón Cancelar (opcional)
+    - submit_text: texto del botón submit (default: 'Guardar')
+    - submit_icon: ícono del botón submit (default: 'fa-floppy-disk')
+    - class:     clases adicionales al wrapper
+
+  Uso — el caller define el contenido del formulario:
+    {% from 'components/form.html' import form %}
+    {% from 'macros/input.html' import input %}
+
+    {% call form(action=url_for('save_patient'), title='Nuevo paciente',
+                 cancel_href=url_for('pacientes')) %}
+
+      <div class="md3-form__row--2">
+        {{ input('first_name', 'Nombre', required=True) }}
+        {{ input('last_name', 'Apellido', required=True) }}
+      </div>
+      {{ input('birth_date', 'Fecha de nacimiento', type='date', required=True) }}
+
+    {% endcall %}
+#}
+
+{% macro form(action, method='post', title='', subtitle='', enctype='', id='', cancel_href='', submit_text='Guardar', submit_icon='fa-floppy-disk', class='') %}
+  <div class="md3-form-card {{ class }}">
+
+    {% if title %}
+      <div class="md3-form-card__header">
+        <h2 class="md3-form-card__title">{{ title }}</h2>
+        {% if subtitle %}
+          <p class="md3-form-card__subtitle">{{ subtitle }}</p>
+        {% endif %}
+      </div>
+    {% endif %}
+
+    <form
+      action="{{ action }}"
+      method="{{ method }}"
+      {% if enctype %}enctype="{{ enctype }}"{% endif %}
+      {% if id %}id="{{ id }}"{% endif %}
+      class="md3-form"
+      novalidate
+    >
+
+      {{ caller() }}
+
+      <div class="md3-form__actions">
+        {% if cancel_href %}
+          <a href="{{ cancel_href }}" class="md3-btn md3-btn--outlined">
+            <i class="fa-solid fa-xmark"></i>
+            Cancelar
+          </a>
+        {% endif %}
+        <button type="submit" class="md3-btn md3-btn--filled">
+          <i class="fa-solid {{ submit_icon }}"></i>
+          {{ submit_text }}
+        </button>
+      </div>
+
+    </form>
+  </div>
+{% endmacro %}

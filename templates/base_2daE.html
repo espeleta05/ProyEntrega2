@@ -1,39 +1,104 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="es">
 <head>
-<meta charset="UTF-8">
-<title>{% block title %}{% endblock %}</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}{% endblock %} — ImmuniCare</title>
 
-<link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
-<link rel="stylesheet" href="{{ url_for('static', filename='css/card.css') }}">
-<link rel="stylesheet" href="{{ url_for('static', filename='css/modal.css') }}">
-<link rel="stylesheet" href="{{ url_for('static', filename='css/alerts.css') }}">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Google+Sans+Code:ital,wght@0,300..800;1,300..800&family=Montserrat:ital,wght@0,100..900;1,100..900&family=Open+Sans:ital,wght@0,300..800;1,300..800&family=Roboto:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
+  <!-- Fuentes + íconos -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,300..800;1,300..800&family=Open+Sans:ital,wght@0,300..800;1,300..800&family=Roboto:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+  <!-- ① Design System: variables, reset, tipografía base -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/design-system.css') }}">
+
+  <!-- ② Layouts -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/layouts/topbar.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/layouts/sidebar.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/layouts/grid.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/layouts/content-wrapper.css') }}">
+
+  <!-- ③ Componentes MD3 -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/components/buttons.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/components/inputs.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/components/cards.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/components/badges.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/components/alerts.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/components/tables.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/components/forms.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/components/modals.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/components/dropdowns.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/components/tabs.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/components/chips.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/components/pagination.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/components/filters.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/components/loaders.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/components/breadcrumbs.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/components/empty-states.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/components/toolbar.css') }}">
+
+  <!-- ④ Legacy: clases antiguas usadas por páginas no migradas aún -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/modal.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/alerts.css') }}">
+
+  <!-- ⑤ CSS específico de cada página -->
+  {% block head_extra %}{% endblock %}
 </head>
+
 <body>
+
+{%- from 'layouts/sidebar.html' import sidebar -%}
 
 <div class="main-layout">
 
-    {% include 'components/topbar_2daE.html' %}
-    {% include 'components/sidebar_2daE.html' %}
+  {% include 'layouts/topbar_2daE.html' %}
 
-    <main class="content">
-        <!-- Mensajes flash -->
-        {% include 'components/form_messages.html' %}
+  {{ sidebar(
+      items=[
+        {'label': 'Dashboard',    'icon': 'fa-desktop',          'endpoint': 'dashboard'},
+        {'label': 'Pacientes',    'icon': 'fa-users',            'endpoint': 'pacientes'},
+        {'label': 'Vacunas',      'icon': 'fa-syringe',          'endpoint': 'vacunas_page'},
+        {'label': 'Historial',    'icon': 'fa-file-medical',     'endpoint': 'historial'},
+        {'label': 'Aplicaciones', 'icon': 'fa-file-circle-plus', 'endpoint': 'aplicaciones'},
+        {'label': 'Personal',     'icon': 'fa-user-doctor',      'endpoint': 'personal'},
+      ],
+      bottom_items=[
+        {'label': 'Inventario',   'icon': 'fa-boxes-stacked',    'endpoint': 'inventario'},
+        {'label': 'Citas',        'icon': 'fa-calendar-check',   'endpoint': 'citas'},
+        {'label': 'NFC',          'icon': 'fa-credit-card',      'endpoint': 'nfc'},
+        {'label': 'Clínicas',     'icon': 'fa-hospital',         'endpoint': 'clinicas'},
+      ],
+      logo_src=url_for('static', filename='css/img/logo.png'),
+      logo_href=url_for('pagina_inicio'),
+      user_name=name ~ ' ' ~ lastname,
+      user_role=role,
+      user_initials=initials,
+  ) }}
 
-        <div class="content-info">
-            {% block content %}{% endblock %}
-        </div>
-    </main>
+  <main class="content">
+    {% include 'components/form_messages.html' %}
+    <div class="content-info">
+      {% block content %}{% endblock %}
+    </div>
+  </main>
 
 </div>
 
-<!-- Modal de confirmación genérico -->
 {% include 'components/modal_confirm.html' %}
+
+<!-- JS Modules (al final, no bloquean el render) -->
+<script src="{{ url_for('static', filename='js/components/modals.js') }}"></script>
+<script src="{{ url_for('static', filename='js/components/alerts.js') }}"></script>
+<script src="{{ url_for('static', filename='js/components/dropdowns.js') }}"></script>
+<script src="{{ url_for('static', filename='js/components/loaders.js') }}"></script>
+<script src="{{ url_for('static', filename='js/components/tables.js') }}"></script>
+<script src="{{ url_for('static', filename='js/components/filters.js') }}"></script>
+<script src="{{ url_for('static', filename='js/components/tabs.js') }}"></script>
+
+{% block scripts %}{% endblock %}
 
 </body>
 </html>
-

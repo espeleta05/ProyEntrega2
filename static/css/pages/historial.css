@@ -1,0 +1,138 @@
+/**
+ * historial.css — Página de historial de vacunación por paciente
+ * Solo variables --md-*. Sin vars legacy.
+ */
+
+.card { margin: var(--md-spacing-5, 20px) 0; }
+
+.card-body { align-items: flex-start; }
+
+.avatar i {
+  font-size: var(--md-font-size-body-lg, 1rem);
+  color: var(--md-on-surface-variant, #49454f);
+  background-color: var(--md-outline-variant, #c4c7c5);
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.historial-wrapper { padding: var(--md-spacing-5, 20px); }
+
+/* ── Grid de pacientes ─────────────────────────────────────────────────────── */
+.patients-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--md-spacing-4, 15px);
+  margin-bottom: var(--md-spacing-5, 20px);
+}
+
+.patient-item {
+  display: flex;
+  align-items: center;
+  gap: var(--md-spacing-3, 10px);
+  padding: 18px;
+  text-decoration: none;
+  color: var(--md-on-surface, #1a1a1a);
+  background: var(--md-surface-container-lowest, #fff);
+  border: 0.5px solid var(--md-outline-variant, #c4c7c5);
+  border-radius: var(--md-shape-medium, 12px);
+  box-shadow: var(--md-shadow-level-1);
+  overflow: hidden;
+  transition: transform var(--md-transition-short), box-shadow var(--md-transition-short);
+}
+.patient-item:hover  { background: var(--md-surface-container, #f4eff8); }
+.patient-item.active { background: var(--md-surface-container-high, #ece6f0); }
+
+.patient-info {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--md-spacing-1, 4px);
+  margin-left: var(--md-spacing-1, 4px);
+}
+
+.hidden { display: none !important; }
+
+.no-results {
+  color: var(--md-on-surface-variant, #49454f);
+  font-weight: var(--md-font-weight-semibold, 500);
+}
+
+/* ── Secciones ── */
+.section { margin-top: var(--md-spacing-5, 20px); }
+
+/* ── Tarjetas vacunas aplicadas ── */
+.vaccine-applied {
+  margin-top: var(--md-spacing-4, 15px);
+  border-radius: var(--md-shape-large, 15px);
+  background: var(--md-surface-container-lowest, #fff);
+}
+
+.vaccine-applied .card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.dose {
+  background: color-mix(in srgb, var(--md-primary, #6B007C) 12%, transparent);
+  color: var(--md-primary, #6B007C);
+  padding: 5px 10px;
+  border-radius: var(--md-shape-medium, 10px);
+  font-size: var(--md-font-size-label-lg, 0.75rem);
+}
+
+.observation {
+  display: block;
+  padding: var(--md-spacing-2, 8px);
+  background: var(--md-surface-container, #f4eff8);
+  border-radius: var(--md-shape-small, 8px);
+  font-size: var(--md-font-size-body-sm, 0.8rem);
+}
+
+/* ── Próximas vacunas ── */
+.next-vaccines { margin-top: var(--md-spacing-8, 30px); }
+
+.next-card {
+  display: flex;
+  justify-content: space-between;
+  background: color-mix(in srgb, var(--md-primary, #6B007C) 10%, transparent);
+  padding: 15px;
+  border-radius: var(--md-shape-medium, 10px);
+  margin-top: var(--md-spacing-3, 10px);
+}
+
+.next-card .date {
+  font-weight: var(--md-font-weight-bold, 700);
+  color: var(--md-primary, #6B007C);
+}
+
+.extra {
+  display: flex;
+  flex-direction: row;
+  gap: var(--md-spacing-10, 40px);
+}
+
+/* ── Badges de riesgo ── */
+.risk {
+  padding: 5px 10px;
+  border-radius: var(--md-shape-small, 8px);
+  font-size: var(--md-font-size-body-sm, 0.8rem);
+  font-weight: var(--md-font-weight-semibold, 600);
+}
+.risk.low  { background: var(--md-success-container, #CFFFC0);   color: var(--md-success, #1D7B00); }
+.risk.high { background: var(--md-error-container, #FFB9B9);     color: var(--md-error, #C40000); }
+.risk.mid  { background: var(--md-tertiary-container, #FFEEC0);  color: var(--md-tertiary, #7B6800); }
+
+/* ── Tags de sangre ── */
+.blood {
+    display: flex;
+    gap: var(--md-spacing-3, 10px);
+    align-items: center;
+    color: var(--md-error, #C40000);
+}
+.blood i { color: var(--md-error, #C40000); }
+.blood.A { background: none; }

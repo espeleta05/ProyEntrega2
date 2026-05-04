@@ -1,0 +1,384 @@
+/**
+ * topbar.css — Layout: barra superior fija
+ * Usa variables de design-system.css. Complementa navbar.css para la barra global.
+ */
+
+/* ── Contenedor principal ───────────────────────────────────────────────────── */
+.topbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 100px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 var(--md-spacing-6, 24px);
+  gap: var(--md-spacing-4, 16px);
+  background-color: var(--md-surface-container-lowest, #fff);
+  border-bottom: 1px solid var(--md-outline-variant, rgba(99,99,99,0.3));
+  box-shadow: var(--md-shadow-level-1, 0 1px 3px rgba(0,0,0,0.12));
+  z-index: 100;
+}
+
+/* ── Logo ───────────────────────────────────────────────────────────────────── */
+.topbar-logo {
+  display: flex;
+  align-items: center;
+  gap: var(--md-spacing-3, 12px);
+  text-decoration: none;
+  flex-shrink: 0;
+}
+
+.logo-img {
+  height: 45px;
+  width: auto;
+  object-fit: contain;
+}
+
+.logo-text {
+  font-family: var(--md-font-family-display, 'Montserrat', sans-serif);
+  font-size: var(--md-font-size-title-lg, 1.375rem);
+  font-weight: var(--md-font-weight-bold, 700);
+  color: var(--md-primary, #6B007C);
+  letter-spacing: -0.01em;
+  line-height: 1;
+}
+
+/* ── Barra de búsqueda global ────────────────────────────────────────────────── */
+.global-search-wrapper {
+  position: relative;
+  flex: 1;
+  max-width: 682px;
+  margin: 0 auto;
+}
+
+.search-bar-container {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  height: 56px;
+  padding: 0 var(--md-spacing-4, 16px);
+  gap: var(--md-spacing-2, 8px);
+  background-color: var(--md-surface-container, #f3edf7);
+  border: 1px solid var(--md-outline-variant, #cac4d0);
+  border-radius: var(--md-shape-extra-large, 28px);
+  transition: border-color var(--md-transition-duration-short2, 150ms) var(--md-transition-easing-standard, ease),
+              box-shadow   var(--md-transition-duration-short2, 150ms) var(--md-transition-easing-standard, ease);
+}
+
+.search-bar-container:focus-within {
+  border-color: var(--md-primary, #6B007C);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--md-primary, #6B007C) 20%, transparent);
+}
+
+.search-bar-container .search-icon {
+  color: var(--md-on-surface-variant, #49454f);
+  font-size: 1rem;
+  flex-shrink: 0;
+}
+
+.search-bar-container input[type="search"],
+.search-bar-container input[type="text"] {
+  flex: 1;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-family: var(--md-font-family-body, 'Roboto', sans-serif);
+  font-size: var(--md-font-size-body-lg, 1rem);
+  color: var(--md-on-surface, #1c1b1f);
+  line-height: 1.5;
+}
+
+.search-bar-container input::placeholder {
+  color: var(--md-on-surface-variant, #49454f);
+}
+
+/* ── Resultados de búsqueda ───────────────────────────────────────────────────── */
+.global-search-results {
+  position: absolute;
+  top: calc(100% + var(--md-spacing-2, 8px));
+  left: 0;
+  right: 0;
+  background-color: var(--md-surface-container-lowest, #fff);
+  border: 1px solid var(--md-outline-variant, #cac4d0);
+  border-radius: var(--md-shape-medium, 12px);
+  box-shadow: var(--md-shadow-level-2, 0 2px 8px rgba(0,0,0,0.15));
+  z-index: 200;
+  overflow: hidden;
+  max-height: 400px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--md-outline-variant, #cac4d0) transparent;
+}
+
+.global-search-results:empty {
+  display: none;
+}
+
+/* ── Ítem de resultado ───────────────────────────────────────────────────────── */
+.search-item {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  grid-template-rows: auto auto;
+  align-items: center;
+  gap: 0 var(--md-spacing-3, 12px);
+  padding: var(--md-spacing-3, 12px) var(--md-spacing-4, 16px);
+  cursor: pointer;
+  transition: background-color var(--md-transition-duration-short2, 150ms) var(--md-transition-easing-standard, ease);
+  text-decoration: none;
+  color: inherit;
+}
+
+.search-item:hover,
+.search-item:focus,
+.search-item.keyboard-selected {
+  background-color: color-mix(in srgb, var(--md-primary, #6B007C) 8%, transparent);
+  outline: none;
+}
+
+.search-item + .search-item {
+  border-top: 1px solid var(--md-outline-variant, #cac4d0);
+}
+
+.search-main {
+  font-family: var(--md-font-family-body, 'Roboto', sans-serif);
+  font-size: var(--md-font-size-body-md, 0.875rem);
+  font-weight: var(--md-font-weight-medium, 500);
+  color: var(--md-on-surface, #1c1b1f);
+  grid-column: 2;
+  grid-row: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.search-sub {
+  font-family: var(--md-font-family-body, 'Roboto', sans-serif);
+  font-size: var(--md-font-size-body-sm, 0.75rem);
+  color: var(--md-on-surface-variant, #49454f);
+  grid-column: 2;
+  grid-row: 2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ── Tipo pills (paciente / vacuna / personal) ────────────────────────────────── */
+.search-type {
+  grid-column: 3;
+  grid-row: 1 / 3;
+  display: inline-flex;
+  align-items: center;
+  padding: 2px var(--md-spacing-2, 8px);
+  border-radius: var(--md-shape-extra-large, 28px);
+  font-size: var(--md-font-size-label-sm, 0.6875rem);
+  font-weight: var(--md-font-weight-medium, 500);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+
+.search-type.paciente {
+  background-color: color-mix(in srgb, var(--md-primary, #6B007C) 15%, transparent);
+  color: var(--md-primary, #6B007C);
+}
+
+.search-type.vacuna {
+  background-color: color-mix(in srgb, var(--md-tertiary, #7B6800) 15%, transparent);
+  color: var(--md-tertiary, #7B6800);
+}
+
+.search-type.personal {
+  background-color: color-mix(in srgb, var(--md-secondary, #4B1535) 15%, transparent);
+  color: var(--md-secondary, #4B1535);
+}
+
+/* ── Búsqueda vacía ───────────────────────────────────────────────────────────── */
+.search-empty {
+  padding: var(--md-spacing-5, 20px) var(--md-spacing-4, 16px);
+  text-align: center;
+  font-size: var(--md-font-size-body-sm, 0.8125rem);
+  color: var(--md-on-surface-variant, #49454f);
+}
+
+/* ── Icono de búsqueda en resultados ─────────────────────────────────────────── */
+.search-item-icon {
+  grid-column: 1;
+  grid-row: 1 / 3;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--md-shape-full, 50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.9rem;
+  background-color: var(--md-surface-container, #f3edf7);
+  color: var(--md-on-surface-variant, #49454f);
+  flex-shrink: 0;
+}
+
+/* ── Sección derecha (acciones + perfil) ─────────────────────────────────────── */
+.topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--md-spacing-3, 12px);
+  flex-shrink: 0;
+}
+
+/* ── Avatar / círculo de perfil ───────────────────────────────────────────────── */
+.profile-circle {
+  width: 50px;
+  height: 50px;
+  border-radius: var(--md-shape-full, 50%);
+  background-color: var(--md-primary-container, #f9d8ff);
+  color: var(--md-on-primary-container, #280048);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--md-font-family-body, 'Roboto', sans-serif);
+  font-weight: var(--md-font-weight-bold, 700);
+  font-size: var(--md-font-size-title-md, 1rem);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: box-shadow var(--md-transition-duration-short2, 150ms) var(--md-transition-easing-standard, ease);
+  user-select: none;
+}
+
+.profile-circle:hover {
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--md-primary, #6B007C) 12%, transparent);
+}
+
+/* ── Botón de reporte ─────────────────────────────────────────────────────────── */
+.btn-reporte {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--md-spacing-2, 8px);
+  padding: 0 var(--md-spacing-4, 16px);
+  height: 40px;
+  border: none;
+  border-radius: var(--md-shape-extra-large, 20px);
+  background-color: var(--md-primary, #6B007C);
+  color: var(--md-on-primary, #fff);
+  font-family: var(--md-font-family-body, 'Roboto', sans-serif);
+  font-size: var(--md-font-size-label-lg, 0.875rem);
+  font-weight: var(--md-font-weight-medium, 500);
+  letter-spacing: 0.00625em;
+  cursor: pointer;
+  text-decoration: none;
+  transition: box-shadow      var(--md-transition-duration-short2, 150ms) var(--md-transition-easing-standard, ease),
+              background-color var(--md-transition-duration-short2, 150ms) var(--md-transition-easing-standard, ease);
+}
+
+.btn-reporte:hover {
+  background-color: color-mix(in srgb, var(--md-primary, #6B007C) 92%, black);
+  box-shadow: var(--md-shadow-level-1, 0 1px 3px rgba(0,0,0,0.2));
+}
+
+.btn-reporte:focus-visible {
+  outline: 3px solid var(--md-primary, #6B007C);
+  outline-offset: 2px;
+}
+
+/* ── Responsive ──────────────────────────────────────────────────────────────── */
+@media (max-width: 1024px) {
+  .topbar {
+    padding: 0 var(--md-spacing-4, 16px);
+    gap: var(--md-spacing-3, 12px);
+  }
+
+  .global-search-wrapper {
+    max-width: 420px;
+  }
+
+  .logo-text {
+    font-size: var(--md-font-size-title-md, 1.125rem);
+  }
+}
+
+@media (max-width: 640px) {
+  .topbar {
+    height: 72px;
+    padding: 0 var(--md-spacing-3, 12px);
+  }
+
+  .global-search-wrapper {
+    display: none;
+  }
+
+  .logo-text {
+    display: none;
+  }
+
+  .profile-circle {
+    width: 40px;
+    height: 40px;
+    font-size: var(--md-font-size-body-md, 0.875rem);
+  }
+
+  .btn-reporte span {
+    display: none;
+  }
+
+  .btn-reporte {
+    width: 40px;
+    padding: 0;
+    justify-content: center;
+  }
+}
+
+/* ────────────────────────────────────────────────────────────────────────────── */
+/* MD3 TOPBAR - Material Design 3 (New Component Classes)                        */
+/* ────────────────────────────────────────────────────────────────────────────── */
+
+.md3-topbar {
+  display: flex;
+  align-items: center;
+  gap: var(--md-spacing-4);
+  padding: var(--md-spacing-3) var(--md-spacing-6);
+  background: var(--md-surface);
+  border-bottom: 1px solid var(--md-outline-variant);
+}
+
+.md3-topbar__logo {
+  display: flex;
+  align-items: center;
+  gap: var(--md-spacing-2);
+  text-decoration: none;
+  flex-shrink: 0;
+}
+
+.md3-search-input {
+  width: 100%;
+  height: 40px;
+  padding: 0 var(--md-spacing-4) 0 40px;
+  border: 1px solid var(--md-outline-variant);
+  border-radius: var(--md-shape-extra-large);
+  background: var(--md-surface-container-low);
+  font-family: var(--md-font-family-body);
+  font-size: var(--md-font-size-body-md);
+  color: var(--md-on-surface);
+  transition: border-color var(--md-transition-short), box-shadow var(--md-transition-short);
+}
+
+.md3-search-input:focus {
+  border-color: var(--md-primary);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--md-primary) 20%, transparent);
+  outline: none;
+}
+
+.md3-user-avatar {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: var(--md-primary-container);
+  color: var(--md-on-primary-container);
+  font-weight: var(--md-font-weight-bold);
+  font-size: var(--md-font-size-label-lg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-transform: uppercase;
+  flex-shrink: 0;
+}
+

@@ -1,0 +1,148 @@
+{#
+  SIDEBAR MACRO - Material Design 3
+  CSS: static/css/layouts/sidebar.css
+
+  Parámetros:
+    - items:       lista de nav items principales
+                   { label, icon, endpoint, url, badge (opcional) }
+    - bottom_items: lista de nav items secundarios (abajo del sidebar)
+                   { label, icon, endpoint, url }
+    - logo_text:   texto del logo (default: 'ImmuniCare')
+    - logo_src:    ruta de la imagen del logo (opcional)
+    - logo_href:   URL del logo (default: '#')
+    - user_name:   nombre completo del usuario
+    - user_role:   rol del usuario
+    - user_initials: iniciales del usuario
+    - logout_url:  URL de logout (default: '/logout')
+
+  Uso — importar y llamar desde el layout base:
+    {% from 'components/sidebar.html' import sidebar %}
+
+    {{ sidebar(
+        items=[
+          {'label': 'Dashboard',  'icon': 'fa-desktop',           'endpoint': 'dashboard'},
+          {'label': 'Pacientes',  'icon': 'fa-users',             'endpoint': 'pacientes'},
+          {'label': 'Vacunas',    'icon': 'fa-syringe',           'endpoint': 'vacunas_page'},
+          {'label': 'Historial',  'icon': 'fa-file-medical',      'endpoint': 'historial'},
+          {'label': 'Aplicaciones','icon':'fa-file-circle-plus',  'endpoint': 'aplicaciones'},
+          {'label': 'Personal',   'icon': 'fa-user-doctor',       'endpoint': 'personal'},
+        ],
+        bottom_items=[
+          {'label': 'Inventario', 'icon': 'fa-boxes-stacked',  'endpoint': 'inventario'},
+          {'label': 'Citas',      'icon': 'fa-calendar-check', 'endpoint': 'citas'},
+          {'label': 'NFC',        'icon': 'fa-credit-card',    'endpoint': 'nfc'},
+          {'label': 'Clínicas',   'icon': 'fa-hospital',       'endpoint': 'clinicas'},
+        ],
+        user_name=name ~ ' ' ~ lastname,
+        user_role=role,
+        user_initials=initials,
+    ) }}
+
+  Nota: si el item tiene 'endpoint', se usa url_for(endpoint) y la clase active
+        se activa cuando request.endpoint coincide. Si no tiene endpoint, se usa 'url' directo.
+#}
+
+{% macro sidebar(items=[], bottom_items=[], logo_text='ImmuniCare', logo_src=None, logo_href='#', user_name='', user_role='', user_initials='', logout_url='/logout') %}
+
+<aside class="sidebar" id="appSidebar">
+
+  <div class="sidebar-header">
+    <a href="{{ logo_href }}" style="display:flex; align-items:center; gap: var(--md-spacing-3); text-decoration:none; width:100%;">
+      {% if logo_src %}
+        <img src="{{ logo_src }}" alt="{{ logo_text }}" style="height:32px; width:auto; flex-shrink:0;">
+      {% else %}
+        <div style="
+          width:36px; height:36px; border-radius:var(--md-shape-medium);
+          background:var(--md-primary); color:var(--md-on-primary);
+          display:flex; align-items:center; justify-content:center;
+          font-weight:var(--md-font-weight-bold); font-size:1.1rem;
+          flex-shrink:0;
+        ">{{ logo_text[0] | upper }}</div>
+      {% endif %}
+      <h1 style="
+        font-size:var(--md-font-size-title-md);
+        font-weight:var(--md-font-weight-bold);
+        color:var(--md-primary);
+        margin:0;
+      ">{{ logo_text }}</h1>
+    </a>
+  </div>
+
+  <nav class="sidebar-nav" aria-label="Navegación principal">
+    {% for item in items %}
+      {%- if item.endpoint is defined and item.endpoint %}
+        {%- set item_url = url_for(item.endpoint) -%}
+        {%- set is_active = request.endpoint == item.endpoint -%}
+      {%- else %}
+        {%- set item_url = item.url | default('#') -%}
+        {%- set is_active = False -%}
+      {%- endif %}
+      <a href="{{ item_url }}"
+         class="sidebar-nav-item {{ 'active' if is_active else '' }}"
+         {% if is_active %}aria-current="page"{% endif %}>
+        <i class="fa-solid {{ item.icon }}"></i>
+        <span>{{ item.label }}</span>
+        {% if item.badge is defined and item.badge %}
+          <span style="
+            margin-left:auto;
+            min-width:20px; height:20px;
+            padding:0 var(--md-spacing-1);
+            border-radius:var(--md-shape-extra-large);
+            background:var(--md-error);
+            color:var(--md-on-error);
+            font-size:var(--md-font-size-label-sm);
+            font-weight:var(--md-font-weight-bold);
+            display:inline-flex; align-items:center; justify-content:center;
+          ">{{ item.badge }}</span>
+        {% endif %}
+      </a>
+    {% endfor %}
+  </nav>
+
+  {% if bottom_items %}
+    <nav class="sidebar-nav" style="margin-top:auto; border-top:1px solid var(--md-outline-variant); padding-top:var(--md-spacing-2);" aria-label="Navegación secundaria">
+      {% for item in bottom_items %}
+        {%- if item.endpoint is defined and item.endpoint %}
+          {%- set item_url = url_for(item.endpoint) -%}
+          {%- set is_active = request.endpoint == item.endpoint -%}
+        {%- else %}
+          {%- set item_url = item.url | default('#') -%}
+          {%- set is_active = False -%}
+        {%- endif %}
+        <a href="{{ item_url }}"
+           class="sidebar-nav-item {{ 'active' if is_active else '' }}"
+           {% if is_active %}aria-current="page"{% endif %}>
+          <i class="fa-solid {{ item.icon }}"></i>
+          <span>{{ item.label }}</span>
+        </a>
+      {% endfor %}
+    </nav>
+  {% endif %}
+
+  {% if user_name %}
+    <div class="sidebar-footer">
+      <div style="display:flex; align-items:center; gap:var(--md-spacing-3);">
+        <div style="
+          width:36px; height:36px; border-radius:50%; flex-shrink:0;
+          background:var(--md-primary-container);
+          color:var(--md-on-primary-container);
+          font-weight:var(--md-font-weight-bold);
+          font-size:var(--md-font-size-label-lg);
+          display:flex; align-items:center; justify-content:center;
+          text-transform:uppercase;
+        ">{{ user_initials }}</div>
+        <div style="min-width:0; flex:1;">
+          <p style="font-weight:var(--md-font-weight-semibold); font-size:var(--md-font-size-body-sm); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin:0;">{{ user_name }}</p>
+          <p style="font-size:var(--md-font-size-label-lg); color:var(--md-on-surface-variant); margin:0;">{{ user_role }}</p>
+        </div>
+        <a href="{{ logout_url }}" title="Cerrar sesión" style="color:var(--md-on-surface-variant); transition:color var(--md-transition-short);" onmouseover="this.style.color='var(--md-error)'" onmouseout="this.style.color='var(--md-on-surface-variant)'">
+          <i class="fa-solid fa-arrow-right-from-bracket"></i>
+        </a>
+      </div>
+    </div>
+  {% endif %}
+
+</aside>
+
+{% endmacro %}
+

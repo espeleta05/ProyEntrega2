@@ -1,0 +1,164 @@
+/**
+ * login.css — Página de inicio de sesión (standalone, sin base layout)
+ * Ajustes finos sobre design-system.css.
+ */
+
+/* ── Fondo de página ──────────────────────────────────────────────────────── */
+body {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(
+    135deg,
+    var(--md-surface-container, #f4eff8) 0%,
+    color-mix(in srgb, var(--md-primary, #6B007C) 6%, white) 100%
+  );
+}
+
+/* ── Tarjeta principal ────────────────────────────────────────────────────── */
+.login-container {
+  width: min(440px, 90vw);
+  background: var(--md-surface-container-lowest, #fff);
+  padding: var(--md-spacing-10, 40px);
+  border-radius: var(--md-shape-extra-large, 28px);
+  box-shadow: var(--md-shadow-level-2);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--md-spacing-5, 20px);
+}
+
+/* ── Info superior ────────────────────────────────────────────────────────── */
+.login-info {
+  display: flex;
+  flex-direction: column;
+  gap: var(--md-spacing-3, 12px);
+  align-items: center;
+  width: 100%;
+  text-align: center;
+}
+
+.titulo-sistema {
+  font-family: var(--md-font-family-display, 'Montserrat', sans-serif);
+  font-size: var(--md-font-size-title-lg, 1.375rem);
+  font-weight: var(--md-font-weight-bold, 700);
+  color: var(--md-primary, #6B007C);
+  margin: 0;
+  line-height: 1.2;
+}
+
+/* ── Icono de usuario ─────────────────────────────────────────────────────── */
+.icon-group i {
+  font-size: 1.5rem;
+  color: var(--md-primary, #6B007C);
+  background-color: var(--md-primary-container, #FAD9FF);
+  margin: var(--md-spacing-2, 8px);
+  width: 70px;
+  height: 70px;
+  border-radius: var(--md-shape-full, 50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ── Título del formulario ────────────────────────────────────────────────── */
+.login-title {
+  font-family: var(--md-font-family-display, 'Montserrat', sans-serif);
+  font-size: var(--md-font-size-title-md, 1.25rem);
+  font-weight: var(--md-font-weight-bold, 700);
+  color: var(--md-on-surface, #1a1a1a);
+  margin: 0;
+}
+
+/* ── Formulario ───────────────────────────────────────────────────────────── */
+.login-form {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: var(--md-spacing-4, 16px);
+}
+
+label {
+  font-family: var(--md-font-family-body, 'Open Sans', sans-serif);
+  font-size: var(--md-font-size-body-md, 0.875rem);
+  font-weight: var(--md-font-weight-medium, 500);
+  color: var(--md-on-surface-variant, #49454f);
+  text-align: left;
+}
+
+/* ── Input box ────────────────────────────────────────────────────────────── */
+.input-box { width: 100%; }
+
+.input-box.password-box {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.input-box i { color: var(--md-on-surface-variant, #49454f); }
+
+.input-box input {
+  width: 100%;
+  height: 50px;
+  border: 1.5px solid var(--md-outline, #79747e);
+  border-radius: var(--md-shape-extra-large, 28px);
+  font-family: var(--md-font-family-body, 'Open Sans', sans-serif);
+  font-size: var(--md-font-size-body-lg, 1rem);
+  padding: 0 var(--md-spacing-5, 20px);
+  color: var(--md-on-surface, #1a1a1a);
+  background: var(--md-surface-container-lowest, #fff);
+  outline: none;
+  transition: border-color var(--md-transition-short), box-shadow var(--md-transition-short);
+}
+.input-box input:focus {
+  border-color: var(--md-primary, #6B007C);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--md-primary, #6B007C) 20%, transparent);
+}
+.input-box input::placeholder {
+  color: var(--md-on-surface-variant, #49454f);
+  opacity: 0.7;
+}
+
+/* ── Botón de envío ───────────────────────────────────────────────────────── */
+.login-button {
+  width: 100%;
+  height: 50px;
+  background: var(--md-primary, #6B007C);
+  color: var(--md-on-primary, #fff);
+  border: none;
+  border-radius: var(--md-shape-extra-large, 28px);
+  font-family: var(--md-font-family-body, 'Open Sans', sans-serif);
+  font-size: var(--md-font-size-body-lg, 1rem);
+  font-weight: var(--md-font-weight-semibold, 600);
+  cursor: pointer;
+  letter-spacing: 0.01em;
+  transition: background var(--md-transition-short), box-shadow var(--md-transition-short);
+}
+.login-button:hover {
+  background: color-mix(in srgb, var(--md-primary, #6B007C) 88%, black);
+  box-shadow: var(--md-shadow-level-1);
+}
+.login-button:focus-visible {
+  outline: 3px solid var(--md-primary, #6B007C);
+  outline-offset: 3px;
+}
+
+/* ── ¿Olvidó su contraseña? ───────────────────────────────────────────────── */
+.forgot-password {
+  font-size: var(--md-font-size-body-sm, 0.875rem);
+  color: var(--md-error, #C40000);
+  text-decoration: none;
+  transition: text-decoration var(--md-transition-short);
+}
+.forgot-password:hover { text-decoration: underline; }
+
+/* ── Mensaje de error ─────────────────────────────────────────────────────── */
+.error {
+  font-size: var(--md-font-size-body-sm, 0.875rem);
+  color: var(--md-error, #C40000);
+  background: var(--md-error-container, #FFB9B9);
+  border-radius: var(--md-shape-small, 8px);
+  padding: var(--md-spacing-2, 8px) var(--md-spacing-4, 16px);
+  width: 100%;
+  text-align: center;
+}

@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login — ImmuniCare</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,300..800;1,300..800&family=Open+Sans:ital,wght@0,300..800;1,300..800&family=Roboto:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/design-system.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/login.css') }}">
+</head>
+
+<body>
+
+<div class="login-container">
+<div class="login-info">
+    <h1 class="titulo-sistema">Sistema Clínico de Vacunación</h1>
+
+    <div class="icon-group">
+        <i class="fa-solid fa-user"></i>
+    </div>
+
+    <h2 class="login-title">Inicia Sesión</h2>
+
+    <!-- Login Form -->
+    <form class="login-form" method="POST">
+
+        <label class="label">Usuario</label>
+
+        <div class="input-box usuario-box">
+            <input type="text" name="mail" placeholder="mail o user" required>
+        </div>
+
+        <label class="label">Contraseña</label>
+
+        <div class="input-box password-box">
+            <input type="password" name="password" placeholder="****" required>
+        </div>
+
+        <button type="submit" class="login-button">Iniciar sesión</button>
+    </form>
+
+    
+    {% if error %}
+        <p class="error">{{ error }}</p>
+    {% endif %}
+
+    <a href="#" class="forgot-password">
+        ¿Olvidó su contraseña?
+        </a>
+
+</div>
+    
+</div>
+
+</body>
+</html>
+

@@ -1,0 +1,223 @@
+/* Material Design 3 — Buttons (requires design-system.css first) */
+
+.md3-btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--md-spacing-2);
+  min-height: 40px;
+  padding: 0 var(--md-spacing-6);
+  border: none;
+  border-radius: var(--md-shape-extra-large);
+  font-family: var(--md-font-family-body);
+  font-size: var(--md-font-size-label-lg);
+  font-weight: var(--md-font-weight-semibold);
+  line-height: var(--md-line-height-label-lg);
+  letter-spacing: 0.00625rem;
+  cursor: pointer;
+  isolation: isolate;
+  overflow: hidden;
+  transition:
+    box-shadow var(--md-transition-short),
+    transform var(--md-transition-short),
+    background-color var(--md-transition-short),
+    border-color var(--md-transition-short),
+    color var(--md-transition-short);
+}
+
+.md3-btn::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity var(--md-transition-short);
+}
+
+.md3-btn:focus-visible {
+  outline: 2px solid var(--md-primary);
+  outline-offset: 2px;
+}
+
+.md3-btn:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.md3-btn:disabled {
+  cursor: not-allowed;
+  opacity: var(--md-state-disabled);
+  box-shadow: var(--md-shadow-none);
+}
+
+/* Filled */
+.md3-btn--filled {
+  background-color: var(--md-primary);
+  color: var(--md-on-primary);
+  box-shadow: var(--md-shadow-level-1);
+}
+
+.md3-btn--filled::before {
+  background-color: var(--md-on-primary);
+}
+
+.md3-btn--filled:hover:not(:disabled)::before {
+  opacity: var(--md-state-hover);
+}
+
+.md3-btn--filled:focus-visible:not(:disabled)::before {
+  opacity: var(--md-state-focus);
+}
+
+.md3-btn--filled:active:not(:disabled)::before {
+  opacity: var(--md-state-pressed);
+}
+
+.md3-btn--filled:hover:not(:disabled) {
+  box-shadow: var(--md-shadow-level-2);
+}
+
+/* Filled tonal */
+.md3-btn--tonal {
+  background-color: var(--md-primary-container);
+  color: var(--md-on-primary-container);
+  box-shadow: var(--md-shadow-none);
+}
+
+.md3-btn--tonal::before {
+  background-color: var(--md-on-primary-container);
+}
+
+.md3-btn--tonal:hover:not(:disabled)::before {
+  opacity: var(--md-state-hover);
+}
+
+.md3-btn--tonal:focus-visible:not(:disabled)::before {
+  opacity: var(--md-state-focus);
+}
+
+.md3-btn--tonal:active:not(:disabled)::before {
+  opacity: var(--md-state-pressed);
+}
+
+.md3-btn--tonal:hover:not(:disabled) {
+  box-shadow: var(--md-shadow-level-1);
+}
+
+/* Outlined */
+.md3-btn--outlined {
+  background-color: transparent;
+  color: var(--md-primary);
+  border: 1px solid var(--md-outline);
+  box-shadow: var(--md-shadow-none);
+  padding: 0 calc(var(--md-spacing-6) - 1px);
+}
+
+.md3-btn--outlined::before {
+  background-color: var(--md-primary);
+}
+
+.md3-btn--outlined:hover:not(:disabled)::before {
+  opacity: var(--md-state-hover);
+}
+
+.md3-btn--outlined:focus-visible:not(:disabled)::before {
+  opacity: var(--md-state-focus);
+}
+
+.md3-btn--outlined:active:not(:disabled)::before {
+  opacity: var(--md-state-pressed);
+}
+
+.md3-btn--outlined:hover:not(:disabled) {
+  border-color: var(--md-primary);
+}
+
+/* Text */
+.md3-btn--text {
+  background-color: transparent;
+  color: var(--md-primary);
+  box-shadow: var(--md-shadow-none);
+  min-height: 40px;
+  padding: 0 var(--md-spacing-3);
+}
+
+.md3-btn--text::before {
+  background-color: var(--md-primary);
+}
+
+.md3-btn--text:hover:not(:disabled)::before {
+  opacity: var(--md-state-hover);
+}
+
+.md3-btn--text:focus-visible:not(:disabled)::before {
+  opacity: var(--md-state-focus);
+}
+
+.md3-btn--text:active:not(:disabled)::before {
+  opacity: var(--md-state-pressed);
+}
+
+/* Elevated */
+.md3-btn--elevated {
+  background-color: var(--md-surface-container-low);
+  color: var(--md-primary);
+  box-shadow: var(--md-shadow-level-2);
+}
+
+.md3-btn--elevated::before {
+  background-color: var(--md-primary);
+}
+
+.md3-btn--elevated:hover:not(:disabled)::before {
+  opacity: var(--md-state-hover);
+}
+
+.md3-btn--elevated:focus-visible:not(:disabled)::before {
+  opacity: var(--md-state-focus);
+}
+
+.md3-btn--elevated:active:not(:disabled)::before {
+  opacity: var(--md-state-pressed);
+}
+
+.md3-btn--elevated:hover:not(:disabled) {
+  box-shadow: var(--md-shadow-level-3);
+}
+
+/* Sizes */
+.md3-btn--sm {
+  min-height: 32px;
+  padding: 0 var(--md-spacing-4);
+  font-size: var(--md-font-size-label-md);
+}
+
+.md3-btn--sm.md3-btn--outlined {
+  padding: 0 calc(var(--md-spacing-4) - 1px);
+}
+
+.md3-btn--lg {
+  min-height: 48px;
+  padding: 0 var(--md-spacing-8);
+  font-size: var(--md-font-size-body-md);
+}
+
+.md3-btn--lg.md3-btn--outlined {
+  padding: 0 calc(var(--md-spacing-8) - 1px);
+}
+
+/* Icon-only */
+.md3-btn--icon {
+  min-width: 40px;
+  padding: 0;
+  border-radius: var(--md-shape-large);
+}
+
+.md3-btn--icon.md3-btn--sm {
+  min-width: 32px;
+}
+
+.md3-btn--icon.md3-btn--lg {
+  min-width: 48px;
+}

@@ -1,0 +1,64 @@
+{#
+  CARD MACRO - Material Design 3
+  Parámetro bloque:
+    - title: Título de la card
+    - subtitle: Subtítulo (opcional)
+    - icon: Clase Font Awesome para el ícono del header
+    - type: 'default', 'elevated', 'outlined', 'filled' (default: 'elevated')
+    - clickable: true/false (para hacer la card interactiva)
+    - action: URL o JavaScript para hacer la card clickable
+    - header_action: Botón de acción en el header
+    - footer: Contenido del footer (slot)
+    - class: Clases CSS adicionales
+
+  Uso:
+    {% call card(title='Título', type='elevated') %}
+      Contenido de la card
+    {% endcall %}
+#}
+
+{% macro card(title='', subtitle='', icon=None, type='elevated', clickable=False, action=None, header_action=None, class='') %}
+  {%- set card_class = {
+    'default': 'card--default',
+    'elevated': 'card--elevated',
+    'outlined': 'card--outlined',
+    'filled': 'card--filled'
+  }[type] -%}
+
+  {% if clickable and action %}
+    <a href="{{ action }}" class="card {{ card_class }} card--clickable {{ class }}">
+  {% else %}
+    <div class="card {{ card_class }} {{ class }}" {% if clickable and action %}onclick="window.location.href='{{ action }}'"{% endif %}>
+  {% endif %}
+
+    {% if title or icon %}
+      <div class="card-header">
+        <div class="card-header-content">
+          {% if icon %}
+            <i class="fa-solid {{ icon }} card-header-icon"></i>
+          {% endif %}
+          <div class="card-header-text">
+            {% if title %}
+              <h3 class="card-title">{{ title }}</h3>
+            {% endif %}
+            {% if subtitle %}
+              <p class="card-subtitle">{{ subtitle }}</p>
+            {% endif %}
+          </div>
+        </div>
+        {% if header_action %}
+          <div class="card-header-action">{{ header_action }}</div>
+        {% endif %}
+      </div>
+    {% endif %}
+
+    <div class="card-body">
+      {{ caller() }}
+    </div>
+
+  {% if clickable and action %}
+    </a>
+  {% else %}
+    </div>
+  {% endif %}
+{% endmacro %}
