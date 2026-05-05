@@ -1,5 +1,9 @@
 {% extends 'base_2daE.html' %}
 
+{% from 'components/toolbar.html' import toolbar %}
+{% from 'components/button.html'  import button  %}
+
+
 {% block title %}Pacientes - Sistema Clínico{% endblock %}
 
 {% block head_extra %}
@@ -9,16 +13,11 @@
 
 {% block content %}
 
-<div class="content-header">
-    <div>
-        <h2 class="title">Gestión de pacientes</h2>
-        <p class="subtitle">Total pacientes: {{ total_patients }}</p>
-    </div>
-    <button class="btn-agregar" onclick="openPatientModal()">
-        <i class="fa-solid fa-plus"></i>
-        Agregar paciente
-    </button>
-</div>
+{# ── Encabezado ── #}
+{% call toolbar(title='Gestión de pacientes',
+                subtitle='Total de pacientes registrados: ' ~ total_pacientes) %}
+    {{ button('Agregar paciente', size='lg', icon='fa-plus', onclick='openPatientModal()', class= 'md3-btn md3-btn--filled') }}
+{% endcall %}
 
 <div class="search-bar-container section">
     <i class="fa-solid fa-magnifying-glass"></i>

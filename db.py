@@ -177,19 +177,140 @@ def sp_exists(sp_name: str) -> bool:
     return bool(rows)
 
 
-def execute_sql_file(file_path: str):
+def _split_sql_statements(sql: str) -> List[str]:
+    """
+    Divide un bloque SQL en sentencias individuales respetando:
+    - Bloques dollar-quoted de PostgreSQL: $$ ... $$ y $tag$ ... $tag$
+    - Comentarios de línea: -- ...
+    - Comentarios de bloque: /* ... */
+
+    El split por ';' solo ocurre FUERA de bloques quoted/comentarios.
+    """
+    statements: List[str] = []
+    current: List[str] = []
+    i = 0
+    n = len(sql)
+
+    # Patrón para detectar apertura de dollar-quote: $tag$ donde tag es [A-Za-z0-9_]*
+    dollar_quote_re = re.compile(r'\$([A-Za-z0-9_]*)\$')
+
+    in_line_comment  = False
+    in_block_comment = False
+    dollar_tag: Optional[str] = None   # None = no estamos en bloque $$
+
+    while i < n:
+        ch = sql[i]
+
+        # ── Dentro de comentario de línea ──────────────────────────────────
+        if in_line_comment:
+            current.append(ch)
+            if ch == '\n':
+                in_line_comment = False
+            i += 1
+            continue
+
+        # ── Dentro de comentario de bloque ─────────────────────────────────
+        if in_block_comment:
+            current.append(ch)
+            if ch == '*' and i + 1 < n and sql[i + 1] == '/':
+                current.append('/')
+                i += 2
+                in_block_comment = False
+            else:
+                i += 1
+            continue
+
+        # ── Dentro de bloque dollar-quoted ─────────────────────────────────
+        if dollar_tag is not None:
+            current.append(ch)
+            closing = f'${dollar_tag}$'
+            if sql[i:i + len(closing)] == closing:
+                # Añadir el resto del tag de cierre
+                for extra in closing[1:]:
+                    current.append(extra)
+                i += len(closing)
+                dollar_tag = None
+            else:
+                i += 1
+            continue
+
+        # ── Fuera de cualquier bloque especial ─────────────────────────────
+
+        # Detectar inicio de comentario de línea
+        if ch == '-' and i + 1 < n and sql[i + 1] == '-':
+            in_line_comment = True
+            current.append(ch)
+            i += 1
+            continue
+
+        # Detectar inicio de comentario de bloque
+        if ch == '/' and i + 1 < n and sql[i + 1] == '*':
+            in_block_comment = True
+            current.append(ch)
+            i += 1
+            continue
+
+        # Detectar apertura de dollar-quote
+        m = dollar_quote_re.match(sql, i)
+        if m:
+            dollar_tag = m.group(1)   # puede ser '' para $$
+            current.append(m.group(0))
+            i += len(m.group(0))
+            continue
+
+        # Separador de sentencias
+        if ch == ';':
+            stmt = ''.join(current).strip()
+            if stmt:
+                statements.append(stmt)
+            current = []
+            i += 1
+            continue
+
+        current.append(ch)
+        i += 1
+
+    # Última sentencia sin ';' final
+    stmt = ''.join(current).strip()
+    if stmt:
+        statements.append(stmt)
+
+    return statements
+
+
+def execute_sql_file(file_path: str) -> None:
+    """
+    Lee un archivo .sql y ejecuta cada sentencia por separado.
+    Respeta bloques dollar-quoted ($$) de PostgreSQL, por lo que
+    los stored procedures y funciones se ejecutan correctamente.
+    """
     conn = None
     try:
-        with open(file_path, "r", encoding="utf-8") as file:
-            sql_content = file.read()
+        with open(file_path, "r", encoding="utf-8") as fh:
+            sql_content = fh.read()
+
+        statements = _split_sql_statements(sql_content)
+
         conn = get_connection()
         with conn.cursor() as cursor:
-            for statement in sql_content.split(";"):
-                stmt = statement.strip()
-                if stmt:
+            for stmt in statements:
+                # Saltar sentencias vacías o solo comentarios
+                bare = re.sub(r'--[^\n]*', '', stmt)       # quitar comentarios línea
+                bare = re.sub(r'/\*.*?\*/', '', bare, flags=re.DOTALL)  # quitar bloque
+                if not bare.strip():
+                    continue
+                try:
                     cursor.execute(stmt)
+                except Exception as exc:
+                    logger.warning(
+                        "Sentencia omitida por error: %s\nSQL: %.200s",
+                        exc,
+                        stmt,
+                    )
+
         conn.commit()
-        logger.info("SQL ejecutado: %s", file_path)
+        logger.info("SQL ejecutado: %s (%d sentencias)", file_path, len(statements))
+
     except Exception as exc:
         if conn:
             conn.rollback()

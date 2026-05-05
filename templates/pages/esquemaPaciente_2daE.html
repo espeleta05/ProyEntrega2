@@ -1,5 +1,12 @@
 {% extends 'base_2daE.html' %}
 
+{# ── Macros ── #}
+{% from 'components/toolbar.html'  import toolbar  %}
+{% from 'components/table.html'    import table    %}
+{% from 'components/kpi_card.html' import kpi_card %}
+{% from 'components/badge.html'    import badge    %}
+{% from 'components/card.html'     import card     %}
+
 {% block title %}Esquema de Vacunación - {{ patient_name }}{% endblock %}
 
 {% block head_extra %}
@@ -12,85 +19,53 @@
 
 {% block content %}
 
-<!-- -- Back + title -- -->
-<div class="scheme-header">
-    <a href="{{ url_for('historial') }}" class="back"><i class="fa-solid fa-arrow-left"></i> Regresar</a>
-    <h2 class="title">Esquema de vacunación</h2>
-    <p class="subtitle">
-        {{ patient.full_name }} &nbsp;·&nbsp; ID: P{{ patient.patient_id }}
-        &nbsp;·&nbsp; {{ patient.age if patient.age is defined else '' }} años
-    </p>
+{# Cálculos de progreso adelantados — los usan KPIs, barra y toolbar subtitle #}
+{% set total_applied = applications | length %}
+{% set total_pending = next_vaccines | length %}
+{% set total_doses   = total_applied + total_pending %}
+{% set pct = ((total_applied / total_doses * 100) | int) if total_doses > 0 else 0 %}
+
+{# ── Encabezado con botón "Regresar" ── #}
+{{ toolbar(
+    title='Esquema de vacunación',
+    subtitle=patient.full_name ~ '  ·  ID: P' ~ patient.patient_id
+             ~ '  ·  ' ~ (patient.age if patient.age is defined else '') ~ ' años',
+    back_href=url_for('historial')
+) }}
+
+{# ── Tabla de aplicaciones ── #}
+{% set _row = namespace(i=0) %}
+{% call(app) table(
+    headers=[
+        {'label': 'Vacuna'},
+        {'label': 'Dosis'},
+        {'label': 'Fecha aplicada'},
+        {'label': 'Aplicada por'},
+        {'label': 'Estado'}
+    ],
+    rows=applications,
+    empty_icon='fa-syringe',
+    empty_title='Sin registros de vacunación aún.'
+) %}
+    <tr class="{{ 'row-even' if _row.i % 2 == 1 else 'row-odd' }} bar-{{ _row.i % 9 }}">
+        <td class="name-td"><strong>{{ app.name }}</strong></td>
+        <td>{{ badge(app.dose, color='primary', size='sm') }}</td>
+        <td class="muted-td">{{ app.date }}</td>
+        <td class="muted-td">{{ app.doctor }}</td>
+        <td>{{ badge('Aplicada', color='success', icon='fa-check', size='sm') }}</td>
+    </tr>
+    {% set _row.i = _row.i + 1 %}
+{% endcall %}
+
+{# ── KPI cards ── #}
+<div class="kpi-grid">
+    {{ kpi_card(value=total_applied, label='Dosis aplicadas',   icon='fa-syringe',       color='primary') }}
+    {{ kpi_card(value=total_pending, label='Dosis pendientes',  icon='fa-clock',         color='secondary') }}
+    {{ kpi_card(value=total_doses,   label='Total programadas', icon='fa-calendar-days', color='primary') }}
+    {{ kpi_card(value=pct ~ '%',     label='Progreso',          icon='fa-chart-simple',  color='secondary') }}
 </div>
 
-<section class="patients">
-    <div class="tbl-wrapper">
-      <table class="tbl">
-        <thead>
-          <tr>
-            <th>Vacuna</th>
-            <th>Dosis</th>
-            <th>Fecha aplicada</th>
-            <th>Aplicada por</th>
-            <th>Estado</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for app in applications %}
-          <tr class="{{ 'row-even' if loop.index is even else 'row-odd' }} bar-{{ loop.index0 % 9 }}">
-            <td class="name-td"><strong>{{ app.name }}</strong></td>
-            <td><span class="dose-pill">{{ app.dose }}</span></td>
-            <td class="muted-td">{{ app.date }}</td>
-            <td class="muted-td">{{ app.doctor }}</td>
-            <td><span class="status-ok"><i class="fa-solid fa-check"></i> Aplicada</span></td>
-          </tr>
-          {% else %}
-          <tr>
-            <td colspan="5" class="empty-state">Sin registros de vacunación aún.</td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
-  </section>
- 
-<!-- -- Summary cards -- -->
-{% set total_applied  = applications | length %}
-{% set total_pending  = next_vaccines | length %}
-{% set total_doses    = total_applied + total_pending %}
-{% set pct = ((total_applied / total_doses * 100) | int) if total_doses > 0 else 0 %}
- 
-<div class="kpi-grid">
-    <div class="kpi-card kpi-color1">
-        <i class="fa-solid fa-syringe"></i>
-        <div class="kpi-body">
-            <p class="kpi-value">{{ total_applied }}</p>
-            <p class="kpi-label">Dosis aplicadas</p>
-        </div>
-    </div>
-    <div class="kpi-card kpi-color2">
-        <i class="fa-regular fa-clock"></i>
-        <div class="kpi-body">
-            <p class="kpi-value">{{ total_pending }}</p>
-            <p class="kpi-label">Dosis pendientes</p>
-        </div>
-    </div>
-    <div class="kpi-card kpi-color1">
-        <i class="fa-solid fa-calendar-days"></i>
-        <div class="kpi-body">
-            <p class="kpi-value">{{ total_doses }}</p>
-            <p class="kpi-label">Total programadas</p>
-        </div>
-    </div>
-    <div class="kpi-card kpi-color2">
-        <i class="fa-solid fa-chart-simple"></i>
-        <div class="kpi-body">
-            <p class="kpi-value">{{ pct }}%</p>
-            <p class="kpi-label">Progreso</p>
-        </div>
-    </div>
-</div>
- 
-<!-- -- Progress bar -- -->
+{# ── Barra de progreso (sin macro disponible) ── #}
 <div class="progress-card">
     <div class="progress-header">
         <p>{{ patient.full_name }} — ID: P{{ patient.patient_id }}</p>
@@ -106,19 +81,11 @@
         <div class="stat blue">Total: {{ total_doses }}</div>
     </div>
 </div>
- 
-<!-- -- Bottom cards -- -->
+
+{# ── Sección inferior: próximas dosis + vacunas pendientes ── #}
 <div class="second-section">
- 
-    <!-- Próximas dosis -->
-    <section class="section-card">
-        <div class="section-header">
-            <h2>Próximas dosis programadas</h2>
-            <div class="card-detail">
-                <i class="fa-regular fa-calendar-check"></i>
-            </div>
-        </div>
- 
+
+    {% call card(title='Próximas dosis programadas', icon='fa-calendar-check') %}
         {% for nv in next_vaccines %}
         <div class="next-card">
             <div>
@@ -130,17 +97,9 @@
         {% else %}
         <p class="empty-state">Sin próximas dosis programadas.</p>
         {% endfor %}
-    </section>
- 
-    <!-- Vacunas pendientes -->
-    <section class="section-card">
-        <div class="section-header">
-            <h2>Vacunas pendientes</h2>
-            <div class="card-detail">
-                <i class="fa-solid fa-triangle-exclamation"></i>
-            </div>
-        </div>
- 
+    {% endcall %}
+
+    {% call card(title='Vacunas pendientes', icon='fa-triangle-exclamation') %}
         {% for app in applications if app.next_date %}
         <div class="pending-card">
             <div>
@@ -152,8 +111,8 @@
         {% else %}
         <p class="empty-state">Sin vacunas pendientes.</p>
         {% endfor %}
-    </section>
- 
+    {% endcall %}
+
 </div>
- 
+
 {% endblock %}

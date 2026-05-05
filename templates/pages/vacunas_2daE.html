@@ -1,5 +1,11 @@
 {% extends 'base_2daE.html' %}
 
+{# ── Macros ── #}
+{% from 'components/toolbar.html' import toolbar %}
+{% from 'components/table.html'   import table   %}
+{% from 'components/button.html'  import button  %}
+{% from 'components/badge.html'   import badge   %}
+
 {% block title %}Vacunas - Sistema Clínico{% endblock %}
 
 {% block head_extra %}
@@ -9,23 +15,19 @@
 
 {% block content %}
 
-<div class="content-header">
-    <h2 class="title">Inventario de vacunas</h2>
-    <button class="btn-agregar" onclick="openVaccineModal()">
-        <i class="fa-solid fa-plus"></i>
-        Agregar vacuna
-    </button>
-</div>
+{# ── Encabezado ── #}
+{% call toolbar(title='Inventario de vacunas',
+                subtitle='Total de vacunas registradas: ' ~ total_vaccines) %}
+    {{ button('Agregar vacuna', size='lg', icon='fa-plus', onclick='openVaccineModal()', class= 'md3-btn md3-btn--filled') }}
+{% endcall %}
 
-<div class="subtitle">
-    Total de vacunas registradas: {{ total_vaccines }}
-</div>
-
+{# ── Búsqueda — IDs requeridos por vacunas.js ── #}
 <div class="search-bar-container section">
     <i class="fa-solid fa-magnifying-glass"></i>
     <input type="text" id="searchInput" placeholder="Buscar vacuna por nombre...">
 </div>
 
+{# ── Filtros — IDs requeridos por vacunas.js ── #}
 <div class="sort-and-filter">
     <div class="sort-options">
         <p class="sort-label">Filtrar por nombre:</p>
@@ -36,7 +38,7 @@
             {% endfor %}
         </select>
     </div>
-    
+
     <div class="sort-options">
         <p class="sort-label">Ordenar por:</p>
         <select id="sortSelect" class="sort-select">
@@ -49,74 +51,71 @@
     </div>
 </div>
 
+{# ── Acceso al esquema ── #}
 <div class="btn-container">
-    <a href="{{ url_for('esquema_vacunacion') }}" class="btn-esquema">
-        <i class="fa-solid fa-clipboard-list"></i>
-        Ver esquema de vacunación
-    </a>
+    {{ button('Ver esquema de vacunación', icon='fa-clipboard-list', type='secondary', size='md3-btn--lg',
+              form_action=url_for('esquema_vacunacion'), class='md3-btn md3-btn--filled') }}
 </div>
 
-<!-- TABLA DE INVENTARIO -->
-<div class="inv-table-wrapper" id="vaccinesContainer">
-    <table class="inv-table">
-        <thead>
-            <tr>
-                <th>Tipo de vacuna</th>
-                <th>Lote</th>
-                <th>Fecha vencimiento</th>
-                <th class="num">Saldo inicial</th>
-                <th class="num">Dosis recibidas</th>
-                <th class="num">Dosis aplicadas</th>
-                <th class="num">Saldo final (Stock)</th>
-            </tr>
-        </thead>
-        <tbody id="tableBody">
-            {# Construimos una fila por cada lote, cruzando con la vacuna correspondiente #}
-            {% set ns = namespace(color_index=0, last_vaccine_id=None) %}
-            {% for lot in lots %}
-                {# Buscar la vacuna de este lote #}
-                {% set vaccine = vaccines | selectattr('vaccine_id', 'equalto', lot.vaccine_id) | first %}
-                {% if vaccine %}
-                    {% if lot.vaccine_id != ns.last_vaccine_id %}
-                        {% set ns.color_index = ns.color_index + 1 %}
-                        {% set ns.last_vaccine_id = lot.vaccine_id %}
-                    {% endif %}
-                    {% set dosis_aplicadas = lot.quantity_received - lot.quantity_available %}
-                    <tr class="inv-row bar-{{ ns.color_index % 12 }}"
-                        data-name="{{ vaccine.name | lower }}"
-                        data-lot="{{ lot.lot_number | lower }}">
-                        <td class="name-td">
-                            <span class="vax-name">{{ vaccine.name }}</span>
-                        </td>
-                        <td class="lot-td">{{ lot.lot_number }}</td>
-                        <td class="date-td">
-                            {% set exp = lot.expiration_date | string %}
-                            {% if lot.expiration_date %}
-                                <span class="exp-badge {{ 'exp-ok' if exp > today else 'exp-warn' }}">
-                                    {{ lot.expiration_date }}
-                                </span>
-                            {% else %}
-                                —
-                            {% endif %}
-                        </td>
-                        <td class="num">{{ lot.quantity_received }}</td>
-                        <td class="num">{{ lot.quantity_received }}</td>
-                        <td class="num">{{ dosis_aplicadas }}</td>
-                        <td class="num stock-td">
-                            <span class="stock-pill {{ 'stock-low' if lot.quantity_available <= 10 else 'stock-ok' }}">
-                                {{ lot.quantity_available }}
-                            </span>
-                        </td>
-                    </tr>
+{# ── Tabla de inventario ── #}
+{% set ns = namespace(color_index=0, last_vaccine_id=None) %}
+{% call(lot) table(
+    headers=[
+        {'label': 'Tipo de vacuna'},
+        {'label': 'Lote'},
+        {'label': 'Fecha vencimiento'},
+        {'label': 'Saldo inicial',       'align': 'right'},
+        {'label': 'Dosis recibidas',     'align': 'right'},
+        {'label': 'Dosis aplicadas',     'align': 'right'},
+        {'label': 'Saldo final (Stock)', 'align': 'right'}
+    ],
+    rows=lots,
+    empty_icon='fa-syringe',
+    empty_title='No hay lotes de vacunas registrados.',
+    class='vaccines-table'
+) %}
+    {% set vaccine = vaccines | selectattr('vaccine_id', 'equalto', lot.vaccine_id) | first %}
+    {% if vaccine %}
+        {% if lot.vaccine_id != ns.last_vaccine_id %}
+            {% set ns.color_index     = ns.color_index + 1 %}
+            {% set ns.last_vaccine_id = lot.vaccine_id %}
+        {% endif %}
+        {% set dosis_aplicadas = lot.quantity_received - lot.quantity_available %}
+        <tr class="inv-row bar-{{ ns.color_index % 12 }}"
+            data-name="{{ vaccine.name | lower }}"
+            data-lot="{{ lot.lot_number | lower }}">
+            <td class="name-td">
+                <span class="vax-name">{{ vaccine.name }}</span>
+            </td>
+            <td class="lot-td">{{ lot.lot_number }}</td>
+            <td class="date-td">
+                {% set exp = lot.expiration_date | string %}
+                {% if lot.expiration_date %}
+                    {{ badge(lot.expiration_date | string,
+                             color='success' if exp > today else 'error',
+                             size='sm') }}
+                {% else %}
+                    —
                 {% endif %}
-            {% else %}
-                <tr>
-                    <td colspan="7" class="empty-state">No hay lotes de vacunas registrados.</td>
-                </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-</div>
+            </td>
+            <td class="col-right">{{ lot.quantity_received }}</td>
+            <td class="col-right">{{ lot.quantity_received }}</td>
+            <td class="col-right">{{ dosis_aplicadas }}</td>
+            <td class="col-right stock-td">
+                {{ badge(lot.quantity_available | string,
+                         color='error' if lot.quantity_available <= 10 else 'success',
+                         size='sm') }}
+            </td>
+        </tr>
+    {% endif %}
+{% endcall %}
+
+{# vacunas.js depende de id="tableBody" en el <tbody>.
+   El macro table no expone ese parámetro, así que lo inyectamos aquí. #}
+<script>
+  document.querySelector('.vaccines-table .md3-table tbody')
+          ?.setAttribute('id', 'tableBody');
+</script>
 
 {% include 'nuevaVacuna_2daE.html' %}
 

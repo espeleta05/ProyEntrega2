@@ -34,10 +34,11 @@ def handle_database_operational_error(error):
 
 
 # =============================================================================
-# HELPERS — capa de acceso DB
+# HELPERS — conexión y utilidades básicas (sin lógica de negocio)
 # =============================================================================
 
 TABLE_ALIASES = {}
+
 def _db_connect():
     return get_db_connection()
 
@@ -85,13 +86,11 @@ def _safe_table_name(table):
     return TABLE_ALIASES.get(table, table)
 
 def _cur_fetchall(table):
-    """Devuelve todas las filas de una tabla."""
-    physical = _safe_table_name(table)
-    cache = _get_req_cache()
+    physical  = _safe_table_name(table)
+    cache     = _get_req_cache()
     cache_key = ("all", physical)
     if cache is not None and cache_key in cache:
         return cache[cache_key]
-
     conn, should_close = _get_conn()
     try:
         with conn.cursor() as cur:
@@ -108,13 +107,11 @@ def _cur_fetchall(table):
             conn.close()
 
 def _cur_fetchone(table, pk_field, pk_value):
-    """Devuelve una fila por clave primaria."""
-    physical = _safe_table_name(table)
-    cache = _get_req_cache()
+    physical  = _safe_table_name(table)
+    cache     = _get_req_cache()
     cache_key = ("one", physical, pk_field, pk_value)
     if cache is not None and cache_key in cache:
         return cache[cache_key]
-
     conn, should_close = _get_conn()
     try:
         with conn.cursor() as cur:
@@ -134,13 +131,11 @@ def _cur_fetchone(table, pk_field, pk_value):
             conn.close()
 
 def _cur_fetchall_where(table, field, value):
-    """Devuelve filas filtradas por un campo."""
-    physical = _safe_table_name(table)
-    cache = _get_req_cache()
+    physical  = _safe_table_name(table)
+    cache     = _get_req_cache()
     cache_key = ("where", physical, field, value)
     if cache is not None and cache_key in cache:
         return cache[cache_key]
-
     conn, should_close = _get_conn()
     try:
         with conn.cursor() as cur:
@@ -160,67 +155,8 @@ def _cur_fetchall_where(table, field, value):
             conn.close()
 
 
-def _sp_fetchall(function_name, params=None):
-    """Llama a un SP/función y devuelve todas las filas."""
-    conn, should_close = _get_conn()
-    try:
-        with conn.cursor() as cur:
-            placeholders = ", ".join(["%s"] * len(params or []))
-            if app.config["DB_ENGINE"] == "postgres":
-                query = f"SELECT * FROM {quote_identifier(function_name)}({placeholders})"
-            else:
-                query = f"CALL {quote_identifier(function_name)}({placeholders})"
-            cur.execute(query, tuple(params or []))
-            rows = cur.fetchall()
-            conn.commit()
-            return rows
-    except Exception:
-        _safe_rollback(conn)
-        raise
-    finally:
-        if should_close and not _conn_is_closed(conn):
-            conn.close()
-
-
-def _sp_try_fetchall(function_name, params=None, fallback=None):
-    """Llama a un SP y devuelve todas las filas; retorna fallback si falla."""
-    try:
-        return _sp_fetchall(function_name, params=params)
-    except Exception:
-        return fallback if fallback is not None else []
-
-
-def _sp_fetchone(function_name, params=None):
-    """Llama a un SP/función y devuelve la primera fila."""
-    conn, should_close = _get_conn()
-    try:
-        with conn.cursor() as cur:
-            placeholders = ", ".join(["%s"] * len(params or []))
-            if app.config["DB_ENGINE"] == "postgres":
-                query = f"SELECT * FROM {quote_identifier(function_name)}({placeholders})"
-            else:
-                query = f"CALL {quote_identifier(function_name)}({placeholders})"
-            cur.execute(query, tuple(params or []))
-            row = cur.fetchone()
-            conn.commit()
-            return row
-    except Exception:
-        _safe_rollback(conn)
-        raise
-    finally:
-        if should_close and not _conn_is_closed(conn):
-            conn.close()
-
-def _sp_try_fetchone(function_name, params=None, fallback=None):
-    """Llama a un SP y devuelve la primera fila; retorna fallback si falla."""
-    try:
-        return _sp_fetchone(function_name, params=params)
-    except Exception:
-        return fallback
-
-
 # =============================================================================
-# HELPERS — sesión, formateo, nombres
+# HELPERS — sesión y formato (sin lógica de DB)
 # =============================================================================
 
 def _require_login():
@@ -229,10 +165,9 @@ def _require_login():
         return redirect(url_for("login"))
     return None
 
-
 def _session_vars():
-    first = session.get("user_name", "")
-    last  = session.get("user_lastname", "")
+    first    = session.get("user_name", "")
+    last     = session.get("user_lastname", "")
     initials = ((first[:1] + last[:1]).upper()) or "AD"
     return {
         "name":      first,
@@ -241,24 +176,6 @@ def _session_vars():
         "worker_id": session.get("worker_id"),
         "initials":  initials,
     }
-
-
-def _age_years(birth_date_str):
-    try:
-        b = datetime.strptime(birth_date_str, "%Y-%m-%d").date()
-    except (ValueError, TypeError):
-        return 0
-    today = date.today()
-    years = today.year - b.year
-    if (today.month, today.day) < (b.month, b.day):
-        years -= 1
-    return max(years, 0)
-
-
-def _patient_full_name(patient):
-    parts = [patient.get("first_name", ""), patient.get("last_name", "")]
-    return " ".join(p for p in parts if p).strip()
-
 
 def _temporal_text(value):
     if value is None:
@@ -269,50 +186,16 @@ def _temporal_text(value):
         return value.isoformat()
     return str(value)
 
-
-def _worker_full_name(worker_id):
-    w = _cur_fetchone("workers", "worker_id", worker_id)
-    if not w:
-        return "Personal demo"
-    return f"{w['first_name']} {w['last_name']}".strip()
-
-
-def _worker_email(worker_id):
-    emails = _cur_fetchall_where("worker_emails", "worker_id", worker_id)
-    primary = next((e for e in emails if e.get("is_primary")), None)
-    return (primary or emails[0])["email"] if emails else "—"
-
-
-def _guardian_primary_phone(guardian_id):
-    phones = _cur_fetchall_where("guardian_phones", "guardian_id", guardian_id)
-    primary = next((p for p in phones if p.get("is_primary")), None)
-    return (primary or phones[0])["phone"] if phones else "—"
-
-
-def _patient_primary_guardian(patient_id):
-    rels = _cur_fetchall_where("patient_guardian_relations", "patient_id", patient_id)
-    primary_rel = next((r for r in rels if r.get("is_primary")), None)
-    if not primary_rel and rels:
-        primary_rel = rels[0]
-    return primary_rel["guardian_id"] if primary_rel else None
-
-
-def _guardian_full_name(guardian_id):
-    g = _cur_fetchone("guardians", "guardian_id", guardian_id)
-    if not g:
-        return "Tutor no registrado"
-    return f"{g['first_name']} {g['last_name']}".strip()
-
-
-def _vaccine_name(vaccine_id):
-    v = _cur_fetchone("vaccines", "vaccine_id", vaccine_id)
-    return v["name"] if v else "Vacuna desconocida"
-
-
-def _blood_type_str(blood_type_id):
-    bt = _cur_fetchone("blood_types", "blood_type_id", blood_type_id)
-    return bt["blood_type"] if bt else "—"
-
+def _age_years(birth_date_str):
+    try:
+        b = datetime.strptime(str(birth_date_str), "%Y-%m-%d").date()
+    except (ValueError, TypeError):
+        return 0
+    today = date.today()
+    years = today.year - b.year
+    if (today.month, today.day) < (b.month, b.day):
+        years -= 1
+    return max(years, 0)
 
 def _distance_meters(lat1, lon1, lat2, lon2):
     r = 6371000.0
@@ -324,245 +207,20 @@ def _distance_meters(lat1, lon1, lat2, lon2):
 
 
 # =============================================================================
-# HELPERS — enriquecimiento de entidades
+# AUTENTICACIÓN (sin SP — bcrypt en Python)
 # =============================================================================
-
-def _enrich_patient(p):
-    item = dict(p)
-    item["full_name"]  = _patient_full_name(p)
-    item["age"]        = _age_years(p["birth_date"])
-    item["blood_type"] = _blood_type_str(p.get("blood_type_id"))
-
-    g_id = _patient_primary_guardian(p["patient_id"])
-    item["guardian"] = _guardian_full_name(g_id) if g_id else "Sin tutor"
-    item["contact"]  = _guardian_primary_phone(g_id) if g_id else "—"
-
-    pa_rows = _cur_fetchall_where("patient_allergies", "patient_id", p["patient_id"])
-    allergy_names = []
-    for pa in pa_rows:
-        allergy = _cur_fetchone("allergies", "allergy_id", pa["allergy_id"])
-        if allergy:
-            allergy_names.append(allergy["name"])
-    item["allergies"] = ", ".join(allergy_names) or "Ninguna"
-    item["risk"] = "N/A"
-    return item
-
-
-def _enrich_record(r):
-    item = dict(r)
-    patient = _cur_fetchone("patients", "patient_id", r["patient_id"])
-    item["patient_name"] = _patient_full_name(patient) if patient else "—"
-    item["name"]         = _vaccine_name(r["vaccine_id"])
-    item["doctor"]       = _worker_full_name(r["worker_id"])
-    item["date"]         = r["applied_date"]
-    item["id"]           = r["record_id"]
-
-    dose = _cur_fetchone("scheme_doses", "dose_id", r.get("scheme_dose_id"))
-    item["dose"]      = dose["dose_label"] if dose else "—"
-    item["next_date"] = None
-
-    site = _cur_fetchone("application_sites", "application_site_id", r.get("application_site_id"))
-    item["application_site"] = site["application_site"] if site else "—"
-    item["had_reaction"]     = r.get("had_reaction", False)
-    item["patient_temp_c"]   = r.get("patient_temp_c")
-    item["notes"]            = "Con reacción" if r.get("had_reaction") else "Sin reacciones"
-    return item
-
-
-def _enrich_appointment(ap):
-    item    = dict(ap)
-    patient = _cur_fetchone("patients",    "patient_id", ap["patient_id"])
-    worker  = _cur_fetchone("workers",     "worker_id",  ap["worker_id"])
-    clinic  = _cur_fetchone("clinics",     "clinic_id",  ap["clinic_id"])
-    area    = _cur_fetchone("clinic_areas","area_id",    ap["area_id"]) if ap.get("area_id") else None
-
-    item["patient_name"] = _patient_full_name(patient) if patient else "—"
-    item["worker_name"]  = f"{worker['first_name']} {worker['last_name']}" if worker else "—"
-    item["clinic_name"]  = clinic["name"] if clinic else "—"
-    item["area_name"]    = area["name"]   if area   else "—"
-    item["vaccine_name"] = ap.get("reason") or "—"
-    item["status"]       = ap.get("appointment_status", "—")
-    item["notes"]        = ap.get("appointment_notes", "")
-    return item
-
-
-def _enrich_inventory_item(inv):
-    item   = dict(inv)
-    supply = _cur_fetchone("supply_catalog", "supply_id", inv["supply_id"])
-    clinic = _cur_fetchone("clinics",        "clinic_id", inv["clinic_id"])
-
-    item["supply_name"]     = supply["name"]     if supply else "—"
-    item["supply_unit"]     = supply["unit"]     if supply else "—"
-    item["supply_category"] = supply["category"] if supply else "—"
-    item["clinic_name"]     = clinic["name"]     if clinic else "—"
-    item["low_stock"]       = inv["quantity"] < inv["min_stock"]
-    return item
-
-
-def _enrich_nfc_card(c):
-    item    = dict(c)
-    patient = _cur_fetchone("patients", "patient_id", c["patient_id"])
-    item["patient_name"]    = _patient_full_name(patient) if patient else "—"
-    item["notes"]           = c.get("nfc_card_notes")
-    item["issued_date"]     = _temporal_text(c.get("issued_date"))
-    item["last_scanned_at"] = _temporal_text(c.get("last_scanned_at"))
-    return item
-
-
-def _enrich_nfc_scan(s):
-    item    = dict(s)
-    card    = _cur_fetchone("nfc_cards", "nfc_card_id", s["nfc_card_id"])
-    patient = _cur_fetchone("patients",  "patient_id",  card["patient_id"]) if card else None
-    item["worker_name"]  = _worker_full_name(s["scanned_by"]) if s.get("scanned_by") else "—"
-    item["patient_name"] = _patient_full_name(patient) if patient else "—"
-    item["result"]       = s.get("nfc_scan_result")
-    item["scanned_at"]   = _temporal_text(s.get("scanned_at"))
-    return item
-
-
-def _enrich_area(a):
-    item  = dict(a)
-    atype = _cur_fetchone("area_types", "area_type_id", a["area_type_id"])
-    item["area_type"] = atype["area_type"] if atype else "—"
-    return item
-
-
-def _enrich_clinic(c):
-    item    = dict(c)
-    address = _cur_fetchone("addresses", "address_id", c["address_id"])
-    if address:
-        nbhd = _cur_fetchone("neighborhoods", "neighborhood_id", address["neighborhood_id"])
-        item["address_str"] = f"{address['street']} {address['ext_number'] or ''}, {nbhd['name'] if nbhd else ''}".strip(", ")
-    else:
-        item["address_str"] = "—"
-
-    areas_raw = _cur_fetchall_where("clinic_areas", "clinic_id", c["clinic_id"])
-    item["areas"] = [_enrich_area(a) for a in areas_raw]
-    return item
-
-
-# =============================================================================
-# HELPERS — datos compuestos desde SPs
-# =============================================================================
-
-def _patients_from_sp():
-    raw = _sp_try_fetchall("sp_get_patients_full")
-    out = []
-    for row in raw:
-        item = dict(row)
-        item["full_name"]  = item.get("full_name")  or _patient_full_name(item)
-        item["guardian"]   = item.get("guardian")   or item.get("guardian_name") or "Sin tutor"
-        item["contact"]    = item.get("contact")    or item.get("guardian_phone") or "—"
-        item["blood_type"] = item.get("blood_type") or "—"
-        item["allergies"]  = item.get("allergies")  or "Ninguna"
-        item["risk"]       = item.get("risk")        or "N/A"
-        out.append(item)
-    return out
-
-
-def _applications_from_sp():
-    raw = _sp_try_fetchall("sp_get_vaccination_records_full")
-    return [
-        {
-            "id":               row.get("record_id"),
-            "name":             row.get("vaccine_name"),
-            "vaccine_id":       row.get("vaccine_id"),
-            "patient_name":     row.get("patient_name"),
-            "doctor":           row.get("worker_name"),
-            "dose":             row.get("dose_label") or "—",
-            "date":             _temporal_text(row.get("applied_date")),
-            "next_date":        None,
-            "application_site": row.get("application_site") or "—",
-            "had_reaction":     row.get("had_reaction", False),
-            "patient_temp_c":   row.get("patient_temp_c"),
-            "notes":            "Con reacción" if row.get("had_reaction") else "Sin reacciones",
-        }
-        for row in raw
-    ]
-
-
-def _inventory_from_sp():
-    raw = _sp_try_fetchall("sp_get_inventory_status")
-    if raw:
-        return raw
-    return [_enrich_inventory_item(i) for i in _cur_fetchall("clinic_inventory")]
-
-
-def _appointments_from_sp():
-    raw = _sp_try_fetchall("sp_get_appointments_full")
-    out = []
-    for row in raw:
-        item = dict(row)
-        item["status"]       = row.get("appointment_status") or "—"
-        item["vaccine_name"] = row.get("reason") or "—"
-        item["scheduled_at"] = _temporal_text(row.get("scheduled_at"))
-        out.append(item)
-    return out
-
-
-def _patient_records_full(patient_id):
-    rows = _sp_try_fetchall("sp_get_vaccination_records_full")
-    return [
-        {**dict(r), "date": _temporal_text(r.get("applied_date"))}
-        for r in rows
-        if r.get("patient_id") == patient_id
-    ]
-
-
-def _build_next_vaccines(patient_id):
-    sp_rows = _sp_try_fetchall("sp_get_pending_scheme_doses", params=[patient_id])
-    if sp_rows:
-        return [
-            {
-                "name": row.get("vaccine_name") or "—",
-                "dose": row.get("dose_label") or "—",
-                "date": f"A los {row['ideal_age_months']} meses" if row.get("ideal_age_months") is not None else "—",
-            }
-            for row in sp_rows[:3]
-        ]
-
-    applied_dose_ids = {
-        r["scheme_dose_id"]
-        for r in _cur_fetchall_where("vaccination_records", "patient_id", patient_id)
-        if r.get("scheme_dose_id")
-    }
-    pending = []
-    for dose in _cur_fetchall("scheme_doses"):
-        if dose["dose_id"] not in applied_dose_ids:
-            vaccine = _cur_fetchone("vaccines", "vaccine_id", dose["vaccine_id"])
-            pending.append({
-                "name": vaccine["name"] if vaccine else "—",
-                "dose": dose["dose_label"],
-                "date": f"A los {dose['ideal_age_months']} meses" if dose.get("ideal_age_months") is not None else "—",
-            })
-    return pending[:3]
-
 
 def _authenticate_user(login_value, password):
-    """
-    Autenticación 100% en backend (sin SP, sin lógica en DB)
-    - login_value: username o email
-    - password: texto plano
-    """
     login_value = (login_value or "").strip()
-    password = password or ""
-
+    password    = password or ""
     if not login_value or not password:
         return None
-
     try:
         conn = get_db_connection()
-        cur = conn.cursor()
-
+        cur  = conn.cursor()
         cur.execute("""
-            SELECT 
-                u.user_id,
-                u.password_hash,
-                u.is_active,
-                w.worker_id,
-                w.first_name,
-                w.last_name,
-                r.name
+            SELECT u.user_id, u.password_hash, u.is_active,
+                   w.worker_id, w.first_name, w.last_name, r.name
             FROM users u
             JOIN workers w ON u.worker_id = w.worker_id
             LEFT JOIN roles r ON w.role_id = r.role_id
@@ -570,30 +228,20 @@ def _authenticate_user(login_value, password):
             WHERE u.username = %s OR we.email = %s
             LIMIT 1;
         """, (login_value, login_value))
-
         row = cur.fetchone()
-
-        if not row:
+        if not row or not row["is_active"]:
             return None
-
-        if not row["is_active"]:
-            return None
-
         stored_hash = row["password_hash"]
-
         if not stored_hash or not bcrypt.checkpw(
-            password.encode("utf-8"),
-            stored_hash.encode("utf-8")
+            password.encode("utf-8"), stored_hash.encode("utf-8")
         ):
             return None
-
         return {
             "worker_id": row["worker_id"],
             "name":      (row.get("first_name") or "").strip(),
-            "lastname":  (row.get("last_name") or "").strip(),
+            "lastname":  (row.get("last_name")  or "").strip(),
             "role":      row.get("name") or "Administrador",
         }
-
     except Exception as e:
         logger.warning("Error en autenticación: %s", e)
         return None
@@ -601,8 +249,9 @@ def _authenticate_user(login_value, password):
         try:
             cur.close()
             conn.close()
-        except:
+        except Exception:
             pass
+
 
 # =============================================================================
 # RUTAS — páginas públicas
@@ -632,15 +281,12 @@ def pagina_contacto():
 @app.route("/login", methods=["GET", "POST"])
 def login():
     error = None
-
     if "user_name" in session:
         return redirect(url_for("dashboard"))
-
     if request.method == "POST":
         mail     = (request.form.get("mail") or "").strip()
         password = request.form.get("password") or ""
         user     = _authenticate_user(mail, password)
-
         if user:
             session["user_name"]     = user["name"]
             session["user_lastname"] = user["lastname"]
@@ -648,10 +294,8 @@ def login():
             session["worker_id"]     = user["worker_id"]
             flash(f"Bienvenido, {user['name']}.", "success")
             return redirect(url_for("dashboard"))
-
         error = "Credenciales inválidas."
         flash(error, "danger")
-
     return render_template("pages/login_2daE.html", error=error)
 
 
@@ -674,36 +318,83 @@ def dashboard():
         return locked
 
     try:
-        today_dt       = date.today()
-        metrics        = dict(_sp_try_fetchone("sp_dashboard_metrics") or {})
-        delayed_data   = _sp_try_fetchall("sp_delayed_patients", params=[30])
-        low_stock_data = _sp_try_fetchall("sp_low_stock_items")
+        conn, should_close = _get_conn()
+        old_autocommit = conn.autocommit
+        kpis         = {}
+        top_patients = []
+        chart_rows   = []
+        try:
+            conn.autocommit = False
+            with conn.cursor() as cur:
+
+                # 1. KPIs y alertas
+                cur.execute("CALL sp_dashboard_kpis(%s)", ("cur_kpis",))
+                cur.execute('FETCH ALL FROM "cur_kpis"')
+                kpis = dict(cur.fetchone() or {})
+
+                # 2. Últimos 10 pacientes (reutiliza sp_get_patients con límite)
+                cur.execute("CALL sp_get_patients(%s, %s)", (10, "cur_top_patients"))
+                cur.execute('FETCH ALL FROM "cur_top_patients"')
+                top_patients = [dict(r) for r in cur.fetchall()]
+
+                # 3. Datos para las 3 gráficas
+
+                #cur.execute("CALL sp_dashboard_charts(%s)", ("cur_charts",))
+                #cur.execute('FETCH ALL FROM "cur_charts"')
+                #chart_rows = cur.fetchall()
+
+            conn.commit()
+        except Exception:
+            import traceback
+            logger.error(f"[SP ERROR] dashboard:\n{traceback.format_exc()}")
+            _safe_rollback(conn)
+        finally:
+            conn.autocommit = old_autocommit
+            if should_close and not _conn_is_closed(conn):
+                conn.close()
+
+        # Separar filas de gráficas por tipo
+        coverage_by_age  = [
+            {"label": r["label"], "value": float(r["value"] or 0)}
+            for r in chart_rows if r.get("chart") == "coverage"
+        ]
+        doses_by_month   = [
+            {"label": r["label"], "value": float(r["value"] or 0)}
+            for r in chart_rows if r.get("chart") == "monthly"
+        ]
+        delay_by_vaccine = [
+            {"label": r["label"], "value": float(r["value"] or 0)}
+            for r in chart_rows if r.get("chart") == "delay"
+        ]
 
         context = {
             **_session_vars(),
-            "today":                today_dt.strftime("%d/%m/%Y"),
-            "total_patients":       metrics.get("total_patients", 0),
-            "coverage_pct":         metrics.get("coverage_percentage", 0),
-            "pending_appointments": metrics.get("pending_appointments", 0),
-            "low_stock_count":      len(low_stock_data),
-            "delayed_patients":     len(delayed_data),
-            "pending_alerts":       metrics.get("pending_alerts", 0),
-            "applications_today":   0,
-            "doses_this_week":      0,
-            "doses_this_month":     0,
-            "coverage_trend":       0,
-            "patients_critical":    0,
-            "expired_doses":        0,
-            "new_patients_month":   0,
-            "expiring_lots_week":   0,
-            "top_patients":         [],
-            "coverage_by_age":      [],
-            "doses_by_month":       [],
-            "monthly_trend":        0,
-            "delay_by_vaccine":     [],
+            "today":              date.today().strftime("%d/%m/%Y"),
+            # KPIs
+            "total_patients":     kpis.get("total_patients",     0),
+            "coverage_pct":       kpis.get("coverage_pct",       0),
+            "coverage_trend":     kpis.get("coverage_trend",     0),
+            "delayed_patients":   kpis.get("delayed_patients",   0),
+            "applications_today": kpis.get("applications_today", 0),
+            "doses_this_week":    kpis.get("doses_this_week",    0),
+            "doses_this_month":   kpis.get("doses_this_month",   0),
+            "monthly_trend":      kpis.get("monthly_trend",      0),
+            "expired_doses":      kpis.get("expired_doses",      0),
+            "new_patients_month": kpis.get("new_patients_month", 0),
+            # Alertas
+            "pending_alerts":     kpis.get("pending_alerts",     0),
+            "patients_critical":  kpis.get("patients_critical",  0),
+            "expiring_lots_week": kpis.get("expiring_lots_week", 0),
+            "low_stock_count":    kpis.get("low_stock_count",    0),
+            # Tabla
+            "top_patients":       top_patients,
+            # Gráficas
+            "coverage_by_age":    coverage_by_age,
+            "doses_by_month":     doses_by_month,
+            "delay_by_vaccine":   delay_by_vaccine,
         }
 
-        session["last_visit"] = today_dt.isoformat()
+        session["last_visit"] = date.today().isoformat()
         return render_template("pages/index_2daE.html", **context)
 
     except Exception as e:
@@ -721,27 +412,27 @@ def pacientes():
     locked = _require_login()
     if locked:
         return locked
- 
+
     try:
         conn, should_close = _get_conn()
         old_autocommit = conn.autocommit
         try:
             conn.autocommit = False
             with conn.cursor() as cur:
-                cur.execute("CALL sp_get_patients(%s)", ("p_results",))
-                cur.execute('FETCH ALL FROM "p_results"')
+                cur.execute("CALL sp_get_patients_full(%s, %s)", (None, "cur_patients_full"))
+                cur.execute('FETCH ALL FROM "cur_patients_full"')
                 patients = [dict(r) for r in cur.fetchall()]
             conn.commit()
         except Exception as sp_err:
             import traceback
-            logger.error(f"[SP ERROR] sp_get_patients falló:\n{traceback.format_exc()}")
+            logger.error(f"[SP ERROR] sp_get_patients_full falló:\n{traceback.format_exc()}")
             _safe_rollback(conn)
             patients = []
         finally:
             conn.autocommit = old_autocommit
             if should_close and not _conn_is_closed(conn):
                 conn.close()
- 
+
         return render_template(
             "pages/pacientes_2daE.html",
             **_session_vars(),
@@ -773,21 +464,33 @@ def register_patient():
     gender_map  = {"masculino": "M", "m": "M", "femenino": "F", "f": "F", "otro": "O", "o": "O"}
     gender_code = gender_map.get(gender_raw, "O")
 
-    row = _sp_try_fetchone(
-        "sp_register_patient",
-        params=[
-            first_name,
-            last_name,
-            payload.get("curp"),
-            payload.get("birth_date") or "2021-01-01",
-            gender_code,
-            payload.get("weight_kg"),
-            bool(payload.get("premature", False)),
-            (tutor.get("name") or "Tutor").strip(),
-            (tutor.get("lastname") or "Demo").strip(),
-            tutor.get("number"),
-        ],
-    )
+    conn, should_close = _get_conn()
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                "SELECT * FROM sp_register_patient(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",
+                (
+                    first_name,
+                    last_name,
+                    payload.get("curp"),
+                    payload.get("birth_date") or "2021-01-01",
+                    gender_code,
+                    payload.get("weight_kg"),
+                    bool(payload.get("premature", False)),
+                    (tutor.get("name") or "Tutor").strip(),
+                    (tutor.get("lastname") or "Demo").strip(),
+                    tutor.get("number"),
+                ),
+            )
+            row = cur.fetchone()
+        conn.commit()
+    except Exception as ex:
+        _safe_rollback(conn)
+        return jsonify({"error": f"No se pudo registrar el paciente: {ex}"}), 500
+    finally:
+        if should_close and not _conn_is_closed(conn):
+            conn.close()
+
     if not row:
         return jsonify({"error": "No se pudo registrar el paciente en la base de datos"}), 500
 
@@ -801,19 +504,26 @@ def delete_patient(id):
     if locked:
         return jsonify({"error": "No autenticado"}), 401
 
+    patient = _cur_fetchone("patients", "patient_id", id)
+    if not patient:
+        return jsonify({"error": "Paciente no encontrado"}), 404
+
+    nombre = f"{patient['first_name']} {patient['last_name']}"
+    conn, should_close = _get_conn()
     try:
-        patient = _cur_fetchone("patients", "patient_id", id)
-        if not patient:
-            return jsonify({"error": "Paciente no encontrado"}), 404
-
-        nombre = f"{patient['first_name']} {patient['last_name']}"
-        _sp_fetchone("sp_delete_patient", params=[id])
-
-        flash(f"Paciente {nombre} eliminado.", "warning")
-        return jsonify({"message": "Paciente eliminado"})
+        with conn.cursor() as cur:
+            cur.execute("SELECT * FROM sp_delete_patient(%s)", (id,))
+        conn.commit()
     except Exception as ex:
+        _safe_rollback(conn)
         logger.error(f"Error en /delete_patient/{id}: {ex}")
         return jsonify({"error": f"No se pudo eliminar el paciente: {ex}"}), 400
+    finally:
+        if should_close and not _conn_is_closed(conn):
+            conn.close()
+
+    flash(f"Paciente {nombre} eliminado.", "warning")
+    return jsonify({"message": "Paciente eliminado"})
 
 
 # =============================================================================
@@ -827,12 +537,69 @@ def historial():
         return locked
 
     try:
-        patients    = _patients_from_sp()
-        all_records = _applications_from_sp()
+        conn, should_close = _get_conn()
+        old_autocommit = conn.autocommit
+        try:
+            conn.autocommit = False
+            with conn.cursor() as cur:
+                # Lista de pacientes
+                cur.execute("CALL sp_get_patients_full(%s, %s)", (None, "cur_patients_full"))
+                cur.execute('FETCH ALL FROM "cur_patients_full"')
+                patients = [dict(r) for r in cur.fetchall()]
 
-        patient       = patients[0] if patients else None
-        records       = [r for r in all_records if r.get("patient_id") == patient["patient_id"]] if patient else []
-        next_vaccines = _build_next_vaccines(patient["patient_id"]) if patient else []
+                # Registros de vacunación
+                cur.execute("CALL sp_get_vaccination_records_full(%s)", ("cur_vaccination_records",))
+                cur.execute('FETCH ALL FROM "cur_vaccination_records"')
+                all_records = cur.fetchall()
+
+            conn.commit()
+        except Exception:
+            _safe_rollback(conn)
+            patients    = []
+            all_records = []
+        finally:
+            conn.autocommit = old_autocommit
+            if should_close and not _conn_is_closed(conn):
+                conn.close()
+
+        patient = patients[0] if patients else None
+        records = []
+        next_vaccines = []
+
+        if patient:
+            pid = patient["patient_id"]
+            records = [
+                {**dict(r), "date": _temporal_text(r.get("applied_date"))}
+                for r in all_records
+                if r.get("patient_id") == pid
+            ]
+
+            # Próximas vacunas pendientes
+            conn2, should_close2 = _get_conn()
+            old_ac2 = conn2.autocommit
+            try:
+                conn2.autocommit = False
+                with conn2.cursor() as cur2:
+                    cur2.execute("CALL sp_get_pending_scheme_doses(%s, %s)", (pid, "cur_pending_doses"))
+                    cur2.execute('FETCH ALL FROM "cur_pending_doses"')
+                    pending_rows = cur2.fetchall()
+                conn2.commit()
+                next_vaccines = [
+                    {
+                        "name": r.get("vaccine_name") or "—",
+                        "dose": r.get("dose_label") or "—",
+                        "date": f"A los {r['ideal_age_months']} meses"
+                                if r.get("ideal_age_months") is not None else "—",
+                    }
+                    for r in pending_rows[:3]
+                ]
+            except Exception:
+                _safe_rollback(conn2)
+                next_vaccines = []
+            finally:
+                conn2.autocommit = old_ac2
+                if should_close2 and not _conn_is_closed(conn2):
+                    conn2.close()
 
         return render_template(
             "pages/historial_2daE.html",
@@ -854,21 +621,66 @@ def historial_paciente(id):
     if locked:
         return locked
 
-    patients = _patients_from_sp()
-    patient  = next((p for p in patients if p.get("patient_id") == id), None)
+    conn, should_close = _get_conn()
+    old_autocommit = conn.autocommit
+    try:
+        conn.autocommit = False
+        with conn.cursor() as cur:
+            # Lista de pacientes (sidebar)
+            cur.execute("CALL sp_get_patients_full(%s, %s)", (None, "cur_patients_full"))
+            cur.execute('FETCH ALL FROM "cur_patients_full"')
+            patients = [dict(r) for r in cur.fetchall()]
+
+            # Registros del paciente específico
+            cur.execute("CALL sp_get_vaccination_records_full(%s)", ("cur_vaccination_records",))
+            cur.execute('FETCH ALL FROM "cur_vaccination_records"')
+            all_records = cur.fetchall()
+
+            # Vacunas pendientes
+            cur.execute("CALL sp_get_pending_scheme_doses(%s, %s)", (id, "cur_pending_doses"))
+            cur.execute('FETCH ALL FROM "cur_pending_doses"')
+            pending_rows = cur.fetchall()
+
+        conn.commit()
+    except Exception as e:
+        _safe_rollback(conn)
+        logger.error(f"Error en /historial/{id}: {e}")
+        flash("Error al cargar historial del paciente.", "danger")
+        return redirect(url_for("historial"))
+    finally:
+        conn.autocommit = old_autocommit
+        if should_close and not _conn_is_closed(conn):
+            conn.close()
+
+    patient = next((p for p in patients if p.get("patient_id") == id), None)
     if not patient:
         flash("Paciente no encontrado.", "danger")
         return redirect(url_for("historial"))
 
     session["last_patient_viewed"] = id
 
+    records = [
+        {**dict(r), "date": _temporal_text(r.get("applied_date"))}
+        for r in all_records
+        if r.get("patient_id") == id
+    ]
+    next_vaccines = [
+        {
+            "name": r.get("vaccine_name") or "—",
+            "dose": r.get("dose_label") or "—",
+            "date": f"A los {r['ideal_age_months']} meses"
+                    if r.get("ideal_age_months") is not None else "—",
+        }
+        for r in pending_rows[:3]
+    ]
+
     return render_template(
         "pages/historial_2daE.html",
         **_session_vars(),
         patients=patients,
         patient=patient,
-        applications=_patient_records_full(id),
-        next_vaccines=_build_next_vaccines(id),
+        applications=records,
+        next_vaccines=next_vaccines,
     )
 
 
@@ -882,22 +694,75 @@ def esquema_paciente(id):
     if locked:
         return locked
 
-    patient_raw = _cur_fetchone("patients", "patient_id", id)
-    if not patient_raw:
-        flash("Paciente no encontrado.", "danger")
+    conn, should_close = _get_conn()
+    old_autocommit = conn.autocommit
+    try:
+        conn.autocommit = False
+        with conn.cursor() as cur:
+            cur.execute("CALL sp_get_esquema_paciente(%s, %s)", (id, "cur_esquema_paciente"))
+            cur.execute('FETCH ALL FROM "cur_esquema_paciente"')
+            esquema_rows = [dict(r) for r in cur.fetchall()]
+        conn.commit()
+    except Exception as e:
+        _safe_rollback(conn)
+        logger.error(f"Error en /esquema_paciente/{id}: {e}")
+        flash("Error al cargar el esquema del paciente.", "danger")
+        return redirect(url_for("historial"))
+    finally:
+        conn.autocommit = old_autocommit
+        if should_close and not _conn_is_closed(conn):
+            conn.close()
+
+    if not esquema_rows:
+        flash("Paciente no encontrado o sin esquema.", "danger")
         return redirect(url_for("historial"))
 
-    patient     = _enrich_patient(patient_raw)
-    records_raw = _cur_fetchall_where("vaccination_records", "patient_id", id)
-    records     = [_enrich_record(r) for r in records_raw]
+    # Datos del paciente desde la primera fila (todos tienen los mismos)
+    first = esquema_rows[0]
+    patient = {
+        "patient_id": first.get("patient_id"),
+        "full_name":  first.get("full_name"),
+        "birth_date": first.get("birth_date"),
+        "age":        first.get("age_years"),
+    }
+
+    # Dosis ya aplicadas → tabla principal del template (applications)
+    applications = [
+        {
+            "name":             r.get("name"),
+            "dose":             r.get("dose"),
+            "date":             _temporal_text(r.get("date")),
+            "doctor":           r.get("doctor"),
+            "application_site": r.get("application_site"),
+            "had_reaction":     r.get("had_reaction"),
+            "next_date":        r.get("next_date"),
+            "alerta_retraso":   r.get("alerta_retraso"),
+            "estado":           r.get("estado"),
+        }
+        for r in esquema_rows
+        if r.get("estado") == "Aplicada"
+    ]
+
+    # Dosis pendientes → sección "Próximas dosis" del template (next_vaccines)
+    next_vaccines = [
+        {
+            "name":           r.get("name"),
+            "dose":           r.get("dose"),
+            "date":           r.get("edad_ideal_label"),
+            "alerta_retraso": r.get("alerta_retraso"),
+            "estado":         r.get("estado"),
+        }
+        for r in esquema_rows
+        if r.get("estado") in ("Pendiente", "Pendiente con retraso")
+    ]
 
     return render_template(
         "pages/esquemaPaciente_2daE.html",
         **_session_vars(),
         patient=patient,
-        patient_name=patient["full_name"],
-        applications=records,
-        next_vaccines=_build_next_vaccines(id),
+        patient_name=patient.get("full_name", ""),
+        applications=applications,
+        next_vaccines=next_vaccines,
     )
 
 
@@ -907,15 +772,41 @@ def esquema_vacunacion():
     if locked:
         return locked
 
-    scheme_data = []
-    for dose in _cur_fetchall("scheme_doses"):
-        vaccine = _cur_fetchone("vaccines", "vaccine_id", dose["vaccine_id"])
-        scheme_data.append((dose, vaccine or {}))
+    conn, should_close = _get_conn()
+    old_autocommit = conn.autocommit
+    try:
+        conn.autocommit = False
+        with conn.cursor() as cur:
+            cur.execute("CALL sp_get_esquema_vacunacion(%s)", ("cur_esquema_vacunacion",))
+            cur.execute('FETCH ALL FROM "cur_esquema_vacunacion"')
+            rows = cur.fetchall()
+        conn.commit()
+    except Exception as e:
+        _safe_rollback(conn)
+        logger.error(f"Error en /esquema: {e}")
+        rows = []
+    finally:
+        conn.autocommit = old_autocommit
+        if should_close and not _conn_is_closed(conn):
+            conn.close()
+
+    # Mantener estructura (dose, vaccine) que espera el template
+    esquema = [
+        (
+            row,
+            {
+                "name":              row.get("vaccine_name", "—"),
+                "commercial_name":   row.get("commercial_name", "—"),
+                "disease_prevented": row.get("disease_prevented", "—"),
+            },
+        )
+        for row in rows
+    ]
 
     return render_template(
         "pages/esquemaVacunacion_2daE.html",
         **_session_vars(),
-        esquema=scheme_data,
+        esquema=esquema,
     )
 
 
@@ -929,19 +820,25 @@ def vacunas_page():
     if locked:
         return locked
 
-    vaccines = _cur_fetchall("vaccines")
-    lots     = _cur_fetchall("vaccine_lots")
+    conn, should_close = _get_conn()
+    old_autocommit = conn.autocommit
+    try:
+        conn.autocommit = False
+        with conn.cursor() as cur:
+            cur.execute("CALL sp_get_vaccines_full(%s)", ("cur_vaccines_full",))
+            cur.execute('FETCH ALL FROM "cur_vaccines_full"')
+            vaccines = [dict(r) for r in cur.fetchall()]
+        conn.commit()
+    except Exception as e:
+        _safe_rollback(conn)
+        logger.error(f"Error en /vacunas: {e}")
+        vaccines = []
+    finally:
+        conn.autocommit = old_autocommit
+        if should_close and not _conn_is_closed(conn):
+            conn.close()
 
-    for v in vaccines:
-        mfr = _cur_fetchone("manufacturers", "manufacturer_id", v.get("manufacturer_id"))
-        via = _cur_fetchone("vaccine_vias",  "via_id",          v.get("via_id"))
-        v["manufacturer"] = mfr["name"] if mfr else "—"
-        v["route"]        = via["via"]  if via  else "—"
-        v["inventory"]    = sum(
-            l["quantity_available"]
-            for l in lots
-            if l["vaccine_id"] == v["vaccine_id"]
-        )
+    lots = _cur_fetchall("vaccine_lots")
 
     return render_template(
         "pages/vacunas_2daE.html",
@@ -964,17 +861,29 @@ def register_vaccine():
     if not name:
         return jsonify({"error": "El nombre de vacuna es requerido"}), 400
 
-    row = _sp_try_fetchone(
-        "sp_register_vaccine",
-        params=[
-            name,
-            payload.get("commercial_name"),
-            payload.get("manufacturer_id"),
-            payload.get("via_id"),
-            payload.get("ideal_age_months"),
-            payload.get("disease_prevented") or payload.get("descripcion") or "No especificado",
-        ],
-    )
+    conn, should_close = _get_conn()
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                "SELECT * FROM sp_register_vaccine(%s,%s,%s,%s,%s,%s)",
+                (
+                    name,
+                    payload.get("commercial_name"),
+                    payload.get("manufacturer_id"),
+                    payload.get("via_id"),
+                    payload.get("ideal_age_months"),
+                    payload.get("disease_prevented") or payload.get("descripcion") or "No especificado",
+                ),
+            )
+            row = cur.fetchone()
+        conn.commit()
+    except Exception as ex:
+        _safe_rollback(conn)
+        return jsonify({"error": f"No se pudo registrar la vacuna: {ex}"}), 500
+    finally:
+        if should_close and not _conn_is_closed(conn):
+            conn.close()
+
     if not row:
         return jsonify({"error": "No se pudo registrar la vacuna en la base de datos"}), 500
 
@@ -992,12 +901,21 @@ def delete_vaccine(id):
     if not vaccine:
         return jsonify({"error": "Vacuna no encontrada"}), 404
 
+    conn, should_close = _get_conn()
     try:
-        result = _sp_try_fetchone("sp_delete_vaccine", params=[id])
-        if result and result.get("error"):
-            return jsonify({"error": result["error"]}), 400
+        with conn.cursor() as cur:
+            cur.execute("SELECT * FROM sp_delete_vaccine(%s)", (id,))
+            result = cur.fetchone()
+        conn.commit()
     except Exception as ex:
+        _safe_rollback(conn)
         return jsonify({"error": f"No se pudo eliminar la vacuna: {ex}"}), 400
+    finally:
+        if should_close and not _conn_is_closed(conn):
+            conn.close()
+
+    if result and result.get("error"):
+        return jsonify({"error": result["error"]}), 400
 
     flash(f"Vacuna '{vaccine['name']}' eliminada.", "warning")
     return jsonify({"message": "Vacuna eliminada"})
@@ -1013,9 +931,46 @@ def aplicaciones():
     if locked:
         return locked
 
-    records     = _applications_from_sp()
-    records_raw = _cur_fetchall("vaccination_records")
+    conn, should_close = _get_conn()
+    old_autocommit = conn.autocommit
+    try:
+        conn.autocommit = False
+        with conn.cursor() as cur:
+            cur.execute("CALL sp_get_vaccination_records_full(%s)", ("cur_vaccination_records",))
+            cur.execute('FETCH ALL FROM "cur_vaccination_records"')
+            raw_records = cur.fetchall()
+        conn.commit()
+    except Exception as e:
+        _safe_rollback(conn)
+        logger.error(f"Error en /aplicaciones: {e}")
+        raw_records = []
+    finally:
+        conn.autocommit = old_autocommit
+        if should_close and not _conn_is_closed(conn):
+            conn.close()
 
+    records = [
+        {
+            "id":               r.get("record_id"),
+            "record_id":        r.get("record_id"),
+            "patient_id":       r.get("patient_id"),
+            "vaccine_id":       r.get("vaccine_id"),
+            "name":             r.get("vaccine_name"),
+            "vaccine_name":     r.get("vaccine_name"),
+            "patient_name":     r.get("patient_name"),
+            "doctor":           r.get("worker_name"),
+            "dose":             r.get("dose_label") or "—",
+            "date":             _temporal_text(r.get("applied_date")),
+            "next_date":        None,
+            "application_site": r.get("application_site") or "—",
+            "had_reaction":     r.get("had_reaction", False),
+            "patient_temp_c":   r.get("patient_temp_c"),
+            "notes":            r.get("notes") or "Sin reacciones",
+        }
+        for r in raw_records
+    ]
+
+    records_raw = _cur_fetchall("vaccination_records")
     unique_patients    = len(set(r["patient_id"] for r in records_raw))
     unique_vaccines    = len(set(r["vaccine_id"]  for r in records_raw))
     today_str          = date.today().isoformat()
@@ -1066,32 +1021,43 @@ def agregar_aplicacion():
                 lot_id    = request.form.get("lot_id")
                 lot_id    = int(lot_id) if lot_id else None
 
-                row = _sp_try_fetchone(
-                    "sp_register_vaccination_record",
-                    params=[
-                        patient_id,
-                        vaccine_id,
-                        worker_id or session.get("worker_id", 1),
-                        clinic_id,
-                        lot_id,
-                        scheme_dose_id,
-                        request.form.get("applied_date") or date.today().isoformat(),
-                        app_site_id,
-                        request.form.get("patient_temp_c") or None,
-                        request.form.get("had_reaction") == "true",
-                    ],
-                )
-                if not row:
-                    error = "No se pudo registrar la aplicación en base de datos"
-                else:
-                    flash(
-                        f"Aplicación de {vaccine['name']} registrada para {_patient_full_name(patient)}.",
-                        "success",
-                    )
+                conn, should_close = _get_conn()
+                try:
+                    with conn.cursor() as cur:
+                        cur.execute(
+                            "SELECT * FROM sp_register_vaccination_record(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",
+                            (
+                                patient_id,
+                                vaccine_id,
+                                worker_id or session.get("worker_id", 1),
+                                clinic_id,
+                                lot_id,
+                                scheme_dose_id,
+                                request.form.get("applied_date") or date.today().isoformat(),
+                                app_site_id,
+                                request.form.get("patient_temp_c") or None,
+                                request.form.get("had_reaction") == "true",
+                            ),
+                        )
+                        row = cur.fetchone()
+                    conn.commit()
+                except Exception as ex:
+                    _safe_rollback(conn)
+                    error = f"No se pudo registrar la aplicación: {ex}"
+                    row   = None
+                finally:
+                    if should_close and not _conn_is_closed(conn):
+                        conn.close()
+
+                if row:
+                    p_name = f"{patient['first_name']} {patient['last_name']}".strip()
+                    flash(f"Aplicación de {vaccine['name']} registrada para {p_name}.", "success")
                     return redirect(url_for("aplicaciones"))
+                elif not error:
+                    error = "No se pudo registrar la aplicación en base de datos"
 
     return render_template(
-        "agregarAplicacion_2daE.html",
+        "pages/agregarAplicacion_2daE.html",
         **_session_vars(),
         patients=_cur_fetchall("patients"),
         vaccines=_cur_fetchall("vaccines"),
@@ -1115,20 +1081,23 @@ def personal():
     if locked:
         return locked
 
-    workers_raw = _cur_fetchall("workers")
-    workers = []
-    for w in workers_raw:
-        role  = _cur_fetchone("roles", "role_id", w.get("role_id"))
-        email = _worker_email(w["worker_id"])
-        workers.append({
-            **w,
-            "first_name": w.get("first_name") or "",
-            "last_name":  w.get("last_name")  or "",
-            "name":       w.get("first_name") or "",
-            "lastname":   w.get("last_name")  or "",
-            "role":       role["name"] if role else "Sin rol",
-            "mail":       email,
-        })
+    conn, should_close = _get_conn()
+    old_autocommit = conn.autocommit
+    try:
+        conn.autocommit = False
+        with conn.cursor() as cur:
+            cur.execute("CALL sp_get_workers_full(%s)", ("cur_workers_full",))
+            cur.execute('FETCH ALL FROM "cur_workers_full"')
+            workers = [dict(r) for r in cur.fetchall()]
+        conn.commit()
+    except Exception as e:
+        _safe_rollback(conn)
+        logger.error(f"Error en /personal: {e}")
+        workers = []
+    finally:
+        conn.autocommit = old_autocommit
+        if should_close and not _conn_is_closed(conn):
+            conn.close()
 
     return render_template(
         "pages/personal_2daE.html",
@@ -1157,7 +1126,6 @@ def add_user():
         last_name  = (request.form.get("last_name")  or request.form.get("lastname") or "").strip()
         role_raw   = request.form.get("role_id") or request.form.get("role")
 
-        # Resolver role_id sin query embebida
         role_id = 3
         if role_raw:
             try:
@@ -1166,7 +1134,6 @@ def add_user():
                 match   = next((r for r in _cur_fetchall("roles") if r["name"].lower() == role_raw.lower()), None)
                 role_id = match["role_id"] if match else 3
 
-        # Verificar email duplicado sin query embebida
         email_exists = any(
             (e.get("email") or "").lower() == mail.lower()
             for e in _cur_fetchall("worker_emails")
@@ -1182,25 +1149,38 @@ def add_user():
             error = "El email ya existe en el sistema"
             flash(error, "danger")
         else:
-            row = _sp_try_fetchone(
-                "sp_register_worker",
-                params=[
-                    role_id,
-                    first_name,
-                    last_name,
-                    date.today().isoformat(),
-                    f"hash:{password}",
-                    mail,
-                    (request.form.get("phone") or "").strip() or None,
-                ],
-            )
-            if not row:
-                error = "No se pudo registrar el usuario"
-                flash(error, "danger")
-            else:
+            conn, should_close = _get_conn()
+            try:
+                with conn.cursor() as cur:
+                    cur.execute(
+                        "SELECT * FROM sp_register_worker(%s,%s,%s,%s,%s,%s,%s)",
+                        (
+                            role_id,
+                            first_name,
+                            last_name,
+                            date.today().isoformat(),
+                            f"hash:{password}",
+                            mail,
+                            (request.form.get("phone") or "").strip() or None,
+                        ),
+                    )
+                    row = cur.fetchone()
+                conn.commit()
+            except Exception as ex:
+                _safe_rollback(conn)
+                error = f"No se pudo registrar el usuario: {ex}"
+                row   = None
+            finally:
+                if should_close and not _conn_is_closed(conn):
+                    conn.close()
+
+            if row:
                 session["last_registered_worker"] = row.get("worker_id")
                 flash(f"Usuario {first_name} registrado correctamente.", "success")
                 return redirect(url_for("personal"))
+            elif not error:
+                error = "No se pudo registrar el usuario"
+                flash(error, "danger")
 
     return render_template(
         "add_user_2daE.html",
@@ -1245,15 +1225,28 @@ def edit_user(worker_id):
             if role_id is None:
                 flash("Selecciona un rol válido", "danger")
             else:
-                result = _sp_try_fetchone(
-                    "sp_update_worker",
-                    params=[worker_id, first_name, last_name, role_id, mail or None],
-                )
-                if result is None:
-                    flash("No se pudo actualizar el usuario", "danger")
-                else:
+                conn, should_close = _get_conn()
+                try:
+                    with conn.cursor() as cur:
+                        cur.execute(
+                            "SELECT * FROM sp_update_worker(%s,%s,%s,%s,%s)",
+                            (worker_id, first_name, last_name, role_id, mail or None),
+                        )
+                        result = cur.fetchone()
+                    conn.commit()
+                except Exception as ex:
+                    _safe_rollback(conn)
+                    result = None
+                    flash(f"Error al actualizar: {ex}", "danger")
+                finally:
+                    if should_close and not _conn_is_closed(conn):
+                        conn.close()
+
+                if result is not None:
                     flash("Usuario actualizado correctamente", "success")
                     return redirect(url_for("personal"))
+                else:
+                    flash("No se pudo actualizar el usuario", "danger")
 
     worker_view = {
         "worker_id": worker["worker_id"],
@@ -1290,7 +1283,24 @@ def inventario():
     if locked:
         return locked
 
-    inventory = _inventory_from_sp()
+    conn, should_close = _get_conn()
+    old_autocommit = conn.autocommit
+    try:
+        conn.autocommit = False
+        with conn.cursor() as cur:
+            cur.execute("CALL sp_get_inventory_status(%s)", ("cur_inventory_status",))
+            cur.execute('FETCH ALL FROM "cur_inventory_status"')
+            inventory = [dict(r) for r in cur.fetchall()]
+        conn.commit()
+    except Exception as e:
+        _safe_rollback(conn)
+        logger.error(f"Error en /inventario: {e}")
+        inventory = []
+    finally:
+        conn.autocommit = old_autocommit
+        if should_close and not _conn_is_closed(conn):
+            conn.close()
+
     if any(i.get("low_stock") for i in inventory):
         flash("⚠ Hay insumos con stock por debajo del mínimo.", "warning")
 
@@ -1310,8 +1320,30 @@ def citas():
     if locked:
         return locked
 
+    conn, should_close = _get_conn()
+    old_autocommit = conn.autocommit
+    try:
+        conn.autocommit = False
+        with conn.cursor() as cur:
+            cur.execute("CALL sp_get_appointments_full(%s)", ("cur_appointments_full",))
+            cur.execute('FETCH ALL FROM "cur_appointments_full"')
+            raw_appointments = cur.fetchall()
+        conn.commit()
+    except Exception as e:
+        _safe_rollback(conn)
+        logger.error(f"Error en /citas: {e}")
+        raw_appointments = []
+    finally:
+        conn.autocommit = old_autocommit
+        if should_close and not _conn_is_closed(conn):
+            conn.close()
+
+    appointments = [
+        {**dict(r), "scheduled_at": _temporal_text(r.get("scheduled_at"))}
+        for r in raw_appointments
+    ]
+
     session["last_section"] = "citas"
-    appointments = _appointments_from_sp()
     return render_template(
         "pages/citas_2daE.html",
         **_session_vars(),
@@ -1330,17 +1362,37 @@ def nfc():
     if locked:
         return locked
 
-    cards_raw       = _cur_fetchall("nfc_cards")
-    scan_events_raw = _cur_fetchall("nfc_scan_events")
+    conn, should_close = _get_conn()
+    old_autocommit = conn.autocommit
+    try:
+        conn.autocommit = False
+        with conn.cursor() as cur:
+            cur.execute("CALL sp_get_nfc_cards_full(%s)", ("cur_nfc_cards",))
+            cur.execute('FETCH ALL FROM "cur_nfc_cards"')
+            cards = [dict(r) for r in cur.fetchall()]
+
+            cur.execute("CALL sp_get_nfc_scans_full(%s)", ("cur_nfc_scans",))
+            cur.execute('FETCH ALL FROM "cur_nfc_scans"')
+            scans = [dict(r) for r in cur.fetchall()]
+        conn.commit()
+    except Exception as e:
+        _safe_rollback(conn)
+        logger.error(f"Error en /nfc: {e}")
+        cards = []
+        scans = []
+    finally:
+        conn.autocommit = old_autocommit
+        if should_close and not _conn_is_closed(conn):
+            conn.close()
 
     session["last_section"] = "nfc"
     return render_template(
         "pages/nfc_2daE.html",
         **_session_vars(),
-        cards=[_enrich_nfc_card(c) for c in cards_raw],
-        scans=[_enrich_nfc_scan(s) for s in scan_events_raw],
-        total_cards=len(cards_raw),
-        active_cards=sum(1 for c in cards_raw if c.get("status") == "Activa"),
+        cards=cards,
+        scans=scans,
+        total_cards=len(cards),
+        active_cards=sum(1 for c in cards if c.get("status") == "Activa"),
     )
 
 
@@ -1350,13 +1402,30 @@ def clinicas():
     if locked:
         return locked
 
-    clinics_raw = _cur_fetchall("clinics")
+    conn, should_close = _get_conn()
+    old_autocommit = conn.autocommit
+    try:
+        conn.autocommit = False
+        with conn.cursor() as cur:
+            cur.execute("CALL sp_get_clinics_full(%s)", ("cur_clinics_full",))
+            cur.execute('FETCH ALL FROM "cur_clinics_full"')
+            clinics = [dict(r) for r in cur.fetchall()]
+        conn.commit()
+    except Exception as e:
+        _safe_rollback(conn)
+        logger.error(f"Error en /clinicas: {e}")
+        clinics = []
+    finally:
+        conn.autocommit = old_autocommit
+        if should_close and not _conn_is_closed(conn):
+            conn.close()
+
     session["last_section"] = "clinicas"
     return render_template(
         "pages/clinicas_2daE.html",
         **_session_vars(),
-        clinics=[_enrich_clinic(c) for c in clinics_raw],
-        total_clinics=len(clinics_raw),
+        clinics=clinics,
+        total_clinics=len(clinics),
     )
 
 
@@ -1376,8 +1445,9 @@ def api_global_search():
 
     results = []
 
+    # Buscar pacientes
     for p in _cur_fetchall("patients"):
-        full = _patient_full_name(p)
+        full = f"{p['first_name']} {p['last_name']}".strip()
         if q in full.lower() or q in str(p["patient_id"]):
             results.append({
                 "type":     "paciente",
@@ -1386,6 +1456,7 @@ def api_global_search():
                 "url":      url_for("historial_paciente", id=p["patient_id"]),
             })
 
+    # Buscar vacunas
     for v in _cur_fetchall("vaccines"):
         if q in v["name"].lower() or q in str(v["vaccine_id"]):
             lot_stock = sum(
@@ -1399,15 +1470,32 @@ def api_global_search():
                 "url":      url_for("vacunas_page") + f"?q={v['name']}",
             })
 
-    for w in _cur_fetchall("workers"):
-        name  = f"{w['first_name']} {w['last_name']}".strip()
-        email = _worker_email(w["worker_id"])
+    # Buscar personal vía SP
+    conn, should_close = _get_conn()
+    old_autocommit = conn.autocommit
+    try:
+        conn.autocommit = False
+        with conn.cursor() as cur:
+            cur.execute("CALL sp_get_workers_full(%s)", ("cur_workers_search",))
+            cur.execute('FETCH ALL FROM "cur_workers_search"')
+            workers = cur.fetchall()
+        conn.commit()
+    except Exception:
+        _safe_rollback(conn)
+        workers = []
+    finally:
+        conn.autocommit = old_autocommit
+        if should_close and not _conn_is_closed(conn):
+            conn.close()
+
+    for w in workers:
+        name  = f"{w.get('first_name', '')} {w.get('last_name', '')}".strip()
+        email = w.get("mail", "")
         if q in name.lower() or q in email.lower():
-            role = _cur_fetchone("roles", "role_id", w.get("role_id"))
             results.append({
                 "type":     "personal",
                 "title":    name,
-                "subtitle": role["name"] if role else "",
+                "subtitle": w.get("role", ""),
                 "url":      url_for("personal") + f"?q={name}",
             })
 
@@ -1423,12 +1511,27 @@ def api_reportes_publicos_resumen():
     from_date = request.args.get("from")
     to_date   = request.args.get("to")
 
-    # Intentar SP dedicado primero
-    sp_row = _sp_try_fetchone("sp_reportes_resumen", params=[from_date, to_date])
+    # SP dedicado
+    conn, should_close = _get_conn()
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                "SELECT * FROM sp_reportes_resumen(%s, %s)",
+                (from_date, to_date),
+            )
+            sp_row = cur.fetchone()
+        conn.commit()
+    except Exception:
+        _safe_rollback(conn)
+        sp_row = None
+    finally:
+        if should_close and not _conn_is_closed(conn):
+            conn.close()
+
     if sp_row:
         return jsonify(dict(sp_row))
 
-    # Fallback: calcular en Python usando helpers genéricos
+    # Fallback Python
     all_records  = _cur_fetchall("vaccination_records")
     all_patients = _cur_fetchall("patients")
 
@@ -1443,7 +1546,6 @@ def api_reportes_publicos_resumen():
     target_pop  = max(len(all_patients), 1)
     coverage    = round((reached_pop / target_pop) * 100, 1)
 
-    # Agrupar por mes
     monthly_map = {}
     for r in all_records:
         key = str(r.get("applied_date") or "")[:7]
@@ -1456,7 +1558,6 @@ def api_reportes_publicos_resumen():
         for v in sorted(monthly_map.values(), key=lambda x: x["period_label"])
     ]
 
-    # Agrupar por vacuna
     vaccine_map = {}
     for r in all_records:
         vid = r.get("vaccine_id")
@@ -1513,28 +1614,35 @@ def api_alertas_esquema():
     if locked:
         return jsonify({"error": "No autenticado"}), 401
 
-    result = []
-    for al in _cur_fetchall("scheme_completion_alerts"):
-        patient      = _cur_fetchone("patients",    "patient_id", al["patient_id"])
-        dose         = _cur_fetchone("scheme_doses", "dose_id",   al["scheme_dose_id"])
-        vaccine_name = "—"
-        if dose:
-            v = _cur_fetchone("vaccines", "vaccine_id", dose["vaccine_id"])
-            vaccine_name = v["name"] if v else "—"
-        result.append({
-            **al,
-            "patient_name": _patient_full_name(patient) if patient else "—",
-            "vaccine_name": vaccine_name,
-            "dose_label":   dose["dose_label"] if dose else "—",
-        })
-    return jsonify(result)
+    conn, should_close = _get_conn()
+    old_autocommit = conn.autocommit
+    try:
+        conn.autocommit = False
+        with conn.cursor() as cur:
+            cur.execute("CALL sp_get_schema_alerts_full(%s)", ("cur_schema_alerts",))
+            cur.execute('FETCH ALL FROM "cur_schema_alerts"')
+            rows = [dict(r) for r in cur.fetchall()]
+        conn.commit()
+    except Exception as e:
+        _safe_rollback(conn)
+        logger.error(f"Error en /api/alertas-esquema: {e}")
+        rows = []
+    finally:
+        conn.autocommit = old_autocommit
+        if should_close and not _conn_is_closed(conn):
+            conn.close()
 
+    return jsonify(rows)
+
+
+# =============================================================================
+# CLI
+# =============================================================================
 
 @app.cli.command("init-db")
 def cli_init_database():
-    """Inicializa la base de datos (esquema/SQL vía db_init). Usar antes de `flask run` si aplica."""
+    """Inicializa la base de datos. Usar antes de `flask run` si aplica."""
     from db_init import init_database
-
     init_database()
 
 

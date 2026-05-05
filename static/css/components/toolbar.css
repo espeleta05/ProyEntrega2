@@ -10,6 +10,7 @@
   background: var(--md-surface-container);
   border-bottom: 1px solid var(--md-outline-variant);
   gap: var(--md-spacing-4);
+  margin-bottom: var(--md-spacing-6);
 }
 
 .md3-toolbar__back-button {

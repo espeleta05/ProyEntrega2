@@ -4,14 +4,14 @@
 
 .sidebar {
   position: fixed;
-  top: 0;
+  top: 100px;               /* queda debajo del topbar (height: 100px) */
   left: 0;
   width: 256px;
-  height: 100vh;
+  height: calc(100vh - 100px);
   background-color: var(--md-surface-container);
   border-right: 1px solid var(--md-outline-variant);
   overflow-y: auto;
-  z-index: 999;
+  z-index: 100;             /* igual al topbar; no lo tapa */
   box-shadow: var(--md-shadow-level-1);
   transition: var(--md-transition-standard);
 }
@@ -41,7 +41,7 @@
   display: flex;
   align-items: center;
   padding: var(--md-spacing-4) var(--md-spacing-6);
-  color: var(--md-on-surface);
+  color: var(--md-neutral);
   text-decoration: none;
   font-size: var(--md-font-size-body-md);
   border-left: 3px solid transparent;
@@ -53,6 +53,7 @@
 .sidebar-nav-item:hover {
   background-color: var(--md-surface-container-high);
   color: var(--md-primary);
+  text-decoration: none;
 }
 
 .sidebar-nav-item.active {
@@ -81,6 +82,8 @@
 @media (max-width: 1024px) {
   .sidebar {
     width: 80px;
+    top: 100px;
+    height: calc(100vh - 100px);
   }
 
   .sidebar-header {
@@ -112,6 +115,8 @@
   .sidebar {
     width: 256px;
     left: -256px;
+    top: 72px;                      /* topbar móvil tiene 72px */
+    height: calc(100vh - 72px);
   }
 
   .sidebar.active {

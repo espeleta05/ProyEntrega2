@@ -46,17 +46,6 @@
 
 <aside class="sidebar" id="appSidebar">
 
-  <div class="sidebar-header">
-    <a href="{{ logo_href }}" class="sidebar-logo-link">
-      {% if logo_src %}
-        <img src="{{ logo_src }}" alt="{{ logo_text }}" class="sidebar-logo-img">
-      {% else %}
-        <div class="sidebar-logo-icon">{{ logo_text[0] | upper }}</div>
-      {% endif %}
-      <h1 class="sidebar-logo-text">{{ logo_text }}</h1>
-    </a>
-  </div>
-
   <nav class="sidebar-nav" aria-label="Navegación principal">
     {% for item in items %}
       {%- if item.endpoint is defined and item.endpoint %}

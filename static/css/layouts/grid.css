@@ -2,6 +2,40 @@
    GRID SYSTEM - RESPONSIVE
    ======================================== */
 
+/* ── App shell: topbar + sidebar + content ────────────────────── */
+.main-layout {
+  display: block;
+  min-height: 100vh;
+}
+
+/* Área de contenido principal */
+.main-layout .content {
+  margin-left: 256px;          /* ancho del sidebar desktop */
+  margin-top: 100px;           /* alto del topbar */
+  min-height: calc(100vh - 100px);
+  padding: var(--md-spacing-6, 24px);
+  background-color: var(--md-surface-variant, #f4eff4);
+  box-sizing: border-box;
+}
+
+/* Tablet: sidebar colapsado (80 px) */
+@media (max-width: 1024px) {
+  .main-layout .content {
+    margin-left: 80px;
+  }
+}
+
+/* Mobile: sidebar oculto */
+@media (max-width: 640px) {
+  .main-layout .content {
+    margin-left: 0;
+    margin-top: 72px;
+    min-height: calc(100vh - 72px);
+    padding: var(--md-spacing-4, 16px);
+  }
+}
+/* ─────────────────────────────────────────────────────────────── */
+
 .grid {
   display: grid;
   gap: var(--md-spacing-6);

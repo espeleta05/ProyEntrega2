@@ -1,17 +1,14 @@
 -- VER SPs EN POSTGRES
-/*
 SELECT routine_name 
 FROM information_schema.routines 
 WHERE routine_type = 'PROCEDURE' 
 AND routine_schema = 'public';
-*/
 
 -- =====================================
 -- WRAPPERS DE VISTAS
 -- =====================================
 
 -- (APLICADA) vw_patient
-/*
 CREATE OR REPLACE PROCEDURE sp_get_patients(
     INOUT p_results REFCURSOR
 )
@@ -23,22 +20,40 @@ BEGIN
         ORDER BY patient_id;
 END;
 $$;
-*/
 
-CREATE OR REPLACE PROCEDURE sp_dashboard_kpis(
+-- v_vaccination_records_full
+CREATE OR REPLACE PROCEDURE sp_get_vaccination_records_full(
     INOUT p_results REFCURSOR
 )
 LANGUAGE plpgsql AS $$
 BEGIN
-    OPEN p_results FOR 
-        SELECT * FROM vw_dashboard_kpis;
-END ;
-$$ ;
+    OPEN p_results FOR
+        SELECT *
+        FROM v_vaccination_records_full
+        ORDER BY applied_date DESC, record_id DESC;
+END;
+$$;
 
-BEGIN;
-CALL sp_dashboard_kpis('p_results');
-FETCH ALL FROM p_results;
-COMMIT;
+
+-- v_pending_scheme_doses (con filtro opcional por paciente)
+CREATE OR REPLACE PROCEDURE sp_get_pending_scheme_doses(
+    IN p_patient_id INT DEFAULT NULL,
+    INOUT p_results
+)
+LANGUAGE plpgsql AS $$
+BEGIN
+    OPEN p_results FOR
+        SELECT
+            patient_id,
+            vaccine_name,
+            dose_label,
+            ideal_age_months
+        FROM v_pending_scheme_doses
+        WHERE p_patient_id IS NULL OR patient_id = p_patient_id
+        ORDER BY patient_id, ideal_age_months NULLS LAST, vaccine_name;
+END;
+$$;
+
 
 
 -- v_appointments_full
@@ -88,199 +103,6 @@ BEGIN
             LEFT JOIN clinic_inventory ci ON ci.quantity   < ci.min_stock
             LEFT JOIN scheme_completion_alerts sca ON p.patient_id  = sca.patient_id;
     END IF;
-END;
-$$;
-
-
-
---=========================================================================
-CREATE OR REPLACE PROCEDURE sp_dashboard_kpis(
-    INOUT p_results REFCURSOR
-)
-LANGUAGE plpgsql AS $$
-DECLARE
-    v_today            DATE := CURRENT_DATE;
-    v_first_of_month   DATE := DATE_TRUNC('month', CURRENT_DATE)::DATE;
-    v_first_of_week    DATE := DATE_TRUNC('week',  CURRENT_DATE)::DATE;
-    v_prev_month_start DATE := (DATE_TRUNC('month', CURRENT_DATE) - INTERVAL '1 month')::DATE;
-    v_prev_month_end   DATE := (DATE_TRUNC('month', CURRENT_DATE) - INTERVAL '1 day')::DATE;
-BEGIN
-    OPEN p_results FOR
-    WITH
- 
-    -- Total pacientes activos
-    total AS (
-        SELECT COUNT(*)::INT AS total_patients
-        FROM   patients
-        WHERE  is_active = TRUE
-    ),
- 
-    -- Cobertura: % de pacientes con todas las dosis del esquema aplicadas
-    coverage AS (
-        SELECT
-            ROUND(
-                COUNT(DISTINCT CASE
-                    WHEN NOT EXISTS (
-                        SELECT 1 FROM scheme_doses sd
-                        WHERE NOT EXISTS (
-                            SELECT 1 FROM vaccination_records vr
-                            WHERE vr.patient_id     = p.patient_id
-                              AND vr.scheme_dose_id  = sd.dose_id
-                        )
-                    ) THEN p.patient_id
-                END)::NUMERIC
-                / NULLIF(COUNT(DISTINCT p.patient_id)::NUMERIC, 0) * 100
-            , 1)::NUMERIC AS coverage_pct,
- 
-            -- Tendencia: dosis este mes menos dosis mes anterior
-            (
-                SELECT COUNT(*) FROM vaccination_records
-                WHERE applied_date >= v_first_of_month
-                  AND applied_date <= v_today
-            ) -
-            (
-                SELECT COUNT(*) FROM vaccination_records
-                WHERE applied_date >= v_prev_month_start
-                  AND applied_date <= v_prev_month_end
-            )                 AS coverage_trend_raw
-        FROM patients p
-        WHERE p.is_active = TRUE
-    ),
- 
-    -- Pacientes con al menos 1 dosis atrasada
-    delayed AS (
-        SELECT COUNT(DISTINCT p.patient_id)::INT AS delayed_patients
-        FROM   patients p
-        JOIN   scheme_doses sd ON TRUE
-        WHERE  p.is_active = TRUE
-          AND  (p.birth_date + (sd.ideal_age_months || ' months')::INTERVAL)::DATE < v_today
-          AND  NOT EXISTS (
-                   SELECT 1 FROM vaccination_records vr
-                   WHERE vr.patient_id     = p.patient_id
-                     AND vr.scheme_dose_id  = sd.dose_id
-               )
-    ),
- 
-    -- Pacientes con 2+ dosis atrasadas (críticos)
-    critical AS (
-        SELECT COUNT(*)::INT AS patients_critical
-        FROM (
-            SELECT p.patient_id
-            FROM   patients p
-            JOIN   scheme_doses sd ON TRUE
-            WHERE  p.is_active = TRUE
-              AND  (p.birth_date + (sd.ideal_age_months || ' months')::INTERVAL)::DATE < v_today
-              AND  NOT EXISTS (
-                       SELECT 1 FROM vaccination_records vr
-                       WHERE vr.patient_id     = p.patient_id
-                         AND vr.scheme_dose_id  = sd.dose_id
-                   )
-            GROUP  BY p.patient_id
-            HAVING COUNT(*) >= 2
-        ) sub
-    ),
- 
-    -- Dosis aplicadas: hoy / semana / mes
-    doses AS (
-        SELECT
-            COUNT(*) FILTER (WHERE applied_date = v_today)           ::INT AS applications_today,
-            COUNT(*) FILTER (WHERE applied_date >= v_first_of_week)  ::INT AS doses_this_week,
-            COUNT(*) FILTER (WHERE applied_date >= v_first_of_month) ::INT AS doses_this_month
-        FROM vaccination_records
-    ),
- 
-    -- Tendencia mensual %
-    monthly_trend AS (
-        SELECT
-            CASE
-                WHEN prev.cnt = 0 THEN 0
-                ELSE ROUND((curr.cnt - prev.cnt)::NUMERIC / prev.cnt * 100, 1)::INT
-            END AS monthly_trend
-        FROM (
-            SELECT COUNT(*)::NUMERIC AS cnt
-            FROM   vaccination_records
-            WHERE  applied_date >= v_first_of_month
-              AND  applied_date <= v_today
-        ) curr,
-        (
-            SELECT COUNT(*)::NUMERIC AS cnt
-            FROM   vaccination_records
-            WHERE  applied_date >= v_prev_month_start
-              AND  applied_date <= v_prev_month_end
-        ) prev
-    ),
- 
-    -- Pacientes con alguna dosis ya vencida (fecha ideal pasada, sin aplicar)
-    expired AS (
-        SELECT COUNT(DISTINCT p.patient_id)::INT AS expired_doses
-        FROM   patients p
-        JOIN   scheme_doses sd ON TRUE
-        WHERE  p.is_active = TRUE
-          AND  (p.birth_date + (sd.ideal_age_months || ' months')::INTERVAL)::DATE < v_today
-          AND  NOT EXISTS (
-                   SELECT 1 FROM vaccination_records vr
-                   WHERE vr.patient_id     = p.patient_id
-                     AND vr.scheme_dose_id  = sd.dose_id
-               )
-    ),
- 
-    -- Nuevos pacientes registrados este mes
-    new_patients AS (
-        SELECT COUNT(*)::INT AS new_patients_month
-        FROM   patients
-        WHERE  is_active   = TRUE
-          AND  created_at::DATE >= v_first_of_month
-    ),
- 
-    -- Lotes que vencen en los próximos 7 días
-    expiring_lots AS (
-        SELECT COUNT(*)::INT AS expiring_lots_week
-        FROM   vaccine_lots
-        WHERE  expiration_date >= v_today
-          AND  expiration_date <= v_today + INTERVAL '7 days'
-          AND  quantity_available > 0
-    ),
- 
-    -- Insumos con stock bajo
-    low_stock AS (
-        SELECT COUNT(*)::INT AS low_stock_count
-        FROM   clinic_inventory
-        WHERE  quantity < min_stock
-    ),
- 
-    -- Alertas de esquema pendientes
-    alerts AS (
-        SELECT COUNT(*)::INT AS pending_alerts
-        FROM   scheme_completion_alerts
-        WHERE  status = 'Pendiente'
-    )
- 
-    SELECT
-        t.total_patients,
-        c.coverage_pct,
-        COALESCE(c.coverage_trend_raw, 0)::INT  AS coverage_trend,
-        d.delayed_patients,
-        ds.applications_today,
-        ds.doses_this_week,
-        ds.doses_this_month,
-        mt.monthly_trend,
-        ex.expired_doses,
-        np.new_patients_month,
-        el.expiring_lots_week,
-        ls.low_stock_count,
-        al.pending_alerts,
-        cr.patients_critical
-    FROM total         t
-    CROSS JOIN coverage      c
-    CROSS JOIN delayed       d
-    CROSS JOIN critical      cr
-    CROSS JOIN doses         ds
-    CROSS JOIN monthly_trend mt
-    CROSS JOIN expired       ex
-    CROSS JOIN new_patients  np
-    CROSS JOIN expiring_lots el
-    CROSS JOIN low_stock     ls
-    CROSS JOIN alerts        al;
 END;
 $$;
 

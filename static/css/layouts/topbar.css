@@ -18,7 +18,7 @@
   background-color: var(--md-surface-container-lowest, #fff);
   border-bottom: 1px solid var(--md-outline-variant, rgba(99,99,99,0.3));
   box-shadow: var(--md-shadow-level-1, 0 1px 3px rgba(0,0,0,0.12));
-  z-index: 100;
+  z-index: 1000;
 }
 
 /* ── Logo ───────────────────────────────────────────────────────────────────── */
@@ -38,11 +38,16 @@
 
 .logo-text {
   font-family: var(--md-font-family-display, 'Montserrat', sans-serif);
-  font-size: var(--md-font-size-title-lg, 1.375rem);
+  font-size: var(--md-font-size-title-lg, 1.6rem);
   font-weight: var(--md-font-weight-bold, 700);
   color: var(--md-primary, #6B007C);
   letter-spacing: -0.01em;
   line-height: 1;
+}
+
+.logo-text:hover{
+  text-decoration: none;
+  cursor: pointer;
 }
 
 /* ── Barra de búsqueda global ────────────────────────────────────────────────── */
@@ -57,7 +62,7 @@
   display: flex;
   align-items: center;
   width: 100%;
-  height: 56px;
+  height: 50px;
   padding: 0 var(--md-spacing-4, 16px);
   gap: var(--md-spacing-2, 8px);
   background-color: var(--md-surface-container, #f3edf7);
