@@ -2,7 +2,7 @@
 
 {% from 'components/toolbar.html' import toolbar %}
 {% from 'components/button.html'  import button  %}
-
+{% from 'components/badge.html'   import badge   %}
 
 {% block title %}Pacientes - Sistema Clínico{% endblock %}
 
@@ -15,15 +15,17 @@
 
 {# ── Encabezado ── #}
 {% call toolbar(title='Gestión de pacientes',
-                subtitle='Total de pacientes registrados: ' ~ total_pacientes) %}
-    {{ button('Agregar paciente', size='lg', icon='fa-plus', onclick='openPatientModal()', class= 'md3-btn md3-btn--filled') }}
+                subtitle='Total de pacientes registrados: ' ~ total_patients) %}
+    {{ button('Agregar paciente', size='lg', icon='fa-plus', onclick='openPatientModal()', class='md3-btn md3-btn--filled') }}
 {% endcall %}
 
+{# ── Buscador — IDs requeridos por pacientes.js ── #}
 <div class="search-bar-container section">
     <i class="fa-solid fa-magnifying-glass"></i>
     <input type="text" id="searchInput" placeholder="Buscar paciente por nombre o id...">
 </div>
 
+{# ── Filtros — IDs requeridos por pacientes.js ── #}
 <div class="sort-and-filter">
     <div class="sort-options">
         <p class="sort-label">Filtrar por tipo de sangre:</p>
@@ -34,7 +36,7 @@
             {% endfor %}
         </select>
     </div>
-    
+
     <div class="sort-options">
         <p class="sort-label">Ordenar por:</p>
         <select id="sortSelect" class="sort-select">
@@ -46,6 +48,7 @@
     </div>
 </div>
 
+{# ── Grid de pacientes — ID requerido por pacientes.js ── #}
 <div class="patients-grid" id="patientsContainer">
     {% for p in patients %}
 
@@ -63,13 +66,12 @@
             {% set risk_color = 'rc-green' %}
         {% endif %}
     -->
-       
 
-           <div id="patient-card-{{ p.patient_id }}" class="patient-card-wrapper"
-               data-patient-id="{{ p.patient_id }}"
-               data-name="{{ p.full_name | lower }}"
-               data-blood="{{ p.blood_type | lower }}"
-               data-birth="{{ p.birth_date }}">
+        <div id="patient-card-{{ p.patient_id }}" class="patient-card-wrapper"
+             data-patient-id="{{ p.patient_id }}"
+             data-name="{{ p.full_name | lower }}"
+             data-blood="{{ p.blood_type | lower }}"
+             data-birth="{{ p.birth_date }}">
             <div class="pt-card">
 
                 <!-- Top strip de color por riesgo -->
@@ -110,14 +112,8 @@
 
                 <!-- Footer con badges -->
                 <div class="pt-card-footer">
-                    <span class="pt-badge pt-blood">
-                        <i class="fa-solid fa-droplet"></i>
-                        {{ p.blood_type or '—' }}
-                    </span>
-                    <span class="pt-badge pt-allergy">
-                        <i class="fa-solid fa-triangle-exclamation"></i>
-                        {{ p.allergies or 'Sin alergias' }}
-                    </span>
+                    {{ badge(p.blood_type or '—',           icon='fa-droplet',             color='error',     size='sm', class='pt-blood')   }}
+                    {{ badge(p.allergies or 'Sin alergias', icon='fa-triangle-exclamation', color='secondary', size='sm', class='pt-allergy') }}
                     <!--
                         <span class="pt-badge pt-risk {{ risk_color }}">
                             {{ p.risk or 'Bajo' }}

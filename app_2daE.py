@@ -333,7 +333,7 @@ def dashboard():
                 kpis = dict(cur.fetchone() or {})
 
                 # 2. Últimos 10 pacientes (reutiliza sp_get_patients con límite)
-                cur.execute("CALL sp_get_patients(%s, %s)", (10, "cur_top_patients"))
+                cur.execute("CALL sp_get_patients_full(%s, %s)", (10, "cur_top_patients"))
                 cur.execute('FETCH ALL FROM "cur_top_patients"')
                 top_patients = [dict(r) for r in cur.fetchall()]
 
@@ -464,30 +464,38 @@ def register_patient():
     gender_map  = {"masculino": "M", "m": "M", "femenino": "F", "f": "F", "otro": "O", "o": "O"}
     gender_code = gender_map.get(gender_raw, "O")
 
+    blood_type_id = int(payload.get("blood_type_id") or 1)
+
     conn, should_close = _get_conn()
+    old_autocommit = conn.autocommit
     try:
+        conn.autocommit = False
         with conn.cursor() as cur:
             cur.execute(
-                "SELECT * FROM sp_register_patient(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",
+                "CALL sp_register_patient(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",
                 (
                     first_name,
                     last_name,
                     payload.get("curp"),
                     payload.get("birth_date") or "2021-01-01",
                     gender_code,
+                    blood_type_id,
                     payload.get("weight_kg"),
                     bool(payload.get("premature", False)),
                     (tutor.get("name") or "Tutor").strip(),
                     (tutor.get("lastname") or "Demo").strip(),
                     tutor.get("number"),
+                    "cur_reg_patient",
                 ),
             )
+            cur.execute('FETCH ALL FROM "cur_reg_patient"')
             row = cur.fetchone()
         conn.commit()
     except Exception as ex:
         _safe_rollback(conn)
         return jsonify({"error": f"No se pudo registrar el paciente: {ex}"}), 500
     finally:
+        conn.autocommit = old_autocommit
         if should_close and not _conn_is_closed(conn):
             conn.close()
 
@@ -510,15 +518,19 @@ def delete_patient(id):
 
     nombre = f"{patient['first_name']} {patient['last_name']}"
     conn, should_close = _get_conn()
+    old_autocommit = conn.autocommit
     try:
+        conn.autocommit = False
         with conn.cursor() as cur:
-            cur.execute("SELECT * FROM sp_delete_patient(%s)", (id,))
+            cur.execute("CALL sp_delete_patient(%s, %s)", (id, "cur_del_patient"))
+            cur.execute('FETCH ALL FROM "cur_del_patient"')
         conn.commit()
     except Exception as ex:
         _safe_rollback(conn)
         logger.error(f"Error en /delete_patient/{id}: {ex}")
         return jsonify({"error": f"No se pudo eliminar el paciente: {ex}"}), 400
     finally:
+        conn.autocommit = old_autocommit
         if should_close and not _conn_is_closed(conn):
             conn.close()
 
@@ -862,10 +874,12 @@ def register_vaccine():
         return jsonify({"error": "El nombre de vacuna es requerido"}), 400
 
     conn, should_close = _get_conn()
+    old_autocommit = conn.autocommit
     try:
+        conn.autocommit = False
         with conn.cursor() as cur:
             cur.execute(
-                "SELECT * FROM sp_register_vaccine(%s,%s,%s,%s,%s,%s)",
+                "CALL sp_register_vaccine(%s,%s,%s,%s,%s,%s,%s)",
                 (
                     name,
                     payload.get("commercial_name"),
@@ -873,14 +887,17 @@ def register_vaccine():
                     payload.get("via_id"),
                     payload.get("ideal_age_months"),
                     payload.get("disease_prevented") or payload.get("descripcion") or "No especificado",
+                    "cur_reg_vaccine",
                 ),
             )
+            cur.execute('FETCH ALL FROM "cur_reg_vaccine"')
             row = cur.fetchone()
         conn.commit()
     except Exception as ex:
         _safe_rollback(conn)
         return jsonify({"error": f"No se pudo registrar la vacuna: {ex}"}), 500
     finally:
+        conn.autocommit = old_autocommit
         if should_close and not _conn_is_closed(conn):
             conn.close()
 
@@ -902,15 +919,19 @@ def delete_vaccine(id):
         return jsonify({"error": "Vacuna no encontrada"}), 404
 
     conn, should_close = _get_conn()
+    old_autocommit = conn.autocommit
     try:
+        conn.autocommit = False
         with conn.cursor() as cur:
-            cur.execute("SELECT * FROM sp_delete_vaccine(%s)", (id,))
+            cur.execute("CALL sp_delete_vaccine(%s, %s)", (id, "cur_del_vaccine"))
+            cur.execute('FETCH ALL FROM "cur_del_vaccine"')
             result = cur.fetchone()
         conn.commit()
     except Exception as ex:
         _safe_rollback(conn)
         return jsonify({"error": f"No se pudo eliminar la vacuna: {ex}"}), 400
     finally:
+        conn.autocommit = old_autocommit
         if should_close and not _conn_is_closed(conn):
             conn.close()
 
@@ -1022,10 +1043,12 @@ def agregar_aplicacion():
                 lot_id    = int(lot_id) if lot_id else None
 
                 conn, should_close = _get_conn()
+                old_autocommit = conn.autocommit
                 try:
+                    conn.autocommit = False
                     with conn.cursor() as cur:
                         cur.execute(
-                            "SELECT * FROM sp_register_vaccination_record(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",
+                            "CALL sp_register_vaccination_record(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",
                             (
                                 patient_id,
                                 vaccine_id,
@@ -1037,8 +1060,10 @@ def agregar_aplicacion():
                                 app_site_id,
                                 request.form.get("patient_temp_c") or None,
                                 request.form.get("had_reaction") == "true",
+                                "cur_reg_vac_record",
                             ),
                         )
+                        cur.execute('FETCH ALL FROM "cur_reg_vac_record"')
                         row = cur.fetchone()
                     conn.commit()
                 except Exception as ex:
@@ -1046,6 +1071,7 @@ def agregar_aplicacion():
                     error = f"No se pudo registrar la aplicación: {ex}"
                     row   = None
                 finally:
+                    conn.autocommit = old_autocommit
                     if should_close and not _conn_is_closed(conn):
                         conn.close()
 
@@ -1150,10 +1176,12 @@ def add_user():
             flash(error, "danger")
         else:
             conn, should_close = _get_conn()
+            old_autocommit = conn.autocommit
             try:
+                conn.autocommit = False
                 with conn.cursor() as cur:
                     cur.execute(
-                        "SELECT * FROM sp_register_worker(%s,%s,%s,%s,%s,%s,%s)",
+                        "CALL sp_register_worker(%s,%s,%s,%s,%s,%s,%s,%s)",
                         (
                             role_id,
                             first_name,
@@ -1162,8 +1190,10 @@ def add_user():
                             f"hash:{password}",
                             mail,
                             (request.form.get("phone") or "").strip() or None,
+                            "cur_reg_worker",
                         ),
                     )
+                    cur.execute('FETCH ALL FROM "cur_reg_worker"')
                     row = cur.fetchone()
                 conn.commit()
             except Exception as ex:
@@ -1171,6 +1201,7 @@ def add_user():
                 error = f"No se pudo registrar el usuario: {ex}"
                 row   = None
             finally:
+                conn.autocommit = old_autocommit
                 if should_close and not _conn_is_closed(conn):
                     conn.close()
 

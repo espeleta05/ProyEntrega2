@@ -1,6 +1,10 @@
 {% extends 'base_2daE.html' %}
 
-{% block title %}Pacientes - Sistema Clínico{% endblock %}
+{# ── Macros ── #}
+{% from 'components/toolbar.html' import toolbar %}
+{% from 'components/badge.html'   import badge   %}
+
+{% block title %}Esquema de vacunación - Sistema Clínico{% endblock %}
 
 {% block head_extra %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/esquemaVacunacion.css') }}">
@@ -8,13 +12,9 @@
 
 {% block content %}
 
-<a href="{{ url_for('vacunas_page') }}" class="back">
-    <i class="fa-solid fa-arrow-left"></i> Regresar
-</a>
-
-<div class="content-header">
-    <h2 class="title">Esquema oficial de vacunación</h2>
-</div>
+{# ── Encabezado con botón "Regresar" ── #}
+{{ toolbar(title='Esquema oficial de vacunación',
+           back_href=url_for('vacunas_page')) }}
 
 <div class="content-info">
     <div class="inv-table-wrapper">
@@ -28,11 +28,11 @@
             </thead>
             <tbody>
                 {% set ns = namespace(current_vaccine=None, color_index=0, group_rows=[], is_even=false, disease='') %}
-    
+
                 {% for esquema_item, vacuna_item in esquema %}
-    
+
                     {% if vacuna_item.name != ns.current_vaccine %}
-    
+
                         {# Volcar grupo anterior #}
                         {% if ns.current_vaccine is not none %}
                         <tr class="vaccine-row {{ 'bg-even' if ns.is_even else 'bg-odd' }}">
@@ -48,11 +48,11 @@
                                     <div class="dose-row">
                                         <div class="dose-age">
                                             {% if dose_age == 0 %}
-                                                <span class="badge-birth">Al nacer</span>
+                                                {{ badge('Al nacer', color='neutral', size='sm') }}
                                             {% elif dose_age >= 12 %}
-                                                <span class="badge-age">{{ dose_age // 12 }} años</span>
+                                                {{ badge((dose_age // 12) ~ ' años', color='primary', size='sm') }}
                                             {% else %}
-                                                <span class="badge-age">{{ dose_age }} meses</span>
+                                                {{ badge(dose_age ~ ' meses', color='primary', size='sm') }}
                                             {% endif %}
                                         </div>
                                         <div class="dose-number">{{ dose_num }}</div>
@@ -62,20 +62,20 @@
                             </td>
                         </tr>
                         {% endif %}
-    
+
                         {# Iniciar nuevo grupo #}
                         {% set ns.current_vaccine = vacuna_item.name %}
                         {% set ns.disease = vacuna_item.disease_prevented or '' %}
                         {% set ns.group_rows = [(esquema_item.ideal_age_months, esquema_item.dose_number)] %}
                         {% set ns.is_even = not ns.is_even %}
                         {% set ns.color_index = ns.color_index + 1 %}
-    
+
                     {% else %}
                         {% set ns.group_rows = ns.group_rows + [(esquema_item.ideal_age_months, esquema_item.dose_number)] %}
                     {% endif %}
-    
+
                 {% endfor %}
-    
+
                 {# Volcar último grupo #}
                 {% if ns.current_vaccine is not none %}
                 <tr class="vaccine-row {{ 'bg-even' if ns.is_even else 'bg-odd' }}">
@@ -91,11 +91,11 @@
                             <div class="dose-row">
                                 <div class="dose-age">
                                     {% if dose_age == 0 %}
-                                        <span class="badge-birth">Al nacer</span>
+                                        {{ badge('Al nacer', color='neutral', size='sm') }}
                                     {% elif dose_age >= 12 %}
-                                        <span class="badge-age">{{ dose_age // 12 }} años</span>
+                                        {{ badge((dose_age // 12) ~ ' años', color='primary', size='sm') }}
                                     {% else %}
-                                        <span class="badge-age">{{ dose_age }} meses</span>
+                                        {{ badge(dose_age ~ ' meses', color='primary', size='sm') }}
                                     {% endif %}
                                 </div>
                                 <div class="dose-number">{{ dose_num }}</div>
@@ -105,13 +105,10 @@
                     </td>
                 </tr>
                 {% endif %}
-    
+
             </tbody>
         </table>
     </div>
-</div>
-
-</main>
 </div>
 
 {% endblock %}

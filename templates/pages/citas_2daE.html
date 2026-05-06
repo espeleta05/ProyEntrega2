@@ -1,5 +1,11 @@
 {% extends 'base_2daE.html' %}
 
+{# ── Macros ── #}
+{% from 'components/toolbar.html' import toolbar %}
+{% from 'components/table.html'   import table   %}
+{% from 'components/button.html'  import button  %}
+{% from 'components/badge.html'   import badge   %}
+
 {% block title %}Citas - Personal Clínico{% endblock %}
 
 {% block head_extra %}
@@ -8,27 +14,21 @@
 
 {% block content %}
 
-<div class="content-header">
-    <h2 class="title">Citas Programadas</h2>
-    <a href="#" class="btn-agregar">
-        <i class="fa-solid fa-plus"></i> Agregar cita
-    </a>
-</div>
+{# ── Encabezado ── #}
+{% call toolbar(title='Citas Programadas',
+                subtitle='Total: ' ~ total_appointments
+                         ~ '  ·  Confirmadas: ' ~ appointments|selectattr('status','equalto','Confirmada')|list|length
+                         ~ '  ·  Pendientes: '  ~ appointments|selectattr('status','equalto','Pendiente')|list|length) %}
+    {{ button('Agregar cita', icon='fa-plus', form_action='#', class='md3-btn md3-btn--filled') }}
+{% endcall %}
 
-<div class="section-info">
-    <p>
-        <strong>Total de citas:</strong> {{ total_appointments }} |
-        <strong class="high">Confirmadas:</strong> {{ appointments|selectattr('status', 'equalto', 'Confirmada')|list|length }} |
-        <strong class="medium">Pendientes:</strong> {{ appointments|selectattr('status', 'equalto', 'Pendiente')|list|length }}
-    </p>
-</div>
-
-<!-- Barra de búsqueda -->
+{# ── Buscador — IDs requeridos por citas.js ── #}
 <div class="search-bar-container section">
     <i class="fa-solid fa-magnifying-glass"></i>
     <input type="text" id="searchInput" placeholder="Buscar por paciente...">
 </div>
 
+{# ── Filtros — IDs requeridos por citas.js ── #}
 <div class="sort-and-filter">
     <div class="sort-options">
         <p class="sort-label">Filtrar por fecha:</p>
@@ -39,7 +39,7 @@
             {% endfor %}
         </select>
     </div>
-    
+
     <div class="sort-options">
         <p class="sort-label">Ordenar por:</p>
         <select id="sortSelect" class="sort-select">
@@ -54,63 +54,58 @@
     </div>
 </div>
 
-<!-- Tabla de citas -->
-    <div class="tbl-wrapper">
-        <table class="tbl">
-            <thead>
-                <tr>
-                    <th>Paciente</th>
-                    <th>Clínica</th>
-                    <th>Área</th>
-                    <th>Trabajador</th>
-                    <th>Fecha y Hora</th>
-                    <th>Motivo</th>
-                    <th>Estado</th>
-                    <th>Acciones</th>
-                </tr>
-            </thead>
-            <tbody id="appointmentsTable">
-                {% for apt in appointments %}
-                <tr class="tbl-row" data-patient="{{ apt.patient_name }}" data-status="{{ apt.status }}">
-                    <td><strong>{{ apt.patient_name }}</strong></td>
-                    <td>{{ apt.clinic_name }}</td>
-                    <td>{{ apt.area_name }}</td>
-                    <td>{{ apt.worker_name }}</td>
-                    <td>
-                        <span>
-                            {{ apt.scheduled_at[:10] }}<br>
-                            <strong>{{ apt.scheduled_at[11:16] if apt.scheduled_at else '—' }}</strong>
-                        </span>
-                    </td>
-                    <td>{{ apt.vaccine_name }}</td>
-                    <td>
-                        {% if apt.status == 'Confirmada' %}
-                        <span class="status-ok">
-                            <i class="fa-solid fa-check"></i> Confirmada
-                        </span>
-                        {% elif apt.status == 'Pendiente' %}
-                        <span class="status-pending">
-                            <i class="fa-solid fa-hourglass-half"></i> Pendiente
-                        </span>
-                        {% else %}
-                        <span class="status-late">
-                            <i class="fa-solid fa-times"></i> Cancelada
-                        </span>
-                        {% endif %}
-                    </td>
-                    <td>
-                        <a href="#" class="btn-icon text-primary" title="Editar">
-                            <i class="fa-solid fa-edit"></i>
-                        </a>
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
-    <p class="tbl-footer">
-        Mostrando {{ appointments|length }} de {{ total_appointments }} citas
-    </p>
+{# ── Tabla de citas ── #}
+{% call(apt) table(
+    headers=[
+        {'label': 'Paciente'},
+        {'label': 'Clínica'},
+        {'label': 'Área'},
+        {'label': 'Trabajador'},
+        {'label': 'Fecha y Hora'},
+        {'label': 'Motivo'},
+        {'label': 'Estado'},
+        {'label': 'Acciones'}
+    ],
+    rows=appointments,
+    empty_icon='fa-calendar-xmark',
+    empty_title='No hay citas programadas.',
+    footer_text='Mostrando ' ~ appointments|length ~ ' de ' ~ total_appointments ~ ' citas',
+    class='citas-table'
+) %}
+    <tr class="tbl-row" data-patient="{{ apt.patient_name }}" data-status="{{ apt.status }}">
+        <td><strong>{{ apt.patient_name }}</strong></td>
+        <td>{{ apt.clinic_name }}</td>
+        <td>{{ apt.area_name }}</td>
+        <td>{{ apt.worker_name }}</td>
+        <td>
+            <span>
+                {{ apt.scheduled_at[:10] }}<br>
+                <strong>{{ apt.scheduled_at[11:16] if apt.scheduled_at else '—' }}</strong>
+            </span>
+        </td>
+        <td>{{ apt.vaccine_name }}</td>
+        <td>
+            {% if apt.status == 'Confirmada' %}
+                {{ badge('Confirmada', color='success',   icon='fa-check',         size='sm') }}
+            {% elif apt.status == 'Pendiente' %}
+                {{ badge('Pendiente',  color='secondary', icon='fa-hourglass-half', size='sm') }}
+            {% else %}
+                {{ badge('Cancelada',  color='error',     icon='fa-times',         size='sm') }}
+            {% endif %}
+        </td>
+        <td>
+            <a href="#" class="btn-icon text-primary" title="Editar">
+                <i class="fa-solid fa-edit"></i>
+            </a>
+        </td>
+    </tr>
+{% endcall %}
+
+{# citas.js depende de id="appointmentsTable" en el <tbody> #}
+<script>
+  document.querySelector('.citas-table .md3-table tbody')
+          ?.setAttribute('id', 'appointmentsTable');
+</script>
 
 {% endblock %}
 

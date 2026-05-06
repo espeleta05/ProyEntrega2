@@ -1,5 +1,11 @@
 {% extends 'base_2daE.html' %}
 
+{# ── Macros ── #}
+{% from 'components/toolbar.html' import toolbar %}
+{% from 'components/table.html'   import table   %}
+{% from 'components/button.html'  import button  %}
+{% from 'components/badge.html'   import badge   %}
+
 {% block title %}Personal - Sistema Clínico{% endblock %}
 
 {% block head_extra %}
@@ -10,24 +16,21 @@
 
 {% block content %}
 
-<!-- HEADER -->
-<div class="content-header">
-    <div>
-        <h2 class="title">Administración de personal</h2>
-        <p class="subtitle">Total de empleados: {{ total_workers }}</p>
-    </div>
-    <a href="{{ url_for('add_user') }}" class="btn-agregar">
-        <i class="fa-solid fa-plus"></i>
-        Agregar usuario
-    </a>
-</div>
+{# ── Encabezado ── #}
+{% call toolbar(title='Administración de personal',
+                subtitle='Total de empleados: ' ~ total_workers) %}
+    {{ button('Agregar usuario', icon='fa-plus',
+              form_action=url_for('add_user'),
+              class='md3-btn md3-btn--filled') }}
+{% endcall %}
 
-<!-- SEARCH -->
+{# ── Buscador — IDs requeridos por personal.js ── #}
 <div class="search-bar-container section">
     <i class="fa-solid fa-magnifying-glass"></i>
     <input type="text" id="personalSearchInput" placeholder="Buscar empleado por nombre, correo, rol o id...">
 </div>
 
+{# ── Filtros — IDs requeridos por personal.js ── #}
 <div class="sort-and-filter">
     <div class="sort-options">
         <p class="sort-label">Filtrar por rol:</p>
@@ -38,7 +41,7 @@
             {% endfor %}
         </select>
     </div>
-    
+
     <div class="sort-options">
         <p class="sort-label">Ordenar por:</p>
         <select id="sortSelect" class="sort-select">
@@ -49,7 +52,7 @@
     </div>
 </div>
 
-<!-- SECCIONES POR ROL -->
+{# ── Secciones por rol ── #}
 {% set roles = workers | groupby('role') %}
 {% set role_colors = ['rc-blue', 'rc-teal', 'rc-purple', 'rc-amber', 'rc-green', 'rc-coral'] %}
 
@@ -65,60 +68,54 @@
         <span class="role-count-badge {{ rc }}">{{ members | list | length }}</span>
     </div>
 
-    <div class="tbl-wrapper">
-        <table class="tbl">
-            <thead>
-                <tr>
-                    <th class="personal-col-name">Empleado</th>
-                    <th class="personal-col-mail">Correo</th>
-                    <th class="personal-col-id">ID</th>
-                    <th class="personal-col-role">Rol</th>
-                    <th class="personal-col-action center">Acciones</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for w in members %}
-                <tr class="tbl-row employee-row bar-{{ loop.index0 % 12 }}">
-                    <td >
-                        <div class="patient-cell">
-                            <div class="avatar-sm {{ rc }}-avatar">
-                                {{ w.first_name[0] | upper }}{{ w.last_name[0] | upper if w.last_name else '' }}
-                            </div>
-                            <div class="cell-stack">
-                                <span class="cell-main">{{ w.first_name }} {{ w.last_name }}</span>
-                                {% if w.specialty %}
-                                <span class="cell-sub">{{ w.specialty }}</span>
-                                {% endif %}
-                            </div>
-                        </div>
-                    </td>
-                    <td class="muted-td">
-                        {% if w.mail %}
-                        <span class="mail-cell">
-                            <i class="fa-solid fa-envelope"></i>
-                            {{ w.mail }}
-                        </span>
-                        {% else %}
-                        <span class="muted-td">—</span>
+    {% set _row = namespace(i=0) %}
+    {% call(w) table(
+        headers=[
+            {'label': 'Empleado',  'class': 'personal-col-name'},
+            {'label': 'Correo',    'class': 'personal-col-mail'},
+            {'label': 'ID',        'class': 'personal-col-id'},
+            {'label': 'Rol',       'class': 'personal-col-role'},
+            {'label': 'Acciones',  'align': 'center'}
+        ],
+        rows=members | list,
+        empty_icon='fa-user-slash',
+        empty_title='No hay empleados en este rol.'
+    ) %}
+        <tr class="tbl-row employee-row bar-{{ _row.i % 12 }}">
+            <td>
+                <div class="patient-cell">
+                    <div class="avatar-sm {{ rc }}-avatar">
+                        {{ w.first_name[0] | upper }}{{ w.last_name[0] | upper if w.last_name else '' }}
+                    </div>
+                    <div class="cell-stack">
+                        <span class="cell-main">{{ w.first_name }} {{ w.last_name }}</span>
+                        {% if w.specialty %}
+                        <span class="cell-sub">{{ w.specialty }}</span>
                         {% endif %}
-                    </td>
-                    <td>
-                        <span class="emp-id-badge">EMP{{ '%03d' % w.worker_id }}</span>
-                    </td>
-                    <td>
-                        <span class="role-pill {{ rc }}">{{ w.role }}</span>
-                    </td>
-                    <td class="center">
-                        <a href="{{ url_for('edit_user', worker_id=w.worker_id) }}"
-                           class="action-btn" title="Editar">
-                            <i class="fa-solid fa-pen-to-square"></i>
-                        </a>
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
+                    </div>
+                </div>
+            </td>
+            <td class="muted-td">
+                {% if w.mail %}
+                <span class="mail-cell">
+                    <i class="fa-solid fa-envelope"></i>
+                    {{ w.mail }}
+                </span>
+                {% else %}
+                <span class="muted-td">—</span>
+                {% endif %}
+            </td>
+            <td>{{ badge('EMP' ~ '%03d' % w.worker_id, color='neutral', size='sm') }}</td>
+            <td>{{ badge(w.role, size='sm', class='role-pill ' ~ rc) }}</td>
+            <td class="col-center">
+                <a href="{{ url_for('edit_user', worker_id=w.worker_id) }}"
+                   class="action-btn" title="Editar">
+                    <i class="fa-solid fa-pen-to-square"></i>
+                </a>
+            </td>
+        </tr>
+        {% set _row.i = _row.i + 1 %}
+    {% endcall %}
 
 </div>
 {% else %}
@@ -130,4 +127,3 @@
 {% block scripts %}
 <script src="{{ url_for('static', filename='js/pages/personal.js') }}"></script>
 {% endblock %}
-

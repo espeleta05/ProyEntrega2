@@ -1,5 +1,11 @@
 {% extends 'base_2daE.html' %}
 
+{# ── Macros ── #}
+{% from 'components/toolbar.html' import toolbar %}
+{% from 'components/table.html'   import table   %}
+{% from 'components/button.html'  import button  %}
+{% from 'components/badge.html'   import badge   %}
+
 {% block title %}Inventario - Personal Clínico{% endblock %}
 
 {% block head_extra %}
@@ -8,25 +14,19 @@
 
 {% block content %}
 
-<div class="content-header">
-    <h2 class="title">Inventario de Insumos</h2>
-    <a href="#" class="btn-agregar">
-        <i class="fa-solid fa-plus"></i> Agregar insumo
-    </a>
-</div>
+{# ── Encabezado ── #}
+{% call toolbar(title='Inventario de Insumos',
+                subtitle='Total: ' ~ inventory|length ~ '  ·  Stock bajo: ' ~ inventory|selectattr('low_stock','true')|list|length) %}
+    {{ button('Agregar insumo', icon='fa-plus', form_action='#', class='md3-btn md3-btn--filled') }}
+{% endcall %}
 
-<div class="section-info">
-        <strong>Total de insumos:</strong> {{ inventory|length }} &nbsp;|&nbsp;
-        <strong class="low">Con stock bajo:</strong> {{ inventory|selectattr('low_stock', 'true')|list|length }}
-    </p>
-</div>
-
-<!-- Barra de búsqueda -->
-<div class="search-bar-container section" >
+{# ── Buscador — IDs requeridos por inventario.js ── #}
+<div class="search-bar-container section">
     <i class="fa-solid fa-magnifying-glass"></i>
     <input type="text" id="searchInput" placeholder="Buscar por insumo o clínica...">
 </div>
 
+{# ── Filtros — IDs requeridos por inventario.js ── #}
 <div class="sort-and-filter">
     <div class="sort-options">
         <p class="sort-label">Filtrar por insumo:</p>
@@ -37,7 +37,7 @@
             {% endfor %}
         </select>
     </div>
-    
+
     <div class="sort-options">
         <p class="sort-label">Ordenar por:</p>
         <select id="sortSelect" class="sort-select">
@@ -52,58 +52,53 @@
     </div>
 </div>
 
-<!-- Tabla de inventario -->
-<div class="tbl-wrapper">
-    <table class="tbl">
-        <thead>
-            <tr>
-                <th>Clínica</th>
-                <th>Insumo</th>
-                <th>Unidad</th>
-                <th class="num">Stock actual</th>
-                <th class="num">Stock mínimo</th>
-                <th>Categoría</th>
-                <th class="center">Estado</th>
-            </tr>
-        </thead>
-        <tbody id="inventoryTable">
-            {% for item in inventory %}
-            <tr class="tbl-row bar-{{ loop.index0 % 12 }}"
-                data-clinic="{{ item.clinic_name }}"
-                data-supply="{{ item.supply_name }}">
-                <td class="muted-td">{{ item.clinic_name }}</td>
-                <td>
-                    <span class="cell-main">{{ item.supply_name }}</span>
-                </td>
-                <td class="muted-td">{{ item.supply_unit }}</td>
-                <td class="num">
-                    <span class="stock-pill {{ 'stock-low' if item.low_stock else 'stock-ok' }}">
-                        {{ item.quantity }}
-                    </span>
-                </td>
-                <td class="num">{{ item.min_stock }}</td>
-                <td class="muted-td">{{ item.supply_category }}</td>
-                <td class="center">
-                    {% if item.low_stock %}
-                        <span class="status-late">
-                            <i class="fa-solid fa-triangle-exclamation"></i> Bajo
-                        </span>
-                    {% else %}
-                        <span class="status-ok">
-                            <i class="fa-solid fa-check"></i> Disponible
-                        </span>
-                    {% endif %}
-                </td>
-            </tr>
+{# ── Tabla de inventario ── #}
+{% set _row = namespace(i=0) %}
+{% call(item) table(
+    headers=[
+        {'label': 'Clínica'},
+        {'label': 'Insumo'},
+        {'label': 'Unidad'},
+        {'label': 'Stock actual',  'align': 'right'},
+        {'label': 'Stock mínimo',  'align': 'right'},
+        {'label': 'Categoría'},
+        {'label': 'Estado',        'align': 'center'}
+    ],
+    rows=inventory,
+    empty_icon='fa-boxes-stacked',
+    empty_title='No hay insumos registrados.',
+    footer_text='Mostrando ' ~ inventory|length ~ ' de ' ~ inventory|length ~ ' insumos',
+    class='inventory-table'
+) %}
+    <tr class="tbl-row bar-{{ _row.i % 12 }}"
+        data-clinic="{{ item.clinic_name }}"
+        data-supply="{{ item.supply_name }}">
+        <td class="muted-td">{{ item.clinic_name }}</td>
+        <td><span class="cell-main">{{ item.supply_name }}</span></td>
+        <td class="muted-td">{{ item.supply_unit }}</td>
+        <td class="col-right">
+            {{ badge(item.quantity | string,
+                     color='error' if item.low_stock else 'success',
+                     size='sm') }}
+        </td>
+        <td class="col-right">{{ item.min_stock }}</td>
+        <td class="muted-td">{{ item.supply_category }}</td>
+        <td class="col-center">
+            {% if item.low_stock %}
+                {{ badge('Bajo',       color='error',   icon='fa-triangle-exclamation', size='sm') }}
             {% else %}
-            <tr>
-                <td colspan="7" class="empty-state">No hay insumos registrados.</td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-</div>
-<p class="tbl-footer">Mostrando {{ inventory|length }} de {{ inventory|length }} insumos</p>
+                {{ badge('Disponible', color='success', icon='fa-check',                size='sm') }}
+            {% endif %}
+        </td>
+    </tr>
+    {% set _row.i = _row.i + 1 %}
+{% endcall %}
+
+{# inventario.js depende de id="inventoryTable" en el <tbody> #}
+<script>
+  document.querySelector('.inventory-table .md3-table tbody')
+          ?.setAttribute('id', 'inventoryTable');
+</script>
 
 {% endblock %}
 

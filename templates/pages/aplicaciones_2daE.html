@@ -1,5 +1,12 @@
 {% extends 'base_2daE.html' %}
 
+{# ── Macros ── #}
+{% from 'components/toolbar.html'  import toolbar  %}
+{% from 'components/table.html'    import table    %}
+{% from 'components/button.html'   import button   %}
+{% from 'components/badge.html'    import badge    %}
+{% from 'components/kpi_card.html' import kpi_card %}
+
 {% block title %}Registro de Aplicaciones - Sistema Clinico{% endblock %}
 
 {% block head_extra %}
@@ -9,56 +16,29 @@
 
 {% block content %}
 
-<!-- ENCABEZADO -->
-<div class="content-header">
-    <div>
-        <h2 class="title">Registro de aplicaciones</h2>
-        <p class="subtitle">Total registradas: {{ total_applications }}</p>
-    </div>
-    <a href="{{ url_for('agregar_aplicacion') }}" class="btn-agregar">
-        <i class="fa-solid fa-plus"></i>
-        Nueva aplicación
-    </a>
-</div>
+{# ── Encabezado ── #}
+{% call toolbar(title='Registro de aplicaciones',
+                subtitle='Total registradas: ' ~ total_applications) %}
+    {{ button('Nueva aplicación', icon='fa-plus',
+              form_action=url_for('agregar_aplicacion'),
+              class='md3-btn md3-btn--filled') }}
+{% endcall %}
 
-<!-- KPIs -->
+{# ── KPIs ── #}
 <div class="kpi-row">
-    <div class="kpi-mini kpi-color1">
-        <i class="fa-solid fa-syringe kpi-icon-color1"></i>
-        <div>
-            <span class="kpi-num">{{ total_applications }}</span>
-            <span class="kpi-lbl">Total aplicaciones</span>
-        </div>
-    </div>
-    <div class="kpi-mini kpi-color2">
-        <i class="fa-solid fa-user kpi-icon-color2"></i>
-        <div>
-            <span class="kpi-num">{{ total_patients_attended }}</span>
-            <span class="kpi-lbl">Pacientes atendidos</span>
-        </div>
-    </div>
-    <div class="kpi-mini kpi-color1">
-        <i class="fa-solid fa-vial kpi-icon-color1"></i>
-        <div>
-            <span class="kpi-num">{{ total_unique_vaccines }}</span>
-            <span class="kpi-lbl">Vacunas diferentes</span>
-        </div>
-    </div>
-    <div class="kpi-mini kpi-color2">
-        <i class="fa-regular fa-calendar-check kpi-icon-color"></i>
-        <div>
-            <span class="kpi-num">{{ applications_today }}</span>
-            <span class="kpi-lbl">Aplicaciones hoy</span>
-        </div>
-    </div>
+    {{ kpi_card(value=total_applications,      label='Total aplicaciones',  icon='fa-syringe',        color='primary')   }}
+    {{ kpi_card(value=total_patients_attended, label='Pacientes atendidos', icon='fa-user',           color='secondary') }}
+    {{ kpi_card(value=total_unique_vaccines,   label='Vacunas diferentes',  icon='fa-vial',           color='primary')   }}
+    {{ kpi_card(value=applications_today,      label='Aplicaciones hoy',    icon='fa-calendar-check', color='secondary') }}
 </div>
 
-<!-- BUSCADOR -->
+{# ── Buscador — IDs requeridos por aplicaciones.js ── #}
 <div class="search-bar-container section">
     <i class="fa-solid fa-magnifying-glass"></i>
     <input type="text" id="searchInput" placeholder="Buscar por paciente, vacuna o doctor...">
 </div>
 
+{# ── Filtros — IDs requeridos por aplicaciones.js ── #}
 <div class="sort-and-filter">
     <div class="sort-options">
         <p class="sort-label">Filtrar por vacuna:</p>
@@ -69,7 +49,7 @@
             {% endfor %}
         </select>
     </div>
-    
+
     <div class="sort-options">
         <p class="sort-label">Ordenar por:</p>
         <select id="sortSelect" class="sort-select">
@@ -84,55 +64,51 @@
     </div>
 </div>
 
-<!-- TABLA -->
-<div class="tbl-wrapper">
-    <table class="tbl">
-        <thead>
-            <tr>
-                <th>Vacuna</th>
-                <th>Paciente</th>
-                <th>Dosis</th>
-                <th>Fecha aplicada</th>
-                <th>Próxima dosis</th>
-                <th>Doctor</th>
-                <th>Observaciones</th>
-                <th class="center">Estado</th>
-            </tr>
-        </thead>
-        <tbody id="appsTable">
-            {% for v in applications %}
-            <tr class="tbl-row bar-{{ loop.index0 % 12 }}"
-                data-search="{{ v.name | lower }} {{ v.patient_name | lower }} {{ v.doctor | lower }}">
-                <td>
-                    <span class="cell-main">{{ v.name }}</span>
-                </td>
-                <td>
-                    <div class="patient-cell">
-                        <span>{{ v.patient_name or '—' }}</span>
-                    </div>
-                </td>
-                <td>
-                    <span class="dose-pill">{{ v.dose }}</span>
-                </td>
-                <td class="muted-td">{{ v.date or '—' }}</td>
-                <td class="muted-td">{{ v.next_date or 'N/A' }}</td>
-                <td class="muted-td">{{ v.doctor or '—' }}</td>
-                <td class="muted-td obs-td">{{ v.notes or 'Sin observaciones' }}</td>
-                <td class="center">
-                    <span class="status-ok">
-                        <i class="fa-solid fa-check"></i> Aplicada
-                    </span>
-                </td>
-            </tr>
-            {% else %}
-            <tr>
-                <td colspan="8" class="empty-state">No hay aplicaciones registradas.</td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-</div>
-<p class="tbl-footer">Mostrando {{ total_applications }} aplicaciones</p>
+{# ── Tabla de aplicaciones ── #}
+{% set _row = namespace(i=0) %}
+{% call(v) table(
+    headers=[
+        {'label': 'Vacuna'},
+        {'label': 'Paciente'},
+        {'label': 'Dosis'},
+        {'label': 'Fecha aplicada'},
+        {'label': 'Próxima dosis'},
+        {'label': 'Doctor'},
+        {'label': 'Observaciones'},
+        {'label': 'Estado', 'align': 'center'}
+    ],
+    rows=applications,
+    empty_icon='fa-syringe',
+    empty_title='No hay aplicaciones registradas.',
+    footer_text='Mostrando ' ~ total_applications ~ ' aplicaciones',
+    class='apps-table'
+) %}
+    <tr class="tbl-row bar-{{ _row.i % 12 }}"
+        data-search="{{ v.name | lower }} {{ v.patient_name | lower }} {{ v.doctor | lower }}">
+        <td><span class="cell-main">{{ v.name }}</span></td>
+        <td>
+            <div class="patient-cell">
+                <span>{{ v.patient_name or '—' }}</span>
+            </div>
+        </td>
+        <td>{{ badge(v.dose, color='primary', size='sm') }}</td>
+        <td class="muted-td">{{ v.date or '—' }}</td>
+        <td class="muted-td">{{ v.next_date or 'N/A' }}</td>
+        <td class="muted-td">{{ v.doctor or '—' }}</td>
+        <td class="muted-td obs-td">{{ v.notes or 'Sin observaciones' }}</td>
+        <td class="col-center">
+            {{ badge('Aplicada', color='success', icon='fa-check', size='sm') }}
+        </td>
+    </tr>
+    {% set _row.i = _row.i + 1 %}
+{% endcall %}
+
+{# aplicaciones.js depende de id="appsTable" en el <tbody>.
+   El macro table no expone ese parámetro, así que lo inyectamos aquí. #}
+<script>
+  document.querySelector('.apps-table .md3-table tbody')
+          ?.setAttribute('id', 'appsTable');
+</script>
 
 {% endblock %}
 

@@ -10,20 +10,105 @@ AND routine_schema = 'public';
 -- WRAPPERS DE VISTAS
 -- =====================================
 
--- (APLICADA) vw_patient
-/*
-CREATE OR REPLACE PROCEDURE sp_get_patients(
+-- Pacientes completos — sin depender de vw_patients
+CREATE OR REPLACE PROCEDURE sp_get_patients_full(
+    IN    p_limit   INT,
     INOUT p_results REFCURSOR
 )
 LANGUAGE plpgsql AS $$
+DECLARE
+    v_query TEXT;
 BEGIN
-    OPEN p_results FOR
-        SELECT *
-        FROM vw_patients
-        ORDER BY patient_id;
+    IF p_limit IS NOT NULL AND p_limit > 0 THEN
+        OPEN p_results FOR
+            SELECT
+                p.patient_id,
+                p.first_name,
+                p.last_name,
+                TRIM(p.first_name || ' ' || p.last_name)                AS full_name,
+                p.curp,
+                p.birth_date,
+                p.gender,
+                p.weight_kg,
+                p.premature,
+                p.created_at,
+                p.blood_type_id,
+                COALESCE(bt.blood_type, '—')                            AS blood_type,
+                DATE_PART('year', AGE(CURRENT_DATE, p.birth_date))::INT AS age,
+                COALESCE(TRIM(g.first_name || ' ' || g.last_name), 'Sin tutor') AS guardian,
+                COALESCE(
+                    (SELECT gp.phone FROM guardian_phones gp
+                     WHERE gp.guardian_id = g.guardian_id
+                     ORDER BY gp.is_primary DESC LIMIT 1),
+                    '—'
+                )                                                        AS contact,
+                'N/A'::TEXT                                              AS risk,
+                COALESCE(
+                    NULLIF((
+                        SELECT STRING_AGG(al.name, ', ' ORDER BY al.name)
+                        FROM patient_allergies pa
+                        JOIN allergies al ON al.allergy_id = pa.allergy_id
+                        WHERE pa.patient_id = p.patient_id
+                    ), ''),
+                    'Ninguna'
+                )                                                        AS allergies
+            FROM patients p
+            LEFT JOIN blood_types bt ON bt.blood_type_id = p.blood_type_id
+            LEFT JOIN LATERAL (
+                SELECT pgr.guardian_id
+                FROM   patient_guardian_relations pgr
+                WHERE  pgr.patient_id = p.patient_id
+                ORDER  BY pgr.is_primary DESC LIMIT 1
+            ) rel ON TRUE
+            LEFT JOIN guardians g ON g.guardian_id = rel.guardian_id
+            ORDER BY p.created_at DESC
+            LIMIT p_limit;
+    ELSE
+        OPEN p_results FOR
+            SELECT
+                p.patient_id,
+                p.first_name,
+                p.last_name,
+                TRIM(p.first_name || ' ' || p.last_name)                AS full_name,
+                p.curp,
+                p.birth_date,
+                p.gender,
+                p.weight_kg,
+                p.premature,
+                p.created_at,
+                p.blood_type_id,
+                COALESCE(bt.blood_type, '—')                            AS blood_type,
+                DATE_PART('year', AGE(CURRENT_DATE, p.birth_date))::INT AS age,
+                COALESCE(TRIM(g.first_name || ' ' || g.last_name), 'Sin tutor') AS guardian,
+                COALESCE(
+                    (SELECT gp.phone FROM guardian_phones gp
+                     WHERE gp.guardian_id = g.guardian_id
+                     ORDER BY gp.is_primary DESC LIMIT 1),
+                    '—'
+                )                                                        AS contact,
+                'N/A'::TEXT                                              AS risk,
+                COALESCE(
+                    NULLIF((
+                        SELECT STRING_AGG(al.name, ', ' ORDER BY al.name)
+                        FROM patient_allergies pa
+                        JOIN allergies al ON al.allergy_id = pa.allergy_id
+                        WHERE pa.patient_id = p.patient_id
+                    ), ''),
+                    'Ninguna'
+                )                                                        AS allergies
+            FROM patients p
+            LEFT JOIN blood_types bt ON bt.blood_type_id = p.blood_type_id
+            LEFT JOIN LATERAL (
+                SELECT pgr.guardian_id
+                FROM   patient_guardian_relations pgr
+                WHERE  pgr.patient_id = p.patient_id
+                ORDER  BY pgr.is_primary DESC LIMIT 1
+            ) rel ON TRUE
+            LEFT JOIN guardians g ON g.guardian_id = rel.guardian_id
+            ORDER BY p.last_name, p.first_name;
+    END IF;
 END;
 $$;
-*/
 
 CREATE OR REPLACE PROCEDURE sp_dashboard_kpis(
     INOUT p_results REFCURSOR
@@ -281,55 +366,6 @@ BEGIN
     CROSS JOIN expiring_lots el
     CROSS JOIN low_stock     ls
     CROSS JOIN alerts        al;
-END;
-$$;
-
-
-
--- v_delayed_patients (con umbral de días)
-CREATE OR REPLACE PROCEDURE sp_delayed_patients(
-    IN    p_days_threshold  INT DEFAULT 30,
-    INOUT p_resultados      REFCURSOR
-
-)
-LANGUAGE plpgsql AS $$
-BEGIN
-    OPEN p_resultados FOR
-        SELECT *
-        FROM v_delayed_patients
-        WHERE days_late >= p_days_threshold
-        ORDER BY days_late DESC;
-END;
-$$;
-
-
--- v_low_stock_items (filtro opcional por clínica)
-CREATE OR REPLACE PROCEDURE sp_low_stock_items(
-    IN    p_clinic_id   INT DEFAULT NULL,
-    INOUT p_resultados  REFCURSOR
-)
-LANGUAGE plpgsql AS $$
-BEGIN
-    OPEN p_resultados FOR
-        SELECT inventory_id, clinic_name, supply_name, quantity, min_stock
-        FROM v_low_stock_items
-        WHERE p_clinic_id IS NULL OR clinic_id = p_clinic_id
-        ORDER BY clinic_name, supply_name;
-END;
-$$;
-
-
-
--- v_inventory_status
-CREATE OR REPLACE PROCEDURE sp_get_inventory_status(
-    INOUT p_results REFCURSOR
-)
-LANGUAGE plpgsql AS $$
-BEGIN
-    OPEN p_results FOR
-        SELECT *
-        FROM v_inventory_status
-        ORDER BY clinic_name, supply_name;
 END;
 $$;
 
@@ -1590,8 +1626,400 @@ $$;
 
 
 -- ==============================================
+-- COLUMNAS FALTANTES EN PATIENTS
+-- (ejecutar solo si la tabla ya existe sin estas columnas)
+-- ==============================================
+ALTER TABLE patients ADD COLUMN IF NOT EXISTS is_active   BOOLEAN   NOT NULL DEFAULT TRUE;
+ALTER TABLE patients ADD COLUMN IF NOT EXISTS updated_at  TIMESTAMP;
+ALTER TABLE patients ADD COLUMN IF NOT EXISTS deleted_at  TIMESTAMP;
 
+
+-- ==============================================
+-- SPs DE LECTURA FALTANTES
+-- ==============================================
+
+-- Vacunas completas (usada en /vacunas)
+CREATE OR REPLACE PROCEDURE sp_get_vaccines_full(
+    INOUT p_results REFCURSOR
+)
+LANGUAGE plpgsql AS $$
+BEGIN
+    OPEN p_results FOR
+        SELECT
+            v.vaccine_id,
+            v.name,
+            v.commercial_name,
+            v.disease_prevented,
+            v.ideal_age_months,
+            COALESCE(m.name, '—')  AS manufacturer,
+            COALESCE(vv.via, '—')  AS route
+        FROM vaccines v
+        LEFT JOIN manufacturers m  ON m.manufacturer_id = v.manufacturer_id
+        LEFT JOIN vaccine_vias  vv ON vv.via_id          = v.via_id
+        ORDER BY v.name;
+END;
+$$;
+
+
+-- Registros de vacunación completos (usada en /historial, /aplicaciones)
+CREATE OR REPLACE PROCEDURE sp_get_vaccination_records_full(
+    INOUT p_results REFCURSOR
+)
+LANGUAGE plpgsql AS $$
+BEGIN
+    OPEN p_results FOR
+        SELECT * FROM v_vaccination_records_full
+        ORDER BY applied_date DESC;
+END;
+$$;
+
+-- Personal completo (usada en /personal)
+CREATE OR REPLACE PROCEDURE sp_get_workers_full(
+    INOUT p_results REFCURSOR
+)
+LANGUAGE plpgsql AS $$
+BEGIN
+    OPEN p_results FOR
+        SELECT
+            w.worker_id,
+            w.first_name,
+            w.last_name,
+            TRIM(w.first_name || ' ' || w.last_name) AS full_name,
+            r.name    AS role_name,
+            r.role_id,
+            we.email,
+            we.email  AS mail,
+            r.name    AS role
+        FROM workers w
+        LEFT JOIN roles r ON r.role_id = w.role_id
+        LEFT JOIN worker_emails we
+               ON we.worker_id = w.worker_id
+              AND we.is_primary = TRUE
+        ORDER BY w.last_name, w.first_name;
+END;
+$$;
+
+-- Esquema de un paciente (alias de sp_get_patient_scheme)
+CREATE OR REPLACE PROCEDURE sp_get_esquema_paciente(
+    IN    p_patient_id INT,
+    INOUT p_results    REFCURSOR
+)
+LANGUAGE plpgsql AS $$
+DECLARE
+    v_exists BOOLEAN;
+BEGIN
+    SELECT EXISTS(SELECT 1 FROM patients WHERE patient_id = p_patient_id AND is_active = TRUE)
+    INTO v_exists;
+    IF NOT v_exists THEN
+        RAISE EXCEPTION 'Paciente % no encontrado o inactivo', p_patient_id;
+    END IF;
+
+    OPEN p_results FOR
+        SELECT
+            patient_id, dose_id, vaccine_id, record_id,
+            full_name, birth_date, age_years,
+            vaccine_name AS name,
+            disease_prevented,
+            dose_label   AS dose,
+            dose_number,
+            ideal_age_months,
+            ideal_date,
+            applied_date AS date,
+            doctor,
+            application_site,
+            had_reaction,
+            patient_temp_c,
+            estado,
+            dias_retraso,
+            CASE
+                WHEN next_dose_age_months IS NOT NULL
+                    THEN 'A los ' || next_dose_age_months || ' meses'
+                ELSE NULL
+            END AS next_date,
+            CASE
+                WHEN ideal_age_months = 0  THEN 'Al nacer'
+                WHEN ideal_age_months >= 12 THEN (ideal_age_months / 12) || ' año(s)'
+                ELSE ideal_age_months || ' meses'
+            END AS edad_ideal_label,
+            CASE
+                WHEN record_id IS NULL AND dias_retraso > 0
+                    THEN 'Retraso de ' || dias_retraso || ' días'
+                WHEN record_id IS NULL AND dias_retraso <= 0
+                    THEN 'Programada en ' || ABS(dias_retraso) || ' días'
+                ELSE NULL
+            END AS alerta_retraso
+        FROM v_patient_vaccination_scheme_base
+        WHERE patient_id = p_patient_id
+        ORDER BY ideal_age_months, dose_number;
+END;
+$$;
+
+-- Esquema general de vacunación (todas las vacunas × dosis)
+CREATE OR REPLACE PROCEDURE sp_get_esquema_vacunacion(
+    INOUT p_results REFCURSOR
+)
+LANGUAGE plpgsql AS $$
+BEGIN
+    OPEN p_results FOR
+        SELECT
+            v.vaccine_id,
+            v.name            AS vaccine_name,
+            v.commercial_name,
+            v.disease_prevented,
+            sd.dose_id,
+            sd.dose_label,
+            sd.dose_number,
+            sd.ideal_age_months
+        FROM vaccines v
+        JOIN scheme_doses sd ON sd.vaccine_id = v.vaccine_id
+        ORDER BY v.name, sd.ideal_age_months, sd.dose_number;
+END;
+$$;
+
+-- Dosis pendientes de un paciente (usada en /historial)
+CREATE OR REPLACE PROCEDURE sp_get_pending_scheme_doses(
+    IN    p_patient_id INT,
+    INOUT p_results    REFCURSOR
+)
+LANGUAGE plpgsql AS $$
+BEGIN
+    OPEN p_results FOR
+        SELECT
+            v.name            AS vaccine_name,
+            sd.dose_label,
+            sd.ideal_age_months,
+            (p.birth_date + (sd.ideal_age_months || ' months')::INTERVAL)::DATE AS ideal_date
+        FROM patients p
+        CROSS JOIN scheme_doses sd
+        JOIN vaccines v ON v.vaccine_id = sd.vaccine_id
+        WHERE p.patient_id = p_patient_id
+          AND p.is_active   = TRUE
+          AND NOT EXISTS (
+              SELECT 1 FROM vaccination_records vr
+              WHERE vr.patient_id    = p_patient_id
+                AND vr.scheme_dose_id = sd.dose_id
+          )
+        ORDER BY sd.ideal_age_months, sd.dose_number;
+END;
+$$;
+
+-- Estado de inventario (usada en /inventario)
+CREATE OR REPLACE PROCEDURE sp_get_inventory_status(
+    INOUT p_results REFCURSOR
+)
+LANGUAGE plpgsql AS $$
+BEGIN
+    OPEN p_results FOR
+        SELECT * FROM v_inventory_status
+        ORDER BY clinic_name, supply_category, supply_name;
+END;
+$$;
+
+-- Tarjetas NFC completas (usada en /nfc)
+CREATE OR REPLACE PROCEDURE sp_get_nfc_cards_full(
+    INOUT p_results REFCURSOR
+)
+LANGUAGE plpgsql AS $$
+BEGIN
+    OPEN p_results FOR
+        SELECT
+            nc.nfc_card_id,
+            nc.uid,
+            nc.card_type,
+            nc.issued_date,
+            nc.status,
+            nc.last_scanned_at,
+            nc.nfc_card_notes,
+            nc.patient_id,
+            TRIM(p.first_name || ' ' || p.last_name) AS patient_name
+        FROM nfc_cards nc
+        JOIN patients p ON p.patient_id = nc.patient_id
+        ORDER BY nc.issued_date DESC;
+END;
+$$;
+
+-- Eventos de escaneo NFC (usada en /nfc)
+CREATE OR REPLACE PROCEDURE sp_get_nfc_scans_full(
+    INOUT p_results REFCURSOR
+)
+LANGUAGE plpgsql AS $$
+BEGIN
+    OPEN p_results FOR
+        SELECT
+            se.scan_event_id,
+            se.nfc_card_id,
+            se.scanned_at,
+            se.action_triggered,
+            se.nfc_scan_result,
+            c.name  AS clinic_name,
+            COALESCE(TRIM(w.first_name || ' ' || w.last_name), '—') AS scanned_by_name
+        FROM nfc_scan_events se
+        JOIN clinics c ON c.clinic_id = se.clinic_id
+        LEFT JOIN workers w ON w.worker_id = se.scanned_by
+        ORDER BY se.scanned_at DESC;
+END;
+$$;
+
+-- Clínicas completas (usada en /clinicas)
+CREATE OR REPLACE PROCEDURE sp_get_clinics_full(
+    INOUT p_results REFCURSOR
+)
+LANGUAGE plpgsql AS $$
+BEGIN
+    OPEN p_results FOR
+        SELECT
+            c.clinic_id,
+            c.name,
+            c.phone,
+            c.institution_type,
+            c.is_active,
+            COALESCE(
+                mu.name || ', ' || st.name,
+                '—'
+            ) AS location
+        FROM clinics c
+        LEFT JOIN addresses  ad ON ad.address_id    = c.address_id
+        LEFT JOIN municipalities mu ON mu.municipality_id = ad.municipality_id
+        LEFT JOIN states     st ON st.state_id      = mu.state_id
+        WHERE c.is_active = TRUE
+        ORDER BY c.name;
+END;
+$$;
+
+-- Alertas de esquema completas (usada en /api/alertas-esquema)
+CREATE OR REPLACE PROCEDURE sp_get_schema_alerts_full(
+    INOUT p_results REFCURSOR
+)
+LANGUAGE plpgsql AS $$
+BEGIN
+    OPEN p_results FOR
+        SELECT
+            sca.alert_id,
+            sca.patient_id,
+            sca.scheme_dose_id,
+            sca.due_date,
+            sca.status,
+            sca.notified_at,
+            TRIM(p.first_name || ' ' || p.last_name) AS patient_name,
+            v.name    AS vaccine_name,
+            sd.dose_label
+        FROM scheme_completion_alerts sca
+        JOIN patients     p  ON p.patient_id  = sca.patient_id
+        JOIN scheme_doses sd ON sd.dose_id    = sca.scheme_dose_id
+        JOIN vaccines     v  ON v.vaccine_id  = sd.vaccine_id
+        ORDER BY sca.due_date;
+END;
+$$;
+
+
+-- ==============================================
+-- SPs DE MUTACIÓN FALTANTES
+-- ==============================================
+
+-- Eliminar vacuna (borrado lógico o físico)
+CREATE OR REPLACE PROCEDURE sp_delete_vaccine(
+    IN    p_vaccine_id INT,
+    INOUT p_results    REFCURSOR
+)
+LANGUAGE plpgsql AS $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM vaccines WHERE vaccine_id = p_vaccine_id) THEN
+        RAISE EXCEPTION 'Vacuna % no encontrada', p_vaccine_id;
+    END IF;
+
+    DELETE FROM vaccines WHERE vaccine_id = p_vaccine_id;
+
+    OPEN p_results FOR
+        SELECT TRUE AS success, 'Vacuna eliminada' AS message, p_vaccine_id AS vaccine_id;
+EXCEPTION
+WHEN OTHERS THEN
+    OPEN p_results FOR
+        SELECT FALSE AS success, SQLERRM AS message, p_vaccine_id AS vaccine_id;
+END;
+$$;
+
+-- Registrar trabajador
+CREATE OR REPLACE PROCEDURE sp_register_worker(
+    IN    p_role_id      INT,
+    IN    p_first_name   VARCHAR,
+    IN    p_last_name    VARCHAR,
+    IN    p_hire_date    DATE,
+    IN    p_password     VARCHAR,
+    IN    p_email        VARCHAR,
+    IN    p_phone        VARCHAR,
+    INOUT p_results      REFCURSOR
+)
+LANGUAGE plpgsql AS $$
+DECLARE
+    v_worker_id INT;
+    v_user_id   INT;
+BEGIN
+    INSERT INTO workers (role_id, first_name, last_name, hire_date)
+    VALUES (p_role_id, p_first_name, p_last_name, p_hire_date)
+    RETURNING worker_id INTO v_worker_id;
+
+    IF p_email IS NOT NULL AND TRIM(p_email) <> '' THEN
+        INSERT INTO worker_emails (worker_id, email, is_primary)
+        VALUES (v_worker_id, p_email, TRUE);
+    END IF;
+
+    INSERT INTO users (worker_id, username, password_hash, is_active)
+    VALUES (v_worker_id, COALESCE(p_email, 'user_' || v_worker_id),
+            p_password, TRUE)
+    RETURNING user_id INTO v_user_id;
+
+    OPEN p_results FOR
+        SELECT TRUE AS success, 'Trabajador registrado' AS message, v_worker_id AS worker_id;
+EXCEPTION
+WHEN OTHERS THEN
+    OPEN p_results FOR
+        SELECT FALSE AS success, SQLERRM AS message, NULL::INT AS worker_id;
+END;
+$$;
+
+-- Actualizar trabajador
+CREATE OR REPLACE PROCEDURE sp_update_worker(
+    IN    p_worker_id  INT,
+    IN    p_first_name VARCHAR,
+    IN    p_last_name  VARCHAR,
+    IN    p_role_id    INT,
+    IN    p_email      VARCHAR,
+    INOUT p_results    REFCURSOR
+)
+LANGUAGE plpgsql AS $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM workers WHERE worker_id = p_worker_id) THEN
+        RAISE EXCEPTION 'Trabajador % no encontrado', p_worker_id;
+    END IF;
+
+    UPDATE workers
+    SET first_name = COALESCE(NULLIF(TRIM(p_first_name), ''), first_name),
+        last_name  = COALESCE(NULLIF(TRIM(p_last_name),  ''), last_name),
+        role_id    = COALESCE(p_role_id, role_id)
+    WHERE worker_id = p_worker_id;
+
+    IF p_email IS NOT NULL AND TRIM(p_email) <> '' THEN
+        UPDATE worker_emails
+        SET email = p_email
+        WHERE worker_id = p_worker_id AND is_primary = TRUE;
+
+        IF NOT FOUND THEN
+            INSERT INTO worker_emails (worker_id, email, is_primary)
+            VALUES (p_worker_id, p_email, TRUE);
+        END IF;
+    END IF;
+
+    OPEN p_results FOR
+        SELECT TRUE AS success, 'Trabajador actualizado' AS message, p_worker_id AS worker_id;
+EXCEPTION
+WHEN OTHERS THEN
+    OPEN p_results FOR
+        SELECT FALSE AS success, SQLERRM AS message, NULL::INT AS worker_id;
+END;
+$$;
+
+
+-- ==============================================
 -- FIN STORED PROCEDURES
-
 -- ==============================================
 

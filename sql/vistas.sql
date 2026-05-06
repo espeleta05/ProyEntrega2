@@ -11,24 +11,53 @@ SELECT
     p.patient_id,
     p.first_name,
     p.last_name,
-    p.first_name || ' ' || p.last_name AS full_name,
+    TRIM(p.first_name || ' ' || p.last_name)                             AS full_name,
+    p.curp,
     p.birth_date,
     p.gender,
     p.weight_kg,
     p.premature,
-    p.curp,
-    bt.blood_type,
-    g.first_name || ' ' || g.last_name AS guardian_name,
-    ph.phone AS guardian_phone,
-    STRING_AGG(DISTINCT al.name, ', ') AS allergies
+    p.is_active,
+    p.created_at,
+    p.blood_type_id,
+    COALESCE(bt.blood_type, '—')                                         AS blood_type,
+    DATE_PART('year', AGE(CURRENT_DATE, p.birth_date))::INT              AS age,
+    g.guardian_id,
+    COALESCE(TRIM(g.first_name || ' ' || g.last_name), 'Sin tutor')      AS guardian,
+    COALESCE(
+        (
+            SELECT gp.phone
+            FROM   guardian_phones gp
+            WHERE  gp.guardian_id = g.guardian_id
+            ORDER  BY gp.is_primary DESC, gp.guardian_phone_id ASC
+            LIMIT  1
+        ),
+        '—'
+    )                                                                     AS contact,
+    COALESCE(
+        NULLIF(
+            (
+                SELECT STRING_AGG(al.name, ', ' ORDER BY al.name)
+                FROM   patient_allergies pa
+                JOIN   allergies al ON al.allergy_id = pa.allergy_id
+                WHERE  pa.patient_id = p.patient_id
+            ),
+            ''
+        ),
+        'Ninguna'
+    )                                                                     AS allergies,
+    'N/A'::TEXT                                                           AS risk
+ 
 FROM patients p
 LEFT JOIN blood_types bt ON bt.blood_type_id = p.blood_type_id
-LEFT JOIN patient_guardian_relations pgr ON pgr.patient_id = p.patient_id AND pgr.is_primary = TRUE
-LEFT JOIN guardians g ON g.guardian_id = pgr.guardian_id
-LEFT JOIN guardian_phones ph ON ph.guardian_id = g.guardian_id AND ph.is_primary = TRUE
-LEFT JOIN patient_allergies pa ON pa.patient_id = p.patient_id
-LEFT JOIN allergies al ON al.allergy_id = pa.allergy_id
-GROUP BY p.patient_id, bt.blood_type, g.first_name, g.last_name, ph.phone;
+LEFT JOIN LATERAL (
+    SELECT pgr.guardian_id
+    FROM   patient_guardian_relations pgr
+    WHERE  pgr.patient_id = p.patient_id
+    ORDER  BY pgr.is_primary DESC, pgr.relation_id ASC
+    LIMIT  1
+) rel ON TRUE
+LEFT JOIN guardians g ON g.guardian_id = rel.guardian_id;
 
 -- Vista 2: Historial de vacunación completo por paciente
 CREATE OR REPLACE VIEW v_vaccination_records_full AS
@@ -312,7 +341,7 @@ JOIN supply_catalog sc ON ci.supply_id = sc.supply_id
 WHERE ci.quantity < ci.min_stock;
 
 -- Vista 10: Trabajadores con detalles (nombres, roles, emails)
-CREATE OR REPLACE VIEW v_worker_full AS
+CREATE OR REPLACE VIEW vw_worker_full AS
 SELECT
     w.worker_id,
     w.first_name,

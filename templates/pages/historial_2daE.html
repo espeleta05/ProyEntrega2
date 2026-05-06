@@ -1,5 +1,9 @@
 {% extends 'base_2daE.html' %}
 
+{# ── Macros ── #}
+{% from 'components/toolbar.html' import toolbar %}
+{% from 'components/button.html'  import button  %}
+
 {% block title %}Historial Médico{% endblock %}
 
 {% block head_extra %}
@@ -10,23 +14,20 @@
 
 <div class="historial-wrapper">
 
-    <!-- HEADER -->
-    <div class="content-header">
-        <h2 class="title">Historial médico por paciente</h2>
-    </div>
+    {# ── Encabezado ── #}
+    {{ toolbar(title='Historial médico por paciente',
+               subtitle='Seleccione un paciente para ver su historial médico') }}
 
-    <p class="subtitle">Seleccione un paciente para ver su historial médico</p>
-
-    <!-- SEARCH -->
+    {# ── Buscador — ID requerido por historial.js ── #}
     <div class="search-bar-container section">
         <i class="fa-solid fa-magnifying-glass"></i>
         <input type="text" id="historialSearchInput" placeholder="Buscar paciente por nombre o id">
     </div>
 
-    <!-- LISTA PACIENTES -->
+    {# ── Lista de pacientes — IDs requeridos por historial.js ── #}
     <div class="patients-grid" id="patientsGrid">
         {% for p in patients %}
-        <a href="{{ url_for('historial_paciente', id=p.patient_id) }}"
+        <a href="{{ url_for('esquema_paciente', id=patient.patient_id) }}"
            class="patient-item {% if patient and p.patient_id == patient.patient_id %}active{% endif %}">
 
             <div class="avatar">
@@ -50,23 +51,6 @@
     <div class="section">
         <p>No hay pacientes registrados para mostrar historial.</p>
     </div>
-    {% endif %}
-
-    {% if patient %}
-    <div class="section">
-        {% set p = patient %}
-        {% set show_delete = false %}
-        {% include 'components/patient_card_2daE.html' %}
-
-        <div class="btn-container">
-            <a href="{{ url_for('esquema_paciente', id=patient.patient_id) }}" class="btn-esquema">
-                <i class="fa-solid fa-clipboard-list"></i>
-                Ver esquema de vacunación
-            </a>
-        </div>
-
-    </div>
-
     {% endif %}
 
 </div>
