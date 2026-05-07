@@ -116,8 +116,13 @@ CREATE TABLE patients (
     curp           VARCHAR(18)     UNIQUE,
     weight_kg      NUMERIC(5,2),
     premature      BOOLEAN      NOT NULL DEFAULT FALSE,
+    photo          VARCHAR(255),
     created_at     TIMESTAMP    DEFAULT CURRENT_TIMESTAMP
 );
+
+-- Migración para BD existente:
+-- ALTER TABLE patients ADD COLUMN IF NOT EXISTS photo VARCHAR(255);
+-- ALTER TABLE patients ADD COLUMN IF NOT EXISTS rfc  VARCHAR(13);
 
 CREATE TABLE allergies (
     allergy_id    SERIAL PRIMARY KEY,

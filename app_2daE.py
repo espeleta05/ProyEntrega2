@@ -1,6 +1,8 @@
 import math
+import os
 from datetime import date, datetime
 from flask import Flask, flash, jsonify, redirect, render_template, request, session, url_for, g, has_request_context
+from werkzeug.utils import secure_filename
 import bcrypt
 import logging
 
@@ -472,7 +474,7 @@ def register_patient():
         conn.autocommit = False
         with conn.cursor() as cur:
             cur.execute(
-                "CALL sp_register_patient(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",
+                "CALL sp_register_patient(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",
                 (
                     first_name,
                     last_name,
@@ -481,7 +483,6 @@ def register_patient():
                     gender_code,
                     blood_type_id,
                     payload.get("weight_kg"),
-                    bool(payload.get("premature", False)),
                     (tutor.get("name") or "Tutor").strip(),
                     (tutor.get("lastname") or "Demo").strip(),
                     tutor.get("number"),
@@ -504,6 +505,54 @@ def register_patient():
 
     flash(f"Paciente {first_name} {last_name} registrado correctamente.", "success")
     return jsonify({"message": "Paciente registrado", "patient_id": row.get("patient_id")})
+
+
+_PHOTO_UPLOAD_FOLDER   = os.path.join("static", "uploads", "patients")
+_PHOTO_ALLOWED_EXTS    = {"png", "jpg", "jpeg", "webp"}
+
+@app.route("/patients/<int:id>/photo", methods=["POST"])
+def upload_patient_photo(id):
+    locked = _require_login()
+    if locked:
+        return jsonify({"error": "No autenticado"}), 401
+
+    if "photo" not in request.files:
+        return jsonify({"error": "No se envió ningún archivo"}), 400
+
+    file = request.files["photo"]
+    if not file or file.filename == "":
+        return jsonify({"error": "No se seleccionó archivo"}), 400
+
+    ext = file.filename.rsplit(".", 1)[-1].lower() if "." in file.filename else ""
+    if ext not in _PHOTO_ALLOWED_EXTS:
+        return jsonify({"error": "Formato no permitido. Usa JPG, PNG o WEBP"}), 400
+
+    filename = f"P{id}.{ext}"
+    os.makedirs(_PHOTO_UPLOAD_FOLDER, exist_ok=True)
+
+    # Eliminar foto anterior con cualquier extensión
+    for old_ext in _PHOTO_ALLOWED_EXTS:
+        old_path = os.path.join(_PHOTO_UPLOAD_FOLDER, f"P{id}.{old_ext}")
+        if os.path.exists(old_path):
+            os.remove(old_path)
+
+    file.save(os.path.join(_PHOTO_UPLOAD_FOLDER, filename))
+
+    conn, should_close = _get_conn()
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                "UPDATE patients SET photo = %s WHERE patient_id = %s",
+                (filename, id),
+            )
+        conn.commit()
+    except Exception as ex:
+        return jsonify({"error": f"No se pudo guardar la foto: {ex}"}), 500
+    finally:
+        if should_close and not _conn_is_closed(conn):
+            conn.close()
+
+    return jsonify({"message": "Foto actualizada", "photo_url": f"/static/uploads/patients/{filename}"})
 
 
 @app.route("/delete_patient/<int:id>", methods=["POST"])

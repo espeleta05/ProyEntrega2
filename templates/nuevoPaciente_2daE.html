@@ -9,9 +9,27 @@
             <button class="md3-modal__close" onclick="closePatientModal()" aria-label="Cerrar">&times;</button>
         </div>
 
-        <form id="formNewPatient">
+        <form id="formNewPatient" novalidate>
 
             <div class="md3-modal__body">
+
+                <div class="md3-form__section">
+                    <h4 class="md3-form__section-title">Foto del paciente</h4>
+                    <div class="photo-upload-wrap">
+                        <div class="photo-preview-circle" onclick="document.getElementById('p_photo').click()" title="Clic para agregar foto">
+                            <span class="photo-preview-initials" id="photoPreviewInitials">—</span>
+                            <img id="photoPreviewImg" alt="Vista previa">
+                            <div class="photo-upload-overlay">
+                                <i class="fa-solid fa-camera"></i>
+                            </div>
+                        </div>
+                        <input type="file" id="p_photo" accept="image/png,image/jpeg,image/webp">
+                        <div class="photo-upload-hint">
+                            <p class="photo-upload-hint-title">Foto opcional</p>
+                            <p class="photo-upload-hint-sub">JPG, PNG o WEBP · Máx 5 MB</p>
+                        </div>
+                    </div>
+                </div>
 
                 <div class="md3-form__section">
                     <h4 class="md3-form__section-title">Datos del paciente</h4>
@@ -58,6 +76,14 @@
                         <div class="md3-field">
                             <label class="md3-field__label" for="p_allergies">Alergias</label>
                             <input class="md3-input" type="text" id="p_allergies" placeholder="Ej: Penicilina">
+                        </div>
+                        <div class="md3-field">
+                            <label class="md3-field__label" for="p_curp">CURP</label>
+                            <input class="md3-input" type="text" id="p_curp" placeholder="18 caracteres" maxlength="18">
+                        </div>
+                        <div class="md3-field">
+                            <label class="md3-field__label" for="p_weight">Peso actual (kg)</label>
+                            <input class="md3-input" type="text" id="p_weight" placeholder="30.50">
                         </div>
                     </div>
                 </div>
@@ -111,27 +137,3 @@
         </form>
     </div>
 </div>
-
-<script>
-function openPatientModal()  { document.getElementById('patientModal').classList.add('active'); }
-function closePatientModal() { document.getElementById('patientModal').classList.remove('active'); document.getElementById('formNewPatient').reset(); }
-document.getElementById('patientModal').addEventListener('click', e => { if (e.target === document.getElementById('patientModal')) closePatientModal(); });
-
-document.getElementById('formNewPatient').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const val = id => document.getElementById(id)?.value || '';
-    const data = {
-        first_name: val('p_name'), last_name: val('p_lastname'),
-        birth_date: val('p_birthdate'),
-        gender: val('p_gender') === 'Masculino' ? 'M' : 'F',
-        blood_type: val('p_blood'), allergies: val('p_allergies'),
-        tutor: { name: val('t_name'), lastname: val('t_lastname'), curp: val('t_curp'), number: val('t_phone'), mail: val('t_email'), address: val('t_address') },
-    };
-    try {
-        const res = await fetch('/register_patient', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
-        const result = await res.json();
-        if (res.ok) { alert(result.message || 'Paciente registrado'); closePatientModal(); window.location.reload(); }
-        else alert(result.error || 'Ocurrió un error');
-    } catch (err) { console.error(err); alert('Error de conexión'); }
-});
-</script>

@@ -18,6 +18,8 @@
       gender:     val('p_gender') === 'Masculino' ? 'M' : 'F',
       blood_type: val('p_blood'),
       allergies:  val('p_allergies'),
+      curp: val('p_curp'),
+      weight: val('p_weight'),
       tutor: {
         name:     val('t_name'),
         lastname: val('t_lastname'),

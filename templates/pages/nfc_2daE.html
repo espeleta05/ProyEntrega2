@@ -87,8 +87,8 @@
                 {% endif %}
             </td>
             <td>{{ card.issued_date }}</td>
-            <td class="muted-td">{{ card.last_scanned_at[:10] if card.last_scanned_at else '—' }}</td>
-            <td class="muted-td">{{ card.notes[:30] if card.notes else '—' }}</td>
+            <td class="muted-td">{{ card.last_scanned_at.strftime('%Y-%m-%d') if card.last_scanned_at else '—' }}</td>
+            <td class="muted-td">{{ (card.nfc_card_notes or card.notes or '')[:30] or '—' }}</td>
         </tr>
     {% endcall %}
 
@@ -125,23 +125,25 @@
         empty_title='No hay eventos de escaneo registrados.',
         class='scans-table'
     ) %}
-        <tr class="tbl-row" data-patient="{{ scan.patient_name }}" data-worker="{{ scan.worker_name }}">
+        {% set scan_worker = scan.worker_name or scan.scanned_by_name or '—' %}
+        {% set scan_result = scan.result or scan.nfc_scan_result or '—' %}
+        <tr class="tbl-row" data-patient="{{ scan.patient_name or '' }}" data-worker="{{ scan_worker }}">
             <td>
                 <span>
-                    {{ scan.scanned_at[:10] if scan.scanned_at else '—' }}<br>
-                    <strong>{{ scan.scanned_at[11:16] if scan.scanned_at else '—' }}</strong>
+                    {{ scan.scanned_at.strftime('%Y-%m-%d') if scan.scanned_at else '—' }}<br>
+                    <strong>{{ scan.scanned_at.strftime('%H:%M') if scan.scanned_at else '—' }}</strong>
                 </span>
             </td>
-            <td><strong>{{ scan.patient_name }}</strong></td>
-            <td>{{ scan.worker_name }}</td>
-            <td>{{ scan.action_triggered }}</td>
+            <td><strong>{{ scan.patient_name or '—' }}</strong></td>
+            <td>{{ scan_worker }}</td>
+            <td>{{ scan.action_triggered or '—' }}</td>
             <td>
-                {% if scan.result == 'Éxito' or scan.result == 'Exitoso' %}
-                    {{ badge(scan.result, color='success', icon='fa-check',        size='sm') }}
-                {% elif scan.result == 'Error' %}
-                    {{ badge(scan.result, color='error',   icon='fa-exclamation',  size='sm') }}
+                {% if scan_result in ('Éxito', 'Exitoso') %}
+                    {{ badge(scan_result, color='success', icon='fa-check',       size='sm') }}
+                {% elif scan_result == 'Error' %}
+                    {{ badge(scan_result, color='error',   icon='fa-exclamation', size='sm') }}
                 {% else %}
-                    <span class="muted-td">{{ scan.result or '—' }}</span>
+                    <span class="muted-td">{{ scan_result }}</span>
                 {% endif %}
             </td>
         </tr>

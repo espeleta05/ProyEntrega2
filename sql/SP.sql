@@ -1,3 +1,5 @@
+SET client_encoding = 'UTF8';
+
 -- VER SPs EN POSTGRES
 /*
 SELECT routine_name 
@@ -32,6 +34,8 @@ BEGIN
                 p.weight_kg,
                 p.premature,
                 p.created_at,
+                p.photo,
+                p.rfc,
                 p.blood_type_id,
                 COALESCE(bt.blood_type, '—')                            AS blood_type,
                 DATE_PART('year', AGE(CURRENT_DATE, p.birth_date))::INT AS age,
@@ -76,6 +80,8 @@ BEGIN
                 p.weight_kg,
                 p.premature,
                 p.created_at,
+                p.photo,
+                p.rfc,
                 p.blood_type_id,
                 COALESCE(bt.blood_type, '—')                            AS blood_type,
                 DATE_PART('year', AGE(CURRENT_DATE, p.birth_date))::INT AS age,
@@ -384,10 +390,10 @@ CREATE OR REPLACE PROCEDURE sp_register_patient(
     IN    p_gender           CHAR(1),
     IN    p_blood_type_id    INT,
     IN    p_weight_kg        NUMERIC,
-    IN    p_premature        BOOLEAN,
     IN    p_guardian_name    VARCHAR,
     IN    p_guardian_last    VARCHAR,
     IN    p_guardian_phone   VARCHAR,
+    IN    p_
     INOUT p_results          REFCURSOR
 )
 LANGUAGE plpgsql
@@ -1815,7 +1821,11 @@ BEGIN
 END;
 $$;
 
--- Tarjetas NFC completas (usada en /nfc)
+-- ==============================================
+-- MODULO NFC: CONSULTAS
+-- ==============================================
+
+-- Tarjetas NFC - detalle completo
 CREATE OR REPLACE PROCEDURE sp_get_nfc_cards_full(
     INOUT p_results REFCURSOR
 )
@@ -1831,14 +1841,58 @@ BEGIN
             nc.last_scanned_at,
             nc.nfc_card_notes,
             nc.patient_id,
-            TRIM(p.first_name || ' ' || p.last_name) AS patient_name
+
+            -- Paciente
+            TRIM(p.first_name || ' ' || p.last_name)          AS patient_name,
+            p.birth_date                                       AS patient_birth_date,
+            DATE_PART('year', AGE(CURRENT_DATE, p.birth_date))::INT
+                                                               AS patient_age,
+
+            -- Trabajador que emitio la tarjeta
+            COALESCE(TRIM(wi.first_name || ' ' || wi.last_name), '-')
+                                                               AS issued_by_name,
+
+            -- Estadisticas de uso
+            (SELECT COUNT(*) FROM nfc_scan_events se
+             WHERE se.nfc_card_id = nc.nfc_card_id)            AS total_scans,
+
+            (SELECT COUNT(*) FROM nfc_scan_events se
+             WHERE se.nfc_card_id = nc.nfc_card_id
+               AND se.scanned_at >= CURRENT_DATE - INTERVAL '30 days')
+                                                               AS scans_last_30d,
+
+            -- Dias desde ultimo escaneo
+            CASE
+                WHEN nc.last_scanned_at IS NOT NULL
+                THEN (CURRENT_DATE - nc.last_scanned_at::DATE)
+                ELSE NULL
+            END                                                AS days_since_scan,
+
+            -- Alerta: tarjeta activa sin uso por mas de 90 dias
+            CASE
+                WHEN nc.status = 'Activa'
+                     AND (nc.last_scanned_at IS NULL
+                          OR nc.last_scanned_at < CURRENT_DATE - INTERVAL '90 days')
+                THEN TRUE
+                ELSE FALSE
+            END                                                AS alert_inactive
+
         FROM nfc_cards nc
-        JOIN patients p ON p.patient_id = nc.patient_id
-        ORDER BY nc.issued_date DESC;
+        JOIN  patients p  ON p.patient_id  = nc.patient_id
+        LEFT JOIN workers wi ON wi.worker_id = nc.issued_by
+        ORDER BY
+            CASE nc.status
+                WHEN 'Activa'   THEN 1
+                WHEN 'Inactiva' THEN 2
+                WHEN 'Perdida'  THEN 3
+                WHEN 'Robada'   THEN 4
+            END,
+            nc.issued_date DESC;
 END;
 $$;
 
--- Eventos de escaneo NFC (usada en /nfc)
+
+-- Eventos de escaneo NFC - detalle completo
 CREATE OR REPLACE PROCEDURE sp_get_nfc_scans_full(
     INOUT p_results REFCURSOR
 )
@@ -1850,13 +1904,390 @@ BEGIN
             se.nfc_card_id,
             se.scanned_at,
             se.action_triggered,
+            se.nfc_scan_result                                 AS result,
             se.nfc_scan_result,
-            c.name  AS clinic_name,
-            COALESCE(TRIM(w.first_name || ' ' || w.last_name), '—') AS scanned_by_name
+
+            -- Tarjeta
+            nc.uid                                             AS card_uid,
+            nc.status                                          AS card_status,
+
+            -- Paciente (a traves de la tarjeta)
+            nc.patient_id,
+            TRIM(p.first_name || ' ' || p.last_name)          AS patient_name,
+            DATE_PART('year', AGE(CURRENT_DATE, p.birth_date))::INT
+                                                               AS patient_age,
+
+            -- Trabajador que escaneo
+            COALESCE(TRIM(w.first_name || ' ' || w.last_name), '-')
+                                                               AS worker_name,
+            COALESCE(TRIM(w.first_name || ' ' || w.last_name), '-')
+                                                               AS scanned_by_name,
+
+            -- Ubicacion
+            c.name                                             AS clinic_name,
+            COALESCE(ca.name, '-')                             AS area_name,
+
+            -- Dispositivo
+            COALESCE(nd.device_name, '-')                     AS device_name,
+            nd.model                                           AS device_model,
+
+            -- Clasificacion del resultado
+            CASE
+                WHEN se.nfc_scan_result ILIKE '%exito%'
+                  OR se.nfc_scan_result ILIKE '%exitoso%'
+                  OR se.nfc_scan_result ILIKE '%ok%'
+                  OR se.nfc_scan_result ILIKE '%acceso%'
+                THEN 'Exitoso'
+                WHEN se.nfc_scan_result ILIKE '%error%'
+                  OR se.nfc_scan_result ILIKE '%fallo%'
+                  OR se.nfc_scan_result ILIKE '%rechaz%'
+                  OR se.nfc_scan_result ILIKE '%denegado%'
+                THEN 'Error'
+                ELSE COALESCE(se.nfc_scan_result, '-')
+            END                                                AS resultado_display
+
         FROM nfc_scan_events se
-        JOIN clinics c ON c.clinic_id = se.clinic_id
-        LEFT JOIN workers w ON w.worker_id = se.scanned_by
+        JOIN  nfc_cards  nc ON nc.nfc_card_id = se.nfc_card_id
+        JOIN  patients   p  ON p.patient_id   = nc.patient_id
+        JOIN  clinics    c  ON c.clinic_id    = se.clinic_id
+        LEFT JOIN workers      w  ON w.worker_id  = se.scanned_by
+        LEFT JOIN clinic_areas ca ON ca.area_id   = se.area_id
+        LEFT JOIN nfc_devices  nd ON nd.device_id = se.device_id
         ORDER BY se.scanned_at DESC;
+END;
+$$;
+
+
+-- Historial de escaneos de una tarjeta especifica
+CREATE OR REPLACE PROCEDURE sp_get_nfc_card_history(
+    IN    p_nfc_card_id INT,
+    INOUT p_results     REFCURSOR
+)
+LANGUAGE plpgsql AS $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM nfc_cards WHERE nfc_card_id = p_nfc_card_id) THEN
+        RAISE EXCEPTION 'Tarjeta NFC % no encontrada', p_nfc_card_id;
+    END IF;
+
+    OPEN p_results FOR
+        SELECT
+            se.scan_event_id,
+            se.scanned_at,
+            se.action_triggered,
+            se.nfc_scan_result,
+            c.name                                                    AS clinic_name,
+            COALESCE(ca.name, '-')                                    AS area_name,
+            COALESCE(TRIM(w.first_name || ' ' || w.last_name), '-')  AS worker_name
+        FROM nfc_scan_events se
+        JOIN  clinics    c  ON c.clinic_id   = se.clinic_id
+        LEFT JOIN workers      w  ON w.worker_id = se.scanned_by
+        LEFT JOIN clinic_areas ca ON ca.area_id  = se.area_id
+        WHERE se.nfc_card_id = p_nfc_card_id
+        ORDER BY se.scanned_at DESC;
+END;
+$$;
+
+
+-- ==============================================
+-- MODULO NFC: MUTACIONES
+-- ==============================================
+
+-- Asignar tarjeta NFC a un paciente
+CREATE OR REPLACE PROCEDURE sp_assign_nfc_card(
+    IN    p_patient_id  INT,
+    IN    p_uid         VARCHAR,
+    IN    p_card_type   VARCHAR,
+    IN    p_issued_by   INT,
+    IN    p_notes       TEXT,
+    INOUT p_results     REFCURSOR
+)
+LANGUAGE plpgsql AS $$
+DECLARE
+    v_nfc_card_id INT;
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM patients WHERE patient_id = p_patient_id) THEN
+        RAISE EXCEPTION 'El paciente % no existe', p_patient_id;
+    END IF;
+
+    IF TRIM(COALESCE(p_uid, '')) = '' THEN
+        RAISE EXCEPTION 'El UID de la tarjeta es obligatorio';
+    END IF;
+
+    IF EXISTS (SELECT 1 FROM nfc_cards WHERE uid = TRIM(p_uid)) THEN
+        RAISE EXCEPTION 'Ya existe una tarjeta con el UID %', p_uid;
+    END IF;
+
+    IF EXISTS (
+        SELECT 1 FROM nfc_cards
+        WHERE patient_id = p_patient_id AND status = 'Activa'
+    ) THEN
+        RAISE EXCEPTION 'El paciente ya tiene una tarjeta NFC activa. Desactivala antes de asignar una nueva.';
+    END IF;
+
+    IF p_issued_by IS NOT NULL AND NOT EXISTS (
+        SELECT 1 FROM workers WHERE worker_id = p_issued_by
+    ) THEN
+        RAISE EXCEPTION 'El trabajador emisor % no existe', p_issued_by;
+    END IF;
+
+    INSERT INTO nfc_cards (
+        patient_id, uid, card_type,
+        issued_date, issued_by, status, nfc_card_notes
+    )
+    VALUES (
+        p_patient_id,
+        TRIM(p_uid),
+        NULLIF(TRIM(COALESCE(p_card_type, '')), ''),
+        CURRENT_DATE,
+        p_issued_by,
+        'Activa',
+        NULLIF(TRIM(COALESCE(p_notes, '')), '')
+    )
+    RETURNING nfc_card_id INTO v_nfc_card_id;
+
+    OPEN p_results FOR
+        SELECT TRUE          AS success,
+               'Tarjeta NFC asignada correctamente' AS message,
+               v_nfc_card_id AS nfc_card_id,
+               TRIM(p_uid)   AS uid;
+
+EXCEPTION WHEN OTHERS THEN
+    OPEN p_results FOR
+        SELECT FALSE AS success, SQLERRM AS message,
+               NULL::INT AS nfc_card_id, NULL::VARCHAR AS uid;
+END;
+$$;
+
+
+-- Actualizar estado de una tarjeta NFC
+CREATE OR REPLACE PROCEDURE sp_update_nfc_card_status(
+    IN    p_nfc_card_id INT,
+    IN    p_new_status  VARCHAR,
+    IN    p_worker_id   INT,
+    IN    p_notes       TEXT,
+    INOUT p_results     REFCURSOR
+)
+LANGUAGE plpgsql AS $$
+DECLARE
+    v_current_status VARCHAR;
+    v_patient_id     INT;
+BEGIN
+    SELECT status, patient_id
+    INTO   v_current_status, v_patient_id
+    FROM   nfc_cards
+    WHERE  nfc_card_id = p_nfc_card_id;
+
+    IF NOT FOUND THEN
+        RAISE EXCEPTION 'Tarjeta NFC % no encontrada', p_nfc_card_id;
+    END IF;
+
+    IF p_new_status NOT IN ('Activa', 'Inactiva', 'Perdida', 'Robada') THEN
+        RAISE EXCEPTION 'Estado invalido: %. Valores permitidos: Activa, Inactiva, Perdida, Robada', p_new_status;
+    END IF;
+
+    -- Regla clinica: tarjeta Perdida o Robada no puede reactivarse directamente
+    IF v_current_status IN ('Perdida', 'Robada') AND p_new_status = 'Activa' THEN
+        RAISE EXCEPTION 'Una tarjeta % no puede reactivarse directamente. Asigna una nueva al paciente.', v_current_status;
+    END IF;
+
+    -- Si se activa, verificar que no haya otra activa para el mismo paciente
+    IF p_new_status = 'Activa' AND EXISTS (
+        SELECT 1 FROM nfc_cards
+        WHERE  patient_id  = v_patient_id
+          AND  status      = 'Activa'
+          AND  nfc_card_id <> p_nfc_card_id
+    ) THEN
+        RAISE EXCEPTION 'El paciente ya tiene otra tarjeta NFC activa';
+    END IF;
+
+    UPDATE nfc_cards
+    SET
+        status         = p_new_status,
+        nfc_card_notes = CASE
+                            WHEN p_notes IS NOT NULL AND TRIM(p_notes) <> ''
+                            THEN COALESCE(nfc_card_notes || ' | ', '') ||
+                                 TO_CHAR(CURRENT_DATE, 'YYYY-MM-DD') || ': ' || TRIM(p_notes)
+                            ELSE nfc_card_notes
+                         END
+    WHERE nfc_card_id = p_nfc_card_id;
+
+    OPEN p_results FOR
+        SELECT TRUE          AS success,
+               'Estado actualizado a ' || p_new_status AS message,
+               p_nfc_card_id AS nfc_card_id,
+               p_new_status  AS new_status,
+               v_patient_id  AS patient_id;
+
+EXCEPTION WHEN OTHERS THEN
+    OPEN p_results FOR
+        SELECT FALSE AS success, SQLERRM AS message,
+               p_nfc_card_id AS nfc_card_id,
+               NULL::VARCHAR AS new_status,
+               NULL::INT     AS patient_id;
+END;
+$$;
+
+
+-- Registrar evento de escaneo NFC
+CREATE OR REPLACE PROCEDURE sp_register_nfc_scan(
+    IN    p_uid             VARCHAR,
+    IN    p_worker_id       INT,
+    IN    p_clinic_id       INT,
+    IN    p_area_id         INT,
+    IN    p_device_id       VARCHAR,
+    IN    p_action          VARCHAR,
+    INOUT p_results         REFCURSOR
+)
+LANGUAGE plpgsql AS $$
+DECLARE
+    v_nfc_card_id   INT;
+    v_patient_id    INT;
+    v_card_status   VARCHAR;
+    v_scan_result   VARCHAR;
+    v_scan_event_id INT;
+BEGIN
+    -- Buscar tarjeta por UID
+    SELECT nfc_card_id, patient_id, status
+    INTO   v_nfc_card_id, v_patient_id, v_card_status
+    FROM   nfc_cards
+    WHERE  uid = TRIM(p_uid);
+
+    IF NOT FOUND THEN
+        v_scan_result := 'Error: UID no registrado';
+
+        -- Registrar el intento fallido igualmente
+        INSERT INTO nfc_scan_events (
+            nfc_card_id, scanned_by, clinic_id, area_id,
+            scanned_at, action_triggered, device_id, nfc_scan_result
+        )
+        SELECT -1, p_worker_id, p_clinic_id, p_area_id,
+               NOW(), p_action, p_device_id, v_scan_result
+        WHERE FALSE; -- no se inserta, tarjeta no existe
+
+        OPEN p_results FOR
+            SELECT FALSE AS success, v_scan_result AS message,
+                   NULL::INT AS nfc_card_id, NULL::INT AS patient_id,
+                   NULL::VARCHAR AS patient_name, NULL::TEXT AS card_status;
+        RETURN;
+    END IF;
+
+    -- Validar estado de la tarjeta
+    IF v_card_status IN ('Perdida', 'Robada') THEN
+        v_scan_result := 'Error: tarjeta ' || v_card_status || ' - contactar seguridad';
+
+        INSERT INTO nfc_scan_events (
+            nfc_card_id, scanned_by, clinic_id, area_id,
+            scanned_at, action_triggered, device_id, nfc_scan_result
+        )
+        VALUES (
+            v_nfc_card_id, p_worker_id, p_clinic_id, p_area_id,
+            NOW(), p_action, p_device_id, v_scan_result
+        )
+        RETURNING scan_event_id INTO v_scan_event_id;
+
+        OPEN p_results FOR
+            SELECT FALSE AS success, v_scan_result AS message,
+                   v_nfc_card_id AS nfc_card_id, v_patient_id AS patient_id,
+                   NULL::VARCHAR AS patient_name, v_card_status AS card_status;
+        RETURN;
+    END IF;
+
+    IF v_card_status = 'Inactiva' THEN
+        v_scan_result := 'Error: tarjeta inactiva';
+
+        INSERT INTO nfc_scan_events (
+            nfc_card_id, scanned_by, clinic_id, area_id,
+            scanned_at, action_triggered, device_id, nfc_scan_result
+        )
+        VALUES (
+            v_nfc_card_id, p_worker_id, p_clinic_id, p_area_id,
+            NOW(), p_action, p_device_id, v_scan_result
+        )
+        RETURNING scan_event_id INTO v_scan_event_id;
+
+        OPEN p_results FOR
+            SELECT FALSE AS success, v_scan_result AS message,
+                   v_nfc_card_id AS nfc_card_id, v_patient_id AS patient_id,
+                   NULL::VARCHAR AS patient_name, v_card_status AS card_status;
+        RETURN;
+    END IF;
+
+    -- Validar clínica
+    IF NOT EXISTS (SELECT 1 FROM clinics WHERE clinic_id = p_clinic_id AND is_active = TRUE) THEN
+        RAISE EXCEPTION 'Clinica % no encontrada o inactiva', p_clinic_id;
+    END IF;
+
+    -- Validar trabajador si se proporciona
+    IF p_worker_id IS NOT NULL AND NOT EXISTS (
+        SELECT 1 FROM workers WHERE worker_id = p_worker_id
+    ) THEN
+        RAISE EXCEPTION 'Trabajador % no encontrado', p_worker_id;
+    END IF;
+
+    v_scan_result := 'Exito';
+
+    -- Registrar escaneo exitoso
+    INSERT INTO nfc_scan_events (
+        nfc_card_id, scanned_by, clinic_id, area_id,
+        scanned_at, action_triggered, device_id, nfc_scan_result
+    )
+    VALUES (
+        v_nfc_card_id, p_worker_id, p_clinic_id, p_area_id,
+        NOW(), COALESCE(p_action, 'Consulta'), p_device_id, v_scan_result
+    )
+    RETURNING scan_event_id INTO v_scan_event_id;
+
+    -- Actualizar last_scanned_at en la tarjeta
+    UPDATE nfc_cards
+    SET last_scanned_at = NOW()
+    WHERE nfc_card_id = v_nfc_card_id;
+
+    -- Devolver datos del paciente para mostrar en pantalla
+    OPEN p_results FOR
+        SELECT
+            TRUE                                              AS success,
+            'Acceso concedido'                               AS message,
+            v_scan_event_id                                  AS scan_event_id,
+            v_nfc_card_id                                    AS nfc_card_id,
+            v_patient_id                                     AS patient_id,
+            TRIM(p.first_name || ' ' || p.last_name)        AS patient_name,
+            p.birth_date,
+            DATE_PART('year', AGE(CURRENT_DATE, p.birth_date))::INT AS age_years,
+            COALESCE(bt.blood_type, '-')                    AS blood_type,
+            v_card_status                                    AS card_status,
+            -- Próximas 3 dosis pendientes del paciente (JSON)
+            (
+                SELECT JSON_AGG(sub)
+                FROM (
+                    SELECT
+                        v2.name                                         AS vaccine,
+                        sd2.dose_label                                  AS dose,
+                        (p2.birth_date + (sd2.ideal_age_months || ' months')::INTERVAL)::DATE
+                                                                        AS due_date
+                    FROM scheme_doses sd2
+                    JOIN vaccines v2 ON v2.vaccine_id = sd2.vaccine_id
+                    JOIN patients  p2 ON p2.patient_id = v_patient_id
+                    WHERE NOT EXISTS (
+                        SELECT 1 FROM vaccination_records vr2
+                        WHERE vr2.patient_id    = v_patient_id
+                          AND vr2.scheme_dose_id = sd2.dose_id
+                    )
+                    ORDER BY sd2.ideal_age_months
+                    LIMIT 3
+                ) sub
+            )                                               AS pending_doses
+        FROM patients p
+        LEFT JOIN blood_types bt ON bt.blood_type_id = p.blood_type_id
+        WHERE p.patient_id = v_patient_id;
+
+EXCEPTION WHEN OTHERS THEN
+    OPEN p_results FOR
+        SELECT FALSE AS success, SQLERRM AS message,
+               NULL::INT AS scan_event_id, NULL::INT AS nfc_card_id,
+               NULL::INT AS patient_id,   NULL::VARCHAR AS patient_name,
+               NULL::DATE AS birth_date,  NULL::INT AS age_years,
+               NULL::VARCHAR AS blood_type, NULL::VARCHAR AS card_status,
+               NULL::JSON AS pending_doses;
 END;
 $$;
 

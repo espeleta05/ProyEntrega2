@@ -1,3 +1,5 @@
+SET client_encoding = 'UTF8';
+
 -- VER VISTAS
 -- \dv --
 

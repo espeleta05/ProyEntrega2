@@ -79,9 +79,24 @@
 
                 <!-- Header -->
                 <div class="pt-card-header">
-                    <div class="pt-avatar">
-                        {{ p.first_name[0] | upper }}{{ p.last_name[0] | upper if p.last_name else '' }}
+                    <div class="pt-avatar"
+                         data-initials="{{ p.first_name[0] | upper }}{{ p.last_name[0] | upper if p.last_name else '' }}"
+                         data-patient-id="{{ p.patient_id }}"
+                         title="Clic para cambiar foto"
+                         onclick="document.getElementById('photo-input-{{ p.patient_id }}').click()">
+                        {% if p.photo %}
+                        <img class="pt-avatar-img"
+                             src="{{ url_for('static', filename='uploads/patients/' + p.photo) }}"
+                             alt="{{ p.full_name }}"
+                             loading="lazy">
+                        {% endif %}
+                        <div class="pt-avatar-overlay"><i class="fa-solid fa-camera"></i></div>
                     </div>
+                    <input type="file" id="photo-input-{{ p.patient_id }}"
+                           accept="image/png,image/jpeg,image/webp"
+                           style="display:none"
+                           onchange="uploadPatientPhoto({{ p.patient_id }}, this)">
+
                     <div class="pt-header-info">
                         <span class="pt-name">{{ p.full_name }}</span>
                         <span class="pt-id">ID: P{{ p.patient_id }}</span>
