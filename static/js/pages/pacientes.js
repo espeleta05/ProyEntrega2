@@ -63,16 +63,102 @@
 
 function openPatientModal() {
   document.getElementById('patientModal')?.classList.add('active');
+  // Cargar tutores en background para que el dropdown esté listo
+  _loadGuardians();
 }
 
 function closePatientModal() {
   document.getElementById('patientModal')?.classList.remove('active');
   document.getElementById('formNewPatient')?.reset();
   _resetPhotoPreview();
+  // Volver al modo "tutor nuevo" y limpiar preview
+  const noRadio = document.getElementById('tutor_mode_no');
+  if (noRadio) noRadio.checked = true;
+  _setTutorMode('new');
+  _hideTutorPreview();
 }
 
 window.openPatientModal  = openPatientModal;
 window.closePatientModal = closePatientModal;
+
+// ── Toggle tutor: existente vs. nuevo ──────────────────────────────────────
+
+let _guardiansCache = null;
+
+async function _loadGuardians() {
+  if (_guardiansCache) return _guardiansCache;
+  try {
+    const res = await fetch('/api/guardians');
+    const data = await res.json();
+    _guardiansCache = Array.isArray(data) ? data : [];
+  } catch {
+    _guardiansCache = [];
+  }
+  return _guardiansCache;
+}
+
+function _populateGuardianSelect(guardians) {
+  const sel = document.getElementById('t_existing_id');
+  if (!sel) return;
+  // Mantener la opción vacía inicial
+  sel.innerHTML = '<option value="">— Selecciona un tutor —</option>';
+  guardians.forEach(g => {
+    const opt = document.createElement('option');
+    opt.value = g.guardian_id;
+    const curpTag = g.curp ? ` · ${g.curp}` : '';
+    opt.textContent = `${g.first_name} ${g.last_name}${curpTag}`;
+    sel.appendChild(opt);
+  });
+}
+
+function _setTutorMode(mode) {
+  const existWrap = document.getElementById('tutor-existing-wrap');
+  const newWrap   = document.getElementById('tutor-new-wrap');
+  if (!existWrap || !newWrap) return;
+  if (mode === 'existing') {
+    existWrap.style.display = 'block';
+    newWrap.style.display   = 'none';
+  } else {
+    existWrap.style.display = 'none';
+    newWrap.style.display   = 'block';
+  }
+}
+
+function _showTutorPreview(guardian) {
+  const preview = document.getElementById('tutor-preview');
+  if (!preview || !guardian) { _hideTutorPreview(); return; }
+  document.getElementById('tutor-preview-name').textContent  = `${guardian.first_name} ${guardian.last_name}`;
+  document.getElementById('tutor-preview-curp').textContent  = guardian.curp  || '—';
+  document.getElementById('tutor-preview-phone').textContent = guardian.phone || '—';
+  document.getElementById('tutor-preview-email').textContent = guardian.email || '—';
+  preview.style.display = 'flex';
+}
+
+function _hideTutorPreview() {
+  const preview = document.getElementById('tutor-preview');
+  if (preview) preview.style.display = 'none';
+  // Limpiar select de tutor existente
+  const sel = document.getElementById('t_existing_id');
+  if (sel) sel.value = '';
+}
+
+// Listeners de los radio buttons
+document.querySelectorAll('input[name="tutor_mode"]').forEach(radio => {
+  radio.addEventListener('change', async function () {
+    _setTutorMode(this.value);
+    if (this.value === 'existing') {
+      const guardians = await _loadGuardians();
+      _populateGuardianSelect(guardians);
+    }
+  });
+});
+
+// Preview al seleccionar tutor del dropdown
+document.getElementById('t_existing_id')?.addEventListener('change', function () {
+  const id = parseInt(this.value);
+  const g  = (_guardiansCache || []).find(x => x.guardian_id === id);
+  _showTutorPreview(g || null);
+});
 
 document.getElementById('patientModal')?.addEventListener('click', e => {
   if (e.target === document.getElementById('patientModal')) closePatientModal();
@@ -119,22 +205,35 @@ document.getElementById('formNewPatient')?.addEventListener('submit', async e =>
   e.preventDefault();
   const val = id => document.getElementById(id)?.value?.trim() || '';
 
+  // Determinar modo del tutor
+  const tutorMode  = document.querySelector('input[name="tutor_mode"]:checked')?.value || 'new';
+  const guardianId = tutorMode === 'existing'
+    ? (parseInt(val('t_existing_id')) || null)
+    : null;
+
+  // Validar que se haya seleccionado un tutor si el modo es "existing"
+  if (tutorMode === 'existing' && !guardianId) {
+    alert('Por favor, selecciona un tutor de la lista o elige "Registrar nuevo".');
+    return;
+  }
+
   const data = {
-    first_name: val('p_name'),
-    last_name:  val('p_lastname'),
-    birth_date: val('p_birthdate'),
-    gender:     val('p_gender') === 'Masculino' ? 'M' : 'F',
-    blood_type: val('p_blood'),
-    allergies:  val('p_allergies'),
-    rfc:        val('p_rfc').toUpperCase(),
-    tutor: {
+    first_name:  val('p_name'),
+    last_name:   val('p_lastname'),
+    birth_date:  val('p_birthdate'),
+    gender:      val('p_gender') === 'Masculino' ? 'M' : 'F',
+    blood_type:  val('p_blood'),
+    allergies:   val('p_allergies'),
+    rfc:         val('p_rfc').toUpperCase(),
+    guardian_id: guardianId,
+    tutor: tutorMode === 'new' ? {
       name:     val('t_name'),
       lastname: val('t_lastname'),
       curp:     val('t_curp'),
       number:   val('t_phone'),
       mail:     val('t_email'),
       address:  val('t_address'),
-    },
+    } : {},
   };
 
   let patientId;

@@ -307,6 +307,86 @@
     margin: 0;
 }
 
+/* ── Toggle: tutor existente vs. nuevo ── */
+.tutor-mode-wrap {
+    margin-bottom: var(--md-spacing-4, 16px);
+}
+
+.tutor-mode-question {
+    font-size: var(--md-font-size-body-md, 0.92rem);
+    font-weight: var(--md-font-weight-bold, 700);
+    color: var(--md-on-surface, #1a1a1a);
+    margin: 0 0 10px;
+}
+
+.tutor-mode-radios {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.tutor-mode-opt {
+    cursor: pointer;
+}
+.tutor-mode-opt input[type="radio"] {
+    display: none;
+}
+.tutor-mode-opt__label {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 18px;
+    border-radius: var(--md-shape-extra-large, 999px);
+    border: 1.5px solid var(--md-outline-variant, #c4c7c5);
+    font-size: var(--md-font-size-body-sm, 0.84rem);
+    font-weight: var(--md-font-weight-semibold, 600);
+    color: var(--md-on-surface-variant, #49454f);
+    background: transparent;
+    transition: border-color var(--md-transition-short, 0.2s),
+                background   var(--md-transition-short, 0.2s),
+                color        var(--md-transition-short, 0.2s);
+    cursor: pointer;
+    user-select: none;
+}
+.tutor-mode-opt input[type="radio"]:checked + .tutor-mode-opt__label {
+    border-color: var(--md-secondary, #4B1535);
+    background:   var(--md-secondary-container, #E8ABCE);
+    color:        var(--md-secondary, #4B1535);
+}
+.tutor-mode-opt__label:hover {
+    border-color: var(--md-secondary, #4B1535);
+    color:        var(--md-secondary, #4B1535);
+}
+
+/* ── Tutor preview ── */
+.tutor-preview {
+    flex-direction: column;
+    gap: 6px;
+    padding: 12px 16px;
+    background: var(--md-surface-container-low, #f8f3f8);
+    border: 1px solid var(--md-outline-variant, #c4c7c5);
+    border-radius: var(--md-shape-medium, 12px);
+    margin-top: 4px;
+}
+.tutor-preview__row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: var(--md-font-size-body-sm, 0.82rem);
+    color: var(--md-on-surface-variant, #49454f);
+}
+.tutor-preview__row i {
+    font-size: 0.78rem;
+    color: var(--md-outline, #79747e);
+    width: 14px;
+    text-align: center;
+    flex-shrink: 0;
+}
+.tutor-preview__row:first-child span {
+    font-weight: var(--md-font-weight-bold, 700);
+    color: var(--md-on-surface, #1a1a1a);
+}
+
 /* ── Estado vacío ── */
 .pt-empty {
     grid-column: 1 / -1;

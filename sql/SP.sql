@@ -35,7 +35,6 @@ BEGIN
                 p.premature,
                 p.created_at,
                 p.photo,
-                p.rfc,
                 p.blood_type_id,
                 COALESCE(bt.blood_type, '—')                            AS blood_type,
                 DATE_PART('year', AGE(CURRENT_DATE, p.birth_date))::INT AS age,
@@ -65,6 +64,7 @@ BEGIN
                 ORDER  BY pgr.is_primary DESC LIMIT 1
             ) rel ON TRUE
             LEFT JOIN guardians g ON g.guardian_id = rel.guardian_id
+            WHERE p.is_active != FALSE
             ORDER BY p.created_at DESC
             LIMIT p_limit;
     ELSE
@@ -81,7 +81,6 @@ BEGIN
                 p.premature,
                 p.created_at,
                 p.photo,
-                p.rfc,
                 p.blood_type_id,
                 COALESCE(bt.blood_type, '—')                            AS blood_type,
                 DATE_PART('year', AGE(CURRENT_DATE, p.birth_date))::INT AS age,
@@ -111,10 +110,16 @@ BEGIN
                 ORDER  BY pgr.is_primary DESC LIMIT 1
             ) rel ON TRUE
             LEFT JOIN guardians g ON g.guardian_id = rel.guardian_id
+            WHERE p.is_active != FALSE
             ORDER BY p.last_name, p.first_name;
     END IF;
 END;
 $$;
+
+BEGIN ;
+CALL sp_get_patients_full(NULL, 'patients_cursor');
+FETCH ALL FROM patients_cursor;
+COMMIT;
 
 CREATE OR REPLACE PROCEDURE sp_dashboard_kpis(
     INOUT p_results REFCURSOR
@@ -390,10 +395,12 @@ CREATE OR REPLACE PROCEDURE sp_register_patient(
     IN    p_gender           CHAR(1),
     IN    p_blood_type_id    INT,
     IN    p_weight_kg        NUMERIC,
+    IN    p_premature        BOOLEAN,
     IN    p_guardian_name    VARCHAR,
     IN    p_guardian_last    VARCHAR,
+    IN    p_guardian_curp    VARCHAR,
     IN    p_guardian_phone   VARCHAR,
-    IN    p_
+    IN    p_guardian_email   VARCHAR,
     INOUT p_results          REFCURSOR
 )
 LANGUAGE plpgsql
@@ -403,6 +410,8 @@ DECLARE
     v_patient_id  INT;
     v_age_years   INT;
 BEGIN
+
+    -- ── Validaciones del paciente ─────────────────────────────────────────
 
     IF TRIM(p_first_name) = '' THEN
         RAISE EXCEPTION 'El nombre es obligatorio';
@@ -426,147 +435,143 @@ BEGIN
         RAISE EXCEPTION 'Genero invalido';
     END IF;
 
-    IF LENGTH(TRIM(p_curp)) <> 18 THEN
+    IF p_curp IS NOT NULL AND LENGTH(TRIM(p_curp)) <> 18 THEN
         RAISE EXCEPTION 'CURP invalida';
     END IF;
 
-    IF EXISTS (
-        SELECT 1
-        FROM patients
-        WHERE curp = p_curp
+    IF p_curp IS NOT NULL AND EXISTS (
+        SELECT 1 FROM patients WHERE curp = p_curp
     ) THEN
         RAISE EXCEPTION 'El CURP ya existe';
     END IF;
 
-    IF p_weight_kg <= 0 OR p_weight_kg > 80 THEN
+    IF p_weight_kg IS NOT NULL AND (p_weight_kg <= 0 OR p_weight_kg > 80) THEN
         RAISE EXCEPTION 'Peso fuera de rango pediatrico';
     END IF;
 
-    IF NOT EXISTS (
-        SELECT 1
-        FROM blood_types
-        WHERE blood_type_id = p_blood_type_id
+    IF p_blood_type_id IS NOT NULL AND NOT EXISTS (
+        SELECT 1 FROM blood_types WHERE blood_type_id = p_blood_type_id
     ) THEN
         RAISE EXCEPTION 'Tipo sanguineo inexistente';
     END IF;
 
-    SELECT guardian_id
-    INTO v_guardian_id
-    FROM guardians
-    WHERE first_name = p_guardian_name
-    AND last_name = p_guardian_last
-    LIMIT 1;
+    -- ── Tutor: buscar o crear ─────────────────────────────────────────────
 
-    IF v_guardian_id IS NULL THEN
-
-        INSERT INTO guardians (
-            first_name,
-            last_name
-        )
-        VALUES (
-            p_guardian_name,
-            p_guardian_last
-        )
-        RETURNING guardian_id
-        INTO v_guardian_id;
-
+    -- 1. Buscar por CURP (identificador unico, mas confiable)
+    IF p_guardian_curp IS NOT NULL AND TRIM(p_guardian_curp) <> '' THEN
+        SELECT guardian_id INTO v_guardian_id
+        FROM   guardians
+        WHERE  curp = TRIM(p_guardian_curp)
+        LIMIT  1;
     END IF;
 
-    IF p_guardian_phone IS NOT NULL THEN
+    -- 2. Fallback: buscar por nombre completo si no hubo match por CURP
+    IF v_guardian_id IS NULL
+       AND p_guardian_name IS NOT NULL AND TRIM(p_guardian_name) <> ''
+       AND p_guardian_last IS NOT NULL AND TRIM(p_guardian_last) <> ''
+    THEN
+        SELECT guardian_id INTO v_guardian_id
+        FROM   guardians
+        WHERE  first_name = TRIM(p_guardian_name)
+          AND  last_name  = TRIM(p_guardian_last)
+        LIMIT  1;
+    END IF;
 
-        IF LENGTH(TRIM(p_guardian_phone)) < 10 THEN
-            RAISE EXCEPTION 'Telefono invalido';
+    -- 3. Si no existe, crear tutor nuevo
+    IF v_guardian_id IS NULL AND p_guardian_name IS NOT NULL AND TRIM(p_guardian_name) <> '' THEN
+        INSERT INTO guardians (first_name, last_name, curp)
+        VALUES (
+            TRIM(p_guardian_name),
+            TRIM(COALESCE(p_guardian_last, '')),
+            NULLIF(TRIM(COALESCE(p_guardian_curp, '')), '')
+        )
+        RETURNING guardian_id INTO v_guardian_id;
+    END IF;
+
+    -- 4. Agregar contacto solo si no existe ya (ON CONFLICT DO NOTHING evita duplicados)
+    --    Esto aplica tanto a tutores nuevos como a tutores ya existentes.
+    IF v_guardian_id IS NOT NULL THEN
+
+        IF p_guardian_phone IS NOT NULL AND TRIM(p_guardian_phone) <> '' THEN
+            IF LENGTH(TRIM(p_guardian_phone)) < 10 THEN
+                RAISE EXCEPTION 'Telefono invalido';
+            END IF;
+            INSERT INTO guardian_phones (guardian_id, phone, phone_type, is_primary)
+            VALUES (v_guardian_id, TRIM(p_guardian_phone), 'Celular', TRUE)
+            ON CONFLICT (guardian_id, phone) DO NOTHING;
         END IF;
 
-        INSERT INTO guardian_phones (
-            guardian_id,
-            phone,
-            phone_type,
-            is_primary
-        )
-        VALUES (
-            v_guardian_id,
-            p_guardian_phone,
-            'Celular',
-            TRUE
-        );
+        IF p_guardian_email IS NOT NULL AND TRIM(p_guardian_email) <> '' THEN
+            INSERT INTO guardian_emails (guardian_id, email, is_primary)
+            VALUES (v_guardian_id, TRIM(p_guardian_email), TRUE)
+            ON CONFLICT (guardian_id, email) DO NOTHING;
+        END IF;
 
     END IF;
 
+    -- ── Insertar paciente ─────────────────────────────────────────────────
+
     INSERT INTO patients (
-        first_name,
-        last_name,
-        curp,
-        birth_date,
-        gender,
-        blood_type_id,
-        weight_kg,
-        premature,
-        created_at,
-        is_active
+        first_name, last_name, curp, birth_date, gender,
+        blood_type_id, weight_kg, premature, created_at, is_active
     )
     VALUES (
-        p_first_name,
-        p_last_name,
-        p_curp,
+        TRIM(p_first_name),
+        TRIM(p_last_name),
+        NULLIF(TRIM(COALESCE(p_curp, '')), ''),
         p_birth_date,
         p_gender,
         p_blood_type_id,
         p_weight_kg,
-        p_premature,
+        COALESCE(p_premature, FALSE),
         NOW(),
         TRUE
     )
-    RETURNING patient_id
-    INTO v_patient_id;
+    RETURNING patient_id INTO v_patient_id;
 
-    INSERT INTO patient_guardian_relations (
-        patient_id,
-        guardian_id,
-        relation_type,
-        is_primary,
-        has_custody
-    )
-    VALUES (
-        v_patient_id,
-        v_guardian_id,
-        'Tutor',
-        TRUE,
-        TRUE
-    );
+    -- ── Vincular paciente con tutor ───────────────────────────────────────
+
+    IF v_guardian_id IS NOT NULL THEN
+        INSERT INTO patient_guardian_relations (
+            patient_id, guardian_id, relation_type, is_primary, has_custody
+        )
+        VALUES (v_patient_id, v_guardian_id, 'Tutor', TRUE, TRUE)
+        ON CONFLICT DO NOTHING;
+    END IF;
 
     OPEN p_results FOR
-    SELECT
-        TRUE AS success,
-        'Paciente registrado correctamente' AS message,
-        v_patient_id AS patient_id;
+        SELECT TRUE  AS success,
+               'Paciente registrado correctamente' AS message,
+               v_patient_id  AS patient_id,
+               v_guardian_id AS guardian_id;
 
 EXCEPTION
 WHEN OTHERS THEN
-
     OPEN p_results FOR
-    SELECT
-        FALSE AS success,
-        SQLERRM AS message,
-        NULL::INT AS patient_id;
+        SELECT FALSE AS success,
+               SQLERRM   AS message,
+               NULL::INT AS patient_id,
+               NULL::INT AS guardian_id;
 
 END;
 $$;
 
 BEGIN;
 CALL sp_register_patient(
-    'Diana',
-    'Ross',
-    'DIAR350503YGFERT06',
-    '2025-05-12',
-    'F',
-    4,
-    34.6,
-    FALSE,
-    'Mike',
-    'Ross',
-    '8110000019',
-    'p_results'
+    'Diana',           -- first_name
+    'Ross',            -- last_name
+    'DIAR350503YGFERT06', -- curp
+    '2025-05-12',      -- birth_date
+    'F',               -- gender
+    4,                 -- blood_type_id
+    34.6,              -- weight_kg
+    FALSE,             -- premature
+    'Mike',            -- guardian_name
+    'Ross',            -- guardian_last
+    NULL,              -- guardian_curp
+    '8110000019',      -- guardian_phone
+    NULL,              -- guardian_email
+    'p_results'        -- cursor
 );
 FETCH ALL FROM p_results;
 COMMIT;
@@ -2448,9 +2453,3 @@ WHEN OTHERS THEN
         SELECT FALSE AS success, SQLERRM AS message, NULL::INT AS worker_id;
 END;
 $$;
-
-
--- ==============================================
--- FIN STORED PROCEDURES
--- ==============================================
-

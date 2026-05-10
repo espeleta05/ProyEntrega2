@@ -89,40 +89,92 @@
                 </div>
 
                 <div class="md3-form__section">
-                    <h4 class="md3-form__section-title">Datos del tutor</h4>
+                    <h4 class="md3-form__section-title">Tutor del paciente</h4>
 
-                    <div class="md3-form__row md3-form__row--2">
-                        <div class="md3-field">
-                            <label class="md3-field__label" for="t_name">Nombre(s)</label>
-                            <input class="md3-input" type="text" id="t_name" placeholder="Nombre(s)">
-                        </div>
-                        <div class="md3-field">
-                            <label class="md3-field__label" for="t_lastname">Apellidos</label>
-                            <input class="md3-input" type="text" id="t_lastname" placeholder="Apellidos">
+                    <!-- ── Pregunta: ¿el tutor ya está registrado? ── -->
+                    <div class="tutor-mode-wrap">
+                        <p class="tutor-mode-question">¿El tutor ya está registrado en el sistema?</p>
+                        <div class="tutor-mode-radios">
+                            <label class="tutor-mode-opt">
+                                <input type="radio" name="tutor_mode" id="tutor_mode_yes" value="existing">
+                                <span class="tutor-mode-opt__label">
+                                    <i class="fa-solid fa-magnifying-glass"></i> Sí, buscarlo
+                                </span>
+                            </label>
+                            <label class="tutor-mode-opt">
+                                <input type="radio" name="tutor_mode" id="tutor_mode_no" value="new" checked>
+                                <span class="tutor-mode-opt__label">
+                                    <i class="fa-solid fa-user-plus"></i> No, registrar nuevo
+                                </span>
+                            </label>
                         </div>
                     </div>
 
-                    <div class="md3-form__row md3-form__row--2">
+                    <!-- ── Sección: tutor existente (oculta por defecto) ── -->
+                    <div id="tutor-existing-wrap" style="display:none">
                         <div class="md3-field">
-                            <label class="md3-field__label" for="t_curp">CURP</label>
-                            <input class="md3-input" type="text" id="t_curp" placeholder="18 caracteres" maxlength="18">
+                            <label class="md3-field__label" for="t_existing_id">Buscar tutor registrado</label>
+                            <select class="md3-select" id="t_existing_id">
+                                <option value="">— Selecciona un tutor —</option>
+                            </select>
                         </div>
-                        <div class="md3-field">
-                            <label class="md3-field__label" for="t_phone">Teléfono</label>
-                            <input class="md3-input" type="tel" id="t_phone" placeholder="+52 1234 5678">
+                        <!-- Tarjeta informativa del tutor seleccionado -->
+                        <div id="tutor-preview" class="tutor-preview" style="display:none">
+                            <div class="tutor-preview__row">
+                                <i class="fa-solid fa-user"></i>
+                                <span id="tutor-preview-name"></span>
+                            </div>
+                            <div class="tutor-preview__row">
+                                <i class="fa-solid fa-id-card"></i>
+                                <span id="tutor-preview-curp"></span>
+                            </div>
+                            <div class="tutor-preview__row">
+                                <i class="fa-solid fa-phone"></i>
+                                <span id="tutor-preview-phone"></span>
+                            </div>
+                            <div class="tutor-preview__row">
+                                <i class="fa-solid fa-envelope"></i>
+                                <span id="tutor-preview-email"></span>
+                            </div>
                         </div>
                     </div>
 
-                    <div class="md3-form__row md3-form__row--2">
-                        <div class="md3-field">
-                            <label class="md3-field__label" for="t_email">Email</label>
-                            <input class="md3-input" type="email" id="t_email" placeholder="correo@ejemplo.com">
+                    <!-- ── Sección: datos de tutor nuevo (visible por defecto) ── -->
+                    <div id="tutor-new-wrap">
+                        <div class="md3-form__row md3-form__row--2">
+                            <div class="md3-field">
+                                <label class="md3-field__label" for="t_name">Nombre(s)</label>
+                                <input class="md3-input" type="text" id="t_name" placeholder="Nombre(s)">
+                            </div>
+                            <div class="md3-field">
+                                <label class="md3-field__label" for="t_lastname">Apellidos</label>
+                                <input class="md3-input" type="text" id="t_lastname" placeholder="Apellidos">
+                            </div>
                         </div>
-                        <div class="md3-field">
-                            <label class="md3-field__label" for="t_address">Dirección</label>
-                            <input class="md3-input" type="text" id="t_address" placeholder="Calle, Número, Colonia">
+
+                        <div class="md3-form__row md3-form__row--2">
+                            <div class="md3-field">
+                                <label class="md3-field__label" for="t_curp">CURP</label>
+                                <input class="md3-input" type="text" id="t_curp" placeholder="18 caracteres" maxlength="18">
+                            </div>
+                            <div class="md3-field">
+                                <label class="md3-field__label" for="t_phone">Teléfono</label>
+                                <input class="md3-input" type="tel" id="t_phone" placeholder="+52 1234 5678">
+                            </div>
+                        </div>
+
+                        <div class="md3-form__row md3-form__row--2">
+                            <div class="md3-field">
+                                <label class="md3-field__label" for="t_email">Email</label>
+                                <input class="md3-input" type="email" id="t_email" placeholder="correo@ejemplo.com">
+                            </div>
+                            <div class="md3-field">
+                                <label class="md3-field__label" for="t_address">Dirección</label>
+                                <input class="md3-input" type="text" id="t_address" placeholder="Calle, Número, Colonia">
+                            </div>
                         </div>
                     </div>
+
                 </div>
 
             </div>

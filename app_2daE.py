@@ -1,4 +1,4 @@
-import math
+﻿import math
 import os
 from datetime import date, datetime
 from flask import Flask, flash, jsonify, redirect, render_template, request, session, url_for, g, has_request_context
@@ -321,12 +321,11 @@ def dashboard():
 
     try:
         conn, should_close = _get_conn()
-        old_autocommit = conn.autocommit
+        _safe_rollback(conn)
         kpis         = {}
         top_patients = []
         chart_rows   = []
         try:
-            conn.autocommit = False
             with conn.cursor() as cur:
 
                 # 1. KPIs y alertas
@@ -351,7 +350,6 @@ def dashboard():
             logger.error(f"[SP ERROR] dashboard:\n{traceback.format_exc()}")
             _safe_rollback(conn)
         finally:
-            conn.autocommit = old_autocommit
             if should_close and not _conn_is_closed(conn):
                 conn.close()
 
@@ -417,9 +415,8 @@ def pacientes():
 
     try:
         conn, should_close = _get_conn()
-        old_autocommit = conn.autocommit
+        _safe_rollback(conn)
         try:
-            conn.autocommit = False
             with conn.cursor() as cur:
                 cur.execute("CALL sp_get_patients_full(%s, %s)", (None, "cur_patients_full"))
                 cur.execute('FETCH ALL FROM "cur_patients_full"')
@@ -431,7 +428,6 @@ def pacientes():
             _safe_rollback(conn)
             patients = []
         finally:
-            conn.autocommit = old_autocommit
             if should_close and not _conn_is_closed(conn):
                 conn.close()
 
@@ -455,10 +451,11 @@ def register_patient():
         return jsonify({"error": "No autenticado"}), 401
 
     payload = request.get_json(silent=True) or {}
-    tutor   = payload.get("tutor") or {}
+    tutor = payload.get("tutor") or {}
 
     first_name = (payload.get("first_name") or "").strip()
     last_name  = (payload.get("last_name")  or "").strip()
+
     if not first_name or not last_name:
         return jsonify({"error": "Nombre y apellido son requeridos"}), 400
 
@@ -467,48 +464,151 @@ def register_patient():
     gender_code = gender_map.get(gender_raw, "O")
 
     blood_type_id = int(payload.get("blood_type_id") or 1)
+    rfc           = (payload.get("rfc") or "").strip().upper() or None
+
+    # Si viene guardian_id, vinculamos tutor existente; si no, el SP lo crea
+    guardian_id_existing = None
+    raw_gid = payload.get("guardian_id")
+    if raw_gid:
+        try:
+            guardian_id_existing = int(raw_gid)
+        except (ValueError, TypeError):
+            guardian_id_existing = None
 
     conn, should_close = _get_conn()
-    old_autocommit = conn.autocommit
     try:
-        conn.autocommit = False
         with conn.cursor() as cur:
+
+            if guardian_id_existing:
+                # Pasar datos de tutor vacíos al SP (no crea ni busca tutor)
+                guardian_name  = None
+                guardian_last  = None
+                guardian_curp  = None
+                guardian_phone = None
+                guardian_email = None
+            else:
+                guardian_name  = (tutor.get("name")     or "").strip() or None
+                guardian_last  = (tutor.get("lastname")  or "").strip() or None
+                guardian_curp  = (tutor.get("curp")      or "").strip() or None
+                guardian_phone = (tutor.get("number")    or "").strip() or None
+                guardian_email = (tutor.get("mail")      or "").strip() or None
+
             cur.execute(
-                "CALL sp_register_patient(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",
+                """
+                CALL sp_register_patient(
+                    %s,%s,%s,%s,%s,%s,%s,%s,
+                    %s,%s,%s,%s,%s,%s
+                )
+                """,
                 (
                     first_name,
                     last_name,
-                    payload.get("curp"),
+                    payload.get("curp") or None,
                     payload.get("birth_date") or "2021-01-01",
                     gender_code,
                     blood_type_id,
-                    payload.get("weight_kg"),
-                    (tutor.get("name") or "Tutor").strip(),
-                    (tutor.get("lastname") or "Demo").strip(),
-                    tutor.get("number"),
+                    payload.get("weight_kg") or None,
+                    payload.get("premature") or False,
+                    guardian_name,
+                    guardian_last,
+                    guardian_curp,
+                    guardian_phone,
+                    guardian_email,
                     "cur_reg_patient",
                 ),
             )
+
             cur.execute('FETCH ALL FROM "cur_reg_patient"')
             row = cur.fetchone()
+
+            patient_id = row.get("patient_id") if row else None
+
+            # Vincular tutor existente (el SP lo omitió porque recibió nulls)
+            if guardian_id_existing and patient_id:
+                cur.execute(
+                    """
+                    INSERT INTO patient_guardian_relations
+                        (patient_id, guardian_id, relation_type, is_primary, has_custody)
+                    VALUES (%s, %s, 'Tutor', TRUE, TRUE)
+                    ON CONFLICT DO NOTHING
+                    """,
+                    (patient_id, guardian_id_existing),
+                )
+
+            # Guardar RFC si se proporcionó
+            if rfc and patient_id:
+                cur.execute(
+                    "UPDATE patients SET rfc = %s WHERE patient_id = %s",
+                    (rfc, patient_id),
+                )
+
         conn.commit()
+
     except Exception as ex:
         _safe_rollback(conn)
-        return jsonify({"error": f"No se pudo registrar el paciente: {ex}"}), 500
+        error_message = ex.diag.message_primary if hasattr(ex, "diag") else str(ex)
+        return jsonify({"error": error_message}), 400
+
     finally:
-        conn.autocommit = old_autocommit
         if should_close and not _conn_is_closed(conn):
             conn.close()
 
     if not row:
-        return jsonify({"error": "No se pudo registrar el paciente en la base de datos"}), 500
+        return jsonify({"error": "No se pudo registrar el paciente"}), 500
+
+    if not row.get("success"):
+        return jsonify({"error": row.get("message") or "Error al registrar el paciente"}), 400
 
     flash(f"Paciente {first_name} {last_name} registrado correctamente.", "success")
-    return jsonify({"message": "Paciente registrado", "patient_id": row.get("patient_id")})
+    return jsonify({
+        "message":    row.get("message", "Paciente registrado"),
+        "patient_id": row.get("patient_id"),
+    })
 
 
 _PHOTO_UPLOAD_FOLDER   = os.path.join("static", "uploads", "patients")
 _PHOTO_ALLOWED_EXTS    = {"png", "jpg", "jpeg", "webp"}
+
+
+@app.route("/api/guardians")
+def api_guardians():
+    """Devuelve todos los tutores registrados para el dropdown del modal."""
+    locked = _require_login()
+    if locked:
+        return jsonify({"error": "No autenticado"}), 401
+
+    conn, should_close = _get_conn()
+    _safe_rollback(conn)
+    try:
+        with conn.cursor() as cur:
+            cur.execute("""
+                SELECT
+                    g.guardian_id,
+                    g.first_name,
+                    g.last_name,
+                    g.curp,
+                    (SELECT gp.phone
+                     FROM   guardian_phones gp
+                     WHERE  gp.guardian_id = g.guardian_id
+                     ORDER  BY gp.is_primary DESC LIMIT 1) AS phone,
+                    (SELECT ge.email
+                     FROM   guardian_emails ge
+                     WHERE  ge.guardian_id = g.guardian_id
+                     ORDER  BY ge.is_primary DESC LIMIT 1) AS email
+                FROM guardians g
+                ORDER BY g.last_name, g.first_name
+            """)
+            rows = cur.fetchall()
+        conn.commit()
+    except Exception as e:
+        _safe_rollback(conn)
+        logger.error(f"Error en /api/guardians: {e}")
+        return jsonify([])
+    finally:
+        if should_close and not _conn_is_closed(conn):
+            conn.close()
+
+    return jsonify([dict(r) for r in rows])
 
 @app.route("/patients/<int:id>/photo", methods=["POST"])
 def upload_patient_photo(id):
@@ -567,21 +667,23 @@ def delete_patient(id):
 
     nombre = f"{patient['first_name']} {patient['last_name']}"
     conn, should_close = _get_conn()
-    old_autocommit = conn.autocommit
+    _safe_rollback(conn)
     try:
-        conn.autocommit = False
         with conn.cursor() as cur:
             cur.execute("CALL sp_delete_patient(%s, %s)", (id, "cur_del_patient"))
             cur.execute('FETCH ALL FROM "cur_del_patient"')
+            result = cur.fetchone()
         conn.commit()
     except Exception as ex:
         _safe_rollback(conn)
         logger.error(f"Error en /delete_patient/{id}: {ex}")
         return jsonify({"error": f"No se pudo eliminar el paciente: {ex}"}), 400
     finally:
-        conn.autocommit = old_autocommit
         if should_close and not _conn_is_closed(conn):
             conn.close()
+
+    if result and not result.get("success"):
+        return jsonify({"error": result.get("message", "Error al eliminar el paciente")}), 400
 
     flash(f"Paciente {nombre} eliminado.", "warning")
     return jsonify({"message": "Paciente eliminado"})
@@ -599,9 +701,8 @@ def historial():
 
     try:
         conn, should_close = _get_conn()
-        old_autocommit = conn.autocommit
+        _safe_rollback(conn)
         try:
-            conn.autocommit = False
             with conn.cursor() as cur:
                 # Lista de pacientes
                 cur.execute("CALL sp_get_patients_full(%s, %s)", (None, "cur_patients_full"))
@@ -619,7 +720,6 @@ def historial():
             patients    = []
             all_records = []
         finally:
-            conn.autocommit = old_autocommit
             if should_close and not _conn_is_closed(conn):
                 conn.close()
 
@@ -637,9 +737,8 @@ def historial():
 
             # Próximas vacunas pendientes
             conn2, should_close2 = _get_conn()
-            old_ac2 = conn2.autocommit
+            _safe_rollback(conn2)
             try:
-                conn2.autocommit = False
                 with conn2.cursor() as cur2:
                     cur2.execute("CALL sp_get_pending_scheme_doses(%s, %s)", (pid, "cur_pending_doses"))
                     cur2.execute('FETCH ALL FROM "cur_pending_doses"')
@@ -658,7 +757,6 @@ def historial():
                 _safe_rollback(conn2)
                 next_vaccines = []
             finally:
-                conn2.autocommit = old_ac2
                 if should_close2 and not _conn_is_closed(conn2):
                     conn2.close()
 
@@ -683,9 +781,8 @@ def historial_paciente(id):
         return locked
 
     conn, should_close = _get_conn()
-    old_autocommit = conn.autocommit
+    _safe_rollback(conn)
     try:
-        conn.autocommit = False
         with conn.cursor() as cur:
             # Lista de pacientes (sidebar)
             cur.execute("CALL sp_get_patients_full(%s, %s)", (None, "cur_patients_full"))
@@ -709,7 +806,6 @@ def historial_paciente(id):
         flash("Error al cargar historial del paciente.", "danger")
         return redirect(url_for("historial"))
     finally:
-        conn.autocommit = old_autocommit
         if should_close and not _conn_is_closed(conn):
             conn.close()
 
@@ -756,9 +852,8 @@ def esquema_paciente(id):
         return locked
 
     conn, should_close = _get_conn()
-    old_autocommit = conn.autocommit
+    _safe_rollback(conn)
     try:
-        conn.autocommit = False
         with conn.cursor() as cur:
             cur.execute("CALL sp_get_esquema_paciente(%s, %s)", (id, "cur_esquema_paciente"))
             cur.execute('FETCH ALL FROM "cur_esquema_paciente"')
@@ -770,7 +865,6 @@ def esquema_paciente(id):
         flash("Error al cargar el esquema del paciente.", "danger")
         return redirect(url_for("historial"))
     finally:
-        conn.autocommit = old_autocommit
         if should_close and not _conn_is_closed(conn):
             conn.close()
 
@@ -834,9 +928,8 @@ def esquema_vacunacion():
         return locked
 
     conn, should_close = _get_conn()
-    old_autocommit = conn.autocommit
+    _safe_rollback(conn)
     try:
-        conn.autocommit = False
         with conn.cursor() as cur:
             cur.execute("CALL sp_get_esquema_vacunacion(%s)", ("cur_esquema_vacunacion",))
             cur.execute('FETCH ALL FROM "cur_esquema_vacunacion"')
@@ -847,7 +940,6 @@ def esquema_vacunacion():
         logger.error(f"Error en /esquema: {e}")
         rows = []
     finally:
-        conn.autocommit = old_autocommit
         if should_close and not _conn_is_closed(conn):
             conn.close()
 
@@ -882,9 +974,8 @@ def vacunas_page():
         return locked
 
     conn, should_close = _get_conn()
-    old_autocommit = conn.autocommit
+    _safe_rollback(conn)
     try:
-        conn.autocommit = False
         with conn.cursor() as cur:
             cur.execute("CALL sp_get_vaccines_full(%s)", ("cur_vaccines_full",))
             cur.execute('FETCH ALL FROM "cur_vaccines_full"')
@@ -895,7 +986,6 @@ def vacunas_page():
         logger.error(f"Error en /vacunas: {e}")
         vaccines = []
     finally:
-        conn.autocommit = old_autocommit
         if should_close and not _conn_is_closed(conn):
             conn.close()
 
@@ -923,9 +1013,8 @@ def register_vaccine():
         return jsonify({"error": "El nombre de vacuna es requerido"}), 400
 
     conn, should_close = _get_conn()
-    old_autocommit = conn.autocommit
+    _safe_rollback(conn)
     try:
-        conn.autocommit = False
         with conn.cursor() as cur:
             cur.execute(
                 "CALL sp_register_vaccine(%s,%s,%s,%s,%s,%s,%s)",
@@ -946,15 +1035,17 @@ def register_vaccine():
         _safe_rollback(conn)
         return jsonify({"error": f"No se pudo registrar la vacuna: {ex}"}), 500
     finally:
-        conn.autocommit = old_autocommit
         if should_close and not _conn_is_closed(conn):
             conn.close()
 
     if not row:
         return jsonify({"error": "No se pudo registrar la vacuna en la base de datos"}), 500
 
+    if not row.get("success"):
+        return jsonify({"error": row.get("message", "Error al registrar la vacuna")}), 400
+
     flash(f"Vacuna '{name}' registrada.", "success")
-    return jsonify({"message": "Vacuna registrada", "vaccine_id": row.get("vaccine_id")})
+    return jsonify({"message": row.get("message", "Vacuna registrada"), "vaccine_id": row.get("vaccine_id")})
 
 
 @app.route("/delete_vaccine/<int:id>", methods=["POST"])
@@ -968,9 +1059,8 @@ def delete_vaccine(id):
         return jsonify({"error": "Vacuna no encontrada"}), 404
 
     conn, should_close = _get_conn()
-    old_autocommit = conn.autocommit
+    _safe_rollback(conn)
     try:
-        conn.autocommit = False
         with conn.cursor() as cur:
             cur.execute("CALL sp_delete_vaccine(%s, %s)", (id, "cur_del_vaccine"))
             cur.execute('FETCH ALL FROM "cur_del_vaccine"')
@@ -980,12 +1070,11 @@ def delete_vaccine(id):
         _safe_rollback(conn)
         return jsonify({"error": f"No se pudo eliminar la vacuna: {ex}"}), 400
     finally:
-        conn.autocommit = old_autocommit
         if should_close and not _conn_is_closed(conn):
             conn.close()
 
-    if result and result.get("error"):
-        return jsonify({"error": result["error"]}), 400
+    if result and not result.get("success"):
+        return jsonify({"error": result.get("message", "Error al eliminar la vacuna")}), 400
 
     flash(f"Vacuna '{vaccine['name']}' eliminada.", "warning")
     return jsonify({"message": "Vacuna eliminada"})
@@ -1002,9 +1091,8 @@ def aplicaciones():
         return locked
 
     conn, should_close = _get_conn()
-    old_autocommit = conn.autocommit
+    _safe_rollback(conn)
     try:
-        conn.autocommit = False
         with conn.cursor() as cur:
             cur.execute("CALL sp_get_vaccination_records_full(%s)", ("cur_vaccination_records",))
             cur.execute('FETCH ALL FROM "cur_vaccination_records"')
@@ -1015,7 +1103,6 @@ def aplicaciones():
         logger.error(f"Error en /aplicaciones: {e}")
         raw_records = []
     finally:
-        conn.autocommit = old_autocommit
         if should_close and not _conn_is_closed(conn):
             conn.close()
 
@@ -1092,9 +1179,8 @@ def agregar_aplicacion():
                 lot_id    = int(lot_id) if lot_id else None
 
                 conn, should_close = _get_conn()
-                old_autocommit = conn.autocommit
+                _safe_rollback(conn)
                 try:
-                    conn.autocommit = False
                     with conn.cursor() as cur:
                         cur.execute(
                             "CALL sp_register_vaccination_record(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",
@@ -1120,11 +1206,12 @@ def agregar_aplicacion():
                     error = f"No se pudo registrar la aplicación: {ex}"
                     row   = None
                 finally:
-                    conn.autocommit = old_autocommit
                     if should_close and not _conn_is_closed(conn):
                         conn.close()
 
-                if row:
+                if row and not row.get("success"):
+                    error = row.get("message", "Error al registrar la aplicación")
+                elif row:
                     p_name = f"{patient['first_name']} {patient['last_name']}".strip()
                     flash(f"Aplicación de {vaccine['name']} registrada para {p_name}.", "success")
                     return redirect(url_for("aplicaciones"))
@@ -1157,9 +1244,8 @@ def personal():
         return locked
 
     conn, should_close = _get_conn()
-    old_autocommit = conn.autocommit
+    _safe_rollback(conn)
     try:
-        conn.autocommit = False
         with conn.cursor() as cur:
             cur.execute("CALL sp_get_workers_full(%s)", ("cur_workers_full",))
             cur.execute('FETCH ALL FROM "cur_workers_full"')
@@ -1170,7 +1256,6 @@ def personal():
         logger.error(f"Error en /personal: {e}")
         workers = []
     finally:
-        conn.autocommit = old_autocommit
         if should_close and not _conn_is_closed(conn):
             conn.close()
 
@@ -1225,9 +1310,8 @@ def add_user():
             flash(error, "danger")
         else:
             conn, should_close = _get_conn()
-            old_autocommit = conn.autocommit
+            _safe_rollback(conn)
             try:
-                conn.autocommit = False
                 with conn.cursor() as cur:
                     cur.execute(
                         "CALL sp_register_worker(%s,%s,%s,%s,%s,%s,%s,%s)",
@@ -1250,11 +1334,13 @@ def add_user():
                 error = f"No se pudo registrar el usuario: {ex}"
                 row   = None
             finally:
-                conn.autocommit = old_autocommit
                 if should_close and not _conn_is_closed(conn):
                     conn.close()
 
-            if row:
+            if row and not row.get("success"):
+                error = row.get("message", "Error al registrar el usuario")
+                flash(error, "danger")
+            elif row:
                 session["last_registered_worker"] = row.get("worker_id")
                 flash(f"Usuario {first_name} registrado correctamente.", "success")
                 return redirect(url_for("personal"))
@@ -1364,9 +1450,8 @@ def inventario():
         return locked
 
     conn, should_close = _get_conn()
-    old_autocommit = conn.autocommit
+    _safe_rollback(conn)
     try:
-        conn.autocommit = False
         with conn.cursor() as cur:
             cur.execute("CALL sp_get_inventory_status(%s)", ("cur_inventory_status",))
             cur.execute('FETCH ALL FROM "cur_inventory_status"')
@@ -1377,7 +1462,6 @@ def inventario():
         logger.error(f"Error en /inventario: {e}")
         inventory = []
     finally:
-        conn.autocommit = old_autocommit
         if should_close and not _conn_is_closed(conn):
             conn.close()
 
@@ -1401,9 +1485,8 @@ def citas():
         return locked
 
     conn, should_close = _get_conn()
-    old_autocommit = conn.autocommit
+    _safe_rollback(conn)
     try:
-        conn.autocommit = False
         with conn.cursor() as cur:
             cur.execute("CALL sp_get_appointments_full(%s)", ("cur_appointments_full",))
             cur.execute('FETCH ALL FROM "cur_appointments_full"')
@@ -1414,7 +1497,6 @@ def citas():
         logger.error(f"Error en /citas: {e}")
         raw_appointments = []
     finally:
-        conn.autocommit = old_autocommit
         if should_close and not _conn_is_closed(conn):
             conn.close()
 
@@ -1443,9 +1525,8 @@ def nfc():
         return locked
 
     conn, should_close = _get_conn()
-    old_autocommit = conn.autocommit
+    _safe_rollback(conn)
     try:
-        conn.autocommit = False
         with conn.cursor() as cur:
             cur.execute("CALL sp_get_nfc_cards_full(%s)", ("cur_nfc_cards",))
             cur.execute('FETCH ALL FROM "cur_nfc_cards"')
@@ -1461,7 +1542,6 @@ def nfc():
         cards = []
         scans = []
     finally:
-        conn.autocommit = old_autocommit
         if should_close and not _conn_is_closed(conn):
             conn.close()
 
@@ -1483,9 +1563,8 @@ def clinicas():
         return locked
 
     conn, should_close = _get_conn()
-    old_autocommit = conn.autocommit
+    _safe_rollback(conn)
     try:
-        conn.autocommit = False
         with conn.cursor() as cur:
             cur.execute("CALL sp_get_clinics_full(%s)", ("cur_clinics_full",))
             cur.execute('FETCH ALL FROM "cur_clinics_full"')
@@ -1496,7 +1575,6 @@ def clinicas():
         logger.error(f"Error en /clinicas: {e}")
         clinics = []
     finally:
-        conn.autocommit = old_autocommit
         if should_close and not _conn_is_closed(conn):
             conn.close()
 
@@ -1552,9 +1630,8 @@ def api_global_search():
 
     # Buscar personal vía SP
     conn, should_close = _get_conn()
-    old_autocommit = conn.autocommit
+    _safe_rollback(conn)
     try:
-        conn.autocommit = False
         with conn.cursor() as cur:
             cur.execute("CALL sp_get_workers_full(%s)", ("cur_workers_search",))
             cur.execute('FETCH ALL FROM "cur_workers_search"')
@@ -1564,7 +1641,6 @@ def api_global_search():
         _safe_rollback(conn)
         workers = []
     finally:
-        conn.autocommit = old_autocommit
         if should_close and not _conn_is_closed(conn):
             conn.close()
 
@@ -1695,9 +1771,8 @@ def api_alertas_esquema():
         return jsonify({"error": "No autenticado"}), 401
 
     conn, should_close = _get_conn()
-    old_autocommit = conn.autocommit
+    _safe_rollback(conn)
     try:
-        conn.autocommit = False
         with conn.cursor() as cur:
             cur.execute("CALL sp_get_schema_alerts_full(%s)", ("cur_schema_alerts",))
             cur.execute('FETCH ALL FROM "cur_schema_alerts"')
@@ -1708,7 +1783,6 @@ def api_alertas_esquema():
         logger.error(f"Error en /api/alertas-esquema: {e}")
         rows = []
     finally:
-        conn.autocommit = old_autocommit
         if should_close and not _conn_is_closed(conn):
             conn.close()
 
@@ -1737,3 +1811,4 @@ if __name__ == "__main__":
 
     logger.info("✓ Flask iniciando en http://127.0.0.1:5000")
     app.run(debug=True)
+
