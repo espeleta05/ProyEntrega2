@@ -218,10 +218,12 @@ CREATE TABLE workers (
     address_id     INT           REFERENCES addresses(address_id),
     birth_date     DATE,
     hire_date      DATE,
-    created_at     TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    created_at     TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    is_active      BOOLEAN  NOT NULL DEFAULT TRUE
 );
 
 ALTER TABLE workers ADD COLUMN created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
+ALTER TABLE workers ADD COLUMN IF NOT EXISTS is_active   BOOLEAN   NOT NULL DEFAULT TRUE;
 
 CREATE TABLE worker_professional (
     worker_id           INT NOT NULL REFERENCES workers(worker_id),
@@ -374,10 +376,10 @@ CREATE TABLE vaccination_records (
     appointment_id       INT      UNIQUE REFERENCES appointments(appointment_id),
     -- sabemos que cada registro de vacunación se asocia a una cita, pero no todas las citas terminan en vacunación, por eso es opcional y único
     patient_temp_c       NUMERIC(4,1),
-    had_reaction         BOOLEAN  NOT NULL DEFAULT FALSE,
-
-    UNIQUE (patient_id, scheme_dose_id)
+    had_reaction         BOOLEAN  NOT NULL DEFAULT FALSE
 );
+
+ALTER TABLE vaccination_records ADD COLUMN created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
 
 CREATE TABLE patient_vaccine_schedule (
     schedule_id SERIAL PRIMARY KEY,
