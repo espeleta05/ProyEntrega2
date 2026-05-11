@@ -53,19 +53,39 @@
   {% include 'layouts/topbar_2daE.html' %}
 
   {{ sidebar(
-      items=[
-        {'label': 'Dashboard',    'icon': 'fa-desktop',          'endpoint': 'dashboard'},
-        {'label': 'Pacientes',    'icon': 'fa-users',            'endpoint': 'pacientes'},
-        {'label': 'Vacunas',      'icon': 'fa-syringe',          'endpoint': 'vacunas_page'},
-        {'label': 'Historial',    'icon': 'fa-file-medical',     'endpoint': 'historial'},
-        {'label': 'Aplicaciones', 'icon': 'fa-file-circle-plus', 'endpoint': 'aplicaciones'},
-        {'label': 'Personal',     'icon': 'fa-user-doctor',      'endpoint': 'personal'},
-      ],
-      bottom_items=[
-        {'label': 'Inventario',   'icon': 'fa-boxes-stacked',    'endpoint': 'inventario'},
-        {'label': 'Citas',        'icon': 'fa-calendar-check',   'endpoint': 'citas'},
-        {'label': 'NFC',          'icon': 'fa-credit-card',      'endpoint': 'nfc'},
-        {'label': 'Clínicas',     'icon': 'fa-hospital',         'endpoint': 'clinicas'},
+      sections=[
+        {
+          'title': 'Principal',
+          'items': [
+            {'label': 'Dashboard',    'icon': 'fa-desktop',          'endpoint': 'dashboard'},
+            {'label': 'Pacientes',    'icon': 'fa-users',            'endpoint': 'pacientes'},
+            {'label': 'Aplicaciones', 'icon': 'fa-file-circle-plus', 'endpoint': 'aplicaciones'},
+            {'label': 'Historial',    'icon': 'fa-file-medical',     'endpoint': 'historial'},
+          ]
+        },
+        {
+          'title': 'Clínica',
+          'items': [
+            {'label': 'Vacunas',    'icon': 'fa-syringe',        'endpoint': 'vacunas_page'},
+            {'label': 'Citas',      'icon': 'fa-calendar-check', 'endpoint': 'citas'},
+            {'label': 'Inventario', 'icon': 'fa-boxes-stacked',  'endpoint': 'inventario'},
+          ]
+        },
+        {
+          'title': 'Administración',
+          'items': [
+            {'label': 'Personal',          'icon': 'fa-user-doctor',  'endpoint': 'personal'},
+            {'label': 'Clínicas',          'icon': 'fa-hospital',     'endpoint': 'clinicas'},
+            {'label': 'Reportes públicos', 'icon': 'fa-chart-column', 'endpoint': 'reportes_publicos'},
+          ]
+        },
+        {
+          'title': 'Dispositivos IoTs',
+          'items': [
+            {'label': 'NFC',     'icon': 'fa-tachograph-digital', 'endpoint': 'nfc'},
+            {'label': 'Beacons', 'icon': 'fa-compact-disc',       'endpoint': 'beacon'},
+          ]
+        },
       ],
       logo_src=url_for('static', filename='css/img/logo.png'),
       logo_href=url_for('pagina_inicio'),

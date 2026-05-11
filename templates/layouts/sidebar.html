@@ -3,10 +3,8 @@
   CSS: static/css/layouts/sidebar.css
 
   Parámetros:
-    - items:       lista de nav items principales
-                   { label, icon, endpoint, url, badge (opcional) }
-    - bottom_items: lista de nav items secundarios (abajo del sidebar)
-                   { label, icon, endpoint, url }
+    - sections:     lista de secciones de navegación
+                    { title (opcional), items: [ { label, icon, endpoint, url, badge } ] }
     - logo_text:   texto del logo (default: 'ImmuniCare')
     - logo_src:    ruta de la imagen del logo (opcional)
     - logo_href:   URL del logo (default: '#')
@@ -16,22 +14,43 @@
     - logout_url:  URL de logout (default: '/logout')
 
   Uso — importar y llamar desde el layout base:
-    {% from 'components/sidebar.html' import sidebar %}
+    {% from 'layouts/sidebar.html' import sidebar %}
 
     {{ sidebar(
-        items=[
-          {'label': 'Dashboard',  'icon': 'fa-desktop',           'endpoint': 'dashboard'},
-          {'label': 'Pacientes',  'icon': 'fa-users',             'endpoint': 'pacientes'},
-          {'label': 'Vacunas',    'icon': 'fa-syringe',           'endpoint': 'vacunas_page'},
-          {'label': 'Historial',  'icon': 'fa-file-medical',      'endpoint': 'historial'},
-          {'label': 'Aplicaciones','icon':'fa-file-circle-plus',  'endpoint': 'aplicaciones'},
-          {'label': 'Personal',   'icon': 'fa-user-doctor',       'endpoint': 'personal'},
-        ],
-        bottom_items=[
-          {'label': 'Inventario', 'icon': 'fa-boxes-stacked',  'endpoint': 'inventario'},
-          {'label': 'Citas',      'icon': 'fa-calendar-check', 'endpoint': 'citas'},
-          {'label': 'NFC',        'icon': 'fa-credit-card',    'endpoint': 'nfc'},
-          {'label': 'Clínicas',   'icon': 'fa-hospital',       'endpoint': 'clinicas'},
+        sections=[
+          {
+            'title': 'Principal',
+            'items': [
+              {'label': 'Dashboard',    'icon': 'fa-desktop',          'endpoint': 'dashboard'},
+              {'label': 'Pacientes',    'icon': 'fa-users',            'endpoint': 'pacientes'},
+              {'label': 'Aplicaciones', 'icon': 'fa-file-circle-plus', 'endpoint': 'aplicaciones'},
+              {'label': 'Historial',    'icon': 'fa-file-medical',     'endpoint': 'historial'},
+            ]
+          },
+          {
+            'title': 'Clínica',
+            'items': [
+              {'label': 'Vacunas',    'icon': 'fa-syringe',        'endpoint': 'vacunas_page'},
+              {'label': 'Citas',      'icon': 'fa-calendar-check', 'endpoint': 'citas'},
+              {'label': 'Inventario', 'icon': 'fa-boxes-stacked',  'endpoint': 'inventario'},
+            ]
+          },
+          {
+            'title': 'Administración',
+            'items': [
+              {'label': 'Personal', 'icon': 'fa-user-doctor', 'endpoint': 'personal'},
+              {'label': 'Clínicas', 'icon': 'fa-hospital',    'endpoint': 'clinicas'},
+              {'label': 'Reportes públicos', 'icon': 'fa-chart-column',       'endpoint': 'reportes_publicos'},
+            ]
+          },
+          {
+            'title': 'Dispositivos IoTs',
+            'items': [
+              {'label': 'NFC',               'icon': 'fa-tachograph-digital', 'endpoint': 'nfc'},
+              {'label': 'Beacons',           'icon': 'fa-bluetooth',          'endpoint': 'beacon'},
+              
+            ]
+          },
         ],
         user_name=name ~ ' ' ~ lastname,
         user_role=role,
@@ -42,95 +61,82 @@
         se activa cuando request.endpoint coincide. Si no tiene endpoint, se usa 'url' directo.
 #}
 
-{% macro sidebar(items=[], bottom_items=[], logo_text='ImmuniCare', logo_src=None, logo_href='#', user_name='', user_role='', user_initials='', logout_url='/logout') %}
+{% macro sidebar(sections=[], logo_text='ImmuniCare', logo_src=None, logo_href='#', user_name='', user_role='', user_initials='', logout_url='/logout') %}
 
 <aside class="sidebar" id="appSidebar">
 
-  {% if user_role == 'Recepcionista' %}
+  <div class="sidebar-content">
 
-    <nav class="sidebar-nav" aria-label="Navegaci&oacute;n principal">
+    {% if user_role == 'Recepcionista' %}
 
-      <a href="{{ url_for('dashboard') }}"
-         class="sidebar-nav-item {{ 'active' if request.endpoint == 'dashboard' else '' }}"
-         {{ 'aria-current=page' if request.endpoint == 'dashboard' else '' }}>
-        <i class="fa-solid fa-desktop"></i>
-        <span>Dashboard</span>
-      </a>
+      <div class="sidebar-section">
+        <p class="sidebar-section-title">Principal</p>
+        <nav class="sidebar-nav" aria-label="Navegaci&oacute;n principal">
 
-      <a href="{{ url_for('pacientes') }}"
-         class="sidebar-nav-item {{ 'active' if request.endpoint == 'pacientes' else '' }}"
-         {{ 'aria-current=page' if request.endpoint == 'pacientes' else '' }}>
-        <i class="fa-solid fa-users"></i>
-        <span>Pacientes</span>
-      </a>
-
-      <a href="{{ url_for('citas') }}"
-         class="sidebar-nav-item {{ 'active' if request.endpoint == 'citas' else '' }}"
-         {{ 'aria-current=page' if request.endpoint == 'citas' else '' }}>
-        <i class="fa-solid fa-calendar-check"></i>
-        <span>Citas</span>
-      </a>
-
-      <a href="{{ url_for('historial') }}"
-         class="sidebar-nav-item {{ 'active' if request.endpoint == 'historial' else '' }}"
-         {{ 'aria-current=page' if request.endpoint == 'historial' else '' }}>
-        <i class="fa-solid fa-file-medical"></i>
-        <span>Historial</span>
-        <span class="sidebar-nav-badge">Solo lectura</span>
-      </a>
-
-    </nav>
-
-  {% else %}
-
-    <nav class="sidebar-nav" aria-label="Navegaci&oacute;n principal">
-      {% for item in items %}
-        {%- if item.endpoint is defined and item.endpoint %}
-          {%- set item_url = url_for(item.endpoint) -%}
-          {%- set is_active = request.endpoint == item.endpoint -%}
-        {%- else %}
-          {%- set item_url = item.url | default('#') -%}
-          {%- set is_active = False -%}
-        {%- endif %}
-        <a href="{{ item_url }}"
-           class="sidebar-nav-item {{ 'active' if is_active else '' }}"
-           {% if is_active %}aria-current="page"{% endif %}>
-          <i class="fa-solid {{ item.icon }}"></i>
-          <span>{{ item.label }}</span>
-          {% if item.badge is defined and item.badge %}
-            <span class="sidebar-nav-badge">{{ item.badge }}</span>
-          {% endif %}
-        </a>
-      {% endfor %}
-    </nav>
-
-    {% if bottom_items %}
-      <nav class="sidebar-nav sidebar-nav--bottom" aria-label="Navegaci&oacute;n secundaria">
-        {% for item in bottom_items %}
-          {%- if item.endpoint is defined and item.endpoint %}
-            {%- set item_url = url_for(item.endpoint) -%}
-            {%- set is_active = request.endpoint == item.endpoint -%}
-          {%- else %}
-            {%- set item_url = item.url | default('#') -%}
-            {%- set is_active = False -%}
-          {%- endif %}
-          <a href="{{ item_url }}"
-             class="sidebar-nav-item {{ 'active' if is_active else '' }}"
-             {% if is_active %}aria-current="page"{% endif %}>
-            <i class="fa-solid {{ item.icon }}"></i>
-            <span>{{ item.label }}</span>
+          <a href="{{ url_for('dashboard') }}"
+             class="sidebar-nav-item {{ 'active' if request.endpoint == 'dashboard' else '' }}"
+             {{ 'aria-current=page' if request.endpoint == 'dashboard' else '' }}>
+            <i class="fa-solid fa-desktop"></i>
+            <span>Dashboard</span>
           </a>
-        {% endfor %}
-      </nav>
+
+          <a href="{{ url_for('pacientes') }}"
+             class="sidebar-nav-item {{ 'active' if request.endpoint == 'pacientes' else '' }}"
+             {{ 'aria-current=page' if request.endpoint == 'pacientes' else '' }}>
+            <i class="fa-solid fa-users"></i>
+            <span>Pacientes</span>
+          </a>
+
+          <a href="{{ url_for('citas') }}"
+             class="sidebar-nav-item {{ 'active' if request.endpoint == 'citas' else '' }}"
+             {{ 'aria-current=page' if request.endpoint == 'citas' else '' }}>
+            <i class="fa-solid fa-calendar-check"></i>
+            <span>Citas</span>
+          </a>
+
+          <a href="{{ url_for('historial') }}"
+             class="sidebar-nav-item {{ 'active' if request.endpoint == 'historial' else '' }}"
+             {{ 'aria-current=page' if request.endpoint == 'historial' else '' }}>
+            <i class="fa-solid fa-file-medical"></i>
+            <span>Historial</span>
+            <span class="sidebar-nav-badge">Solo lectura</span>
+          </a>
+
+        </nav>
+      </div>
+
+    {% else %}
+
+      {% for section in sections %}
+        <div class="sidebar-section">
+          {% if section.title %}
+            <p class="sidebar-section-title">{{ section.title }}</p>
+          {% endif %}
+          <nav class="sidebar-nav" aria-label="{{ section.title or 'Navegaci&oacute;n' }}">
+            {% for item in section['items'] %}
+              {%- if item.endpoint is defined and item.endpoint %}
+                {%- set item_url = url_for(item.endpoint) -%}
+                {%- set is_active = request.endpoint == item.endpoint -%}
+              {%- else %}
+                {%- set item_url = item.url | default('#') -%}
+                {%- set is_active = False -%}
+              {%- endif %}
+              <a href="{{ item_url }}"
+                 class="sidebar-nav-item {{ 'active' if is_active else '' }}"
+                 {% if is_active %}aria-current="page"{% endif %}>
+                <i class="fa-solid {{ item.icon }}"></i>
+                <span>{{ item.label }}</span>
+                {% if item.badge is defined and item.badge %}
+                  <span class="sidebar-nav-badge">{{ item.badge }}</span>
+                {% endif %}
+              </a>
+            {% endfor %}
+          </nav>
+        </div>
+      {% endfor %}
+
     {% endif %}
 
-  {% endif %}
-
-  <div class="sidebar-report">
-    <button class="btn-reporte" type="button" onclick="window.location.href='{{ url_for('reportes_publicos') }}'">
-      <i class="fa-solid fa-plus"></i>
-      Generar reporte
-    </button>
   </div>
 
   {% if user_name %}

@@ -337,7 +337,7 @@ def logout():
 
 @app.route("/dashboard")
 def dashboard():
-    locked = _require_role("Administrador", "Recepcionista", "Médico", "Almacén")
+    locked = _require_role("Administrador", "Recepcionista", "Medico", "Almacen")
     if locked:
         return locked
 
@@ -431,7 +431,7 @@ def dashboard():
 
 @app.route("/pacientes")
 def pacientes():
-    locked = _require_role("Administrador", "Recepcionista", "Médico", "Enfermero")
+    locked = _require_role("Administrador", "Recepcionista", "Medico", "Enfermero")
     if locked:
         return locked
 
@@ -594,7 +594,7 @@ _PHOTO_ALLOWED_EXTS    = {"png", "jpg", "jpeg", "webp"}
 @app.route("/api/guardians")
 def api_guardians():
     """Devuelve todos los tutores registrados para el dropdown del modal."""
-    if not _check_role("Administrador", "Recepcionista", "Médico"):
+    if not _check_role("Administrador", "Recepcionista", "Medico"):
         return jsonify({"error": "Sin permisos"}), 403
 
     conn, should_close = _get_conn()
@@ -713,7 +713,7 @@ def delete_patient(id):
 
 @app.route("/historial")
 def historial():
-    locked = _require_role("Administrador", "Recepcionista", "Médico", "Enfermero")
+    locked = _require_role("Administrador", "Recepcionista", "Medico", "Enfermero")
     if locked:
         return locked
 
@@ -794,7 +794,7 @@ def historial():
 
 @app.route("/historial/<int:id>")
 def historial_paciente(id):
-    locked = _require_role("Administrador", "Recepcionista", "Médico", "Enfermero")
+    locked = _require_role("Administrador", "Recepcionista", "Medico", "Enfermero")
     if locked:
         return locked
 
@@ -865,7 +865,7 @@ def historial_paciente(id):
 
 @app.route("/esquema_paciente/<int:id>")
 def esquema_paciente(id):
-    locked = _require_role("Administrador", "Médico", "Enfermero")
+    locked = _require_role("Administrador", "Medico", "Enfermero")
     if locked:
         return locked
 
@@ -941,7 +941,7 @@ def esquema_paciente(id):
 
 @app.route("/esquema")
 def esquema_vacunacion():
-    locked = _require_role("Administrador", "Médico", "Enfermero")
+    locked = _require_role("Administrador", "Medico", "Enfermero")
     if locked:
         return locked
 
@@ -987,7 +987,7 @@ def esquema_vacunacion():
 
 @app.route("/vacunas")
 def vacunas_page():
-    locked = _require_role("Administrador", "Médico", "Enfermero", "Almacén")
+    locked = _require_role("Administrador", "Medico", "Enfermero", "Almacen")
     if locked:
         return locked
 
@@ -1021,7 +1021,7 @@ def vacunas_page():
 
 @app.route("/register_vaccine", methods=["POST"])
 def register_vaccine():
-    if not _check_role("Administrador", "Almacén"):
+    if not _check_role("Administrador", "Almacen"):
         return jsonify({"error": "Sin permisos"}), 403
 
     payload = request.get_json(silent=True) or {}
@@ -1102,7 +1102,7 @@ def delete_vaccine(id):
 
 @app.route("/aplicaciones")
 def aplicaciones():
-    locked = _require_role("Administrador", "Médico", "Enfermero")
+    locked = _require_role("Administrador", "Medico", "Enfermero")
     if locked:
         return locked
 
@@ -1165,7 +1165,7 @@ def aplicaciones():
 
 @app.route("/agregar_aplicacion", methods=["GET", "POST"])
 def agregar_aplicacion():
-    locked = _require_role("Administrador", "Médico", "Enfermero")
+    locked = _require_role("Administrador", "Medico", "Enfermero")
     if locked:
         return locked
 
@@ -1463,7 +1463,7 @@ def edit_user(worker_id):
 
 @app.route("/reportes-publicos")
 def reportes_publicos():
-    locked = _require_role("Administrador", "Médico")
+    locked = _require_role("Administrador", "Medico")
     if locked:
         return locked
     return render_template("pages/reportesPublicos_2daE.html", **_session_vars())
@@ -1471,7 +1471,7 @@ def reportes_publicos():
 
 @app.route("/inventario")
 def inventario():
-    locked = _require_role("Administrador", "Almacén")
+    locked = _require_role("Administrador", "Almacen")
     if locked:
         return locked
 
@@ -1506,7 +1506,7 @@ def inventario():
 
 @app.route("/citas")
 def citas():
-    locked = _require_role("Administrador", "Recepcionista", "Médico", "Enfermero")
+    locked = _require_role("Administrador", "Recepcionista", "Medico", "Enfermero")
     if locked:
         return locked
 
@@ -1581,6 +1581,16 @@ def nfc():
         active_cards=sum(1 for c in cards if c.get("status") == "Activa"),
     )
 
+@app.route("/beacons")
+def beacon():
+    locked = _require_role("Administrador")
+    if locked:
+        return locked
+
+    return render_template(
+        "pages/beacons.html.html",
+        **_session_vars(),
+    )
 
 @app.route("/clinicas")
 def clinicas():
@@ -1765,7 +1775,7 @@ def api_global_search():
 
 @app.route("/api/reportes-publicos/resumen")
 def api_reportes_publicos_resumen():
-    if not _check_role("Administrador", "Médico"):
+    if not _check_role("Administrador", "Medico"):
         return jsonify({"error": "Sin permisos"}), 403
 
     from_date = request.args.get("from")
@@ -1870,7 +1880,7 @@ def api_reportes_publicos_resumen():
 
 @app.route("/api/alertas-esquema")
 def api_alertas_esquema():
-    if not _check_role("Administrador", "Médico", "Enfermero"):
+    if not _check_role("Administrador", "Medico", "Enfermero"):
         return jsonify({"error": "Sin permisos"}), 403
 
     conn, should_close = _get_conn()
