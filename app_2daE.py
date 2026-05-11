@@ -277,6 +277,73 @@ def _authenticate_user(login_value, password):
             pass
 
 
+def _authenticate_tutor(email, password):
+    """Autentica un tutor contra guardian_accounts (email + bcrypt)."""
+    email    = (email or "").strip().lower()
+    password = password or ""
+    if not email or not password:
+        return None
+    try:
+        conn = get_db_connection()
+        cur  = conn.cursor()
+        cur.execute("""
+            SELECT ga.guardian_account_id,
+                   ga.guardian_id,
+                   ga.password_hash,
+                   g.first_name,
+                   g.last_name
+            FROM   guardian_accounts ga
+            JOIN   guardians g ON g.guardian_id = ga.guardian_id
+            WHERE  LOWER(ga.email) = %s
+            LIMIT  1;
+        """, (email,))
+        row = cur.fetchone()
+        if not row:
+            return None
+        stored_hash = row["password_hash"]
+        if not stored_hash or not bcrypt.checkpw(
+            password.encode("utf-8"), stored_hash.encode("utf-8")
+        ):
+            return None
+        return {
+            "guardian_account_id": row["guardian_account_id"],
+            "guardian_id":         row["guardian_id"],
+            "name":                (row.get("first_name") or "").strip(),
+            "lastname":            (row.get("last_name")  or "").strip(),
+        }
+    except Exception as e:
+        logger.warning("Error en autenticación de tutor: %s", e)
+        return None
+    finally:
+        try:
+            cur.close()
+            conn.close()
+        except Exception:
+            pass
+
+
+def _require_tutor():
+    """Para rutas del portal del tutor. Redirige a /tutor/login si no hay sesión."""
+    if "tutor_id" not in session:
+        flash("Debes iniciar sesión para acceder al portal del tutor.", "warning")
+        return redirect(url_for("tutor_login"))
+    return None
+
+
+def _tutor_session_vars():
+    """Equivalente a _session_vars() pero para la sesión del tutor."""
+    first    = session.get("tutor_name", "")
+    last     = session.get("tutor_lastname", "")
+    initials = ((first[:1] + last[:1]).upper()) or "TU"
+    return {
+        "tutor_name":     first,
+        "tutor_lastname": last,
+        "guardian_id":    session.get("guardian_id"),
+        "tutor_id":       session.get("tutor_id"),
+        "tutor_initials": initials,
+    }
+
+
 # =============================================================================
 # RUTAS — páginas públicas
 # =============================================================================
@@ -329,6 +396,769 @@ def logout():
     session.clear()
     flash(f"Sesión de {nombre} cerrada correctamente.", "info")
     return redirect(url_for("pagina_inicio"))
+
+
+# =============================================================================
+# RUTAS — portal del tutor
+# =============================================================================
+
+@app.route("/tutor/login", methods=["GET", "POST"])
+def tutor_login():
+    if "tutor_id" in session:
+        return redirect(url_for("tutor_dashboard"))
+    error = None
+    if request.method == "POST":
+        email    = (request.form.get("email") or "").strip()
+        password = request.form.get("password") or ""
+        tutor    = _authenticate_tutor(email, password)
+        if tutor:
+            session["tutor_id"]       = tutor["guardian_account_id"]
+            session["guardian_id"]    = tutor["guardian_id"]
+            session["tutor_name"]     = tutor["name"]
+            session["tutor_lastname"] = tutor["lastname"]
+            flash(f"Bienvenido/a, {tutor['name']}.", "success")
+            return redirect(url_for("tutor_dashboard"))
+        error = "Correo o contraseña incorrectos."
+        flash(error, "danger")
+    return render_template("tutor/login.html", error=error)
+
+
+@app.route("/tutor/logout")
+def tutor_logout():
+    nombre = session.get("tutor_name", "")
+    for key in ("tutor_id", "guardian_id", "tutor_name", "tutor_lastname"):
+        session.pop(key, None)
+    flash(f"Sesión de {nombre} cerrada correctamente.", "info")
+    return redirect(url_for("tutor_login"))
+
+
+@app.route("/tutor")
+@app.route("/tutor/dashboard")
+def tutor_dashboard():
+    locked = _require_tutor()
+    if locked:
+        return locked
+
+    vars_        = _tutor_session_vars()
+    guardian_id  = vars_["guardian_id"]
+    children_data = []
+
+    conn, should_close = _get_conn()
+    _safe_rollback(conn)
+    try:
+        with conn.cursor() as cur:
+            # 1. Obtener todos los hijos del tutor
+            cur.execute("""
+                SELECT p.patient_id,
+                       p.first_name,
+                       p.last_name,
+                       TRIM(p.first_name || ' ' || p.last_name) AS full_name,
+                       p.birth_date,
+                       p.photo,
+                       DATE_PART('year', AGE(CURRENT_DATE, p.birth_date))::INT AS age_years
+                FROM   patient_guardian_relations pgr
+                JOIN   patients p ON p.patient_id = pgr.patient_id
+                WHERE  pgr.guardian_id = %s
+                  AND  p.is_active = TRUE
+                ORDER  BY p.birth_date;
+            """, (guardian_id,))
+            children = [dict(r) for r in cur.fetchall()]
+
+        # 2. Para cada hijo, obtener su esquema completo
+        for child in children:
+            pid = child["patient_id"]
+            try:
+                _safe_rollback(conn)
+                with conn.cursor() as cur:
+                    cur.execute("CALL sp_get_esquema_paciente(%s, %s)",
+                                (pid, "cur_tutor_esquema"))
+                    cur.execute('FETCH ALL FROM "cur_tutor_esquema"')
+                    esquema_rows = [dict(r) for r in cur.fetchall()]
+                conn.commit()
+            except Exception:
+                _safe_rollback(conn)
+                esquema_rows = []
+
+            applied  = [r for r in esquema_rows if r.get("estado") == "Aplicada"]
+            pending  = [r for r in esquema_rows
+                        if r.get("estado") in ("Pendiente", "Pendiente con retraso")]
+            total_d  = len(applied) + len(pending)
+            pct      = int(len(applied) / total_d * 100) if total_d > 0 else 0
+
+            # Próximas dosis (máx 5, pendientes)
+            next_doses = [
+                {
+                    "name":           r.get("name"),
+                    "dose":           r.get("dose"),
+                    "edad_ideal":     r.get("edad_ideal_label"),
+                    "dias_retraso":   r.get("dias_retraso") or 0,
+                    "alerta_retraso": r.get("alerta_retraso"),
+                    "estado":         r.get("estado"),
+                    "fecha_cita":     _temporal_text(r.get("fecha_cita")),
+                    "cita_estado":    r.get("cita_estado"),
+                    "cita_aceptada":  r.get("cita_aceptada_tutor"),
+                }
+                for r in pending
+            ][:5]
+
+            delayed     = [r for r in pending if (r.get("dias_retraso") or 0) > 0]
+            pend_accept = [r for r in next_doses
+                           if r["cita_aceptada"] is None and r["fecha_cita"] is not None]
+
+            _photo = child.get("photo")
+            fn     = child.get("full_name", "")
+            parts  = fn.split()
+            initials = (fn[:1] + (parts[-1][:1] if len(parts) > 1 else "")).upper()
+
+            children_data.append({
+                "patient_id":             pid,
+                "full_name":              fn,
+                "age_years":              child.get("age_years", 0),
+                "birth_date":             _temporal_text(child.get("birth_date")),
+                "photo_url":              f"/static/uploads/patients/{_photo}" if _photo else None,
+                "initials":               initials,
+                "total_applied":          len(applied),
+                "total_pending":          len(pending),
+                "total_doses":            total_d,
+                "pct":                    pct,
+                "next_doses":             next_doses,
+                "delayed_count":          len(delayed),
+                "pending_accept_count":   len(pend_accept),
+                "alerts_delayed":         [
+                    {"name": r.get("name"), "dose": r.get("dose"),
+                     "dias": r.get("dias_retraso") or 0}
+                    for r in delayed[:3]
+                ],
+                "alerts_pending_accept":  [
+                    {"name": r.get("name"), "dose": r.get("dose"),
+                     "fecha_cita": r.get("fecha_cita")}
+                    for r in pend_accept[:3]
+                ],
+            })
+
+        conn.commit()
+    except Exception as e:
+        _safe_rollback(conn)
+        logger.error("Error en tutor_dashboard: %s", e)
+        flash("Error al cargar el panel familiar. Intente de nuevo.", "danger")
+    finally:
+        if should_close and not _conn_is_closed(conn):
+            conn.close()
+
+    # KPIs globales (suma de todos los hijos)
+    total_applied_all = sum(c["total_applied"] for c in children_data)
+    total_doses_all   = sum(c["total_doses"]   for c in children_data)
+    total_pending_all = sum(c["total_pending"] for c in children_data)
+    pct_global        = int(total_applied_all / total_doses_all * 100) if total_doses_all > 0 else 0
+    total_alerts      = sum(c["delayed_count"] + c["pending_accept_count"]
+                            for c in children_data)
+
+    return render_template(
+        "tutor/dashboard.html",
+        today=date.today().strftime("%A, %d de %B de %Y"),
+        children=children_data,
+        # KPIs
+        pct_global=pct_global,
+        total_pending_all=total_pending_all,
+        total_alerts=total_alerts,
+        # Datos para el donut chart (JSON)
+        chart_applied=total_applied_all,
+        chart_pending=total_pending_all,
+        **vars_,
+    )
+
+
+def _tutor_owns_patient(guardian_id, patient_id):
+    """Devuelve True si patient_id está vinculado al guardian_id."""
+    conn, should_close = _get_conn()
+    try:
+        with conn.cursor() as cur:
+            cur.execute("""
+                SELECT 1 FROM patient_guardian_relations
+                WHERE  guardian_id = %s AND patient_id = %s
+                LIMIT  1;
+            """, (guardian_id, patient_id))
+            return cur.fetchone() is not None
+    except Exception:
+        return False
+    finally:
+        if should_close and not _conn_is_closed(conn):
+            conn.close()
+
+
+@app.route("/tutor/paciente/<int:patient_id>")
+def tutor_esquema(patient_id):
+    locked = _require_tutor()
+    if locked:
+        return locked
+
+    vars_       = _tutor_session_vars()
+    guardian_id = vars_["guardian_id"]
+
+    if not _tutor_owns_patient(guardian_id, patient_id):
+        flash("No tienes acceso a este paciente.", "danger")
+        return redirect(url_for("tutor_dashboard"))
+
+    conn, should_close = _get_conn()
+    _safe_rollback(conn)
+    try:
+        with conn.cursor() as cur:
+            cur.execute("CALL sp_get_esquema_paciente(%s, %s)",
+                        (patient_id, "cur_tutor_esq"))
+            cur.execute('FETCH ALL FROM "cur_tutor_esq"')
+            esquema_rows = [dict(r) for r in cur.fetchall()]
+        conn.commit()
+    except Exception as e:
+        _safe_rollback(conn)
+        logger.error("Error en tutor_esquema: %s", e)
+        flash("Error al cargar el esquema del paciente.", "danger")
+        return redirect(url_for("tutor_dashboard"))
+    finally:
+        if should_close and not _conn_is_closed(conn):
+            conn.close()
+
+    if not esquema_rows:
+        flash("Paciente no encontrado o sin esquema.", "danger")
+        return redirect(url_for("tutor_dashboard"))
+
+    first  = esquema_rows[0]
+    _photo = first.get("photo")
+    fn     = first.get("full_name") or ""
+    parts  = fn.split()
+    patient = {
+        "patient_id": first.get("patient_id"),
+        "full_name":  fn,
+        "birth_date": _temporal_text(first.get("birth_date")),
+        "age":        first.get("age_years"),
+        "photo_url":  f"/static/uploads/patients/{_photo}" if _photo else None,
+        "initials":   (fn[:1] + (parts[-1][:1] if len(parts) > 1 else "")).upper(),
+    }
+
+    applications = [
+        {
+            "name":      r.get("name"),
+            "dose":      r.get("dose"),
+            "date":      _temporal_text(r.get("date")),
+            "record_id": r.get("record_id"),
+        }
+        for r in esquema_rows if r.get("estado") == "Aplicada"
+    ]
+
+    next_vaccines = [
+        {
+            "name":           r.get("name"),
+            "dose":           r.get("dose"),
+            "edad_ideal":     r.get("edad_ideal_label"),
+            "dias_retraso":   r.get("dias_retraso") or 0,
+            "alerta_retraso": r.get("alerta_retraso"),
+            "estado":         r.get("estado"),
+            "fecha_cita":     _temporal_text(r.get("fecha_cita")),
+            "cita_estado":    r.get("cita_estado"),
+            "cita_aceptada":  r.get("cita_aceptada_tutor"),
+        }
+        for r in esquema_rows
+        if r.get("estado") in ("Pendiente", "Pendiente con retraso")
+    ]
+
+    total_applied = len(applications)
+    total_pending = len(next_vaccines)
+    total_doses   = total_applied + total_pending
+    pct           = int(total_applied / total_doses * 100) if total_doses > 0 else 0
+
+    return render_template(
+        "tutor/esquema.html",
+        today=date.today().strftime("%A, %d de %B de %Y"),
+        patient=patient,
+        applications=applications,
+        next_vaccines=next_vaccines,
+        total_applied=total_applied,
+        total_pending=total_pending,
+        total_doses=total_doses,
+        pct=pct,
+        **vars_,
+    )
+
+
+@app.route("/tutor/citas")
+def tutor_citas():
+    locked = _require_tutor()
+    if locked:
+        return locked
+
+    vars_       = _tutor_session_vars()
+    guardian_id = vars_["guardian_id"]
+
+    conn, should_close = _get_conn()
+    _safe_rollback(conn)
+    try:
+        with conn.cursor() as cur:
+            cur.execute("""
+                SELECT
+                    a.appointment_id,
+                    a.patient_id,
+                    a.scheduled_at,
+                    a.appointment_status,
+                    a.reason,
+                    a.appointment_notes,
+                    a.tutor_accepted,
+                    TRIM(p.first_name || ' ' || p.last_name)        AS patient_name,
+                    COALESCE(TRIM(w.first_name || ' ' || w.last_name), '—') AS worker_name,
+                    COALESCE(c.name, '—')                           AS clinic_name,
+                    COALESCE(ca.name, '—')                          AS area_name,
+                    COALESCE(v.name, '—')                           AS vaccine_name
+                FROM   appointments a
+                JOIN   patients p   ON p.patient_id = a.patient_id
+                JOIN   patient_guardian_relations pgr
+                       ON pgr.patient_id = a.patient_id
+                LEFT JOIN workers w ON w.worker_id = a.worker_id
+                LEFT JOIN clinics c ON c.clinic_id = a.clinic_id
+                LEFT JOIN clinic_areas ca ON ca.area_id = a.area_id
+                LEFT JOIN vaccines v ON v.vaccine_id = a.vaccine_id
+                WHERE  pgr.guardian_id = %s
+                ORDER  BY a.scheduled_at DESC;
+            """, (guardian_id,))
+            citas_raw = [dict(r) for r in cur.fetchall()]
+        conn.commit()
+    except Exception as e:
+        _safe_rollback(conn)
+        logger.error("Error en tutor_citas: %s", e)
+        citas_raw = []
+        flash("Error al cargar las citas.", "danger")
+    finally:
+        if should_close and not _conn_is_closed(conn):
+            conn.close()
+
+    citas = [
+        {**c, "scheduled_at": _temporal_text(c.get("scheduled_at"))}
+        for c in citas_raw
+    ]
+
+    pending_accept = sum(
+        1 for c in citas
+        if c.get("tutor_accepted") is None
+        and c.get("appointment_status") == "Programada"
+    )
+
+    return render_template(
+        "tutor/citas.html",
+        today=date.today().strftime("%A, %d de %B de %Y"),
+        citas=citas,
+        pending_accept=pending_accept,
+        **vars_,
+    )
+
+
+@app.route("/tutor/cita/<int:appointment_id>/responder", methods=["POST"])
+def tutor_cita_responder(appointment_id):
+    if "tutor_id" not in session:
+        return jsonify({"ok": False, "error": "No autenticado"}), 401
+
+    guardian_id = session.get("guardian_id")
+    payload     = request.get_json(silent=True) or {}
+    accion      = payload.get("accion", "")
+
+    if accion not in ("aceptar", "rechazar"):
+        return jsonify({"ok": False, "error": "Acción inválida"}), 400
+
+    nuevo_valor = True if accion == "aceptar" else False
+
+    conn, should_close = _get_conn()
+    _safe_rollback(conn)
+    try:
+        with conn.cursor() as cur:
+            # Verificar propiedad: la cita debe ser de un hijo del tutor
+            cur.execute("""
+                SELECT 1
+                FROM   appointments a
+                JOIN   patient_guardian_relations pgr
+                       ON pgr.patient_id = a.patient_id
+                WHERE  a.appointment_id = %s
+                  AND  pgr.guardian_id  = %s
+                LIMIT  1;
+            """, (appointment_id, guardian_id))
+            if not cur.fetchone():
+                return jsonify({"ok": False, "error": "Cita no encontrada"}), 404
+
+            cur.execute("""
+                UPDATE appointments
+                SET    tutor_accepted = %s
+                WHERE  appointment_id = %s;
+            """, (nuevo_valor, appointment_id))
+        conn.commit()
+    except Exception as e:
+        _safe_rollback(conn)
+        logger.error("Error en tutor_cita_responder: %s", e)
+        return jsonify({"ok": False, "error": "Error al actualizar"}), 500
+    finally:
+        if should_close and not _conn_is_closed(conn):
+            conn.close()
+
+    return jsonify({"ok": True, "accion": accion})
+
+
+# ── Helpers PDF / QR ──────────────────────────────────────────────────────────
+
+def _verification_token(record_id, patient_id):
+    """Genera un token corto para el QR de verificación."""
+    import hashlib
+    raw = f"{record_id}:{patient_id}:{app.secret_key}"
+    return hashlib.sha256(raw.encode()).hexdigest()[:16].upper()
+
+
+def _generate_qr_png(data, fill_color="#6B007C"):
+    """Devuelve un BytesIO con la imagen PNG del QR, o None si qrcode no está."""
+    try:
+        import qrcode as _qr
+        import io as _io
+        q = _qr.QRCode(version=1, box_size=8, border=3,
+                        error_correction=_qr.constants.ERROR_CORRECT_M)
+        q.add_data(data)
+        q.make(fit=True)
+        img = q.make_image(fill_color=fill_color, back_color="white")
+        buf = _io.BytesIO()
+        img.save(buf, format="PNG")
+        buf.seek(0)
+        return buf
+    except Exception:
+        return None
+
+
+def _generate_comprobante_pdf(record):
+    """Genera PDF de comprobante. Devuelve (BytesIO, None) o (None, error_str)."""
+    try:
+        import io as _io
+        from reportlab.lib.pagesizes import A4
+        from reportlab.platypus import (SimpleDocTemplate, Paragraph, Spacer,
+                                         Table, TableStyle, HRFlowable)
+        from reportlab.platypus import Image as RLImage
+        from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+        from reportlab.lib                import colors
+        from reportlab.lib.units          import cm
+        from reportlab.lib.enums          import TA_CENTER, TA_LEFT
+    except ImportError:
+        return None, "Librería reportlab no instalada. Ejecuta: pip install reportlab"
+
+    PRIMARY   = colors.HexColor("#6B007C")
+    SECONDARY = colors.HexColor("#4B1535")
+    SUCCESS   = colors.HexColor("#1D7B00")
+    GRAY      = colors.HexColor("#49454f")
+    LIGHT     = colors.HexColor("#f4eff8")
+    WHITE     = colors.white
+
+    styles = getSampleStyleSheet()
+
+    def _sty(name, **kw):
+        return ParagraphStyle(name, parent=styles["Normal"], **kw)
+
+    S_TITLE    = _sty("T", fontSize=18, fontName="Helvetica-Bold",  textColor=PRIMARY,   alignment=TA_CENTER)
+    S_SUB      = _sty("S", fontSize=10, fontName="Helvetica",       textColor=GRAY,      alignment=TA_CENTER)
+    S_SEC_HDR  = _sty("H", fontSize=9,  fontName="Helvetica-Bold",  textColor=WHITE)
+    S_LABEL    = _sty("L", fontSize=8,  fontName="Helvetica",       textColor=GRAY,      spaceBefore=0, spaceAfter=1)
+    S_VALUE    = _sty("V", fontSize=10, fontName="Helvetica-Bold",  textColor=colors.HexColor("#1a1a1a"), spaceAfter=3)
+    S_FOOTER   = _sty("F", fontSize=7,  fontName="Helvetica",       textColor=GRAY,      alignment=TA_CENTER)
+
+    buf = _io.BytesIO()
+    doc = SimpleDocTemplate(
+        buf, pagesize=A4,
+        rightMargin=2*cm, leftMargin=2*cm,
+        topMargin=2*cm,   bottomMargin=2*cm,
+        title=f"Comprobante — {record.get('patient_name', '')}",
+    )
+    story = []
+
+    # ── Logo + título ────────────────────────────────────────────────────
+    logo_path = os.path.join(app.root_path, "static", "css", "img", "logo.png")
+    hdr_cells = []
+    if os.path.exists(logo_path):
+        hdr_cells.append(RLImage(logo_path, width=1.1*cm, height=1.1*cm))
+    hdr_cells.append(Paragraph("ImmuniCare", S_TITLE))
+
+    hdr_tbl = Table([hdr_cells],
+                    colWidths=([1.4*cm] if os.path.exists(logo_path) else []) + ["*"])
+    hdr_tbl.setStyle(TableStyle([
+        ("VALIGN",       (0, 0), (-1, -1), "MIDDLE"),
+        ("LEFTPADDING",  (0, 0), (-1, -1), 0),
+        ("RIGHTPADDING", (0, 0), (-1, -1), 4),
+    ]))
+    story.append(hdr_tbl)
+    story.append(Paragraph("Comprobante de Vacunación", S_SUB))
+    story.append(Spacer(1, 0.35*cm))
+    story.append(HRFlowable(width="100%", thickness=2, color=PRIMARY))
+    story.append(Spacer(1, 0.4*cm))
+
+    def _section_header(text, color=PRIMARY):
+        t = Table([[Paragraph(f"  {text}", S_SEC_HDR)]], colWidths=["*"])
+        t.setStyle(TableStyle([
+            ("BACKGROUND",     (0, 0), (-1, -1), color),
+            ("TOPPADDING",     (0, 0), (-1, -1), 4),
+            ("BOTTOMPADDING",  (0, 0), (-1, -1), 4),
+            ("LEFTPADDING",    (0, 0), (-1, -1), 6),
+        ]))
+        return t
+
+    def _row(label, value):
+        return [Paragraph(label, S_LABEL), Paragraph(str(value or "—"), S_VALUE)]
+
+    # ── Datos del paciente ────────────────────────────────────────────────
+    story.append(_section_header("Datos del Paciente"))
+    story.append(Spacer(1, 0.25*cm))
+
+    pat_rows = [
+        _row("Nombre completo",       record.get("patient_name")),
+        _row("CURP",                  record.get("curp")),
+        _row("Fecha de nacimiento",   str(record.get("birth_date") or "—")[:10]),
+        _row("Edad",                  f"{record.get('age_years', '—')} año(s)"),
+    ]
+
+    # QR para embeber junto a los datos del paciente
+    token   = _verification_token(record["record_id"], record["patient_id"])
+    qr_data = f"IMMUNICARE://VERIFY/{record['record_id']}/{token}"
+    qr_buf  = _generate_qr_png(qr_data, fill_color="#6B007C")
+
+    if qr_buf:
+        qr_img  = RLImage(qr_buf, width=2.8*cm, height=2.8*cm)
+        qr_cell = Table(
+            [[Paragraph("Código de verificación", S_LABEL)], [qr_img]],
+            colWidths=[3.2*cm],
+        )
+        pat_tbl = Table([[
+            Table(pat_rows, colWidths=[3.5*cm, 8.3*cm]),
+            qr_cell,
+        ]], colWidths=["*", 3.2*cm])
+        pat_tbl.setStyle(TableStyle([("VALIGN", (0, 0), (-1, -1), "TOP")]))
+    else:
+        pat_tbl = Table(pat_rows, colWidths=[3.5*cm, "*"])
+
+    pat_tbl.setStyle(TableStyle([
+        ("VALIGN",      (0, 0), (-1, -1), "TOP"),
+        ("TOPPADDING",  (0, 0), (-1, -1), 2),
+        ("BOTTOMPADDING",(0, 0), (-1, -1), 1),
+    ]))
+    story.append(pat_tbl)
+    story.append(Spacer(1, 0.4*cm))
+
+    # ── Datos de la vacuna ────────────────────────────────────────────────
+    story.append(_section_header("Información de la Vacuna", color=SECONDARY))
+    story.append(Spacer(1, 0.25*cm))
+
+    app_date = str(record.get("applied_date") or "—")[:10]
+
+    vac_data = [
+        [Paragraph("Vacuna",             S_LABEL), Paragraph(str(record.get("vaccine_name") or "—"), S_VALUE),
+         Paragraph("Dosis",              S_LABEL), Paragraph(str(record.get("dose_label")   or "—"), S_VALUE)],
+        [Paragraph("Fecha de aplicación",S_LABEL), Paragraph(app_date, S_VALUE),
+         Paragraph("Médico",             S_LABEL), Paragraph(str(record.get("worker_name")  or "—"), S_VALUE)],
+        [Paragraph("Clínica",            S_LABEL), Paragraph(str(record.get("clinic_name")  or "—"), S_VALUE),
+         Paragraph("Lote",               S_LABEL), Paragraph(str(record.get("lot_number")   or "—"), S_VALUE)],
+        [Paragraph("Sitio de aplicación",S_LABEL), Paragraph(str(record.get("application_site") or "—"), S_VALUE),
+         Paragraph("Temperatura",        S_LABEL),
+         Paragraph(f"{record['patient_temp_c']}°C" if record.get("patient_temp_c") else "—", S_VALUE)],
+    ]
+
+    vac_tbl = Table(vac_data, colWidths=[3.5*cm, 6.3*cm, 2.8*cm, 4.4*cm])
+    vac_tbl.setStyle(TableStyle([
+        ("VALIGN",        (0, 0), (-1, -1), "TOP"),
+        ("TOPPADDING",    (0, 0), (-1, -1), 3),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 2),
+        ("ROWBACKGROUNDS",(0, 0), (-1, -1), [WHITE, LIGHT]),
+    ]))
+    story.append(vac_tbl)
+    story.append(Spacer(1, 0.8*cm))
+
+    # ── Footer ────────────────────────────────────────────────────────────
+    story.append(HRFlowable(width="100%", thickness=0.5, color=GRAY))
+    story.append(Spacer(1, 0.2*cm))
+    story.append(Paragraph(
+        f"Generado el {date.today().strftime('%d/%m/%Y')}  ·  "
+        f"ImmuniCare — Sistema Clínico de Vacunación  ·  "
+        f"ID de registro: {record['record_id']}  ·  "
+        f"Token: {token}",
+        S_FOOTER,
+    ))
+
+    doc.build(story)
+    buf.seek(0)
+    return buf, None
+
+
+# ── Rutas Sprint 4 ────────────────────────────────────────────────────────────
+
+@app.route("/tutor/comprobante/<int:record_id>")
+def tutor_comprobante(record_id):
+    locked = _require_tutor()
+    if locked:
+        return locked
+
+    guardian_id = session.get("guardian_id")
+
+    conn, should_close = _get_conn()
+    _safe_rollback(conn)
+    try:
+        with conn.cursor() as cur:
+            cur.execute("""
+                SELECT
+                    vr.record_id,
+                    vr.patient_id,
+                    vr.applied_date,
+                    vr.patient_temp_c,
+                    vr.had_reaction,
+                    TRIM(p.first_name || ' ' || p.last_name) AS patient_name,
+                    p.curp,
+                    p.birth_date,
+                    DATE_PART('year', AGE(CURRENT_DATE, p.birth_date))::INT AS age_years,
+                    v.name                                    AS vaccine_name,
+                    v.commercial_name,
+                    COALESCE(TRIM(w.first_name||' '||w.last_name), '—') AS worker_name,
+                    COALESCE(sd.dose_label, '—')              AS dose_label,
+                    COALESCE(aps.application_site, '—')       AS application_site,
+                    c.name                                    AS clinic_name,
+                    COALESCE(vl.lot_number, '—')              AS lot_number
+                FROM   vaccination_records vr
+                JOIN   patients p   ON p.patient_id  = vr.patient_id
+                JOIN   vaccines v   ON v.vaccine_id  = vr.vaccine_id
+                JOIN   workers  w   ON w.worker_id   = vr.worker_id
+                JOIN   clinics  c   ON c.clinic_id   = vr.clinic_id
+                LEFT JOIN scheme_doses     sd  ON sd.dose_id              = vr.scheme_dose_id
+                LEFT JOIN application_sites aps ON aps.application_site_id = vr.application_site_id
+                LEFT JOIN vaccine_lots     vl  ON vl.lot_id               = vr.lot_id
+                WHERE  vr.record_id = %s
+                LIMIT  1;
+            """, (record_id,))
+            row = cur.fetchone()
+        conn.commit()
+    except Exception as e:
+        _safe_rollback(conn)
+        logger.error("Error en tutor_comprobante: %s", e)
+        flash("Error al cargar el comprobante.", "danger")
+        return redirect(url_for("tutor_dashboard"))
+    finally:
+        if should_close and not _conn_is_closed(conn):
+            conn.close()
+
+    if not row:
+        flash("Registro de vacunación no encontrado.", "danger")
+        return redirect(url_for("tutor_dashboard"))
+
+    # Verificar propiedad
+    if not _tutor_owns_patient(guardian_id, row["patient_id"]):
+        flash("No tienes acceso a este comprobante.", "danger")
+        return redirect(url_for("tutor_dashboard"))
+
+    record = dict(row)
+
+    pdf_buf, error = _generate_comprobante_pdf(record)
+    if error:
+        flash(f"No se pudo generar el PDF: {error}", "danger")
+        return redirect(url_for("tutor_esquema", patient_id=record["patient_id"]))
+
+    from flask import send_file as _send_file
+    safe_name = record["patient_name"].replace(" ", "_")[:30]
+    filename  = f"comprobante_{safe_name}_{record_id}.pdf"
+    return _send_file(
+        pdf_buf,
+        mimetype="application/pdf",
+        as_attachment=True,
+        download_name=filename,
+    )
+
+
+@app.route("/tutor/qr/<int:patient_id>")
+def tutor_qr(patient_id):
+    locked = _require_tutor()
+    if locked:
+        return locked
+
+    vars_       = _tutor_session_vars()
+    guardian_id = vars_["guardian_id"]
+
+    if not _tutor_owns_patient(guardian_id, patient_id):
+        flash("No tienes acceso a este paciente.", "danger")
+        return redirect(url_for("tutor_dashboard"))
+
+    # Datos básicos del paciente para mostrar en la página
+    conn, should_close = _get_conn()
+    _safe_rollback(conn)
+    try:
+        with conn.cursor() as cur:
+            cur.execute("""
+                SELECT p.patient_id,
+                       TRIM(p.first_name || ' ' || p.last_name) AS full_name,
+                       p.birth_date,
+                       p.curp,
+                       p.photo,
+                       DATE_PART('year', AGE(CURRENT_DATE, p.birth_date))::INT AS age_years,
+                       COALESCE(bt.blood_type, '—') AS blood_type
+                FROM patients p
+                LEFT JOIN blood_types bt ON bt.blood_type_id = p.blood_type_id
+                WHERE p.patient_id = %s AND p.is_active = TRUE
+                LIMIT 1;
+            """, (patient_id,))
+            row = cur.fetchone()
+        conn.commit()
+    except Exception as e:
+        _safe_rollback(conn)
+        logger.error("Error en tutor_qr: %s", e)
+        row = None
+    finally:
+        if should_close and not _conn_is_closed(conn):
+            conn.close()
+
+    if not row:
+        flash("Paciente no encontrado.", "danger")
+        return redirect(url_for("tutor_dashboard"))
+
+    patient = dict(row)
+    fn      = patient.get("full_name", "")
+    parts   = fn.split()
+    patient["initials"] = (fn[:1] + (parts[-1][:1] if len(parts) > 1 else "")).upper()
+    patient["photo_url"] = (
+        f"/static/uploads/patients/{patient['photo']}" if patient.get("photo") else None
+    )
+    patient["birth_date"] = _temporal_text(patient.get("birth_date"))
+
+    # Generar QR como base64 para embeberlo en el HTML
+    qr_data = f"IMMUNICARE://PACIENTE/{patient_id}/CURP/{patient.get('curp') or 'N/A'}"
+    qr_buf  = _generate_qr_png(qr_data, fill_color="#6B007C")
+
+    import base64
+    qr_b64 = (
+        base64.b64encode(qr_buf.read()).decode("utf-8")
+        if qr_buf else None
+    )
+
+    return render_template(
+        "tutor/qr.html",
+        today=date.today().strftime("%A, %d de %B de %Y"),
+        patient=patient,
+        qr_b64=qr_b64,
+        qr_data=qr_data,
+        **vars_,
+    )
+
+
+@app.route("/tutor/qr/<int:patient_id>/imagen")
+def tutor_qr_imagen(patient_id):
+    """Devuelve el QR como PNG descargable."""
+    locked = _require_tutor()
+    if locked:
+        return redirect(url_for("tutor_login"))
+
+    guardian_id = session.get("guardian_id")
+    if not _tutor_owns_patient(guardian_id, patient_id):
+        return ("Acceso denegado", 403)
+
+    qr_data = f"IMMUNICARE://PACIENTE/{patient_id}"
+    qr_buf  = _generate_qr_png(qr_data)
+    if not qr_buf:
+        return ("qrcode no instalado", 503)
+
+    from flask import send_file as _send_file
+    return _send_file(
+        qr_buf,
+        mimetype="image/png",
+        as_attachment=True,
+        download_name=f"qr_paciente_{patient_id}.png",
+    )
 
 
 # =============================================================================
@@ -466,119 +1296,198 @@ def pacientes():
         return redirect(url_for("dashboard"))
 
 
+# ---------------------------------------------------------------------------
+# Mapa de mensajes de error del SP → mensajes amigables en español
+# ---------------------------------------------------------------------------
+_PATIENT_ERROR_MAP = {
+    "El nombre es obligatorio":
+        "El nombre del paciente es obligatorio.",
+    "El apellido es obligatorio":
+        "El apellido del paciente es obligatorio.",
+    "La fecha de nacimiento no puede ser futura":
+        "La fecha de nacimiento no puede ser una fecha futura.",
+    "El paciente excede la edad pediatrica permitida":
+        "El paciente supera la edad máxima permitida (10 años) para este sistema pediátrico.",
+    "Genero invalido":
+        "El género seleccionado no es válido. Selecciona Masculino o Femenino.",
+    "CURP invalida":
+        "La CURP debe tener exactamente 18 caracteres.",
+    "El CURP ya existe":
+        "Ya existe un paciente registrado con ese CURP.",
+    "El CURP ingresado ya esta registrado":
+        "Ya existe un paciente registrado con ese CURP.",
+    "Peso fuera de rango pediatrico":
+        "El peso debe estar entre 0.1 y 80 kg para pacientes pediátricos.",
+    "Tipo sanguineo inexistente":
+        "El tipo de sangre seleccionado no es válido.",
+    "Telefono invalido":
+        "El teléfono del tutor debe tener al menos 10 dígitos.",
+    "Ya existe un registro con esos datos. Verifique el CURP o el tutor":
+        "Ya existe un registro con esos datos. Verifica el CURP o los datos del tutor.",
+    "Referencia invalida: tipo de sangre o clinica no encontrada":
+        "El tipo de sangre o la clínica seleccionada no existe en el sistema.",
+    "Faltan datos obligatorios":
+        "Faltan campos obligatorios. Revisa el formulario.",
+}
+
+def _translate_patient_error(msg: str) -> str:
+    """Traduce un mensaje de error del SP a un mensaje amigable en español."""
+    msg = (msg or "").strip()
+    # Coincidencia exacta primero
+    friendly = _PATIENT_ERROR_MAP.get(msg)
+    if friendly:
+        return friendly
+    # Coincidencia parcial para errores crudos de PostgreSQL
+    msg_lower = msg.lower()
+    if "duplicate key" in msg_lower or "unique" in msg_lower:
+        return "Ya existe un registro con esos datos. Verifica el CURP o los datos del tutor."
+    if "foreign key" in msg_lower or "violates foreign" in msg_lower:
+        return "Dato de referencia no válido. Verifica el tipo de sangre seleccionado."
+    if "not null" in msg_lower:
+        return "Faltan campos obligatorios. Revisa el formulario."
+    return msg
+
+
 @app.route("/register_patient", methods=["POST"])
 def register_patient():
     if not _check_role("Administrador", "Recepcionista"):
         return jsonify({"error": "Sin permisos"}), 403
 
     payload = request.get_json(silent=True) or {}
-    tutor = payload.get("tutor") or {}
+    tutor   = payload.get("tutor") or {}
+
+    # ── Validaciones de formato básico (responsabilidad de Flask) ────────────
 
     first_name = (payload.get("first_name") or "").strip()
     last_name  = (payload.get("last_name")  or "").strip()
+    if not first_name:
+        return jsonify({"error": "El nombre del paciente es obligatorio."}), 400
+    if not last_name:
+        return jsonify({"error": "El apellido del paciente es obligatorio."}), 400
 
-    if not first_name or not last_name:
-        return jsonify({"error": "Nombre y apellido son requeridos"}), 400
+    # Género — el frontend manda "M" o "F" (ya convertido en el JS)
+    gender_raw  = (payload.get("gender") or "").strip().upper()
+    gender_code = {"M": "M", "F": "F"}.get(gender_raw)
+    if not gender_code:
+        return jsonify({"error": "El género seleccionado no es válido."}), 400
 
-    gender_raw  = (payload.get("gender") or "").strip().lower()
-    gender_map  = {"masculino": "M", "m": "M", "femenino": "F", "f": "F", "otro": "O", "o": "O"}
-    gender_code = gender_map.get(gender_raw, "O")
+    # Fecha de nacimiento — debe estar presente
+    birth_date_raw = (payload.get("birth_date") or "").strip()
+    if not birth_date_raw:
+        return jsonify({"error": "La fecha de nacimiento es obligatoria."}), 400
 
-    blood_type_id = int(payload.get("blood_type_id") or 1)
-    rfc           = (payload.get("rfc") or "").strip().upper() or None
+    # CURP — si se proporciona, debe tener exactamente 18 caracteres
+    curp_raw = (payload.get("curp") or "").strip().upper()
+    curp     = curp_raw or None
+    if curp and len(curp) != 18:
+        return jsonify({"error": "La CURP debe tener exactamente 18 caracteres."}), 400
 
-    # Si viene guardian_id, vinculamos tutor existente; si no, el SP lo crea
+    # Peso — debe ser numérico si se proporciona
+    weight_raw = payload.get("weight") or payload.get("weight_kg")
+    try:
+        weight_kg = float(weight_raw) if weight_raw not in (None, "") else None
+    except (ValueError, TypeError):
+        return jsonify({"error": "El peso debe ser un número válido (ej: 25.5)."}), 400
+
+    # ── Tipo de sangre — convertir string "O+" a blood_type_id ─────────────
+    blood_type_str = (payload.get("blood_type") or "").strip()
+    blood_type_id  = None
+    if blood_type_str:
+        blood_types = _cur_fetchall("blood_types")
+        match = next(
+            (bt for bt in blood_types
+             if (bt.get("blood_type") or "").upper() == blood_type_str.upper()),
+            None,
+        )
+        blood_type_id = match["blood_type_id"] if match else None
+
+    rfc = (payload.get("rfc") or "").strip().upper() or None
+
+    # Tutor existente (si el usuario lo seleccionó del dropdown)
     guardian_id_existing = None
     raw_gid = payload.get("guardian_id")
     if raw_gid:
         try:
             guardian_id_existing = int(raw_gid)
         except (ValueError, TypeError):
-            guardian_id_existing = None
+            pass
 
+    # ── Llamada al SP (valida reglas de negocio/clínicas/integridad) ─────────
     conn, should_close = _get_conn()
+    _safe_rollback(conn)
+    row = None
     try:
         with conn.cursor() as cur:
 
             if guardian_id_existing:
-                # Pasar datos de tutor vacíos al SP (no crea ni busca tutor)
-                guardian_name  = None
-                guardian_last  = None
-                guardian_curp  = None
-                guardian_phone = None
-                guardian_email = None
+                guardian_name = guardian_last = guardian_curp = None
+                guardian_phone = guardian_email = None
             else:
-                guardian_name  = (tutor.get("name")     or "").strip() or None
-                guardian_last  = (tutor.get("lastname")  or "").strip() or None
-                guardian_curp  = (tutor.get("curp")      or "").strip() or None
-                guardian_phone = (tutor.get("number")    or "").strip() or None
-                guardian_email = (tutor.get("mail")      or "").strip() or None
+                guardian_name  = (tutor.get("name")    or "").strip() or None
+                guardian_last  = (tutor.get("lastname") or "").strip() or None
+                guardian_curp  = (tutor.get("curp")     or "").strip() or None
+                guardian_phone = (tutor.get("number")   or "").strip() or None
+                guardian_email = (tutor.get("mail")     or "").strip() or None
 
             cur.execute(
-                """
-                CALL sp_register_patient(
-                    %s,%s,%s,%s,%s,%s,%s,%s,
-                    %s,%s,%s,%s,%s,%s
-                )
-                """,
+                "CALL sp_register_patient(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",
                 (
-                    first_name,
-                    last_name,
-                    payload.get("curp") or None,
-                    payload.get("birth_date") or "2021-01-01",
-                    gender_code,
-                    blood_type_id,
-                    payload.get("weight_kg") or None,
+                    first_name, last_name, curp, birth_date_raw,
+                    gender_code, blood_type_id, weight_kg,
                     payload.get("premature") or False,
-                    guardian_name,
-                    guardian_last,
-                    guardian_curp,
-                    guardian_phone,
-                    guardian_email,
+                    guardian_name, guardian_last, guardian_curp,
+                    guardian_phone, guardian_email,
                     "cur_reg_patient",
                 ),
             )
-
             cur.execute('FETCH ALL FROM "cur_reg_patient"')
             row = cur.fetchone()
 
-            patient_id = row.get("patient_id") if row else None
+            # Continuar solo si el SP confirmó éxito
+            if row and row.get("success"):
+                patient_id = row.get("patient_id")
 
-            # Vincular tutor existente (el SP lo omitió porque recibió nulls)
-            if guardian_id_existing and patient_id:
-                cur.execute(
-                    """
-                    INSERT INTO patient_guardian_relations
-                        (patient_id, guardian_id, relation_type, is_primary, has_custody)
-                    VALUES (%s, %s, 'Tutor', TRUE, TRUE)
-                    ON CONFLICT DO NOTHING
-                    """,
-                    (patient_id, guardian_id_existing),
-                )
+                if guardian_id_existing and patient_id:
+                    cur.execute(
+                        """
+                        INSERT INTO patient_guardian_relations
+                            (patient_id, guardian_id, relation_type, is_primary, has_custody)
+                        VALUES (%s, %s, 'Tutor', TRUE, TRUE)
+                        ON CONFLICT DO NOTHING
+                        """,
+                        (patient_id, guardian_id_existing),
+                    )
 
-            # Guardar RFC si se proporcionó
-            if rfc and patient_id:
-                cur.execute(
-                    "UPDATE patients SET rfc = %s WHERE patient_id = %s",
-                    (rfc, patient_id),
-                )
+                if rfc and patient_id:
+                    cur.execute(
+                        "UPDATE patients SET rfc = %s WHERE patient_id = %s",
+                        (rfc, patient_id),
+                    )
 
         conn.commit()
 
+    except psycopg.DatabaseError as ex:
+        # Solo errores inesperados llegan aquí (el SP tiene EXCEPTION WHEN OTHERS)
+        _safe_rollback(conn)
+        logger.error(f"[register_patient] DB error inesperado: {ex}")
+        return jsonify({"error": "Error interno de base de datos. Intenta de nuevo."}), 500
+
     except Exception as ex:
         _safe_rollback(conn)
-        error_message = ex.diag.message_primary if hasattr(ex, "diag") else str(ex)
-        return jsonify({"error": error_message}), 400
+        logger.error(f"[register_patient] Error inesperado: {ex}")
+        return jsonify({"error": "Error inesperado al registrar el paciente."}), 500
 
     finally:
         if should_close and not _conn_is_closed(conn):
             conn.close()
 
     if not row:
-        return jsonify({"error": "No se pudo registrar el paciente"}), 500
+        return jsonify({"error": "No se recibió respuesta del servidor."}), 500
 
+    # El SP devuelve success=False con el mensaje de error de negocio
     if not row.get("success"):
-        return jsonify({"error": row.get("message") or "Error al registrar el paciente"}), 400
+        raw = (row.get("message") or "Error al registrar el paciente.").split("\n")[0].strip()
+        return jsonify({"error": _translate_patient_error(raw)}), 400
 
     flash(f"Paciente {first_name} {last_name} registrado correctamente.", "success")
     return jsonify({
@@ -589,6 +1498,60 @@ def register_patient():
 
 _PHOTO_UPLOAD_FOLDER   = os.path.join("static", "uploads", "patients")
 _PHOTO_ALLOWED_EXTS    = {"png", "jpg", "jpeg", "webp"}
+
+
+@app.route("/api/patients/<int:id>")
+def api_patient_detail(id):
+    if not _check_role("Administrador", "Recepcionista", "Medico", "Enfermero"):
+        return jsonify({"error": "Sin permisos"}), 403
+
+    conn, should_close = _get_conn()
+    _safe_rollback(conn)
+    try:
+        with conn.cursor() as cur:
+            cur.execute("""
+                SELECT
+                    p.patient_id, p.first_name, p.last_name,
+                    p.curp, p.birth_date, p.gender, p.weight_kg,
+                    COALESCE(bt.blood_type, '')  AS blood_type,
+                    g.guardian_id,
+                    g.first_name                 AS guardian_first_name,
+                    g.last_name                  AS guardian_last_name,
+                    g.curp                       AS guardian_curp,
+                    (SELECT gp.phone FROM guardian_phones gp
+                     WHERE gp.guardian_id = g.guardian_id
+                     ORDER BY gp.is_primary DESC LIMIT 1) AS guardian_phone,
+                    (SELECT ge.email FROM guardian_emails ge
+                     WHERE ge.guardian_id = g.guardian_id
+                     ORDER BY ge.is_primary DESC LIMIT 1) AS guardian_email
+                FROM patients p
+                LEFT JOIN blood_types bt ON bt.blood_type_id = p.blood_type_id
+                LEFT JOIN LATERAL (
+                    SELECT pgr.guardian_id
+                    FROM   patient_guardian_relations pgr
+                    WHERE  pgr.patient_id = p.patient_id
+                    ORDER  BY pgr.is_primary DESC LIMIT 1
+                ) rel ON TRUE
+                LEFT JOIN guardians g ON g.guardian_id = rel.guardian_id
+                WHERE p.patient_id = %s AND p.is_active = TRUE
+            """, (id,))
+            row = cur.fetchone()
+        conn.commit()
+    except Exception as ex:
+        _safe_rollback(conn)
+        logger.error(f"Error en /api/patients/{id}: {ex}")
+        return jsonify({"error": "Error al obtener datos del paciente"}), 500
+    finally:
+        if should_close and not _conn_is_closed(conn):
+            conn.close()
+
+    if not row:
+        return jsonify({"error": "Paciente no encontrado"}), 404
+
+    data = dict(row)
+    if data.get("birth_date"):
+        data["birth_date"] = data["birth_date"].isoformat()
+    return jsonify(data)
 
 
 @app.route("/api/guardians")
@@ -705,6 +1668,166 @@ def delete_patient(id):
 
     flash(f"Paciente {nombre} eliminado.", "warning")
     return jsonify({"message": "Paciente eliminado"})
+
+
+@app.route("/update_patient/<int:id>", methods=["POST"])
+def update_patient(id):
+    if not _check_role("Administrador", "Recepcionista"):
+        return jsonify({"error": "Sin permisos"}), 403
+
+    payload        = request.get_json(silent=True) or {}
+    first_name     = (payload.get("first_name")  or "").strip() or None
+    last_name      = (payload.get("last_name")   or "").strip() or None
+    curp           = (payload.get("curp")        or "").strip().upper() or None
+    birth_date_raw = (payload.get("birth_date")  or "").strip() or None
+
+    weight_kg = None
+    weight_raw = payload.get("weight_kg")
+    if weight_raw not in (None, ""):
+        try:
+            weight_kg = float(str(weight_raw).replace(",", "."))
+        except ValueError:
+            return jsonify({"error": "El peso debe ser un número válido (ej: 25.5)."}), 400
+
+    blood_type_id = None
+    blood_type_str = (payload.get("blood_type") or "").strip()
+    if blood_type_str:
+        blood_types = _cur_fetchall("blood_types")
+        match = next(
+            (bt for bt in blood_types
+             if (bt.get("blood_type") or "").upper() == blood_type_str.upper()),
+            None,
+        )
+        blood_type_id = match["blood_type_id"] if match else None
+
+    # ── Tutor ────────────────────────────────────────────────────────────────
+    tutor_mode           = payload.get("tutor_mode") or "none"
+    guardian_id_existing = None
+    if tutor_mode == "existing":
+        try:
+            guardian_id_existing = int(payload.get("guardian_id") or 0) or None
+        except (ValueError, TypeError):
+            guardian_id_existing = None
+    tutor          = payload.get("tutor") or {}
+    guardian_name  = (tutor.get("name")     or "").strip() or None
+    guardian_last  = (tutor.get("lastname") or "").strip() or None
+    guardian_curp  = (tutor.get("curp")     or "").strip().upper() or None
+    guardian_phone = (tutor.get("number")   or "").strip() or None
+    guardian_email = (tutor.get("mail")     or "").strip() or None
+
+    conn, should_close = _get_conn()
+    _safe_rollback(conn)
+    try:
+        with conn.cursor() as cur:
+            # 1. Actualizar datos del paciente via SP
+            cur.execute(
+                "CALL sp_update_patient(%s, %s, %s, %s, %s, %s, %s, %s)",
+                (id, first_name, last_name, curp, birth_date_raw,
+                 blood_type_id, weight_kg, "cur_upd_patient"),
+            )
+            cur.execute('FETCH ALL FROM "cur_upd_patient"')
+            result = cur.fetchone()
+
+            if result and not result.get("success"):
+                _safe_rollback(conn)
+                raw = (result.get("message") or "Error al actualizar.").split("\n")[0].strip()
+                return jsonify({"error": _translate_patient_error(raw)}), 400
+
+            # 2. Vincular tutor existente
+            if tutor_mode == "existing" and guardian_id_existing:
+                cur.execute("""
+                    UPDATE patient_guardian_relations SET is_primary = FALSE
+                    WHERE patient_id = %s
+                """, (id,))
+                cur.execute("""
+                    INSERT INTO patient_guardian_relations
+                        (patient_id, guardian_id, relation_type, is_primary, has_custody)
+                    VALUES (%s, %s, 'Tutor', TRUE, TRUE)
+                    ON CONFLICT (patient_id, guardian_id)
+                    DO UPDATE SET is_primary = TRUE, has_custody = TRUE
+                """, (id, guardian_id_existing))
+
+            # 3. Crear / actualizar tutor nuevo y vincularlo
+            elif tutor_mode == "new" and guardian_name:
+                new_guardian_id = None
+
+                if guardian_curp:
+                    cur.execute(
+                        "SELECT guardian_id FROM guardians WHERE curp = %s LIMIT 1",
+                        (guardian_curp,)
+                    )
+                    row = cur.fetchone()
+                    if row:
+                        new_guardian_id = row["guardian_id"]
+
+                if new_guardian_id is None and guardian_name and guardian_last:
+                    cur.execute(
+                        "SELECT guardian_id FROM guardians WHERE first_name = %s AND last_name = %s LIMIT 1",
+                        (guardian_name, guardian_last)
+                    )
+                    row = cur.fetchone()
+                    if row:
+                        new_guardian_id = row["guardian_id"]
+
+                if new_guardian_id is None:
+                    cur.execute(
+                        "INSERT INTO guardians (first_name, last_name, curp) VALUES (%s, %s, %s) RETURNING guardian_id",
+                        (guardian_name, guardian_last or "", guardian_curp)
+                    )
+                    new_guardian_id = cur.fetchone()["guardian_id"]
+                    if guardian_phone:
+                        cur.execute(
+                            "INSERT INTO guardian_phones (guardian_id, phone, phone_type, is_primary) VALUES (%s, %s, 'Movil', TRUE)",
+                            (new_guardian_id, guardian_phone)
+                        )
+                    if guardian_email:
+                        cur.execute(
+                            "INSERT INTO guardian_emails (guardian_id, email, is_primary) VALUES (%s, %s, TRUE)",
+                            (new_guardian_id, guardian_email)
+                        )
+                else:
+                    cur.execute("""
+                        UPDATE guardians SET
+                            first_name = COALESCE(NULLIF(%s, ''), first_name),
+                            last_name  = COALESCE(NULLIF(%s, ''), last_name),
+                            curp       = COALESCE(NULLIF(%s, ''), curp)
+                        WHERE guardian_id = %s
+                    """, (guardian_name, guardian_last or "", guardian_curp or "", new_guardian_id))
+                    if guardian_phone:
+                        cur.execute("""
+                            INSERT INTO guardian_phones (guardian_id, phone, phone_type, is_primary)
+                            VALUES (%s, %s, 'Movil', TRUE)
+                            ON CONFLICT DO NOTHING
+                        """, (new_guardian_id, guardian_phone))
+                    if guardian_email:
+                        cur.execute("""
+                            INSERT INTO guardian_emails (guardian_id, email, is_primary)
+                            VALUES (%s, %s, TRUE)
+                            ON CONFLICT DO NOTHING
+                        """, (new_guardian_id, guardian_email))
+
+                cur.execute("""
+                    UPDATE patient_guardian_relations SET is_primary = FALSE
+                    WHERE patient_id = %s
+                """, (id,))
+                cur.execute("""
+                    INSERT INTO patient_guardian_relations
+                        (patient_id, guardian_id, relation_type, is_primary, has_custody)
+                    VALUES (%s, %s, 'Tutor', TRUE, TRUE)
+                    ON CONFLICT (patient_id, guardian_id)
+                    DO UPDATE SET is_primary = TRUE, has_custody = TRUE
+                """, (id, new_guardian_id))
+
+        conn.commit()
+    except Exception as ex:
+        _safe_rollback(conn)
+        logger.error(f"Error en /update_patient/{id}: {ex}")
+        return jsonify({"error": _translate_patient_error(str(ex))}), 400
+    finally:
+        if should_close and not _conn_is_closed(conn):
+            conn.close()
+
+    return jsonify({"message": "Paciente actualizado correctamente"})
 
 
 # =============================================================================
@@ -892,11 +2015,17 @@ def esquema_paciente(id):
 
     # Datos del paciente desde la primera fila (todos tienen los mismos)
     first = esquema_rows[0]
+    _photo = first.get("photo")
     patient = {
         "patient_id": first.get("patient_id"),
         "full_name":  first.get("full_name"),
         "birth_date": first.get("birth_date"),
         "age":        first.get("age_years"),
+        "photo_url":  f"/static/uploads/patients/{_photo}" if _photo else None,
+        "initials":   (
+            (first.get("full_name") or "")[:1].upper()
+            + ((first.get("full_name") or " ").split(" ")[-1][:1].upper())
+        ),
     }
 
     # Dosis ya aplicadas → tabla principal del template (applications)
@@ -919,11 +2048,16 @@ def esquema_paciente(id):
     # Dosis pendientes → sección "Próximas dosis" del template (next_vaccines)
     next_vaccines = [
         {
-            "name":           r.get("name"),
-            "dose":           r.get("dose"),
-            "date":           r.get("edad_ideal_label"),
-            "alerta_retraso": r.get("alerta_retraso"),
-            "estado":         r.get("estado"),
+            "name":              r.get("name"),
+            "dose":              r.get("dose"),
+            "edad_ideal":        r.get("edad_ideal_label"),
+            "ideal_age_months":  r.get("ideal_age_months"),
+            "dias_retraso":      r.get("dias_retraso"),
+            "alerta_retraso":    r.get("alerta_retraso"),
+            "estado":            r.get("estado"),
+            "fecha_cita":        r.get("fecha_cita"),
+            "cita_estado":       r.get("cita_estado"),
+            "cita_aceptada":     r.get("cita_aceptada_tutor"),
         }
         for r in esquema_rows
         if r.get("estado") in ("Pendiente", "Pendiente con retraso")

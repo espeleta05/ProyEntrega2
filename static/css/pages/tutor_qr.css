@@ -1,0 +1,250 @@
+/**
+ * tutor_qr.css — Página y tarjeta QR del portal familiar
+ */
+
+/* ── Toolbar ─────────────────────────────────────────────────────────────── */
+.tutor-toolbar {
+  display: flex;
+  align-items: center;
+  gap: var(--md-spacing-3, 12px);
+  margin-bottom: var(--md-spacing-5, 20px);
+}
+.tutor-back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.83rem;
+  font-weight: 600;
+  color: var(--md-primary, #6B007C);
+  text-decoration: none;
+  padding: 6px 14px;
+  border-radius: 999px;
+  border: 1.5px solid var(--md-outline-variant, #c4c7c5);
+  transition: background var(--md-transition-short);
+}
+.tutor-back-btn:hover { background: var(--md-primary-container, #FAD9FF); }
+.tutor-toolbar-title {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--md-on-surface-variant, #49454f);
+}
+
+/* ── Layout centrado ─────────────────────────────────────────────────────── */
+.tutor-qr-page {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--md-spacing-5, 20px);
+}
+
+/* ── Tarjeta QR ──────────────────────────────────────────────────────────── */
+.tutor-qr-card {
+  width: min(480px, 100%);
+  background: var(--md-surface-container-lowest, #fff);
+  border-radius: var(--md-shape-extra-large, 28px);
+  border: 0.5px solid var(--md-outline-variant, #c4c7c5);
+  box-shadow: var(--md-shadow-level-2);
+  overflow: hidden;
+}
+
+/* Cabecera morada */
+.tutor-qr-card__header {
+  background: var(--md-primary, #6B007C);
+  padding: 16px 20px;
+  display: flex;
+  align-items: center;
+  gap: var(--md-spacing-3, 12px);
+}
+.tutor-qr-logo {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--md-shape-medium, 12px);
+  object-fit: contain;
+  background: rgba(255,255,255,0.15);
+  padding: 4px;
+}
+.tutor-qr-brand {
+  font-size: 1rem;
+  font-weight: 800;
+  color: #fff;
+  margin: 0;
+}
+.tutor-qr-subtitle {
+  font-size: 0.72rem;
+  color: rgba(255,255,255,0.75);
+  margin: 0;
+}
+
+/* Cuerpo */
+.tutor-qr-card__body {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--md-spacing-4, 16px);
+}
+
+/* Sección del paciente */
+.tutor-qr-patient {
+  display: flex;
+  gap: var(--md-spacing-3, 12px);
+  align-items: flex-start;
+}
+
+.tutor-qr-avatar-wrap { flex-shrink: 0; }
+
+.tutor-qr-avatar {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: var(--md-primary-container, #FAD9FF);
+  color: var(--md-primary, #6B007C);
+  font-size: 1.2rem;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.tutor-qr-photo {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.tutor-qr-patient-info { flex: 1; }
+
+.tutor-qr-patient-name {
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: var(--md-on-surface, #1a1a1a);
+  margin: 0 0 4px;
+}
+.tutor-qr-patient-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  font-size: 0.78rem;
+  color: var(--md-on-surface-variant, #49454f);
+  margin: 0 0 3px;
+}
+.tutor-qr-patient-meta i { color: var(--md-primary, #6B007C); margin-right: 2px; }
+
+.tutor-qr-birth,
+.tutor-qr-curp {
+  font-size: 0.75rem;
+  color: var(--md-on-surface-variant, #49454f);
+  margin: 2px 0 0;
+}
+.tutor-qr-curp { font-family: monospace; letter-spacing: 0.04em; }
+
+/* Separador */
+.tutor-qr-divider {
+  height: 1px;
+  background: var(--md-outline-variant, #c4c7c5);
+}
+
+/* QR code */
+.tutor-qr-code-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--md-spacing-2, 8px);
+}
+.tutor-qr-image {
+  width: 180px;
+  height: 180px;
+  border-radius: var(--md-shape-medium, 12px);
+  border: 3px solid var(--md-primary-container, #FAD9FF);
+}
+.tutor-qr-scan-hint {
+  font-size: 0.72rem;
+  color: var(--md-on-surface-variant, #49454f);
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin: 0;
+}
+.tutor-qr-scan-hint i { color: var(--md-primary, #6B007C); }
+
+.tutor-qr-unavailable {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 24px;
+  color: var(--md-on-surface-variant, #49454f);
+  font-size: 0.83rem;
+}
+.tutor-qr-unavailable i { font-size: 2rem; opacity: 0.3; }
+
+/* Pie de la tarjeta */
+.tutor-qr-card__footer {
+  background: var(--md-surface-container, #f4eff8);
+  padding: 10px 20px;
+  border-top: 1px solid var(--md-outline-variant, #c4c7c5);
+}
+.tutor-qr-card__footer p {
+  font-size: 0.68rem;
+  color: var(--md-on-surface-variant, #49454f);
+  text-align: center;
+  margin: 0;
+}
+
+/* ── Botones de acción ───────────────────────────────────────────────────── */
+.tutor-qr-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--md-spacing-2, 8px);
+  justify-content: center;
+}
+
+.tutor-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 18px;
+  border-radius: 999px;
+  font-size: 0.83rem;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  border: none;
+  transition: background var(--md-transition-short), box-shadow var(--md-transition-short);
+}
+.tutor-btn--primary {
+  background: var(--md-primary, #6B007C);
+  color: #fff;
+}
+.tutor-btn--primary:hover {
+  background: color-mix(in srgb, var(--md-primary, #6B007C) 88%, black);
+  box-shadow: var(--md-shadow-level-1);
+}
+.tutor-btn--outline {
+  background: transparent;
+  color: var(--md-primary, #6B007C);
+  border: 1.5px solid var(--md-outline-variant, #c4c7c5);
+}
+.tutor-btn--outline:hover {
+  background: var(--md-primary-container, #FAD9FF);
+  border-color: var(--md-primary, #6B007C);
+}
+
+/* ── Estilos de impresión ────────────────────────────────────────────────── */
+@media print {
+  .no-print         { display: none !important; }
+  .sidebar,
+  .topbar,
+  .tutor-toolbar    { display: none !important; }
+  .content          { margin-left: 0 !important; padding: 0 !important; }
+  .content-info     { padding: 0 !important; }
+
+  .tutor-qr-page    { align-items: flex-start; }
+
+  .tutor-qr-card {
+    box-shadow: none;
+    border: 1px solid #ccc;
+    break-inside: avoid;
+    width: 100%;
+    max-width: 400px;
+  }
+}

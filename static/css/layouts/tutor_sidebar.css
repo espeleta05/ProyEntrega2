@@ -1,0 +1,84 @@
+/**
+ * tutor_sidebar.css — Layout y sidebar exclusivos del portal familiar
+ * Reutiliza las variables de design-system.css.
+ * NO sobreescribe clases del sidebar clínico.
+ */
+
+/* ── Topbar del tutor ─────────────────────────────────────────────────────── */
+.tutor-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 var(--md-spacing-6, 24px);
+}
+
+.tutor-badge-topbar {
+  font-size: var(--md-font-size-label-lg, 0.72rem);
+  font-weight: var(--md-font-weight-bold, 700);
+  background: color-mix(in srgb, var(--md-success, #1D7B00) 15%, white);
+  color: var(--md-success, #1D7B00);
+  padding: 2px 8px;
+  border-radius: var(--md-shape-extra-large, 999px);
+  margin-left: var(--md-spacing-1, 4px);
+  vertical-align: middle;
+}
+
+.topbar-right {
+  display: flex;
+  align-items: center;
+  gap: var(--md-spacing-3, 12px);
+}
+
+.tutor-topbar-greeting {
+  display: flex;
+  align-items: center;
+  gap: var(--md-spacing-2, 8px);
+  font-size: var(--md-font-size-body-sm, 0.83rem);
+  font-weight: var(--md-font-weight-semibold, 600);
+  color: var(--md-on-surface-variant, #49454f);
+}
+
+.tutor-topbar-greeting i {
+  font-size: 1.1rem;
+  color: var(--md-primary, #6B007C);
+}
+
+/* ── Sidebar del tutor ────────────────────────────────────────────────────── */
+/* Reutiliza .sidebar, .sidebar-content, .sidebar-footer, .sidebar-nav-item
+   de sidebar.css — sólo añadimos la marca de color verde para el tutor */
+
+.tutor-sidebar .sidebar-nav-item.active {
+  background: color-mix(in srgb, var(--md-success, #1D7B00) 12%, transparent);
+  color: var(--md-success, #1D7B00);
+}
+
+.tutor-sidebar .sidebar-nav-item.active i {
+  color: var(--md-success, #1D7B00);
+}
+
+.tutor-sidebar .sidebar-nav-item.active::before {
+  background: var(--md-success, #1D7B00);
+}
+
+/* Items deshabilitados (próximas funciones) */
+.tutor-sidebar .sidebar-nav-item.disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* Badge "Próximo" en sidebar */
+.tutor-sidebar .sidebar-nav-badge {
+  font-size: 0.62rem;
+  background: color-mix(in srgb, var(--md-tertiary, #7B6800) 14%, white);
+  color: var(--md-tertiary, #7B6800);
+  padding: 1px 7px;
+  border-radius: 999px;
+  font-weight: 700;
+  margin-left: auto;
+}
+
+/* ── Body del portal familiar ─────────────────────────────────────────────── */
+body.tutor-portal {
+  background: var(--md-surface-container-low, #f8f3f8);
+}

@@ -420,6 +420,10 @@ INSERT INTO users (worker_id, username, password_hash, is_active) VALUES
 (4,'elisa.campos',crypt('recepcion123', gen_salt('bf')),TRUE),
 (5,'raul.mora',crypt('almacen123', gen_salt('bf')),TRUE);
 
+INSERT INTO guardian_accounts (guardian_id, email, password_hash, is_active,email_verified) VALUES 
+(1, 'carlos.garcia@gmail.com',crypt('tutor1', gen_salt('bf')), TRUE, TRUE);
+
+
 -- MANUFACTURERS
 INSERT INTO manufacturers (manufacturer_id,name, country_id, contact_email) VALUES
 (1, 'Pfizer',1,'pfizer@gmail.com'),

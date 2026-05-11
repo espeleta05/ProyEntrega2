@@ -1,0 +1,170 @@
+/**
+ * tutor_citas.css — Vista de citas del portal familiar
+ */
+
+/* ── Encabezado ───────────────────────────────────────────────────────────── */
+.dash-header    { margin-bottom: var(--md-spacing-6, 24px); }
+.dash-date      { font-size: 0.75rem; color: var(--md-on-surface-variant, #49454f); margin: 0 0 2px; }
+.dash-title     { font-size: 1.5rem; font-weight: 800; color: var(--md-on-surface, #1a1a1a); margin: 0 0 2px; display: flex; align-items: center; gap: 10px; }
+.dash-welcome   { font-size: 0.875rem; color: var(--md-on-surface-variant, #49454f); margin: 0; }
+
+.tutor-pending-notice {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--md-tertiary-container, #FFEEC0);
+  color: var(--md-tertiary, #7B6800);
+  padding: 4px 12px;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+.tutor-pending-notice i { font-size: 0.8rem; }
+
+/* ── Filtros rápidos ──────────────────────────────────────────────────────── */
+.tutor-filter-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--md-spacing-2, 8px);
+  margin-bottom: var(--md-spacing-3, 12px);
+}
+
+.tutor-filter-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 16px;
+  border-radius: 999px;
+  border: 1.5px solid var(--md-outline-variant, #c4c7c5);
+  background: var(--md-surface-container-lowest, #fff);
+  color: var(--md-on-surface-variant, #49454f);
+  font-size: var(--md-font-size-body-sm, 0.8rem);
+  font-weight: 600;
+  cursor: pointer;
+  transition: background var(--md-transition-short), border-color var(--md-transition-short);
+}
+.tutor-filter-btn:hover {
+  background: var(--md-surface-container, #f4eff8);
+  border-color: var(--md-primary, #6B007C);
+}
+.tutor-filter-btn.active {
+  background: var(--md-primary-container, #FAD9FF);
+  border-color: var(--md-primary, #6B007C);
+  color: var(--md-primary, #6B007C);
+}
+
+.tutor-filter-count {
+  background: var(--md-surface-container, #f4eff8);
+  color: var(--md-on-surface-variant, #49454f);
+  border-radius: 999px;
+  padding: 1px 7px;
+  font-size: 0.68rem;
+  font-weight: 800;
+}
+.tutor-filter-count--warn {
+  background: var(--md-tertiary-container, #FFEEC0);
+  color: var(--md-tertiary, #7B6800);
+}
+
+/* ── Fila que necesita acción (resaltada) ─────────────────────────────────── */
+.tutor-row-action {
+  background: color-mix(in srgb, var(--md-tertiary, #7B6800) 5%, transparent) !important;
+}
+.tutor-row-action:hover {
+  background: color-mix(in srgb, var(--md-tertiary, #7B6800) 10%, transparent) !important;
+}
+
+/* ── Label de vacuna en tabla ─────────────────────────────────────────────── */
+.tutor-vaccine-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: var(--md-font-size-body-sm, 0.82rem);
+  font-weight: 600;
+  color: var(--md-on-surface, #1a1a1a);
+}
+.tutor-vaccine-label i { color: var(--md-primary, #6B007C); font-size: 0.75rem; }
+
+/* ── Botones aceptar / rechazar ───────────────────────────────────────────── */
+.tutor-action-btns {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.tutor-accept-btn,
+.tutor-reject-btn {
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.85rem;
+  transition: background var(--md-transition-short), transform 0.15s;
+}
+.tutor-accept-btn:hover { transform: scale(1.1); }
+.tutor-reject-btn:hover { transform: scale(1.1); }
+
+.tutor-accept-btn {
+  background: color-mix(in srgb, var(--md-success, #1D7B00) 14%, white);
+  color: var(--md-success, #1D7B00);
+}
+.tutor-accept-btn:hover { background: color-mix(in srgb, var(--md-success, #1D7B00) 22%, white); }
+
+.tutor-reject-btn {
+  background: color-mix(in srgb, var(--md-error, #C40000) 12%, white);
+  color: var(--md-error, #C40000);
+}
+.tutor-reject-btn:hover { background: color-mix(in srgb, var(--md-error, #C40000) 20%, white); }
+
+/* Botón en estado loading */
+.tutor-accept-btn[disabled],
+.tutor-reject-btn[disabled] {
+  opacity: 0.4;
+  cursor: not-allowed;
+  transform: none !important;
+}
+
+/* ── Footer de tabla ──────────────────────────────────────────────────────── */
+.tutor-table-footer {
+  font-size: var(--md-font-size-label-lg, 0.72rem);
+  color: var(--md-on-surface-variant, #49454f);
+  text-align: right;
+  margin: var(--md-spacing-2, 8px) 0 0;
+}
+
+/* ── Hidden class (usada por JS para filtros) ─────────────────────────────── */
+.tutor-row-hidden { display: none; }
+
+/* ── Toast de confirmación ────────────────────────────────────────────────── */
+.tutor-toast {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 9999;
+  padding: 12px 20px;
+  border-radius: var(--md-shape-large, 16px);
+  font-size: var(--md-font-size-body-sm, 0.83rem);
+  font-weight: 600;
+  box-shadow: var(--md-shadow-level-2);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  animation: tutor-toast-in 0.25s ease;
+}
+.tutor-toast--ok  { background: color-mix(in srgb, var(--md-success, #1D7B00) 14%, white); color: var(--md-success, #1D7B00); border: 1.5px solid color-mix(in srgb, var(--md-success, #1D7B00) 30%, white); }
+.tutor-toast--err { background: var(--md-error-container, #FFB9B9); color: var(--md-error, #C40000); border: 1.5px solid var(--md-error, #C40000); }
+
+@keyframes tutor-toast-in {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Responsive ───────────────────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .tutor-citas-table thead th:nth-child(4),
+  .tutor-citas-table tbody td:nth-child(4) { display: none; }
+}

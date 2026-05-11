@@ -126,6 +126,10 @@ CREATE TABLE patients (
 -- Migración para BD existente:
 -- ALTER TABLE patients ADD COLUMN IF NOT EXISTS photo VARCHAR(255);
 -- ALTER TABLE patients ADD COLUMN IF NOT EXISTS rfc  VARCHAR(13);
+-- ALTER TABLE appointments ADD COLUMN IF NOT EXISTS tutor_accepted BOOLEAN DEFAULT NULL;
+-- ALTER TABLE appointments DROP CONSTRAINT IF EXISTS appointments_appointment_status_check;
+-- ALTER TABLE appointments ADD CONSTRAINT appointments_appointment_status_check
+--     CHECK (appointment_status IN ('Pendiente confirmación','Programada','Completada','Cancelada','No Show'));
 
 CREATE TABLE allergies (
     allergy_id    SERIAL PRIMARY KEY,
@@ -194,7 +198,7 @@ CREATE TABLE patient_guardian_relations (
 --  MÓDULO: WORKERS
 CREATE TABLE roles (
     role_id      SERIAL PRIMARY KEY,
-    name         VARCHAR(100) NOT NULL UNIQUE CHECK (name IN ('Administrador','Enfermero','Médico','Recepcionista','Almacén')),
+    name         VARCHAR(100) NOT NULL UNIQUE CHECK (name IN ('Administrador','Enfermero','Medico','Recepcionista','Almacen', 'Tutor')),
     description  TEXT
 );
 
@@ -277,7 +281,18 @@ CREATE TABLE users (
     username       VARCHAR(50)  NOT NULL UNIQUE,
     password_hash  VARCHAR(255) NOT NULL,
     is_active      BOOLEAN      DEFAULT TRUE,
-    created_at     TIMESTAMP    DEFAULT CURRENT_TIMESTAMP
+    created_at     TIMESTAMP    DEFAULT CURRENT_TIMESTAMP,    
+);
+
+CREATE TABLE guardian_accounts (
+    guardian_account_id SERIAL PRIMARY KEY,
+    guardian_id INT NOT NULL UNIQUE REFERENCES guardians(guardian_id) ON DELETE CASCADE,
+    email VARCHAR(120) UNIQUE NOT NULL,
+    password_hash VARCHAR(255) NOT NULL,
+    is_active BOOLEAN DEFAULT TRUE,
+    email_verified BOOLEAN DEFAULT FALSE,
+    last_login TIMESTAMP,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 --  MÓDULO: VACCINES

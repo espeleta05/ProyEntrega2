@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Portal Familiar — ImmuniCare</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,300..800;1,300..800&family=Open+Sans:ital,wght@0,300..800;1,300..800&family=Roboto:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/design-system.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/login.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/tutor_login.css') }}">
+</head>
+
+<body>
+
+<div class="login-container tutor-login-container">
+  <div class="login-info">
+
+    <!-- Logo -->
+    <img src="{{ url_for('static', filename='css/img/logo.png') }}"
+         alt="ImmuniCare" class="tutor-login-logo">
+
+    <h1 class="titulo-sistema">Portal Familiar</h1>
+
+    <div class="icon-group">
+      <i class="fa-solid fa-house-medical-circle-check"></i>
+    </div>
+
+    <h2 class="login-title">Iniciar sesión</h2>
+    <p class="tutor-login-subtitle">Accede al historial y vacunación de tu hijo/a</p>
+
+    <!-- Mensajes flash -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% for category, message in messages %}
+        <p class="error" role="alert">{{ message }}</p>
+      {% endfor %}
+    {% endwith %}
+
+    <!-- Formulario -->
+    <form class="login-form" method="POST" action="{{ url_for('tutor_login') }}">
+
+      <label class="label" for="email">Correo electrónico</label>
+      <div class="input-box">
+        <input type="email" id="email" name="email"
+               placeholder="tucorreo@ejemplo.com"
+               autocomplete="email" required>
+      </div>
+
+      <label class="label" for="password">Contraseña</label>
+      <div class="input-box password-box">
+        <input type="password" id="password" name="password"
+               placeholder="••••••••"
+               autocomplete="current-password" required>
+      </div>
+
+      {% if error %}
+        <p class="error" role="alert">{{ error }}</p>
+      {% endif %}
+
+      <button type="submit" class="login-button">
+        <i class="fa-solid fa-right-to-bracket"></i>
+        Ingresar al portal
+      </button>
+
+    </form>
+
+    <!-- Separador -->
+    <div class="tutor-login-divider">
+      <span>¿Eres personal clínico?</span>
+    </div>
+
+    <a href="{{ url_for('login') }}" class="tutor-login-staff-link">
+      <i class="fa-solid fa-user-doctor"></i>
+      Acceso para personal clínico
+    </a>
+
+  </div>
+</div>
+
+</body>
+</html>

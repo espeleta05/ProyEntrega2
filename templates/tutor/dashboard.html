@@ -1,0 +1,342 @@
+{% extends 'tutor/base_tutor.html' %}
+
+{% from 'components/kpi_card.html' import kpi_card %}
+{% from 'components/badge.html'    import badge    %}
+{% from 'components/alert.html'    import alert    %}
+
+{% block title %}Inicio — Portal Familiar{% endblock %}
+
+{% block head_extra %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/tutor_dashboard.css') }}">
+{% endblock %}
+
+{% block content %}
+
+{# ── Encabezado ── #}
+<div class="dash-header">
+  <div>
+    <p class="dash-date">{{ today }}</p>
+    <h2 class="dash-title">
+      <i class="fa-solid fa-house-medical" style="color:var(--md-success,#1D7B00);font-size:1.1rem;"></i>
+      Panel familiar
+    </h2>
+    <p class="dash-welcome">Bienvenido/a, {{ tutor_name }} {{ tutor_lastname }}</p>
+  </div>
+</div>
+
+{% if children %}
+
+  {# ── KPIs globales ── #}
+  <div class="kpi-grid tutor-kpi-grid">
+
+    {{ kpi_card(
+        value=pct_global ~ '%',
+        label='Esquema completado',
+        icon='fa-shield-virus',
+        color='secondary',
+        sub='De todos los niños registrados'
+    ) }}
+
+    {{ kpi_card(
+        value=total_pending_all,
+        label='Próximas dosis pendientes',
+        icon='fa-syringe',
+        color='primary'
+    ) }}
+
+    {% if total_alerts > 0 %}
+      {{ kpi_card(
+          value=total_alerts,
+          label='Alertas activas',
+          icon='fa-triangle-exclamation',
+          color='primary'
+      ) }}
+    {% else %}
+      {{ kpi_card(
+          value='✓',
+          label='Sin alertas activas',
+          icon='fa-circle-check',
+          color='secondary'
+      ) }}
+    {% endif %}
+
+  </div>
+
+  {# ── Fila principal: donut + alertas ── #}
+  <div class="tutor-charts-row">
+
+    {# Donut de progreso #}
+    <div class="chart-card tutor-donut-card">
+      <div class="chart-card-header">
+        <h3>Progreso de vacunación</h3>
+        <span class="chart-badge">Esquema completo</span>
+      </div>
+      <div class="tutor-donut-wrap">
+        <div id="tutorDonutChart"></div>
+      </div>
+      <div class="tutor-donut-legend">
+        <span class="tutor-legend-dot tutor-legend-dot--applied"></span>
+        <span>Aplicadas: <b>{{ chart_applied }}</b></span>
+        <span class="tutor-legend-dot tutor-legend-dot--pending" style="margin-left:14px;"></span>
+        <span>Pendientes: <b>{{ chart_pending }}</b></span>
+      </div>
+    </div>
+
+    {# Panel de alertas pediátricas #}
+    <div class="alerts-card tutor-alerts-card">
+      <div class="chart-card-header">
+        <h3>
+          <i class="fa-solid fa-bell"></i>
+          Alertas pediátricas
+        </h3>
+        {% if total_alerts > 0 %}
+          {{ badge(total_alerts|string, color='error', size='sm') }}
+        {% endif %}
+      </div>
+      <div class="alerts-list">
+        {% set ns = namespace(found=false) %}
+        {% for child in children %}
+          {% for a in child.alerts_delayed %}
+            {% set ns.found = true %}
+            {{ alert(
+                child.full_name ~ ': ' ~ a.name ~ ' ' ~ a.dose ~ ' — ' ~ a.dias ~ ' días de retraso',
+                type='error',
+                icon='fa-triangle-exclamation',
+                compact=True
+            ) }}
+          {% endfor %}
+          {% for a in child.alerts_pending_accept %}
+            {% set ns.found = true %}
+            {{ alert(
+                child.full_name ~ ': cita ' ~ a.name ~ ' sin confirmar'
+                ~ (' · ' ~ a.fecha_cita[:10] if a.fecha_cita else ''),
+                type='warning',
+                icon='fa-calendar-clock',
+                compact=True
+            ) }}
+          {% endfor %}
+        {% endfor %}
+        {% if not ns.found %}
+          {{ alert('Todo al día — sin alertas activas', type='success',
+                   icon='fa-circle-check', compact=True) }}
+        {% endif %}
+      </div>
+    </div>
+
+  </div>
+
+  {# ── Cards por hijo ── #}
+  <div class="tutor-children-section" id="mis-hijos">
+    <h3 class="tutor-section-title">
+      <i class="fa-solid fa-children"></i>
+      Mis hijos registrados
+    </h3>
+
+    <div class="tutor-children-grid">
+      {% for child in children %}
+      <div class="tutor-child-card">
+
+        {# Avatar #}
+        <div class="tutor-child-avatar-wrap">
+          {% if child.photo_url %}
+            <img src="{{ child.photo_url }}" alt="{{ child.full_name }}"
+                 class="tutor-child-photo">
+          {% else %}
+            <div class="tutor-child-avatar">{{ child.initials }}</div>
+          {% endif %}
+          {# Badge de progreso encima del avatar #}
+          <span class="tutor-child-pct-badge
+            {{ 'tutor-child-pct-badge--ok'  if child.pct == 100 else
+               'tutor-child-pct-badge--warn' if child.pct >= 60 else
+               'tutor-child-pct-badge--low' }}">
+            {{ child.pct }}%
+          </span>
+        </div>
+
+        {# Info #}
+        <div class="tutor-child-info">
+          <p class="tutor-child-name">{{ child.full_name }}</p>
+          <p class="tutor-child-meta">
+            {{ child.age_years }} año{{ 's' if child.age_years != 1 else '' }}
+            · ID: P{{ child.patient_id }}
+          </p>
+
+          {# Barra de progreso #}
+          <div class="tutor-progress-bar-wrap">
+            <div class="tutor-progress-bar">
+              <div class="tutor-progress-fill
+                {{ 'tutor-progress-fill--ok'  if child.pct == 100 else
+                   'tutor-progress-fill--warn' if child.pct >= 60 else
+                   'tutor-progress-fill--low' }}"
+                   style="--pct: {{ child.pct }}%;"></div>
+            </div>
+            <span class="tutor-progress-label">
+              {{ child.total_applied }} / {{ child.total_doses }} dosis
+            </span>
+          </div>
+
+          {# Chips de estado rápido #}
+          <div class="tutor-child-chips">
+            {% if child.delayed_count > 0 %}
+              {{ badge(child.delayed_count ~ ' atrasada' ~ ('s' if child.delayed_count > 1 else ''),
+                       color='error', icon='fa-triangle-exclamation', size='sm') }}
+            {% endif %}
+            {% if child.pending_accept_count > 0 %}
+              {{ badge(child.pending_accept_count ~ ' cita' ~ ('s' if child.pending_accept_count > 1 else '') ~ ' sin confirmar',
+                       color='secondary', icon='fa-calendar-clock', size='sm') }}
+            {% endif %}
+            {% if child.delayed_count == 0 and child.pending_accept_count == 0 %}
+              {{ badge('Al día', color='success', icon='fa-check', size='sm') }}
+            {% endif %}
+          </div>
+        </div>
+
+        {# Acciones #}
+        <div class="tutor-child-actions">
+          <a href="{{ url_for('tutor_esquema', patient_id=child.patient_id) }}"
+             class="tutor-btn tutor-btn--primary" title="Ver esquema de vacunación">
+            <i class="fa-solid fa-syringe"></i>
+            Ver vacunas
+          </a>
+          <a href="{{ url_for('tutor_qr', patient_id=child.patient_id) }}"
+             class="tutor-btn tutor-btn--outline" title="Ver código QR de identificación">
+            <i class="fa-solid fa-qrcode"></i>
+          </a>
+        </div>
+
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  {# ── Tabla: próximas dosis (todos los hijos) ── #}
+  <div class="section-card mt-tutor">
+    <div class="section-header-row">
+      <h3>
+        <i class="fa-solid fa-calendar-days" style="color:var(--md-primary,#6B007C);"></i>
+        Próximas dosis programadas
+      </h3>
+    </div>
+
+    {% set all_next = [] %}
+    {% for child in children %}
+      {% for dose in child.next_doses %}
+        {% set _ = all_next.append({'child': child.full_name, 'dose': dose}) %}
+      {% endfor %}
+    {% endfor %}
+
+    {% if all_next %}
+    <div class="tutor-table-wrap">
+      <table class="tutor-next-table">
+        <thead>
+          <tr>
+            <th>Niño/a</th>
+            <th>Vacuna</th>
+            <th>Dosis</th>
+            <th>Edad ideal</th>
+            <th>Estado</th>
+            <th>Fecha cita</th>
+            <th>Confirmación</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for item in all_next %}
+          {% set d = item.dose %}
+          <tr class="{{ 'tutor-row-delayed' if d.estado == 'Pendiente con retraso' else '' }}">
+
+            <td>
+              <div class="patient-cell">
+                <div class="avatar-sm">{{ item.child[:2]|upper }}</div>
+                <span class="vax-name">{{ item.child }}</span>
+              </div>
+            </td>
+
+            <td><strong>{{ d.name }}</strong></td>
+
+            <td>{{ badge(d.dose, color='primary', size='sm') }}</td>
+
+            <td class="muted-td">{{ d.edad_ideal or '—' }}</td>
+
+            <td>
+              {% if d.estado == 'Pendiente con retraso' %}
+                <span class="ndt-badge ndt-badge--delay">
+                  <i class="fa-solid fa-triangle-exclamation"></i>
+                  {{ d.dias_retraso }} días atrasada
+                </span>
+              {% elif d.alerta_retraso %}
+                <span class="ndt-badge ndt-badge--ok">
+                  <i class="fa-solid fa-clock"></i>
+                  {{ d.alerta_retraso }}
+                </span>
+              {% else %}
+                <span class="muted-td">Pendiente</span>
+              {% endif %}
+            </td>
+
+            <td class="muted-td">
+              {% if d.fecha_cita %}
+                <i class="fa-regular fa-calendar"></i>
+                {{ d.fecha_cita[:10] }}
+              {% else %}
+                <span class="muted-td">Sin cita</span>
+              {% endif %}
+            </td>
+
+            <td>
+              {% if d.cita_aceptada is none and d.fecha_cita %}
+                <span class="ndt-badge ndt-badge--pending">
+                  <i class="fa-regular fa-hourglass"></i> Pendiente
+                </span>
+              {% elif d.cita_aceptada %}
+                <span class="ndt-badge ndt-badge--accepted">
+                  <i class="fa-solid fa-circle-check"></i> Aceptada
+                </span>
+              {% elif d.cita_aceptada == false %}
+                <span class="ndt-badge ndt-badge--rejected">
+                  <i class="fa-solid fa-circle-xmark"></i> No aceptada
+                </span>
+              {% else %}
+                <span class="muted-td">—</span>
+              {% endif %}
+            </td>
+
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+      <p class="tutor-empty-note">
+        <i class="fa-solid fa-circle-check" style="color:var(--md-success,#1D7B00);"></i>
+        Todas las dosis están al día o no hay próximas dosis pendientes.
+      </p>
+    {% endif %}
+
+  </div>
+
+{# ── Sin hijos vinculados ── #}
+{% else %}
+  <div class="tutor-coming-soon">
+    <div class="tutor-coming-soon__icon">
+      <i class="fa-solid fa-baby"></i>
+    </div>
+    <h3 class="tutor-coming-soon__title">No hay niños vinculados a tu cuenta</h3>
+    <p class="tutor-coming-soon__text">
+      Comunícate con la clínica para que el personal vincule a tu hijo/a
+      con tu cuenta de tutor. Una vez registrado, podrás ver su esquema
+      de vacunación aquí.
+    </p>
+  </div>
+{% endif %}
+
+{# Datos para el donut chart #}
+<div id="tutor-chart-data" hidden
+     data-applied="{{ chart_applied }}"
+     data-pending="{{ chart_pending }}"></div>
+
+{% endblock %}
+
+{% block scripts %}
+<script src="https://code.highcharts.com/highcharts.js"></script>
+<script src="{{ url_for('static', filename='js/pages/tutor_dashboard.js') }}" defer></script>
+{% endblock %}

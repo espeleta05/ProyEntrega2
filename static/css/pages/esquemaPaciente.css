@@ -118,7 +118,7 @@
 /* ── Sección inferior dos columnas ───────────────────────────────────────── */
 .second-section {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1fr;
   gap: var(--md-spacing-5, 20px);
 }
 /* .kpi-grid responsive se hereda de kpi_card.css */
@@ -133,22 +133,193 @@
   box-shadow: var(--md-shadow-level-1);
 }
 
-/* ── Próximas dosis ───────────────────────────────────────────────────────── */
-.next-card {
+/* ── Header hero del paciente ─────────────────────────────────────────────── */
+.patient-hero {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  padding: var(--md-spacing-2, 8px) 0;
-  border-bottom: 1px solid var(--md-outline-variant, #c4c7c5);
-  font-size: var(--md-font-size-body-md, 0.875rem);
+  gap: var(--md-spacing-6, 24px);
+  background: linear-gradient(135deg,
+    color-mix(in srgb, var(--md-primary, #6B007C) 10%, var(--md-surface-container-lowest, #fff)),
+    var(--md-surface-container-lowest, #fff));
+  border-radius: var(--md-shape-large, 16px);
+  padding: var(--md-spacing-6, 24px) var(--md-spacing-7, 28px);
+  margin-bottom: var(--md-spacing-6, 24px);
+  box-shadow: var(--md-shadow-level-1);
+  border: 1px solid var(--md-outline-variant, #e0e0e0);
 }
-.next-card:last-child { border-bottom: none; }
-.next-card strong { font-size: var(--md-font-size-body-md, 0.875rem); }
-.next-card span {
-  font-size: var(--md-font-size-body-sm, 0.8rem);
-  font-weight: var(--md-font-weight-semibold, 600);
+
+.patient-hero__avatar {
+  flex-shrink: 0;
+  width: 90px;
+  height: 90px;
+  border-radius: 50%;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--md-primary, #6B007C) 18%, transparent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 3px solid color-mix(in srgb, var(--md-primary, #6B007C) 30%, transparent);
+}
+
+.patient-hero__img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.patient-hero__initials {
+  font-size: 2rem;
+  font-weight: var(--md-font-weight-bold, 700);
   color: var(--md-primary, #6B007C);
+  user-select: none;
+}
+
+.patient-hero__info { flex: 1; min-width: 0; }
+
+.patient-hero__name {
+  font-size: 1.75rem;
+  font-weight: var(--md-font-weight-bold, 700);
+  color: var(--md-on-surface, #1a1a1a);
+  margin: 0 0 var(--md-spacing-2, 8px);
+  line-height: 1.2;
+}
+
+.patient-hero__meta {
+  display: flex;
+  gap: var(--md-spacing-4, 16px);
+  flex-wrap: wrap;
+  font-size: var(--md-font-size-body-sm, 0.82rem);
+  color: var(--md-on-surface-variant, #49454f);
+  margin: 0 0 var(--md-spacing-4, 16px);
+}
+.patient-hero__meta span {
+  display: flex;
+  align-items: center;
+  gap: var(--md-spacing-1, 4px);
+}
+.patient-hero__meta i { color: var(--md-primary, #6B007C); }
+
+.patient-hero__progress { display: flex; align-items: center; gap: var(--md-spacing-3, 12px); }
+
+.patient-hero__progress-bar {
+  flex: 1;
+  height: 8px;
+  background: var(--md-surface-container, #f4eff8);
+  border-radius: var(--md-shape-extra-large, 99px);
+  overflow: hidden;
+  max-width: 320px;
+}
+
+.patient-hero__progress-fill {
+  height: 100%;
+  width: var(--pct, 0%);
+  background: linear-gradient(90deg, var(--md-primary, #6B007C), var(--md-secondary, #4B1535));
+  border-radius: var(--md-shape-extra-large, 99px);
+  transition: width 0.4s ease;
+}
+
+.patient-hero__progress-label {
+  font-size: var(--md-font-size-body-sm, 0.8rem);
+  color: var(--md-on-surface-variant, #49454f);
   white-space: nowrap;
+}
+
+@media (max-width: 600px) {
+  .patient-hero { flex-direction: column; text-align: center; }
+  .patient-hero__meta { justify-content: center; }
+  .patient-hero__progress { flex-direction: column; align-items: stretch; }
+  .patient-hero__progress-bar { max-width: 100%; }
+}
+
+/* ── Tabla de próximas dosis ──────────────────────────────────────────────── */
+.next-doses-wrapper {
+  overflow-x: auto;
+  border-radius: var(--md-shape-small, 8px);
+}
+
+.next-doses-tbl {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--md-font-size-body-sm, 0.84rem);
+}
+
+.next-doses-tbl thead tr {
+  background: color-mix(in srgb, var(--md-primary, #6B007C) 8%, transparent);
+}
+
+.next-doses-tbl th {
+  padding: 10px 14px;
+  text-align: left;
+  font-size: var(--md-font-size-label-lg, 0.72rem);
+  font-weight: var(--md-font-weight-bold, 700);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--md-on-surface-variant, #49454f);
+  white-space: nowrap;
+  border-bottom: 2px solid color-mix(in srgb, var(--md-primary, #6B007C) 20%, transparent);
+}
+
+.next-doses-tbl tbody tr {
+  border-bottom: 1px solid var(--md-outline-variant, #e8e0ec);
+  transition: background var(--md-transition-short, 0.15s);
+}
+
+.next-doses-tbl tbody tr:last-child { border-bottom: none; }
+
+.next-doses-tbl tbody tr:hover {
+  background: color-mix(in srgb, var(--md-primary, #6B007C) 5%, transparent);
+}
+
+.next-doses-tbl tbody tr.row-delayed {
+  background: color-mix(in srgb, #E05252 6%, transparent);
+}
+.next-doses-tbl tbody tr.row-delayed:hover {
+  background: color-mix(in srgb, #E05252 12%, transparent);
+}
+
+.next-doses-tbl td {
+  padding: 11px 14px;
+  vertical-align: middle;
+  color: var(--md-on-surface, #1a1a1a);
+}
+
+.ndt-name strong { font-size: var(--md-font-size-body-md, 0.875rem); }
+.ndt-age  { color: var(--md-on-surface-variant, #49454f); }
+.ndt-date { color: var(--md-on-surface-variant, #49454f); white-space: nowrap; }
+.ndt-date i { color: var(--md-primary, #6B007C); margin-right: 4px; }
+.ndt-muted { opacity: 0.45; font-style: italic; }
+
+/* Badges de estado en tabla de dosis */
+.ndt-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: var(--md-font-size-body-sm, 0.78rem);
+  font-weight: var(--md-font-weight-semibold, 600);
+  padding: 3px 10px;
+  border-radius: var(--md-shape-extra-large, 99px);
+  white-space: nowrap;
+}
+
+.ndt-badge--delay {
+  background: color-mix(in srgb, #E05252 14%, transparent);
+  color: #b71c1c;
+}
+.ndt-badge--ok {
+  background: color-mix(in srgb, var(--md-primary, #6B007C) 10%, transparent);
+  color: var(--md-primary, #6B007C);
+}
+.ndt-badge--pending {
+  background: var(--md-surface-container, #f4eff8);
+  color: var(--md-on-surface-variant, #49454f);
+}
+.ndt-badge--accepted {
+  background: var(--md-success-container, #CFFFC0);
+  color: var(--md-success, #1D7B00);
+}
+.ndt-badge--rejected {
+  background: color-mix(in srgb, #E05252 14%, transparent);
+  color: #b71c1c;
 }
 
 /* ── Dosis pendientes ─────────────────────────────────────────────────────── */

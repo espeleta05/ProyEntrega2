@@ -1,0 +1,151 @@
+{% from 'components/form.html' import form as form_card %}
+
+<div class="md3-modal-overlay" id="editPatientModal" role="dialog" aria-modal="true" aria-labelledby="editPatientModal-title">
+    <div class="md3-modal md3-modal--lg">
+
+        <div class="md3-modal__header">
+            <div class="md3-modal__header-content">
+                <i class="fa-solid fa-user-pen md3-modal__header-icon"></i>
+                <h2 class="md3-modal__title" id="editPatientModal-title">Editar paciente</h2>
+            </div>
+            <button class="md3-modal__close" onclick="closeEditPatientModal()" aria-label="Cerrar">&times;</button>
+        </div>
+
+        {% call form_card(
+            action='',
+            id='formEditPatient',
+            submit_text='Guardar cambios',
+            submit_icon='fa-floppy-disk',
+            cancel_href='javascript:void(closeEditPatientModal())'
+        ) %}
+
+            <input type="hidden" id="ep_patient_id">
+
+            {# ── Datos del paciente ── #}
+            <div class="md3-form__section">
+                <h4 class="md3-form__section-title">Datos del paciente</h4>
+
+                <div class="md3-form__row md3-form__row--2">
+                    <div class="md3-field">
+                        <label class="md3-field__label" for="ep_name">Nombre(s)</label>
+                        <input class="md3-input" type="text" id="ep_name" placeholder="Nombre(s)">
+                    </div>
+                    <div class="md3-field">
+                        <label class="md3-field__label" for="ep_lastname">Apellidos</label>
+                        <input class="md3-input" type="text" id="ep_lastname" placeholder="Apellidos">
+                    </div>
+                </div>
+
+                <div class="md3-form__row md3-form__row--2">
+                    <div class="md3-field">
+                        <label class="md3-field__label" for="ep_curp">CURP</label>
+                        <input class="md3-input" type="text" id="ep_curp" placeholder="18 caracteres" maxlength="18" style="text-transform:uppercase">
+                    </div>
+                    <div class="md3-field">
+                        <label class="md3-field__label" for="ep_birthdate">Fecha de nacimiento</label>
+                        <input class="md3-input" type="date" id="ep_birthdate">
+                    </div>
+                </div>
+
+                <div class="md3-form__row md3-form__row--2">
+                    <div class="md3-field">
+                        <label class="md3-field__label" for="ep_blood">Tipo de sangre</label>
+                        <select class="md3-select" id="ep_blood">
+                            <option value="">— Sin cambio —</option>
+                            <option value="O+">O+</option>
+                            <option value="O-">O-</option>
+                            <option value="A+">A+</option>
+                            <option value="A-">A-</option>
+                            <option value="B+">B+</option>
+                            <option value="B-">B-</option>
+                            <option value="AB+">AB+</option>
+                            <option value="AB-">AB-</option>
+                        </select>
+                    </div>
+                    <div class="md3-field">
+                        <label class="md3-field__label" for="ep_weight">Peso actual (kg)</label>
+                        <input class="md3-input" type="text" id="ep_weight" placeholder="Ej: 30.5">
+                    </div>
+                </div>
+            </div>
+
+            {# ── Tutor ── #}
+            <div class="md3-form__section">
+                <h4 class="md3-form__section-title">Tutor del paciente</h4>
+
+                <div class="tutor-mode-wrap">
+                    <p class="tutor-mode-question">¿Cómo deseas actualizar el tutor?</p>
+                    <div class="tutor-mode-radios">
+                        <label class="tutor-mode-opt">
+                            <input type="radio" name="ep_tutor_mode" id="ep_tutor_mode_yes" value="existing">
+                            <span class="tutor-mode-opt__label">
+                                <i class="fa-solid fa-magnifying-glass"></i> Seleccionar existente
+                            </span>
+                        </label>
+                        <label class="tutor-mode-opt">
+                            <input type="radio" name="ep_tutor_mode" id="ep_tutor_mode_no" value="new" checked>
+                            <span class="tutor-mode-opt__label">
+                                <i class="fa-solid fa-user-pen"></i> Editar / registrar nuevo
+                            </span>
+                        </label>
+                        <label class="tutor-mode-opt">
+                            <input type="radio" name="ep_tutor_mode" id="ep_tutor_mode_none" value="none">
+                            <span class="tutor-mode-opt__label">
+                                <i class="fa-solid fa-ban"></i> No cambiar
+                            </span>
+                        </label>
+                    </div>
+                </div>
+
+                {# Tutor existente (dropdown) #}
+                <div id="ep-tutor-existing-wrap" style="display:none">
+                    <div class="md3-field">
+                        <label class="md3-field__label" for="ep_existing_id">Buscar tutor registrado</label>
+                        <select class="md3-select" id="ep_existing_id">
+                            <option value="">— Selecciona un tutor —</option>
+                        </select>
+                    </div>
+                    <div id="ep-tutor-preview" class="tutor-preview" style="display:none">
+                        <div class="tutor-preview__row"><i class="fa-solid fa-user"></i><span id="ep-tutor-preview-name"></span></div>
+                        <div class="tutor-preview__row"><i class="fa-solid fa-id-card"></i><span id="ep-tutor-preview-curp"></span></div>
+                        <div class="tutor-preview__row"><i class="fa-solid fa-phone"></i><span id="ep-tutor-preview-phone"></span></div>
+                        <div class="tutor-preview__row"><i class="fa-solid fa-envelope"></i><span id="ep-tutor-preview-email"></span></div>
+                    </div>
+                </div>
+
+                {# Datos de tutor nuevo / editar actual #}
+                <div id="ep-tutor-new-wrap">
+                    <div class="md3-form__row md3-form__row--2">
+                        <div class="md3-field">
+                            <label class="md3-field__label" for="ep_t_name">Nombre(s)</label>
+                            <input class="md3-input" type="text" id="ep_t_name" placeholder="Nombre(s)">
+                        </div>
+                        <div class="md3-field">
+                            <label class="md3-field__label" for="ep_t_lastname">Apellidos</label>
+                            <input class="md3-input" type="text" id="ep_t_lastname" placeholder="Apellidos">
+                        </div>
+                    </div>
+                    <div class="md3-form__row md3-form__row--2">
+                        <div class="md3-field">
+                            <label class="md3-field__label" for="ep_t_curp">CURP</label>
+                            <input class="md3-input" type="text" id="ep_t_curp" placeholder="18 caracteres" maxlength="18" style="text-transform:uppercase">
+                        </div>
+                        <div class="md3-field">
+                            <label class="md3-field__label" for="ep_t_phone">Teléfono</label>
+                            <input class="md3-input" type="tel" id="ep_t_phone" placeholder="+52 1234 5678">
+                        </div>
+                    </div>
+                    <div class="md3-form__row md3-form__row--2">
+                        <div class="md3-field">
+                            <label class="md3-field__label" for="ep_t_email">Email</label>
+                            <input class="md3-input" type="email" id="ep_t_email" placeholder="correo@ejemplo.com">
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+        {% endcall %}
+
+    </div>
+</div>

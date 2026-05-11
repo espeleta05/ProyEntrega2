@@ -102,10 +102,17 @@
                         <span class="pt-id">ID: P{{ p.patient_id }}</span>
                     </div>
                     {% if show_delete is not defined or show_delete %}
-                    <button type="button" class="pt-delete-btn delete-patient-btn"
-                            data-patient-id="{{ p.patient_id }}" title="Eliminar paciente">
-                        <i class="fa-solid fa-trash"></i>
-                    </button>
+                    <div class="pt-card-actions">
+                        <button type="button" class="pt-action-btn edit-patient-btn"
+                                data-patient-id="{{ p.patient_id }}"
+                                title="Editar paciente">
+                            <i class="fa-solid fa-pen"></i>
+                        </button>
+                        <button type="button" class="pt-action-btn pt-action-btn--danger delete-patient-btn"
+                                data-patient-id="{{ p.patient_id }}" title="Eliminar paciente">
+                            <i class="fa-solid fa-trash"></i>
+                        </button>
+                    </div>
                     {% endif %}
                 </div>
 
@@ -148,6 +155,7 @@
 </div>
 
 {% include 'nuevoPaciente_2daE.html' %}
+{% include 'editarPaciente_2daE.html' %}
 
 {% endblock %}
 

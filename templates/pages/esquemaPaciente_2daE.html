@@ -25,13 +25,41 @@
 {% set total_doses   = total_applied + total_pending %}
 {% set pct = ((total_applied / total_doses * 100) | int) if total_doses > 0 else 0 %}
 
-{# ── Encabezado con botón "Regresar" ── #}
+{# ── Botón regresar ── #}
 {{ toolbar(
     title='Esquema de vacunación',
-    subtitle=patient.full_name ~ '  ·  ID: P' ~ patient.patient_id
-             ~ '  ·  ' ~ (patient.age if patient.age is defined else '') ~ ' años',
+    subtitle='ID: P' ~ patient.patient_id ~ '  ·  ' ~ (patient.age if patient.age is defined else '') ~ ' años',
     back_href=url_for('historial')
 ) }}
+
+{# ── Header del paciente: foto + nombre ── #}
+<div class="patient-hero">
+  <div class="patient-hero__avatar">
+    {% if patient.photo_url %}
+      <img src="{{ patient.photo_url }}" alt="{{ patient.full_name }}" class="patient-hero__img">
+    {% else %}
+      <span class="patient-hero__initials">{{ patient.initials }}</span>
+    {% endif %}
+  </div>
+  <div class="patient-hero__info">
+    <h1 class="patient-hero__name">{{ patient.full_name }}</h1>
+    <p class="patient-hero__meta">
+      <span><i class="fa-solid fa-id-card"></i> P{{ patient.patient_id }}</span>
+      {% if patient.birth_date %}
+      <span><i class="fa-solid fa-cake-candles"></i> {{ patient.birth_date }}</span>
+      {% endif %}
+      {% if patient.age is not none %}
+      <span><i class="fa-solid fa-person"></i> {{ patient.age }} años</span>
+      {% endif %}
+    </p>
+    <div class="patient-hero__progress">
+      <div class="patient-hero__progress-bar">
+        <div class="patient-hero__progress-fill" style="--pct: {{ pct }}%;"></div>
+      </div>
+      <span class="patient-hero__progress-label">{{ pct }}% completado — {{ total_applied }} de {{ total_doses }} dosis</span>
+    </div>
+  </div>
+</div>
 
 {# ── Tabla de aplicaciones ── #}
 {% set _row = namespace(i=0) %}
@@ -65,7 +93,7 @@
     {{ kpi_card(value=pct ~ '%',     label='Progreso',          icon='fa-chart-simple',  color='secondary') }}
 </div>
 
-{# ── Barra de progreso (sin macro disponible) ── #}
+{# ── Barra de progreso ── #}
 <div class="progress-card">
     <div class="progress-header">
         <p>{{ patient.full_name }} — ID: P{{ patient.patient_id }}</p>
@@ -82,36 +110,89 @@
     </div>
 </div>
 
-{# ── Sección inferior: próximas dosis + vacunas pendientes ── #}
+{# ── Próximas dosis programadas ── #}
 <div class="second-section">
 
-    {% call card(title='Próximas dosis programadas', icon='fa-calendar-check') %}
-        {% for nv in next_vaccines %}
-        <div class="next-card">
-            <div>
-                <strong>{{ nv.name }}</strong><br>
-                <small class="opacity-low">{{ nv.dose }}</small>
-            </div>
-            <span>{{ nv.date }}</span>
-        </div>
-        {% else %}
-        <p class="empty-state">Sin próximas dosis programadas.</p>
-        {% endfor %}
-    {% endcall %}
+  {% set _nv = namespace(i=0) %}
+  {% call(nv) table(
+      headers=[
+          {'label': 'Vacuna'},
+          {'label': 'Dosis'},
+          {'label': 'Edad recomendada'},
+          {'label': 'Estado / Retraso'},
+          {'label': 'Fecha de cita'},
+          {'label': 'Estado cita'},
+          {'label': 'Aceptada por tutor'},
+      ],
+      rows=next_vaccines,
+      empty_icon='fa-calendar-xmark',
+      empty_title='Sin próximas dosis programadas.',
+      footer_text=next_vaccines|length ~ ' dosis pendientes'
+  ) %}
+    {% set is_delayed = nv.estado == 'Pendiente con retraso' %}
+    <tr class="{{ 'row-even' if _nv.i % 2 == 1 else 'row-odd' }} {{ 'row-delayed' if is_delayed else '' }}">
 
-    {% call card(title='Vacunas pendientes', icon='fa-triangle-exclamation') %}
-        {% for app in applications if app.next_date %}
-        <div class="pending-card">
-            <div>
-                <strong>{{ app.name }}</strong><br>
-                <small style="opacity:.6;">Siguiente: {{ app.dose }}</small>
-            </div>
-            <span>{{ app.next_date }}</span>
-        </div>
+      <td class="name-td"><strong>{{ nv.name }}</strong></td>
+
+      <td>{{ badge(nv.dose, color='primary', size='sm') }}</td>
+
+      <td class="muted-td">{{ nv.edad_ideal }}</td>
+
+      <td>
+        {% if is_delayed and nv.dias_retraso %}
+          <span class="ndt-badge ndt-badge--delay">
+            <i class="fa-solid fa-triangle-exclamation"></i> {{ nv.dias_retraso }} días atrasada
+          </span>
+        {% elif nv.alerta_retraso %}
+          <span class="ndt-badge ndt-badge--ok">
+            <i class="fa-solid fa-clock"></i> {{ nv.alerta_retraso }}
+          </span>
         {% else %}
-        <p class="empty-state">Sin vacunas pendientes.</p>
-        {% endfor %}
-    {% endcall %}
+          <span class="ndt-muted">—</span>
+        {% endif %}
+      </td>
+
+      <td class="muted-td ndt-date">
+        {% if nv.fecha_cita %}
+          <i class="fa-regular fa-calendar"></i> {{ nv.fecha_cita }}
+        {% else %}
+          <span class="ndt-muted">Sin cita</span>
+        {% endif %}
+      </td>
+
+      <td>
+        {% if nv.cita_estado == 'Programada' %}
+          {{ badge('Programada', color='secondary', icon='fa-calendar-check', size='sm') }}
+        {% elif nv.cita_estado == 'Completada' %}
+          {{ badge('Completada', color='success', icon='fa-check', size='sm') }}
+        {% elif nv.cita_estado == 'Cancelada' %}
+          {{ badge('Cancelada', color='error', icon='fa-xmark', size='sm') }}
+        {% elif nv.cita_estado == 'No Show' %}
+          {{ badge('No Show', color='tertiary', icon='fa-user-slash', size='sm') }}
+        {% else %}
+          <span class="ndt-muted">Sin cita</span>
+        {% endif %}
+      </td>
+
+      <td>
+        {% if nv.cita_aceptada is none %}
+          <span class="ndt-badge ndt-badge--pending">
+            <i class="fa-regular fa-hourglass"></i> Pendiente
+          </span>
+        {% elif nv.cita_aceptada %}
+          <span class="ndt-badge ndt-badge--accepted">
+            <i class="fa-solid fa-circle-check"></i> Aceptada
+          </span>
+        {% else %}
+          <span class="ndt-badge ndt-badge--rejected">
+            <i class="fa-solid fa-circle-xmark"></i> No aceptada
+          </span>
+        {% endif %}
+      </td>
+
+    </tr>
+    {% set _nv.i = _nv.i + 1 %}
+  {% endcall %}
 
 </div>
 

@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}{% endblock %} — ImmuniCare Familiar</title>
+
+  <!-- Fuentes + íconos -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,300..800;1,300..800&family=Open+Sans:ital,wght@0,300..800;1,300..800&family=Roboto:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+  <!-- Design system compartido -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/design-system.css') }}">
+
+  <!-- Layouts base -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/layouts/topbar.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/layouts/grid.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/layouts/content-wrapper.css') }}">
+
+  <!-- Componentes MD3 compartidos -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/components/buttons.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/components/inputs.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/components/cards.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/components/badges.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/components/alerts.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/components/tables.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/components/forms.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/components/modals.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/components/loaders.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/components/empty-states.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/components/kpi_card.css') }}">
+
+  <!-- Sidebar + layout propios del portal familiar -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/layouts/tutor_sidebar.css') }}">
+
+  <!-- CSS específico de cada página del tutor -->
+  {% block head_extra %}{% endblock %}
+</head>
+
+<body class="tutor-portal">
+
+<div class="main-layout">
+
+  {# ── Topbar del tutor ── #}
+  <header class="topbar tutor-topbar">
+    <a href="{{ url_for('tutor_dashboard') }}" class="topbar-logo">
+      <img src="{{ url_for('static', filename='css/img/logo.png') }}"
+           alt="ImmuniCare Logo" class="logo-img">
+      <span class="logo-text">ImmuniCare <span class="tutor-badge-topbar">Familiar</span></span>
+    </a>
+
+    <div class="topbar-right">
+      <span class="tutor-topbar-greeting">
+        <i class="fa-solid fa-circle-user"></i>
+        {{ tutor_name }} {{ tutor_lastname }}
+      </span>
+    </div>
+  </header>
+
+  {# ── Sidebar del tutor ── #}
+  <aside class="sidebar tutor-sidebar" id="tutorSidebar">
+    <div class="sidebar-content">
+
+      <div class="sidebar-section">
+        <p class="sidebar-section-title">Mi familia</p>
+        <nav class="sidebar-nav" aria-label="Navegación familiar">
+
+          <a href="{{ url_for('tutor_dashboard') }}"
+             class="sidebar-nav-item {{ 'active' if request.endpoint == 'tutor_dashboard' else '' }}"
+             {% if request.endpoint == 'tutor_dashboard' %}aria-current="page"{% endif %}>
+            <i class="fa-solid fa-house-medical"></i>
+            <span>Inicio</span>
+          </a>
+
+          <a href="{{ url_for('tutor_dashboard') }}#mis-hijos"
+             class="sidebar-nav-item {{ 'active' if request.endpoint == 'tutor_esquema' else '' }}"
+             {% if request.endpoint == 'tutor_esquema' %}aria-current="page"{% endif %}>
+            <i class="fa-solid fa-syringe"></i>
+            <span>Vacunas</span>
+          </a>
+
+          <a href="{{ url_for('tutor_citas') }}"
+             class="sidebar-nav-item {{ 'active' if request.endpoint == 'tutor_citas' else '' }}"
+             {% if request.endpoint == 'tutor_citas' %}aria-current="page"{% endif %}>
+            <i class="fa-solid fa-calendar-check"></i>
+            <span>Citas</span>
+          </a>
+
+          <a href="#"
+             class="sidebar-nav-item disabled"
+             aria-disabled="true"
+             title="Próximamente">
+            <i class="fa-solid fa-file-medical"></i>
+            <span>Historial</span>
+            <span class="sidebar-nav-badge">Próximo</span>
+          </a>
+
+        </nav>
+      </div>
+
+    </div>
+
+    {# ── Pie del sidebar: avatar + nombre + logout ── #}
+    <div class="sidebar-footer">
+      <div class="sidebar-user__row">
+        <div class="sidebar-user__avatar">{{ tutor_initials }}</div>
+        <div class="sidebar-user__info">
+          <p class="sidebar-user__name">{{ tutor_name }} {{ tutor_lastname }}</p>
+          <p class="sidebar-user__role">Tutor / Padre de familia</p>
+        </div>
+        <a href="{{ url_for('tutor_logout') }}"
+           class="sidebar-logout"
+           title="Cerrar sesión">
+          <i class="fa-solid fa-arrow-right-from-bracket"></i>
+        </a>
+      </div>
+    </div>
+
+  </aside>
+
+  {# ── Área de contenido ── #}
+  <main class="content">
+
+    {# Mensajes flash #}
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        <div class="flash-messages">
+          {% for category, message in messages %}
+            <div class="md3-alert md3-alert--{{ category }}" role="alert">
+              <i class="fa-solid
+                {% if category == 'success' %}fa-circle-check
+                {% elif category == 'danger'  %}fa-circle-xmark
+                {% elif category == 'warning' %}fa-triangle-exclamation
+                {% else                        %}fa-circle-info{% endif %}">
+              </i>
+              {{ message }}
+            </div>
+          {% endfor %}
+        </div>
+      {% endif %}
+    {% endwith %}
+
+    <div class="content-info">
+      {% block content %}{% endblock %}
+    </div>
+  </main>
+
+</div>
+
+<!-- JS compartidos (sin lógica clínica) -->
+<script src="{{ url_for('static', filename='js/components/alerts.js') }}"></script>
+
+{% block scripts %}{% endblock %}
+
+</body>
+</html>

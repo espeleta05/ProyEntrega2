@@ -1,0 +1,74 @@
+/**
+ * tutor_login.css — Ajustes extra para el login del portal familiar
+ * Extiende login.css (ya cargado antes que este archivo).
+ */
+
+/* ── Contenedor: fondo verde-teal en lugar del lila clínico ───────────────── */
+.tutor-login-container {
+  border-top: 5px solid var(--md-success, #1D7B00);
+}
+
+/* ── Logo de cabecera ─────────────────────────────────────────────────────── */
+.tutor-login-logo {
+  width: 56px;
+  height: 56px;
+  object-fit: contain;
+  border-radius: var(--md-shape-medium, 12px);
+}
+
+/* ── Subtítulo descriptivo ────────────────────────────────────────────────── */
+.tutor-login-subtitle {
+  font-size: var(--md-font-size-body-sm, 0.83rem);
+  color: var(--md-on-surface-variant, #49454f);
+  margin: 0;
+  text-align: center;
+}
+
+/* ── Separador entre formulario y enlace de personal ─────────────────────── */
+.tutor-login-divider {
+  display: flex;
+  align-items: center;
+  gap: var(--md-spacing-3, 12px);
+  width: 100%;
+  margin-top: var(--md-spacing-2, 8px);
+}
+
+.tutor-login-divider::before,
+.tutor-login-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--md-outline-variant, #c4c7c5);
+}
+
+.tutor-login-divider span {
+  font-size: var(--md-font-size-label-lg, 0.72rem);
+  color: var(--md-on-surface-variant, #49454f);
+  white-space: nowrap;
+}
+
+/* ── Enlace a login del personal ─────────────────────────────────────────── */
+.tutor-login-staff-link {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--md-spacing-2, 8px);
+  font-size: var(--md-font-size-body-sm, 0.83rem);
+  font-weight: var(--md-font-weight-semibold, 600);
+  color: var(--md-primary, #6B007C);
+  text-decoration: none;
+  padding: 8px 20px;
+  border-radius: var(--md-shape-extra-large, 999px);
+  border: 1.5px solid var(--md-outline-variant, #c4c7c5);
+  transition: background var(--md-transition-short), border-color var(--md-transition-short);
+}
+
+.tutor-login-staff-link:hover {
+  background: var(--md-primary-container, #FAD9FF);
+  border-color: var(--md-primary, #6B007C);
+}
+
+/* ── Icono de casa médica más grande ─────────────────────────────────────── */
+.tutor-login-container .icon-group i {
+  color: var(--md-success, #1D7B00);
+  background-color: color-mix(in srgb, var(--md-success, #1D7B00) 12%, white);
+}

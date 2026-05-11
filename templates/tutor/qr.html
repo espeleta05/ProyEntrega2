@@ -1,0 +1,131 @@
+{% extends 'tutor/base_tutor.html' %}
+
+{% from 'components/badge.html' import badge %}
+
+{% block title %}QR — {{ patient.full_name }}{% endblock %}
+
+{% block head_extra %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/tutor_qr.css') }}">
+{% endblock %}
+
+{% block content %}
+
+{# ── Toolbar ── #}
+<div class="tutor-toolbar">
+  <a href="{{ url_for('tutor_dashboard') }}" class="tutor-back-btn">
+    <i class="fa-solid fa-arrow-left"></i>
+    Volver al panel
+  </a>
+  <span class="tutor-toolbar-title">Código QR de identificación</span>
+</div>
+
+{# ── Tarjeta QR (imprimible) ── #}
+<div class="tutor-qr-page">
+
+  <div class="tutor-qr-card" id="qrCardPrint">
+
+    {# Cabecera de la tarjeta #}
+    <div class="tutor-qr-card__header">
+      <img src="{{ url_for('static', filename='css/img/logo.png') }}"
+           alt="ImmuniCare" class="tutor-qr-logo">
+      <div>
+        <p class="tutor-qr-brand">ImmuniCare</p>
+        <p class="tutor-qr-subtitle">Tarjeta de identificación vacunal</p>
+      </div>
+    </div>
+
+    {# Cuerpo: paciente + QR #}
+    <div class="tutor-qr-card__body">
+
+      {# Info del paciente #}
+      <div class="tutor-qr-patient">
+        <div class="tutor-qr-avatar-wrap">
+          {% if patient.photo_url %}
+            <img src="{{ patient.photo_url }}" alt="{{ patient.full_name }}"
+                 class="tutor-qr-photo">
+          {% else %}
+            <div class="tutor-qr-avatar">{{ patient.initials }}</div>
+          {% endif %}
+        </div>
+        <div class="tutor-qr-patient-info">
+          <p class="tutor-qr-patient-name">{{ patient.full_name }}</p>
+          <p class="tutor-qr-patient-meta">
+            <span><i class="fa-solid fa-id-card"></i> P{{ patient.patient_id }}</span>
+            {% if patient.age_years is not none %}
+              <span><i class="fa-solid fa-person"></i> {{ patient.age_years }} año{{ 's' if patient.age_years != 1 else '' }}</span>
+            {% endif %}
+            {% if patient.blood_type and patient.blood_type != '—' %}
+              <span><i class="fa-solid fa-droplet"></i> {{ patient.blood_type }}</span>
+            {% endif %}
+          </p>
+          {% if patient.birth_date %}
+            <p class="tutor-qr-birth">
+              <i class="fa-solid fa-cake-candles"></i>
+              Nacimiento: {{ patient.birth_date[:10] if patient.birth_date else '—' }}
+            </p>
+          {% endif %}
+          {% if patient.curp %}
+            <p class="tutor-qr-curp">CURP: {{ patient.curp }}</p>
+          {% endif %}
+        </div>
+      </div>
+
+      {# Separador #}
+      <div class="tutor-qr-divider"></div>
+
+      {# Código QR #}
+      <div class="tutor-qr-code-wrap">
+        {% if qr_b64 %}
+          <img src="data:image/png;base64,{{ qr_b64 }}"
+               alt="Código QR de {{ patient.full_name }}"
+               class="tutor-qr-image"
+               id="qrImg">
+          <p class="tutor-qr-scan-hint">
+            <i class="fa-solid fa-qrcode"></i>
+            Escanear para verificar
+          </p>
+        {% else %}
+          <div class="tutor-qr-unavailable">
+            <i class="fa-solid fa-qrcode"></i>
+            <p>QR no disponible</p>
+            <small>Instala: pip install qrcode[pil]</small>
+          </div>
+        {% endif %}
+      </div>
+
+    </div>
+
+    {# Pie de la tarjeta #}
+    <div class="tutor-qr-card__footer">
+      <p>Generado el {{ today }} · ImmuniCare Sistema Clínico de Vacunación</p>
+    </div>
+
+  </div>
+
+  {# Acciones (no se imprimen) ── #}
+  <div class="tutor-qr-actions no-print">
+
+    {% if qr_b64 %}
+      <a href="{{ url_for('tutor_qr_imagen', patient_id=patient.patient_id) }}"
+         class="tutor-btn tutor-btn--primary">
+        <i class="fa-solid fa-download"></i>
+        Descargar QR (PNG)
+      </a>
+    {% endif %}
+
+    <button class="tutor-btn tutor-btn--outline" onclick="window.print()">
+      <i class="fa-solid fa-print"></i>
+      Imprimir tarjeta
+    </button>
+
+    <a href="{{ url_for('tutor_esquema', patient_id=patient.patient_id) }}"
+       class="tutor-btn tutor-btn--outline">
+      <i class="fa-solid fa-syringe"></i>
+      Ver vacunas
+    </a>
+
+  </div>
+
+</div>
+
+{% endblock %}

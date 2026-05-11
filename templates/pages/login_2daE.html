@@ -49,9 +49,30 @@
         <p class="error">{{ error }}</p>
     {% endif %}
 
+    <div class="demo-users d-flex flex-column flex-start">
+        <p class="text-muted text-semibold">Demo users:</p>
+        <p class="text-muted">Admin: jose.perez - admin123</p>
+        <p class="text-muted">Recepcion: elisa.campos - recepcion123</p>
+    </div>
+
     <a href="#" class="forgot-password">
         ¿Olvidó su contraseña?
-        </a>
+    </a>
+
+    <div style="display:flex;align-items:center;gap:10px;width:100%;margin-top:4px;">
+        <div style="flex:1;height:1px;background:var(--md-outline-variant,#c4c7c5);"></div>
+        <span style="font-size:0.72rem;color:var(--md-on-surface-variant,#49454f);white-space:nowrap;">¿Eres padre o tutor?</span>
+        <div style="flex:1;height:1px;background:var(--md-outline-variant,#c4c7c5);"></div>
+    </div>
+
+    <a href="{{ url_for('tutor_login') }}"
+       style="display:inline-flex;align-items:center;gap:8px;font-size:0.83rem;font-weight:600;
+              color:var(--md-primary,#6B007C);text-decoration:none;padding:8px 20px;
+              border-radius:999px;border:1.5px solid var(--md-outline-variant,#c4c7c5);
+              transition:background 0.2s;">
+        <i class="fa-solid fa-house-medical-circle-check"></i>
+        Acceder al portal familiar
+    </a>
 
 </div>
     

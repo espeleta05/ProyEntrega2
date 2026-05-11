@@ -411,44 +411,32 @@ DECLARE
     v_age_years   INT;
 BEGIN
 
-    -- ── Validaciones del paciente ─────────────────────────────────────────
+    -- Reglas de negocio y clinicas (Flask ya valido formato basico)
 
-    IF TRIM(p_first_name) = '' THEN
-        RAISE EXCEPTION 'El nombre es obligatorio';
-    END IF;
-
-    IF TRIM(p_last_name) = '' THEN
-        RAISE EXCEPTION 'El apellido es obligatorio';
-    END IF;
-
-    IF p_birth_date > CURRENT_DATE THEN
+    -- Fecha no puede ser futura (regla de negocio)
+    IF p_birth_date IS NULL OR p_birth_date > CURRENT_DATE THEN
         RAISE EXCEPTION 'La fecha de nacimiento no puede ser futura';
     END IF;
 
+    -- Edad maxima pediatrica (regla clinica)
     v_age_years := DATE_PART('year', AGE(CURRENT_DATE, p_birth_date));
-
-    IF v_age_years > 10 THEN
+    IF v_age_years > 15 THEN
         RAISE EXCEPTION 'El paciente excede la edad pediatrica permitida';
     END IF;
 
-    IF p_gender NOT IN ('M', 'F') THEN
-        RAISE EXCEPTION 'Genero invalido';
-    END IF;
-
-    IF p_curp IS NOT NULL AND LENGTH(TRIM(p_curp)) <> 18 THEN
-        RAISE EXCEPTION 'CURP invalida';
-    END IF;
-
+    -- CURP duplicado (integridad)
     IF p_curp IS NOT NULL AND EXISTS (
         SELECT 1 FROM patients WHERE curp = p_curp
     ) THEN
         RAISE EXCEPTION 'El CURP ya existe';
     END IF;
 
+    -- Peso fuera de rango (regla clinica)
     IF p_weight_kg IS NOT NULL AND (p_weight_kg <= 0 OR p_weight_kg > 80) THEN
         RAISE EXCEPTION 'Peso fuera de rango pediatrico';
     END IF;
 
+    -- Tipo de sangre inexistente (integridad referencial)
     IF p_blood_type_id IS NOT NULL AND NOT EXISTS (
         SELECT 1 FROM blood_types WHERE blood_type_id = p_blood_type_id
     ) THEN
@@ -493,7 +481,8 @@ BEGIN
     IF v_guardian_id IS NOT NULL THEN
 
         IF p_guardian_phone IS NOT NULL AND TRIM(p_guardian_phone) <> '' THEN
-            IF LENGTH(TRIM(p_guardian_phone)) < 10 THEN
+            -- Contar solo digitos para validar longitud minima (regla clinica)
+            IF LENGTH(REGEXP_REPLACE(p_guardian_phone, '[^0-9]', '', 'g')) < 10 THEN
                 RAISE EXCEPTION 'Telefono invalido';
             END IF;
             INSERT INTO guardian_phones (guardian_id, phone, phone_type, is_primary)
@@ -539,20 +528,21 @@ BEGIN
         ON CONFLICT DO NOTHING;
     END IF;
 
+    -- Resultado exitoso
     OPEN p_results FOR
-        SELECT TRUE  AS success,
+        SELECT TRUE                                AS success,
                'Paciente registrado correctamente' AS message,
-               v_patient_id  AS patient_id,
-               v_guardian_id AS guardian_id;
+               v_patient_id                        AS patient_id,
+               v_guardian_id                       AS guardian_id;
 
 EXCEPTION
 WHEN OTHERS THEN
+    -- Cualquier error de negocio/integridad regresa como fila, no como excepcion
     OPEN p_results FOR
-        SELECT FALSE AS success,
-               SQLERRM   AS message,
+        SELECT FALSE    AS success,
+               SQLERRM  AS message,
                NULL::INT AS patient_id,
                NULL::INT AS guardian_id;
-
 END;
 $$;
 
@@ -577,11 +567,15 @@ FETCH ALL FROM p_results;
 COMMIT;
 
 
--- (APPLICADO) Actualizar paciente
+-- Actualizar paciente (firma expandida: curp + birth_date)
+DROP PROCEDURE IF EXISTS sp_update_patient(INT, VARCHAR, VARCHAR, INT, NUMERIC, REFCURSOR);
+
 CREATE OR REPLACE PROCEDURE sp_update_patient(
     IN    p_patient_id      INT,
     IN    p_first_name      VARCHAR,
     IN    p_last_name       VARCHAR,
+    IN    p_curp            VARCHAR,
+    IN    p_birth_date      DATE,
     IN    p_blood_type_id   INT,
     IN    p_weight_kg       NUMERIC,
     INOUT p_results         REFCURSOR
@@ -590,80 +584,67 @@ LANGUAGE plpgsql AS $$
 DECLARE
     v_exists BOOLEAN;
 BEGIN
-    
+
     SELECT EXISTS(
-        SELECT 1
-        FROM patients
-        WHERE patient_id = p_patient_id
-        AND is_active = TRUE
-    )
-    INTO v_exists;
+        SELECT 1 FROM patients
+        WHERE patient_id = p_patient_id AND is_active = TRUE
+    ) INTO v_exists;
 
     IF NOT v_exists THEN
         RAISE EXCEPTION 'El paciente no existe o esta inactivo';
     END IF;
 
-    IF p_first_name IS NOT NULL THEN
-        IF LENGTH(TRIM(p_first_name)) < 2 THEN
-            RAISE EXCEPTION 'Nombre invalido';
+    IF p_first_name IS NOT NULL AND LENGTH(TRIM(p_first_name)) < 2 THEN
+        RAISE EXCEPTION 'Nombre invalido';
+    END IF;
+
+    IF p_last_name IS NOT NULL AND LENGTH(TRIM(p_last_name)) < 2 THEN
+        RAISE EXCEPTION 'Apellido invalido';
+    END IF;
+
+    IF p_curp IS NOT NULL AND TRIM(p_curp) <> '' THEN
+        IF LENGTH(TRIM(p_curp)) <> 18 THEN
+            RAISE EXCEPTION 'CURP invalida';
+        END IF;
+        IF EXISTS (
+            SELECT 1 FROM patients
+            WHERE curp = TRIM(p_curp) AND patient_id <> p_patient_id
+        ) THEN
+            RAISE EXCEPTION 'El CURP ingresado ya esta registrado';
         END IF;
     END IF;
 
-    IF p_last_name IS NOT NULL THEN
-        IF LENGTH(TRIM(p_last_name)) < 2 THEN
-            RAISE EXCEPTION 'Apellido invalido';
-        END IF;
+    IF p_birth_date IS NOT NULL AND p_birth_date > CURRENT_DATE THEN
+        RAISE EXCEPTION 'La fecha de nacimiento no puede ser futura';
     END IF;
 
-    IF p_weight_kg IS NOT NULL THEN
-
-        IF p_weight_kg <= 0 OR p_weight_kg > 80 THEN
-            RAISE EXCEPTION 'Peso fuera de rango pediatrico';
-        END IF;
-
+    IF p_weight_kg IS NOT NULL AND (p_weight_kg <= 0 OR p_weight_kg > 80) THEN
+        RAISE EXCEPTION 'Peso fuera de rango pediatrico';
     END IF;
 
     IF p_blood_type_id IS NOT NULL THEN
-
-        IF NOT EXISTS (
-            SELECT 1
-            FROM blood_types
-            WHERE blood_type_id = p_blood_type_id
-        ) THEN
+        IF NOT EXISTS (SELECT 1 FROM blood_types WHERE blood_type_id = p_blood_type_id) THEN
             RAISE EXCEPTION 'Tipo sanguineo inexistente';
         END IF;
-
     END IF;
 
     UPDATE patients
     SET
-        first_name = COALESCE(NULLIF(TRIM(p_first_name), ''), first_name),
-        last_name = COALESCE(NULLIF(TRIM(p_last_name), ''), last_name),
-        blood_type_id = COALESCE(
-            p_blood_type_id,
-            blood_type_id
-        ),
-        weight_kg = COALESCE(
-            p_weight_kg,
-            weight_kg
-        ),
-        updated_at = NOW()
+        first_name    = COALESCE(NULLIF(TRIM(p_first_name), ''), first_name),
+        last_name     = COALESCE(NULLIF(TRIM(p_last_name),  ''), last_name),
+        curp          = COALESCE(NULLIF(TRIM(p_curp),       ''), curp),
+        birth_date    = COALESCE(p_birth_date,    birth_date),
+        blood_type_id = COALESCE(p_blood_type_id, blood_type_id),
+        weight_kg     = COALESCE(p_weight_kg,     weight_kg),
+        updated_at    = NOW()
     WHERE patient_id = p_patient_id;
 
     OPEN p_results FOR
-    SELECT
-        TRUE AS success,
-        'Paciente actualizado correctamente' AS message,
-        p_patient_id AS patient_id;
+    SELECT TRUE AS success, 'Paciente actualizado correctamente' AS message, p_patient_id AS patient_id;
 
-EXCEPTION
-WHEN OTHERS THEN
-
+EXCEPTION WHEN OTHERS THEN
     OPEN p_results FOR
-    SELECT
-        FALSE AS success,
-        SQLERRM AS message,
-        NULL::INT AS patient_id;
+    SELECT FALSE AS success, SQLERRM AS message, NULL::INT AS patient_id;
 END;
 $$;
 
@@ -1363,26 +1344,33 @@ $$;
 
 
 CREATE OR REPLACE PROCEDURE sp_create_appointment(
-    IN    p_patient_id    INT,
-    IN    p_worker_id     INT,
-    IN    p_clinic_id     INT,
-    IN    p_area_id       INT,
-    IN    p_scheduled_at  TIMESTAMP,
-    IN    p_reason        VARCHAR,
-    INOUT p_results       REFCURSOR
+    IN    p_patient_id       INT,
+    IN    p_worker_id        INT,
+    IN    p_clinic_id        INT,
+    IN    p_area_id          INT,
+    IN    p_scheduled_at     TIMESTAMP,
+    IN    p_reason           VARCHAR,
+    IN    p_requires_tutor   BOOLEAN,   -- TRUE = espera confirmación del tutor
+    INOUT p_results          REFCURSOR
 )
 LANGUAGE plpgsql AS $$
 DECLARE
     v_appointment_id INT;
+    v_initial_status VARCHAR(50);
 BEGIN
+    -- Las citas generadas automáticamente por el esquema de vacunación
+    -- arrancan en 'Pendiente confirmación'; las manuales van directo a 'Programada'.
+    v_initial_status := CASE WHEN p_requires_tutor THEN 'Pendiente confirmación'
+                             ELSE 'Programada'
+                        END;
+
     INSERT INTO appointments (
         patient_id, worker_id, clinic_id, area_id,
         scheduled_at, appointment_status, reason, duration_min
     )
-
     VALUES (
         p_patient_id, p_worker_id, p_clinic_id, p_area_id,
-        p_scheduled_at, 'Programada', p_reason, 15
+        p_scheduled_at, v_initial_status, p_reason, 15
     )
     RETURNING appointments.appointment_id INTO v_appointment_id;
 
@@ -1926,41 +1914,55 @@ BEGIN
 
     OPEN p_results FOR
         SELECT
-            patient_id, dose_id, vaccine_id, record_id,
-            full_name, birth_date, age_years,
-            vaccine_name AS name,
-            disease_prevented,
-            dose_label   AS dose,
-            dose_number,
-            ideal_age_months,
-            ideal_date,
-            applied_date AS date,
-            doctor,
-            application_site,
-            had_reaction,
-            patient_temp_c,
-            estado,
-            dias_retraso,
+            base.patient_id, base.dose_id, base.vaccine_id, base.record_id,
+            base.full_name, base.birth_date, base.age_years,
+            pat.photo,
+            base.vaccine_name AS name,
+            base.disease_prevented,
+            base.dose_label   AS dose,
+            base.dose_number,
+            base.ideal_age_months,
+            base.ideal_date,
+            base.applied_date AS date,
+            base.doctor,
+            base.application_site,
+            base.had_reaction,
+            base.patient_temp_c,
+            base.estado,
+            base.dias_retraso,
             CASE
-                WHEN next_dose_age_months IS NOT NULL
-                    THEN 'A los ' || next_dose_age_months || ' meses'
+                WHEN base.next_dose_age_months IS NOT NULL
+                    THEN 'A los ' || base.next_dose_age_months || ' meses'
                 ELSE NULL
             END AS next_date,
             CASE
-                WHEN ideal_age_months = 0  THEN 'Al nacer'
-                WHEN ideal_age_months >= 12 THEN (ideal_age_months / 12) || ' año(s)'
-                ELSE ideal_age_months || ' meses'
+                WHEN base.ideal_age_months = 0  THEN 'Al nacer'
+                WHEN base.ideal_age_months >= 12 THEN (base.ideal_age_months / 12) || ' año(s)'
+                ELSE base.ideal_age_months || ' meses'
             END AS edad_ideal_label,
             CASE
-                WHEN record_id IS NULL AND dias_retraso > 0
-                    THEN 'Retraso de ' || dias_retraso || ' días'
-                WHEN record_id IS NULL AND dias_retraso <= 0
-                    THEN 'Programada en ' || ABS(dias_retraso) || ' días'
+                WHEN base.record_id IS NULL AND base.dias_retraso > 0
+                    THEN 'Retraso de ' || base.dias_retraso || ' días'
+                WHEN base.record_id IS NULL AND base.dias_retraso <= 0
+                    THEN 'Programada en ' || ABS(base.dias_retraso) || ' días'
                 ELSE NULL
-            END AS alerta_retraso
-        FROM v_patient_vaccination_scheme_base
-        WHERE patient_id = p_patient_id
-        ORDER BY ideal_age_months, dose_number;
+            END AS alerta_retraso,
+            -- Cita más reciente no cancelada para esta dosis
+            appt.scheduled_at::DATE AS fecha_cita,
+            appt.appointment_status AS cita_estado,
+            appt.tutor_accepted     AS cita_aceptada_tutor
+        FROM v_patient_vaccination_scheme_base base
+        JOIN patients pat ON pat.patient_id = base.patient_id
+        LEFT JOIN LATERAL (
+            SELECT scheduled_at, appointment_status, tutor_accepted
+            FROM appointments
+            WHERE patient_id   = base.patient_id
+              AND scheme_dose_id = base.dose_id
+            ORDER BY scheduled_at DESC
+            LIMIT 1
+        ) appt ON TRUE
+        WHERE base.patient_id = p_patient_id
+        ORDER BY base.ideal_age_months, base.dose_number;
 END;
 $$;
 
@@ -2650,5 +2652,71 @@ EXCEPTION
 WHEN OTHERS THEN
     OPEN p_results FOR
         SELECT FALSE AS success, SQLERRM AS message, NULL::INT AS worker_id;
+END;
+$$;
+
+
+
+CREATE OR REPLACE PROCEDURE sp_register_guardian_account(
+    IN p_guardian_id INT,
+    IN p_email VARCHAR,
+    IN p_password_hash VARCHAR,
+    INOUT p_results REFCURSOR
+)
+LANGUAGE plpgsql AS $$
+DECLARE
+    v_account_id INT;
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1
+        FROM guardians
+        WHERE guardian_id = p_guardian_id
+    ) THEN
+        RAISE EXCEPTION
+        'El tutor no existe';
+    END IF;
+
+    IF EXISTS (
+        SELECT 1
+        FROM guardian_accounts
+        WHERE guardian_id = p_guardian_id
+    ) THEN
+        RAISE EXCEPTION
+        'El tutor ya tiene una cuenta registrada';
+    END IF;
+
+    IF EXISTS (
+        SELECT 1
+        FROM guardian_accounts
+        WHERE LOWER(email) = LOWER(TRIM(p_email))
+    ) THEN
+
+        RAISE EXCEPTION
+        'El correo ya está registrado';
+
+    END IF;
+
+    INSERT INTO guardian_accounts (
+
+        guardian_id,
+        email,
+        password_hash
+
+    )
+    VALUES (
+
+        p_guardian_id,
+        LOWER(TRIM(p_email)),
+        p_password_hash
+
+    )
+    RETURNING guardian_account_id
+    INTO v_account_id;
+
+    OPEN p_results FOR
+
+    SELECT
+        v_account_id AS guardian_account_id;
+
 END;
 $$;

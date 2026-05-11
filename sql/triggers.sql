@@ -413,3 +413,94 @@ BEFORE INSERT
 ON vaccination_records
 FOR EACH ROW
 EXECUTE FUNCTION fn_validate_lot_expiration();
+
+
+-- ============================================================
+-- TRIGGER 15: Confirmar o cancelar cita según respuesta del tutor
+-- ============================================================
+-- Flujo clínico:
+--   1. Un appointment se crea con status = 'Pendiente confirmación'
+--      (asignado por el sistema al generar el esquema automático).
+--   2. El tutor actualiza tutor_accepted = TRUE  → status pasa a 'Programada'.
+--   3. El tutor actualiza tutor_accepted = FALSE → status pasa a 'Cancelada'.
+--   4. Se rechaza cualquier intento de cambiar una cita ya terminal
+--      (Completada / Cancelada).
+--   5. Se rechaza confirmar una cita con scheduled_at en el pasado
+--      para evitar inconsistencias en el historial clínico.
+-- ============================================================
+
+CREATE OR REPLACE FUNCTION fn_confirm_appointment_on_tutor_acceptance()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+AS $$
+DECLARE
+    v_patient_name TEXT;
+BEGIN
+    -- Disparar solo cuando tutor_accepted realmente cambia de valor
+    IF OLD.tutor_accepted IS NOT DISTINCT FROM NEW.tutor_accepted THEN
+        RETURN NEW;
+    END IF;
+
+    -- Obtener nombre del paciente para mensajes de error legibles
+    SELECT TRIM(first_name || ' ' || last_name)
+    INTO v_patient_name
+    FROM patients
+    WHERE patient_id = NEW.patient_id;
+
+    -- ── CASO 1: El tutor ACEPTA la cita ──────────────────────────────────────
+    IF NEW.tutor_accepted = TRUE THEN
+
+        -- Rechazar si la cita ya está en un estado terminal
+        IF OLD.appointment_status IN ('Completada', 'Cancelada', 'No Show') THEN
+            RAISE EXCEPTION
+                'La cita del paciente "%" ya está en estado "%" y no puede ser confirmada.',
+                v_patient_name, OLD.appointment_status;
+        END IF;
+
+        -- Rechazar si la fecha programada ya pasó (no tiene sentido confirmar
+        -- una cita que nunca se podrá atender)
+        IF NEW.scheduled_at < NOW() THEN
+            RAISE EXCEPTION
+                'No se puede confirmar la cita del paciente "%": la fecha programada (%) ya pasó. '
+                'Reagende la cita antes de confirmarla.',
+                v_patient_name, NEW.scheduled_at::DATE;
+        END IF;
+
+        -- Confirmar: activar en el calendario clínico
+        NEW.appointment_status := 'Programada';
+        NEW.appointment_notes  :=
+            COALESCE(NEW.appointment_notes || E'\n', '')
+            || '[' || NOW()::DATE || '] Cita confirmada por el tutor.';
+
+    -- ── CASO 2: El tutor RECHAZA la cita ─────────────────────────────────────
+    ELSIF NEW.tutor_accepted = FALSE THEN
+
+        -- No cancelar lo que ya fue atendido
+        IF OLD.appointment_status = 'Completada' THEN
+            RAISE EXCEPTION
+                'La cita del paciente "%" ya fue completada y no puede ser rechazada.',
+                v_patient_name;
+        END IF;
+
+        -- Cancelar la cita
+        NEW.appointment_status := 'Cancelada';
+        NEW.appointment_notes  :=
+            COALESCE(NEW.appointment_notes || E'\n', '')
+            || '[' || NOW()::DATE || '] Cita cancelada por rechazo del tutor.';
+
+    END IF;
+
+    -- Registrar el cambio en auditoría
+    INSERT INTO audit_log (table_name, record_id, action, changed_at)
+    VALUES ('appointments', NEW.appointment_id, 'UPDATE', NOW());
+
+    RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS trg_confirm_appointment_on_tutor_acceptance ON appointments;
+CREATE TRIGGER trg_confirm_appointment_on_tutor_acceptance
+BEFORE UPDATE OF tutor_accepted
+ON appointments
+FOR EACH ROW
+EXECUTE FUNCTION fn_confirm_appointment_on_tutor_acceptance();

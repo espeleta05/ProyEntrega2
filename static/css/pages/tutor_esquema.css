@@ -1,0 +1,173 @@
+/**
+ * tutor_esquema.css — Vista read-only del esquema vacunal del niño
+ */
+
+/* ── Toolbar de regreso ────────────────────────────────────────────────────── */
+.tutor-toolbar {
+  display: flex;
+  align-items: center;
+  gap: var(--md-spacing-3, 12px);
+  margin-bottom: var(--md-spacing-5, 20px);
+}
+
+.tutor-back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--md-spacing-1, 4px);
+  font-size: var(--md-font-size-body-sm, 0.83rem);
+  font-weight: var(--md-font-weight-semibold, 600);
+  color: var(--md-primary, #6B007C);
+  text-decoration: none;
+  padding: 6px 14px;
+  border-radius: 999px;
+  border: 1.5px solid var(--md-outline-variant, #c4c7c5);
+  transition: background var(--md-transition-short);
+}
+.tutor-back-btn:hover { background: var(--md-primary-container, #FAD9FF); }
+
+.tutor-toolbar-title {
+  font-size: var(--md-font-size-body-md, 0.875rem);
+  font-weight: var(--md-font-weight-semibold, 600);
+  color: var(--md-on-surface-variant, #49454f);
+}
+
+/* ── Hero del paciente ────────────────────────────────────────────────────── */
+.tutor-patient-hero {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--md-spacing-4, 16px);
+  background: var(--md-surface-container-lowest, #fff);
+  border-radius: var(--md-shape-large, 16px);
+  border: 0.5px solid var(--md-outline-variant, #c4c7c5);
+  padding: var(--md-spacing-5, 20px);
+  box-shadow: var(--md-shadow-level-1);
+  margin-bottom: var(--md-spacing-3, 12px);
+}
+
+.tutor-hero-avatar-wrap { flex-shrink: 0; }
+
+.tutor-hero-avatar {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: var(--md-primary-container, #FAD9FF);
+  color: var(--md-primary, #6B007C);
+  font-size: 1.3rem;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.tutor-hero-photo {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.tutor-hero-info { flex: 1; display: flex; flex-direction: column; gap: var(--md-spacing-2, 8px); }
+
+.tutor-hero-name {
+  font-size: var(--md-font-size-title-md, 1.25rem);
+  font-weight: 800;
+  color: var(--md-on-surface, #1a1a1a);
+  margin: 0;
+}
+
+.tutor-hero-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--md-spacing-3, 12px);
+  font-size: var(--md-font-size-body-sm, 0.8rem);
+  color: var(--md-on-surface-variant, #49454f);
+  margin: 0;
+}
+.tutor-hero-meta i { color: var(--md-primary, #6B007C); margin-right: 3px; }
+
+/* Barra de progreso del hero */
+.tutor-hero-progress { display: flex; align-items: center; gap: var(--md-spacing-2, 8px); }
+.tutor-hero-bar {
+  flex: 1;
+  height: 8px;
+  background: var(--md-surface-container, #f4eff8);
+  border-radius: 999px;
+  overflow: hidden;
+  max-width: 240px;
+}
+.tutor-hero-bar-fill {
+  height: 100%;
+  border-radius: 999px;
+  width: var(--pct, 0%);
+  transition: width 0.6s ease;
+}
+.fill--ok   { background: var(--md-success, #1D7B00); }
+.fill--warn { background: var(--md-tertiary, #7B6800); }
+.fill--low  { background: var(--md-error, #C40000); }
+
+.tutor-hero-bar-label {
+  font-size: var(--md-font-size-label-lg, 0.72rem);
+  color: var(--md-on-surface-variant, #49454f);
+  white-space: nowrap;
+}
+
+/* ── KPI chips ────────────────────────────────────────────────────────────── */
+.tutor-kpi-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--md-spacing-2, 8px);
+  margin-bottom: var(--md-spacing-4, 16px);
+}
+
+.tutor-kpi-chip {
+  display: flex;
+  align-items: center;
+  gap: var(--md-spacing-2, 8px);
+  padding: 10px 18px;
+  border-radius: var(--md-shape-large, 16px);
+  border: 0.5px solid var(--md-outline-variant, #c4c7c5);
+  background: var(--md-surface-container-lowest, #fff);
+  box-shadow: var(--md-shadow-level-1);
+  flex: 1;
+  min-width: 120px;
+}
+.tutor-kpi-chip i { font-size: 1rem; }
+.tutor-kpi-num { font-size: 1.2rem; font-weight: 800; color: var(--md-on-surface, #1a1a1a); }
+.tutor-kpi-lbl { font-size: var(--md-font-size-label-lg, 0.72rem); color: var(--md-on-surface-variant, #49454f); }
+
+.tutor-kpi-chip--applied i { color: var(--md-success, #1D7B00); }
+.tutor-kpi-chip--pending i { color: var(--md-tertiary, #7B6800); }
+.tutor-kpi-chip--total   i { color: var(--md-primary, #6B007C); }
+.tutor-kpi-chip--pct     i { color: var(--md-secondary, #4B1535); }
+.tutor-kpi-chip--ok      i { color: var(--md-success, #1D7B00); }
+.tutor-kpi-chip--ok .tutor-kpi-num { color: var(--md-success, #1D7B00); }
+
+/* ── Secciones ────────────────────────────────────────────────────────────── */
+.tutor-section { margin-bottom: var(--md-spacing-3, 12px); }
+
+/* ── Botón outline pequeño (comprobante PDF) ─────────────────────────────── */
+.tutor-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 7px 14px;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition: background var(--md-transition-short);
+}
+.tutor-btn--outline {
+  background: transparent;
+  color: var(--md-primary, #6B007C);
+  border: 1.5px solid var(--md-outline-variant, #c4c7c5);
+}
+.tutor-btn--outline:hover {
+  background: var(--md-primary-container, #FAD9FF);
+  border-color: var(--md-primary, #6B007C);
+}
+.tutor-btn--sm { padding: 4px 10px; font-size: 0.72rem; }
+
+/* Reutiliza .section-card, .section-header-row, .tutor-table-wrap,
+   .tutor-next-table, .ndt-badge, .muted-td, .tutor-row-delayed, etc.
+   de tutor_dashboard.css — se carga antes en el base */
