@@ -103,12 +103,7 @@
     {% set _row.i = _row.i + 1 %}
 {% endcall %}
 
-{# aplicaciones.js depende de id="appsTable" en el <tbody>.
-   El macro table no expone ese parámetro, así que lo inyectamos aquí. #}
-<script>
-  document.querySelector('.apps-table .md3-table tbody')
-          ?.setAttribute('id', 'appsTable');
-</script>
+{# El id="appsTable" lo asigna aplicaciones.js al iniciarse. #}
 
 {% endblock %}
 

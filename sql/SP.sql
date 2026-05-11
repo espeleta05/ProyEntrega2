@@ -984,150 +984,374 @@ $$;
 
 -- ==============================================
 
-
-
 CREATE OR REPLACE PROCEDURE sp_register_vaccination_record(
 
     IN    p_patient_id           INT,
-
     IN    p_vaccine_id           INT,
-
     IN    p_worker_id            INT,
-
     IN    p_clinic_id            INT,
-
     IN    p_lot_id               INT,
-
     IN    p_scheme_dose_id       INT,
-
     IN    p_applied_date         DATE,
-
     IN    p_application_site_id  INT,
-
     IN    p_patient_temp_c       NUMERIC,
-
     IN    p_had_reaction         BOOLEAN,
-
     INOUT p_results              REFCURSOR
 
 )
-
-LANGUAGE plpgsql AS $$
-
+LANGUAGE plpgsql
+AS $$
 DECLARE
 
-    v_record_id INT;
+    v_record_id                  INT;
+
+    v_birth_date                 DATE;
+    v_patient_age_months         INT;
+
+    v_ideal_age_months           INT;
+    v_min_interval_days          INT;
+
+    v_last_application_date      DATE;
+    v_days_since_last_dose       INT;
+
+    v_schedule_status            TEXT;
 
 BEGIN
+
+    -- =====================================================
+    -- VALIDAR PACIENTE
+    -- =====================================================
+
+    SELECT birth_date
+    INTO v_birth_date
+    FROM patients
+    WHERE patient_id = p_patient_id
+    AND is_active = TRUE;
+
+    IF v_birth_date IS NULL THEN
+        RAISE EXCEPTION
+        'El paciente no existe o está inactivo';
+    END IF;
+
+    -- =====================================================
+    -- VALIDAR PERSONAL AUTORIZADO
+    -- =====================================================
+
+    IF NOT EXISTS (
+
+        SELECT 1
+        FROM workers w
+        JOIN roles r
+            ON r.role_id = w.role_id
+        WHERE w.worker_id = p_worker_id
+        AND w.is_active = TRUE
+        AND r.name IN ('Medico', 'Enfermero')
+
+    ) THEN
+
+        RAISE EXCEPTION
+        'Solo medicos o enfermeros pueden aplicar vacunas';
+
+    END IF;
+
+    -- =====================================================
+    -- VALIDAR CLÍNICA
+    -- =====================================================
+
+    IF NOT EXISTS (
+
+        SELECT 1
+        FROM clinics
+        WHERE clinic_id = p_clinic_id
+
+    ) THEN
+
+        RAISE EXCEPTION
+        'La clínica no existe';
+
+    END IF;
+
+    -- =====================================================
+    -- VALIDAR VACUNA
+    -- =====================================================
+
+    IF NOT EXISTS (
+
+        SELECT 1
+        FROM vaccines
+        WHERE vaccine_id = p_vaccine_id
+
+    ) THEN
+
+        RAISE EXCEPTION
+        'La vacuna no existe';
+
+    END IF;
+
+    -- =====================================================
+    -- VALIDAR LOTE
+    -- =====================================================
+
+    IF NOT EXISTS (
+
+        SELECT 1
+        FROM vaccine_lots
+        WHERE lot_id = p_lot_id
+        AND expiration_date >= CURRENT_DATE
+        AND quantity_available > 0
+
+    ) THEN
+
+        RAISE EXCEPTION
+        'El lote no existe, está vencido o no tiene stock';
+
+    END IF;
+
+    -- =====================================================
+    -- VALIDAR QUE EL LOTE PERTENEZCA A LA CLÍNICA
+    -- =====================================================
+
+    IF NOT EXISTS (
+
+        SELECT 1
+        FROM vaccine_lots
+        WHERE lot_id = p_lot_id
+        AND clinic_id = p_clinic_id
+
+    ) THEN
+
+        RAISE EXCEPTION
+        'El lote no pertenece a la clínica seleccionada';
+
+    END IF;
+
+    -- =====================================================
+    -- VALIDAR FECHA
+    -- =====================================================
+
+    IF p_applied_date > CURRENT_DATE THEN
+
+        RAISE EXCEPTION
+        'La fecha de aplicación no puede ser futura';
+
+    END IF;
+
+    -- =====================================================
+    -- VALIDAR TEMPERATURA
+    -- =====================================================
+
+    IF p_patient_temp_c IS NOT NULL THEN
+
+        IF p_patient_temp_c < 30
+        OR p_patient_temp_c > 45 THEN
+
+            RAISE EXCEPTION
+            'Temperatura corporal inválida';
+
+        END IF;
+
+    END IF;
+
+    -- =====================================================
+    -- VALIDAR SITIO DE APLICACIÓN
+    -- =====================================================
+
+    IF NOT EXISTS (
+
+        SELECT 1
+        FROM application_sites
+        WHERE application_site_id = p_application_site_id
+
+    ) THEN
+
+        RAISE EXCEPTION
+        'El sitio de aplicación no existe';
+
+    END IF;
+
+    -- =====================================================
+    -- VALIDAR ESQUEMA DEL PACIENTE
+    -- =====================================================
+
+    SELECT status
+    INTO v_schedule_status
+    FROM patient_vaccine_schedule
+    WHERE patient_id = p_patient_id
+    AND scheme_dose_id = p_scheme_dose_id;
+
+    IF v_schedule_status IS NULL THEN
+
+        RAISE EXCEPTION
+        'La dosis no pertenece al esquema del paciente';
+
+    END IF;
+
+    -- =====================================================
+    -- VALIDAR DOSIS DUPLICADA
+    -- =====================================================
+
+    IF EXISTS (
+
+        SELECT 1
+        FROM vaccination_records
+        WHERE patient_id = p_patient_id
+        AND scheme_dose_id = p_scheme_dose_id
+
+    ) THEN
+
+        RAISE EXCEPTION
+        'La dosis ya fue aplicada al paciente';
+
+    END IF;
+
+    -- =====================================================
+    -- VALIDAR EDAD MÍNIMA
+    -- =====================================================
+
+    SELECT ideal_age_months
+    INTO v_ideal_age_months
+    FROM scheme_doses
+    WHERE dose_id = p_scheme_dose_id;
+
+    v_patient_age_months :=
+
+        (
+            EXTRACT(YEAR FROM AGE(p_applied_date, v_birth_date)) * 12
+        )
+        +
+        EXTRACT(MONTH FROM AGE(p_applied_date, v_birth_date));
+
+    IF v_ideal_age_months IS NOT NULL
+    AND v_patient_age_months < v_ideal_age_months THEN
+
+        RAISE EXCEPTION
+        'El paciente no cumple la edad mínima requerida';
+
+    END IF;
+
+    -- =====================================================
+    -- VALIDAR INTERVALO ENTRE DOSIS
+    -- =====================================================
+
+    SELECT min_interval_days
+    INTO v_min_interval_days
+    FROM scheme_doses
+    WHERE dose_id = p_scheme_dose_id;
+
+    SELECT MAX(applied_date)
+    INTO v_last_application_date
+    FROM vaccination_records
+    WHERE patient_id = p_patient_id
+    AND vaccine_id = p_vaccine_id;
+
+    IF v_last_application_date IS NOT NULL
+    AND v_min_interval_days IS NOT NULL THEN
+
+        v_days_since_last_dose :=
+            p_applied_date - v_last_application_date;
+
+        IF v_days_since_last_dose < v_min_interval_days THEN
+
+            RAISE EXCEPTION
+            'No se cumple el intervalo mínimo entre dosis';
+
+        END IF;
+
+    END IF;
+
+    -- =====================================================
+    -- INSERTAR APLICACIÓN
+    -- =====================================================
 
     INSERT INTO vaccination_records (
 
         patient_id,
-
         vaccine_id,
-
         worker_id,
-
         clinic_id,
-
         lot_id,
-
         scheme_dose_id,
-
         applied_date,
-
         application_site_id,
-
         patient_temp_c,
-
-        had_reaction
+        had_reaction,
+        created_at
 
     )
-
     VALUES (
 
         p_patient_id,
-
         p_vaccine_id,
-
         p_worker_id,
-
         p_clinic_id,
-
         p_lot_id,
-
         p_scheme_dose_id,
-
         p_applied_date,
-
         p_application_site_id,
-
         p_patient_temp_c,
-
-        COALESCE(p_had_reaction, FALSE)
+        COALESCE(p_had_reaction, FALSE),
+        NOW()
 
     )
+    RETURNING record_id
+    INTO v_record_id;
 
-    RETURNING vaccination_records.record_id INTO v_record_id;
-
-
+    -- =====================================================
+    -- RESPUESTA
+    -- =====================================================
 
     OPEN p_results FOR
 
-        SELECT v_record_id AS record_id;
+    SELECT
+        TRUE  AS success,
+        'Vacuna aplicada correctamente' AS message,
+        v_record_id AS record_id;
 
 END;
-
 $$;
 
+BEGIN;
+CALL sp_register_vaccination_record(
+    1,
+    3,
+    2,
+    1,
+    3,
+    3,
+    CURRENT_DATE,
+    1,
+    36.5,
+    FALSE,
+    'p_results'
+
+);
+FETCH ALL FROM p_results;
+COMMIT;
 
 
 CREATE OR REPLACE PROCEDURE sp_record_vaccine_reaction(
-
     IN    p_vaccination_record_id  INT,
-
     IN    p_reaction_desc          TEXT,
-
     IN    p_severity               VARCHAR,
-
     INOUT p_results                REFCURSOR
-
 )
-
 LANGUAGE plpgsql AS $$
-
 DECLARE
-
     v_reaction_id INT;
-
 BEGIN
-
     INSERT INTO post_vaccine_reactions (
-
         vaccination_record_id, reaction_description, severity, reported_at
-
     )
 
     VALUES (
-
         p_vaccination_record_id, p_reaction_desc, p_severity, NOW()
-
     )
-
     RETURNING post_vaccine_reactions.reaction_id INTO v_reaction_id;
 
-
-
     OPEN p_results FOR
-
         SELECT v_reaction_id AS reaction_id;
-
 END;
-
 $$;
-
-
-
 
 
 -- ==============================================
@@ -1139,57 +1363,32 @@ $$;
 
 
 CREATE OR REPLACE PROCEDURE sp_create_appointment(
-
     IN    p_patient_id    INT,
-
     IN    p_worker_id     INT,
-
     IN    p_clinic_id     INT,
-
     IN    p_area_id       INT,
-
     IN    p_scheduled_at  TIMESTAMP,
-
     IN    p_reason        VARCHAR,
-
     INOUT p_results       REFCURSOR
-
 )
-
 LANGUAGE plpgsql AS $$
-
 DECLARE
-
     v_appointment_id INT;
-
 BEGIN
-
     INSERT INTO appointments (
-
         patient_id, worker_id, clinic_id, area_id,
-
         scheduled_at, appointment_status, reason, duration_min
-
     )
 
     VALUES (
-
         p_patient_id, p_worker_id, p_clinic_id, p_area_id,
-
         p_scheduled_at, 'Programada', p_reason, 15
-
     )
-
     RETURNING appointments.appointment_id INTO v_appointment_id;
 
-
-
     OPEN p_results FOR
-
         SELECT v_appointment_id AS appointment_id;
-
 END;
-
 $$;
 
 

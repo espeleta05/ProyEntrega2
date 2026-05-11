@@ -19,32 +19,20 @@
   justify-content: center;
 }
 
+.patient-card-wrapper:hover{
+  cursor: pointer;
+}
+
 .historial-wrapper { padding: var(--md-spacing-5, 20px); }
 
 /* ── Grid de pacientes ─────────────────────────────────────────────────────── */
 .patients-grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(3, 1fr);
   gap: var(--md-spacing-4, 15px);
-  margin-bottom: var(--md-spacing-5, 20px);
+  margin: var(--md-spacing-5, 20px) 0;
 }
 
-.patient-item {
-  display: flex;
-  align-items: center;
-  gap: var(--md-spacing-3, 10px);
-  padding: 18px;
-  text-decoration: none;
-  color: var(--md-on-surface, #1a1a1a);
-  background: var(--md-surface-container-lowest, #fff);
-  border: 0.5px solid var(--md-outline-variant, #c4c7c5);
-  border-radius: var(--md-shape-medium, 12px);
-  box-shadow: var(--md-shadow-level-1);
-  overflow: hidden;
-  transition: transform var(--md-transition-short), box-shadow var(--md-transition-short);
-}
-.patient-item:hover  { background: var(--md-surface-container, #f4eff8); }
-.patient-item.active { background: var(--md-surface-container-high, #ece6f0); }
 
 .patient-info {
   display: flex;

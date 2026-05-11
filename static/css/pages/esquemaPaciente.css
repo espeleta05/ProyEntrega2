@@ -43,49 +43,9 @@
   color: var(--md-on-surface-variant, #49454f);
 }
 
-/* ── KPI grid de resumen ──────────────────────────────────────────────────── */
-.kpi-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: var(--md-spacing-3, 14px);
-  margin: var(--md-spacing-5, 20px) 0;
-}
-
-.kpi-card {
-  background: var(--md-surface-container-lowest, #fff);
-  border-radius: var(--md-shape-large, 15px);
-  border: 0.5px solid var(--md-outline-variant, #c4c7c5);
-  padding: 18px 20px 14px;
-  display: flex;
-  flex-direction: column;
-  gap: var(--md-spacing-2, 6px);
-  box-shadow: var(--md-shadow-level-1);
-  position: relative;
-  overflow: hidden;
-}
-.kpi-card::before {
-  content: '';
-  position: absolute;
-  top: 0; left: 0;
-  width: 100%; height: 4px;
-  border-radius: var(--md-shape-large, 15px) var(--md-shape-large, 15px) 0 0;
-}
-.kpi-color1::before { background: var(--md-primary, #6B007C); }
-.kpi-color2::before { background: var(--md-secondary, #4B1535); }
-
-.kpi-icon { font-size: 1.1rem; margin-bottom: var(--md-spacing-1, 4px); }
-.kpi-color1 .kpi-icon { color: var(--md-primary, #6B007C); }
-.kpi-color2 .kpi-icon { color: var(--md-secondary, #4B1535); }
-
-.kpi-body  { display: flex; flex-direction: column; gap: 2px; }
-.kpi-value { font-size: var(--md-font-size-headline-sm, 1.5rem); font-weight: var(--md-font-weight-extrabold, 800); line-height: 1; }
-.kpi-label { font-size: var(--md-font-size-body-md, 0.875rem); font-weight: var(--md-font-weight-semibold, 600); color: var(--md-on-surface-variant, #49454f); }
-
-.kpi-trend,
-.kpi-sub  { font-size: var(--md-font-size-label-lg, 0.72rem); font-weight: var(--md-font-weight-bold, 700); margin-top: 2px; }
-.trend-up { color: var(--md-success, #1D7B00); }
-.trend-down { color: var(--md-error, #C40000); }
-.kpi-sub  { color: var(--md-on-surface-variant, #49454f); }
+/* Los estilos .kpi-* se encuentran en components/kpi_card.css */
+/* Ajuste de márgenes del grid para esta página */
+.kpi-grid { margin: var(--md-spacing-5, 20px) 0; }
 
 /* ── Tarjeta de progreso ──────────────────────────────────────────────────── */
 .progress-card {
@@ -161,12 +121,9 @@
   grid-template-columns: 1fr 1fr;
   gap: var(--md-spacing-5, 20px);
 }
+/* .kpi-grid responsive se hereda de kpi_card.css */
 @media (max-width: 860px) {
-  .second-section   { grid-template-columns: 1fr; }
-  .kpi-grid         { grid-template-columns: repeat(2, 1fr); }
-}
-@media (max-width: 480px) {
-  .kpi-grid { grid-template-columns: 1fr; }
+  .second-section { grid-template-columns: 1fr; }
 }
 
 .section-card {

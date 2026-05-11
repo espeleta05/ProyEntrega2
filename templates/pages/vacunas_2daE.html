@@ -51,12 +51,6 @@
     </div>
 </div>
 
-{# ── Acceso al esquema ── #}
-<div class="btn-container">
-    {{ button('Ver esquema de vacunación', icon='fa-clipboard-list', type='secondary', size='md3-btn--lg',
-              form_action=url_for('esquema_vacunacion'), class='md3-btn md3-btn--filled') }}
-</div>
-
 {# ── Tabla de inventario ── #}
 {% set ns = namespace(color_index=0, last_vaccine_id=None) %}
 {% call(lot) table(
@@ -110,12 +104,7 @@
     {% endif %}
 {% endcall %}
 
-{# vacunas.js depende de id="tableBody" en el <tbody>.
-   El macro table no expone ese parámetro, así que lo inyectamos aquí. #}
-<script>
-  document.querySelector('.vaccines-table .md3-table tbody')
-          ?.setAttribute('id', 'tableBody');
-</script>
+{# El id="tableBody" lo asigna vacunas.js al iniciarse. #}
 
 {% include 'nuevaVacuna_2daE.html' %}
 
@@ -123,4 +112,5 @@
 
 {% block scripts %}
 <script src="{{ url_for('static', filename='js/pages/vacunas.js') }}"></script>
+<script src="{{ url_for('static', filename='js/pages/nuevaVacuna.js') }}"></script>
 {% endblock %}

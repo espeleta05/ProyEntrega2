@@ -1,93 +1,3 @@
--- ============================================================
---  TRIGGERS DE VALIDACION CLINICA (PostgreSQL)
--- ============================================================
-
--- Trigger 1: Validar edad minima segun scheme_doses.ideal_age_months
-CREATE OR REPLACE FUNCTION fn_validate_vaccination_age()
-RETURNS TRIGGER
-LANGUAGE plpgsql
-AS $$
-DECLARE
-    v_patient_age_months INT;
-    v_ideal_age_months   SMALLINT;
-    v_birth_date         DATE;
-BEGIN
-    SELECT birth_date INTO v_birth_date
-    FROM patients
-    WHERE patient_id = NEW.patient_id;
-
-    IF NEW.scheme_dose_id IS NOT NULL THEN
-        SELECT ideal_age_months INTO v_ideal_age_months
-        FROM scheme_doses
-        WHERE dose_id = NEW.scheme_dose_id;
-
-        v_patient_age_months :=
-            (EXTRACT(YEAR FROM NEW.applied_date)::INT * 12 + EXTRACT(MONTH FROM NEW.applied_date)::INT)
-            -
-            (EXTRACT(YEAR FROM v_birth_date)::INT * 12 + EXTRACT(MONTH FROM v_birth_date)::INT);
-
-        IF v_ideal_age_months IS NOT NULL AND v_patient_age_months < v_ideal_age_months THEN
-            RAISE EXCEPTION
-                'El paciente no cumple la edad minima. Edad actual: % meses, edad requerida: % meses',
-                v_patient_age_months,
-                v_ideal_age_months;
-        END IF;
-    END IF;
-
-    RETURN NEW;
-END;
-$$;
-
-DROP TRIGGER IF EXISTS trg_validate_vaccination_age ON vaccination_records;
-CREATE TRIGGER trg_validate_vaccination_age
-BEFORE INSERT ON vaccination_records
-FOR EACH ROW
-EXECUTE FUNCTION fn_validate_vaccination_age();
-
-
--- Trigger 2: Validar intervalo minimo entre dosis segun scheme_doses.min_interval_days
-CREATE OR REPLACE FUNCTION fn_validate_vaccination_interval()
-RETURNS TRIGGER
-LANGUAGE plpgsql
-AS $$
-DECLARE
-    v_min_interval_days           SMALLINT;
-    v_last_vaccination_date       DATE;
-    v_days_since_last_vaccination INT;
-BEGIN
-    IF NEW.scheme_dose_id IS NOT NULL THEN
-        SELECT min_interval_days INTO v_min_interval_days
-        FROM scheme_doses
-        WHERE dose_id = NEW.scheme_dose_id;
-
-        SELECT MAX(applied_date) INTO v_last_vaccination_date
-        FROM vaccination_records
-        WHERE patient_id = NEW.patient_id
-          AND vaccine_id = NEW.vaccine_id;
-
-        IF v_last_vaccination_date IS NOT NULL AND v_min_interval_days IS NOT NULL THEN
-            v_days_since_last_vaccination := NEW.applied_date - v_last_vaccination_date;
-
-            IF v_days_since_last_vaccination < v_min_interval_days THEN
-                RAISE EXCEPTION
-                    'Intervalo insuficiente entre dosis. Dias desde ultima dosis: %, minimo requerido: %',
-                    v_days_since_last_vaccination,
-                    v_min_interval_days;
-            END IF;
-        END IF;
-    END IF;
-
-    RETURN NEW;
-END;
-$$;
-
-DROP TRIGGER IF EXISTS trg_validate_vaccination_interval ON vaccination_records;
-CREATE TRIGGER trg_validate_vaccination_interval
-BEFORE INSERT ON vaccination_records
-FOR EACH ROW
-EXECUTE FUNCTION fn_validate_vaccination_interval();
-
-
 -- Trigger 3: Validar consistencia entre lot_id y clinic_id
 CREATE OR REPLACE FUNCTION fn_validate_lot_clinic_consistency()
 RETURNS TRIGGER
@@ -376,46 +286,130 @@ AFTER DELETE ON appointments
 FOR EACH ROW
 EXECUTE FUNCTION fn_update_expected_vaccination_scheme_after_cancel_appointment();
 
--- (aplicado) Trigger 13: Validar que no puedas aplicar una vacuna si no está en el esquema o ya fue aplicada
-CREATE OR REPLACE FUNCTION fn_validate_vaccine_application()
+
+-- TRIGGER 14
+CREATE OR REPLACE FUNCTION fn_prevent_negative_stock()
 RETURNS TRIGGER
-LANGUAGE plpgsql AS $$
-DECLARE
-    estado_actual TEXT;
-    ya_existe INT;
+LANGUAGE plpgsql
+AS $$
 BEGIN
-    -- 1. Validar que exista en el esquema
-    SELECT status
-    INTO estado_actual
-    FROM patient_vaccine_schedule
-    WHERE patient_id = NEW.patient_id
-      AND scheme_dose_id = NEW.scheme_dose_id;
 
-    IF estado_actual IS NULL THEN
-        RAISE EXCEPTION 
-        'La vacuna (dose_id=%) no está en el esquema del paciente (%)',
-        NEW.scheme_dose_id, NEW.patient_id;
-    END IF;
+    IF NEW.quantity_available < 0 THEN
 
-    -- 2. Validar en registros reales (FUENTE DE VERDAD)
-    SELECT COUNT(*)
-    INTO ya_existe
-    FROM vaccination_records
-    WHERE patient_id = NEW.patient_id
-      AND scheme_dose_id = NEW.scheme_dose_id;
+        RAISE EXCEPTION
+        'El inventario no puede quedar negativo';
 
-    IF ya_existe > 0 THEN
-        RAISE EXCEPTION 
-        'La vacuna (dose_id=%) ya fue aplicada al paciente (%)',
-        NEW.scheme_dose_id, NEW.patient_id;
     END IF;
 
     RETURN NEW;
 
-END ; 
-$$ ;
+END;
+$$;
 
-CREATE TRIGGER trg_validate_vaccine_application
-BEFORE INSERT ON vaccination_records
+
+DROP TRIGGER IF EXISTS trg_prevent_negative_stock
+ON vaccine_lots;
+
+CREATE TRIGGER trg_prevent_negative_stock
+BEFORE UPDATE
+ON vaccine_lots
 FOR EACH ROW
-EXECUTE FUNCTION fn_validate_vaccine_application();
+EXECUTE FUNCTION fn_prevent_negative_stock();
+
+
+
+-- ============================================================
+-- TRIGGER FALTANTE 2
+-- ALERTA DE STOCK BAJO
+-- ============================================================
+
+CREATE OR REPLACE FUNCTION fn_generate_low_stock_alert()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+AS $$
+BEGIN
+
+    IF NEW.quantity_available <= 10 THEN
+
+        INSERT INTO audit_log (
+
+            table_name,
+            operation,
+            record_id,
+            changed_data,
+            changed_at
+
+        )
+        VALUES (
+
+            'vaccine_lots',
+            'LOW_STOCK_ALERT',
+            NEW.lot_id,
+
+            jsonb_build_object(
+                'lot_id', NEW.lot_id,
+                'remaining_stock', NEW.quantity_available
+            ),
+
+            NOW()
+
+        );
+
+    END IF;
+
+    RETURN NEW;
+
+END;
+$$;
+
+
+DROP TRIGGER IF EXISTS trg_generate_low_stock_alert
+ON vaccine_lots;
+
+CREATE TRIGGER trg_generate_low_stock_alert
+AFTER UPDATE
+ON vaccine_lots
+FOR EACH ROW
+EXECUTE FUNCTION fn_generate_low_stock_alert();
+
+
+
+-- ============================================================
+-- TRIGGER FALTANTE 3
+-- VALIDAR CADUCIDAD DEL LOTE
+-- ============================================================
+
+CREATE OR REPLACE FUNCTION fn_validate_lot_expiration()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+AS $$
+DECLARE
+    v_expiration_date DATE;
+BEGIN
+
+    SELECT expiration_date
+    INTO v_expiration_date
+    FROM vaccine_lots
+    WHERE lot_id = NEW.lot_id;
+
+    IF v_expiration_date < NEW.applied_date THEN
+
+        RAISE EXCEPTION
+        'No se puede aplicar una vacuna vencida';
+
+    END IF;
+
+    RETURN NEW;
+
+END;
+$$;
+
+
+DROP TRIGGER IF EXISTS trg_validate_lot_expiration
+ON vaccination_records;
+
+CREATE TRIGGER trg_validate_lot_expiration
+BEFORE INSERT
+ON vaccination_records
+FOR EACH ROW
+EXECUTE FUNCTION fn_validate_lot_expiration();

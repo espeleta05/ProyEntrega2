@@ -1,0 +1,212 @@
+{% extends 'base_2daE.html' %}
+
+{% from 'components/kpi_card.html' import kpi_card %}
+{% from 'components/alert.html'    import alert    %}
+{% from 'components/badge.html'    import badge    %}
+{% from 'components/table.html'    import table    %}
+
+{% block head_extra %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/dashboard.css') }}">
+{% endblock %}
+
+{% block title %}Dashboard — Recepcionista{% endblock %}
+
+{% block content %}
+
+<!-- Encabezado -->
+<div class="dash-header">
+  <div>
+    <p class="dash-date">{{ today }}</p>
+    <h2 class="dash-title">Panel de recepción</h2>
+    <p class="dash-welcome">Bienvenida, {{ name }} {{ lastname }}</p>
+  </div>
+</div>
+
+<!-- Alerta: citas programadas con hora vencida sin registrar asistencia -->
+{% if citas_con_alerta > 0 %}
+  {{ alert(
+      citas_con_alerta ~ ' cita(s) programada(s) cuya hora ya pasó sin registrar asistencia.',
+      type='warning',
+      title='Pacientes sin registrar llegada',
+      icon='fa-clock',
+      dismissible=True
+  ) }}
+{% endif %}
+
+<!-- KPIs: citas del día -->
+<div class="kpi-grid">
+  {{ kpi_card(
+      value=citas_hoy_total,
+      label='Total citas hoy',
+      icon='fa-calendar-day',
+      color='primary',
+      sub='Completadas: ' ~ citas_hoy_completadas ~ ' · Pendientes: ' ~ citas_hoy_pendientes
+  ) }}
+
+  {{ kpi_card(
+      value=citas_hoy_completadas,
+      label='Completadas',
+      icon='fa-circle-check',
+      color='secondary'
+  ) }}
+
+  {{ kpi_card(
+      value=citas_hoy_pendientes,
+      label='Pendientes',
+      icon='fa-hourglass-half',
+      color='primary'
+  ) }}
+
+  {{ kpi_card(
+      value=citas_hoy_canceladas,
+      label='Canceladas',
+      icon='fa-calendar-xmark',
+      color='secondary'
+  ) }}
+
+  {{ kpi_card(
+      value=citas_hoy_no_show,
+      label='No se presentaron',
+      icon='fa-user-slash',
+      color='primary'
+  ) }}
+</div>
+
+<!-- KPIs: pacientes nuevos -->
+<div class="kpi-grid">
+  {{ kpi_card(
+      value=pacientes_hoy,
+      label='Pacientes registrados hoy',
+      icon='fa-user-plus',
+      color='primary',
+      href=url_for('pacientes')
+  ) }}
+
+  {{ kpi_card(
+      value=pacientes_semana,
+      label='Registrados esta semana',
+      icon='fa-users',
+      color='secondary',
+      href=url_for('pacientes')
+  ) }}
+</div>
+
+<!-- Fila: gráfica + actividad reciente -->
+<div class="bottom-row">
+
+  <!-- Gráfica: pacientes registrados por día esta semana -->
+  <div class="chart-card">
+    <div class="chart-card-header">
+      <h3>Pacientes registrados esta semana</h3>
+      <span class="chart-badge">{{ pacientes_semana }} total</span>
+    </div>
+    <div class="chart-wrap">
+      <div id="chartPacientesSemana"></div>
+    </div>
+  </div>
+
+  <!-- Actividad reciente: últimas citas agendadas y pacientes registrados (24 h) -->
+  <div class="alerts-card">
+    <div class="chart-card-header">
+      <h3><i class="fa-solid fa-bolt"></i> Actividad reciente</h3>
+      <span class="chart-badge">Últimas 24 h</span>
+    </div>
+    <div class="alerts-list">
+      {% if actividad %}
+        {% for item in actividad %}
+          {{ alert(
+              item.descripcion ~ ' — ' ~ item.ts,
+              type='info'    if item.tipo == 'Cita agendada'    else 'success',
+              icon='fa-calendar-plus' if item.tipo == 'Cita agendada' else 'fa-user-plus',
+              compact=True
+          ) }}
+        {% endfor %}
+      {% else %}
+        {{ alert('Sin actividad en las últimas 24 horas.', type='neutral', compact=True) }}
+      {% endif %}
+    </div>
+  </div>
+
+</div>
+
+<!-- Tabla: cola de atención del día -->
+<div class="section-card mt-20">
+  <div class="section-header-row">
+    <h3><i class="fa-solid fa-list-check"></i> Cola de atención — hoy</h3>
+    <a href="{{ url_for('citas') }}" class="chart-badge">Ver todas</a>
+  </div>
+
+  {% set _row = namespace(i=0) %}
+  {% call(c) table(
+      headers=[
+        {'label': 'Hora'},
+        {'label': 'Paciente'},
+        {'label': 'Área'},
+        {'label': 'Médico asignado'},
+        {'label': 'Estado',   'align': 'center'},
+        {'label': 'Historial','align': 'center'},
+      ],
+      rows=citas_hoy,
+      empty_icon='fa-calendar-check',
+      empty_title='Sin citas agendadas para hoy',
+      footer_text='Total: ' ~ citas_hoy|length ~ ' cita(s) del día'
+  ) %}
+    <tr class="inv-row bar-{{ _row.i % 9 }}">
+
+      <td>
+        {{ c.scheduled_at[11:16] if c.scheduled_at else '—' }}
+        {% if c.alerta_tardia %}
+          {{ badge('Tardía', color='error', size='sm', icon='fa-clock') }}
+        {% endif %}
+      </td>
+
+      <td>
+        <div class="patient-cell">
+          <div class="avatar-sm">{{ c.patient_name[0] if c.patient_name else '?' }}</div>
+          <div>
+            <span class="vax-name">{{ c.patient_name }}</span>
+            <span class="pt-id">ID: P{{ c.patient_id }}</span>
+          </div>
+        </div>
+      </td>
+
+      <td class="muted-td">{{ c.area_name }}</td>
+
+      <td class="muted-td">{{ c.worker_name }}</td>
+
+      <td class="col-center">
+        {% if c.appointment_status == 'Completada' %}
+          {{ badge('Completada', color='success',   size='sm', icon='fa-check')       }}
+        {% elif c.appointment_status == 'Programada' %}
+          {{ badge('Programada', color='secondary', size='sm', icon='fa-clock')       }}
+        {% elif c.appointment_status == 'No Show' %}
+          {{ badge('No Show',    color='error',     size='sm', icon='fa-user-slash')  }}
+        {% else %}
+          {{ badge('Cancelada',  color='neutral',   size='sm', icon='fa-xmark')       }}
+        {% endif %}
+        {% if c.vacuna_programada %}
+          {{ badge('Vacuna', color='primary', size='sm', icon='fa-syringe') }}
+        {% endif %}
+      </td>
+
+      <td class="col-center">
+        <a href="{{ url_for('historial') }}?q={{ c.patient_id }}">
+          {{ badge('', color='secondary', size='sm', icon='fa-file-medical') }}
+        </a>
+      </td>
+
+    </tr>
+    {% set _row.i = _row.i + 1 %}
+  {% endcall %}
+</div>
+
+<!-- Datos para Chart.js (sin JS inline) -->
+<div id="rec-chart-data" hidden
+     data-semana="{{ chart_data | tojson | e }}"></div>
+
+{% endblock %}
+
+{% block scripts %}
+<script src="https://code.highcharts.com/highcharts.js"></script>
+<script src="{{ url_for('static', filename='js/pages/recepcionista_dashboard.js') }}" defer></script>
+{% endblock %}

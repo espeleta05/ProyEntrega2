@@ -117,7 +117,10 @@ CREATE TABLE patients (
     weight_kg      NUMERIC(5,2),
     premature      BOOLEAN      NOT NULL DEFAULT FALSE,
     photo          VARCHAR(255),
-    created_at     TIMESTAMP    DEFAULT CURRENT_TIMESTAMP
+    created_at     TIMESTAMP    DEFAULT CURRENT_TIMESTAMP,
+    is_active      BOOLEAN      NOT NULL DEFAULT TRUE,
+    deleted_at      TIMESTAMP,
+    updated_at      TIMESTAMP
 );
 
 -- Migración para BD existente:
@@ -371,7 +374,9 @@ CREATE TABLE vaccination_records (
     appointment_id       INT      UNIQUE REFERENCES appointments(appointment_id),
     -- sabemos que cada registro de vacunación se asocia a una cita, pero no todas las citas terminan en vacunación, por eso es opcional y único
     patient_temp_c       NUMERIC(4,1),
-    had_reaction         BOOLEAN  NOT NULL DEFAULT FALSE
+    had_reaction         BOOLEAN  NOT NULL DEFAULT FALSE,
+
+    UNIQUE (patient_id, scheme_dose_id)
 );
 
 CREATE TABLE patient_vaccine_schedule (

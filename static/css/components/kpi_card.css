@@ -1,0 +1,237 @@
+/**
+ * kpi_card.css — Tarjetas KPI unificadas (Material Design 3)
+ *
+ * Centraliza TODOS los estilos KPI del proyecto:
+ *   • .md3-kpi*        → generadas por el macro kpi_card.html
+ *   • .kpi-row         → grid horizontal de 4 columnas
+ *   • .kpi-grid        → grid de cuadrícula (4 cols por defecto; páginas pueden sobreescribir)
+ *   • .kpi-card / .kpi-mini → tarjeta legacy con strip de color superior
+ *   • Modificadores de color, iconos, valores, tendencias
+ *
+ * Requiere: design-system.css (variables --md-*)
+ */
+
+/* ════════════════════════════════════════════════════════════════════════════
+   GRIDS
+   ════════════════════════════════════════════════════════════════════════════ */
+
+/* Fila horizontal — 4 columnas iguales */
+.kpi-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: var(--md-spacing-3, 12px);
+    margin-bottom: var(--md-spacing-5, 20px);
+}
+
+/* Cuadrícula flexible — 4 columnas por defecto */
+.kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: var(--md-spacing-3, 12px);
+    margin-bottom: var(--md-spacing-5, 20px);
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   TARJETA BASE (legacy: .kpi-card y .kpi-mini)
+   Usadas en plantillas que no usan el macro kpi_card.html
+   ════════════════════════════════════════════════════════════════════════════ */
+
+.kpi-card,
+.kpi-mini {
+    background: var(--md-surface-container-lowest, #fff);
+    border-radius: var(--md-shape-large, 16px);
+    border: 0.5px solid var(--md-outline-variant, #c4c7c5);
+    padding: 18px 20px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: var(--md-spacing-2, 6px);
+    box-shadow: var(--md-shadow-level-1);
+    position: relative;
+    overflow: hidden;
+    transition:
+        transform var(--md-transition-short, 0.2s),
+        box-shadow var(--md-transition-short, 0.2s);
+}
+
+.kpi-card:hover,
+.kpi-mini:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--md-shadow-level-2);
+}
+
+/* Strip de color superior */
+.kpi-card::before,
+.kpi-mini::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 4px;
+    border-radius: var(--md-shape-large, 16px) var(--md-shape-large, 16px) 0 0;
+}
+
+/* ── Modificadores de color del strip ── */
+.kpi-color1::before { background: var(--md-primary,   #6B007C); }
+.kpi-color2::before { background: var(--md-secondary, #4B1535); }
+.kpi-color3::before { background: var(--md-tertiary,  #7B6800); }
+.kpi-color4::before { background: var(--md-success,   #1D7B00); }
+.kpi-color5::before { background: var(--md-error,     #C40000); }
+
+/* ── Icono ── */
+.kpi-icon          { font-size: 1.1rem; margin-bottom: var(--md-spacing-1, 4px); }
+.kpi-mini i        { font-size: 1.3rem; flex-shrink: 0; }
+
+.kpi-icon-color1,
+.kpi-color1 .kpi-icon { color: var(--md-primary,   #6B007C); }
+.kpi-icon-color2,
+.kpi-color2 .kpi-icon { color: var(--md-secondary, #4B1535); }
+.kpi-icon-color3,
+.kpi-color3 .kpi-icon { color: var(--md-tertiary,  #7B6800); }
+.kpi-icon-color4,
+.kpi-color4 .kpi-icon { color: var(--md-success,   #1D7B00); }
+.kpi-icon-color5,
+.kpi-color5 .kpi-icon { color: var(--md-error,     #C40000); }
+
+/* ── Contenido interno ── */
+.kpi-body,
+.kpi-mini > div { display: flex; flex-direction: column; gap: 2px; }
+
+.kpi-value,
+.kpi-num {
+    font-size: var(--md-font-size-headline-sm, 1.5rem);
+    font-weight: var(--md-font-weight-extrabold, 800);
+    line-height: 1;
+    color: var(--md-on-surface, #1a1a1a);
+}
+
+.kpi-label,
+.kpi-lbl {
+    font-size: var(--md-font-size-body-md, 0.875rem);
+    font-weight: var(--md-font-weight-semibold, 600);
+    color: var(--md-on-surface-variant, #49454f);
+}
+
+/* ── Tendencia y subtexto ── */
+.kpi-trend,
+.kpi-sub {
+    font-size: var(--md-font-size-label-lg, 0.75rem);
+    font-weight: var(--md-font-weight-bold, 700);
+    margin-top: 2px;
+}
+.trend-up   { color: var(--md-success, #1D7B00); }
+.trend-down { color: var(--md-error,   #C40000); }
+.kpi-sub    { color: var(--md-on-surface-variant, #49454f); }
+
+
+/* ════════════════════════════════════════════════════════════════════════════
+   COMPONENTE MD3 (.md3-kpi*)
+   Generado por el macro {% from 'components/kpi_card.html' import kpi_card %}
+   ════════════════════════════════════════════════════════════════════════════ */
+
+.md3-kpi {
+    border-radius: var(--md-shape-large);
+    padding: var(--md-spacing-5);
+    box-shadow: var(--md-shadow-level-1);
+    display: flex;
+    flex-direction: column;
+    gap: var(--md-spacing-3);
+    text-decoration: none;
+    transition:
+        box-shadow  var(--md-transition-short),
+        transform   var(--md-transition-short);
+    position: relative;
+    overflow: hidden;
+}
+
+.md3-kpi:hover  { box-shadow: var(--md-shadow-level-2); transform: translateY(-2px); }
+.md3-kpi:active { transform: translateY(0); }
+
+/* ── Variantes de color ── */
+.md3-kpi--primary   { background: var(--md-primary-container);  color: var(--md-on-primary-container);  --kpi-icon-bg: var(--md-primary);   }
+.md3-kpi--secondary { background: var(--md-secondary-container); color: var(--md-on-secondary-container); --kpi-icon-bg: var(--md-secondary); }
+.md3-kpi--tertiary  { background: var(--md-tertiary-container);  color: var(--md-on-tertiary-container);  --kpi-icon-bg: var(--md-tertiary);  }
+.md3-kpi--success   { background: var(--md-success-container);   color: var(--md-on-success-container);   --kpi-icon-bg: var(--md-success);   }
+.md3-kpi--error     { background: var(--md-error-container);     color: var(--md-on-error-container);     --kpi-icon-bg: var(--md-error);     }
+.md3-kpi--neutral   {
+    background: var(--md-surface-container-high);
+    color: var(--md-on-surface);
+    --kpi-icon-bg: var(--md-outline);
+}
+
+/* ── Layout interno ── */
+.md3-kpi__row {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: var(--md-spacing-3);
+}
+
+.md3-kpi__values { flex: 1; min-width: 0; }
+
+.md3-kpi__value {
+    font-family: var(--md-font-family-display);
+    font-size: var(--md-font-size-display-sm);
+    font-weight: var(--md-font-weight-bold);
+    line-height: 1.1;
+    display: block;
+}
+
+.md3-kpi__label {
+    font-size: var(--md-font-size-body-md);
+    font-weight: var(--md-font-weight-medium);
+    opacity: 0.85;
+    display: block;
+    margin-top: var(--md-spacing-1);
+}
+
+/* ── Caja de icono ── */
+.md3-kpi__icon-box {
+    width: 48px;
+    height: 48px;
+    border-radius: var(--md-shape-medium);
+    background: var(--kpi-icon-bg, var(--md-primary));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    opacity: 0.9;
+}
+
+.md3-kpi__icon-box i {
+    font-size: 1.25rem;
+    color: var(--md-on-primary);
+}
+
+/* ── Tendencia ── */
+.md3-kpi__trend {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--md-spacing-1);
+    font-size: var(--md-font-size-body-sm);
+    font-weight: var(--md-font-weight-semibold);
+    padding: 2px var(--md-spacing-2);
+    border-radius: var(--md-shape-extra-large);
+    width: fit-content;
+}
+.md3-kpi__trend--up   { background: rgba(29, 123, 0, 0.15); color: var(--md-success); }
+.md3-kpi__trend--down { background: rgba(196, 0, 0, 0.15);  color: var(--md-error);   }
+.md3-kpi__trend i     { font-size: 0.65rem; }
+
+.md3-kpi__sub {
+    font-size: var(--md-font-size-body-sm);
+    opacity: 0.72;
+}
+
+
+/* ════════════════════════════════════════════════════════════════════════════
+   RESPONSIVE
+   ════════════════════════════════════════════════════════════════════════════ */
+
+@media (max-width: 1024px) {
+    .kpi-row,
+    .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (max-width: 640px) {
+    .kpi-row,
+    .kpi-grid { grid-template-columns: 1fr; }
+}

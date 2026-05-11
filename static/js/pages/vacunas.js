@@ -1,4 +1,8 @@
 (() => {
+  // El macro table no expone el id del tbody, así que lo asignamos aquí.
+  document.querySelector('.vaccines-table .md3-table tbody')
+          ?.setAttribute('id', 'tableBody');
+
   const rows        = Array.from(document.querySelectorAll('#tableBody tr[data-name]'));
   const searchInput = document.getElementById('searchInput');
   const filterSelect = document.getElementById('roleFilterSelect');

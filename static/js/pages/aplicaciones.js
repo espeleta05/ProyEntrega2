@@ -1,4 +1,8 @@
 (() => {
+  // El macro table no expone el id del tbody, así que lo asignamos aquí.
+  document.querySelector('.apps-table .md3-table tbody')
+          ?.setAttribute('id', 'appsTable');
+
   const appsSearch = document.getElementById('searchInput');
   const appsFilter = document.getElementById('roleFilterSelect');
   const appsSort   = document.getElementById('sortSelect');

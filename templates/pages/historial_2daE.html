@@ -8,6 +8,7 @@
 
 {% block head_extra %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/historial.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/pacientes.css') }}">
 {% endblock %}
 
 {% block content %}
@@ -27,25 +28,85 @@
     {# ── Lista de pacientes — IDs requeridos por historial.js ── #}
     <div class="patients-grid" id="patientsGrid">
         {% for p in patients %}
-        <a href="{{ url_for('esquema_paciente', id=patient.patient_id) }}"
-           class="patient-item {% if patient and p.patient_id == patient.patient_id %}active{% endif %}">
 
-            <div class="avatar">
-                <i class="fa-solid fa-user"></i>
-            </div>
+        <div id="patient-card-{{ p.patient_id }}"
+            class="patient-card-wrapper"
+            data-patient-id="{{ p.patient_id }}"
+            data-name="{{ p.full_name | lower }}"
+            data-blood="{{ p.blood_type | lower }}"
+            data-birth="{{ p.birth_date }}"
+            data-url="{{ url_for('esquema_paciente', id=p.patient_id) }}">
 
-            <div class="patient-info">
-                <p>{{ p.first_name }} {{ p.last_name }}</p>
-                <p class="id">ID: P{{ p.patient_id }}</p>
-            </div>
+            <div class="pt-card patient-card-clickable"
+                onclick="goToPatient(this)">
 
-        </a>
-        {% endfor %}
+                <div class="pt-card-strip"></div>
+
+                <!-- =========================
+                    HEADER
+                ========================== -->
+                <div class="pt-card-header">
+
+                    <!-- Avatar -->
+                    <div class="pt-avatar"
+                        data-initials="{{ p.first_name[0] | upper }}{{ p.last_name[0] | upper if p.last_name else '' }}"
+                        data-patient-id="{{ p.patient_id }}"
+                        title="Cambiar foto"
+                        onclick="openPhotoUploader(event, {{ p.patient_id }})">
+
+                        {% if p.photo %}
+                        <img class="pt-avatar-img"
+                            src="{{ url_for('static', filename='uploads/patients/' + p.photo) }}"
+                            alt="{{ p.full_name }}"
+                            loading="lazy">
+                        {% endif %}
+
+                        <div class="pt-avatar-overlay">
+                            <i class="fa-solid fa-camera"></i>
+                        </div>
+                    </div>
+
+                    <!-- Input Foto -->
+                    <input type="file"
+                        id="photo-input-{{ p.patient_id }}"
+                        accept="image/png,image/jpeg,image/webp"
+                        hidden
+                        onchange="uploadPatientPhoto({{ p.patient_id }}, this)">
+
+                    <!-- Info -->
+                    <div class="pt-header-info">
+
+                        <span class="pt-name">
+                            {{ p.full_name }}
+                        </span>
+
+                        <span class="pt-id">
+                            ID: P{{ p.patient_id }}
+                        </span>
+
+                    </div>
+
+                    <!-- Delete -->
+                    {% if show_delete is not defined or show_delete %}
+                    <button type="button"
+                            class="pt-delete-btn delete-patient-btn"
+                            data-patient-id="{{ p.patient_id }}"
+                            title="Eliminar paciente"
+                            onclick="event.stopPropagation()">
+
+                        <i class="fa-solid fa-trash"></i>
+
+                    </button>
+                    {% endif %}
+
+        </div>
+
     </div>
 
-    <div id="patientsNoResults" class="section no-results hidden">
-        <p>No se encontraron pacientes con ese criterio.</p>
-    </div>
+</div>
+
+{% endfor %}
+
 
     {% if not patients %}
     <div class="section">

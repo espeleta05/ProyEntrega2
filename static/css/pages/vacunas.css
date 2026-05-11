@@ -4,6 +4,13 @@
  * Barras de color (bar-*) son paleta data-viz intencional.
  */
 
+.btn-container{
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin: 20px;
+}
+
 /* ── Tabla wrapper ── */
 .inv-table-wrapper {
     background: var(--md-surface-container-lowest, #fff);

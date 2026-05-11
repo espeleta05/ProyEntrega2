@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(not exist *)",
+      "PowerShell(New-Item -ItemType Directory -Force -Path \"C:\\\\Users\\\\Andrea Escobar\\\\OneDrive\\\\Documents\\\\GitHub\\\\ProyEntrega2\\\\templates\\\\pages\\\\recepcionista\")",
+      "PowerShell(New-Item -ItemType Directory -Force -Path \"C:\\\\Users\\\\Andrea Escobar\\\\OneDrive\\\\Documents\\\\GitHub\\\\ProyEntrega2\\\\static\\\\js\\\\pages\")"
+    ]
+  }
+}

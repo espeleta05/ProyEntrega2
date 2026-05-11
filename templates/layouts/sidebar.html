@@ -46,30 +46,45 @@
 
 <aside class="sidebar" id="appSidebar">
 
-  <nav class="sidebar-nav" aria-label="Navegación principal">
-    {% for item in items %}
-      {%- if item.endpoint is defined and item.endpoint %}
-        {%- set item_url = url_for(item.endpoint) -%}
-        {%- set is_active = request.endpoint == item.endpoint -%}
-      {%- else %}
-        {%- set item_url = item.url | default('#') -%}
-        {%- set is_active = False -%}
-      {%- endif %}
-      <a href="{{ item_url }}"
-         class="sidebar-nav-item {{ 'active' if is_active else '' }}"
-         {% if is_active %}aria-current="page"{% endif %}>
-        <i class="fa-solid {{ item.icon }}"></i>
-        <span>{{ item.label }}</span>
-        {% if item.badge is defined and item.badge %}
-          <span class="sidebar-nav-badge">{{ item.badge }}</span>
-        {% endif %}
-      </a>
-    {% endfor %}
-  </nav>
+  {% if user_role == 'Recepcionista' %}
 
-  {% if bottom_items %}
-    <nav class="sidebar-nav sidebar-nav--bottom" aria-label="Navegación secundaria">
-      {% for item in bottom_items %}
+    <nav class="sidebar-nav" aria-label="Navegación principal">
+
+      <a href="{{ url_for('dashboard') }}"
+         class="sidebar-nav-item {{ 'active' if request.endpoint == 'dashboard' else '' }}"
+         {{ 'aria-current=page' if request.endpoint == 'dashboard' else '' }}>
+        <i class="fa-solid fa-desktop"></i>
+        <span>Dashboard</span>
+      </a>
+
+      <a href="{{ url_for('pacientes') }}"
+         class="sidebar-nav-item {{ 'active' if request.endpoint == 'pacientes' else '' }}"
+         {{ 'aria-current=page' if request.endpoint == 'pacientes' else '' }}>
+        <i class="fa-solid fa-users"></i>
+        <span>Pacientes</span>
+      </a>
+
+      <a href="{{ url_for('citas') }}"
+         class="sidebar-nav-item {{ 'active' if request.endpoint == 'citas' else '' }}"
+         {{ 'aria-current=page' if request.endpoint == 'citas' else '' }}>
+        <i class="fa-solid fa-calendar-check"></i>
+        <span>Citas</span>
+      </a>
+
+      <a href="{{ url_for('historial') }}"
+         class="sidebar-nav-item {{ 'active' if request.endpoint == 'historial' else '' }}"
+         {{ 'aria-current=page' if request.endpoint == 'historial' else '' }}>
+        <i class="fa-solid fa-file-medical"></i>
+        <span>Historial</span>
+        <span class="sidebar-nav-badge">Solo lectura</span>
+      </a>
+
+    </nav>
+
+  {% else %}
+
+    <nav class="sidebar-nav" aria-label="Navegación principal">
+      {% for item in items %}
         {%- if item.endpoint is defined and item.endpoint %}
           {%- set item_url = url_for(item.endpoint) -%}
           {%- set is_active = request.endpoint == item.endpoint -%}
@@ -82,10 +97,41 @@
            {% if is_active %}aria-current="page"{% endif %}>
           <i class="fa-solid {{ item.icon }}"></i>
           <span>{{ item.label }}</span>
+          {% if item.badge is defined and item.badge %}
+            <span class="sidebar-nav-badge">{{ item.badge }}</span>
+          {% endif %}
         </a>
       {% endfor %}
     </nav>
+
+    {% if bottom_items %}
+      <nav class="sidebar-nav sidebar-nav--bottom" aria-label="Navegación secundaria">
+        {% for item in bottom_items %}
+          {%- if item.endpoint is defined and item.endpoint %}
+            {%- set item_url = url_for(item.endpoint) -%}
+            {%- set is_active = request.endpoint == item.endpoint -%}
+          {%- else %}
+            {%- set item_url = item.url | default('#') -%}
+            {%- set is_active = False -%}
+          {%- endif %}
+          <a href="{{ item_url }}"
+             class="sidebar-nav-item {{ 'active' if is_active else '' }}"
+             {% if is_active %}aria-current="page"{% endif %}>
+            <i class="fa-solid {{ item.icon }}"></i>
+            <span>{{ item.label }}</span>
+          </a>
+        {% endfor %}
+      </nav>
+    {% endif %}
+
   {% endif %}
+
+  <div class="sidebar-report">
+    <button class="btn-reporte" type="button" onclick="window.location.href='{{ url_for('reportes_publicos') }}'">
+      <i class="fa-solid fa-plus"></i>
+      Generar reporte
+    </button>
+  </div>
 
   {% if user_name %}
     <div class="sidebar-footer">

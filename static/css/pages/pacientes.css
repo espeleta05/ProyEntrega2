@@ -25,7 +25,6 @@
     box-shadow: var(--md-shadow-level-2);
 }
 
-/* Strip de color superior según riesgo */
 .pt-card-strip {
     height: 3px;
     width: 100%;

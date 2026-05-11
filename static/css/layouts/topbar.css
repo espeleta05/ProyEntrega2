@@ -14,7 +14,7 @@
   align-items: center;
   justify-content: space-between;
   padding: 0 var(--md-spacing-6, 24px);
-  gap: var(--md-spacing-4, 16px);
+  gap: var(--md-spacing-6, 16px);
   background-color: var(--md-surface-container-lowest, #fff);
   border-bottom: 1px solid var(--md-outline-variant, rgba(99,99,99,0.3));
   box-shadow: var(--md-shadow-level-1, 0 1px 3px rgba(0,0,0,0.12));
@@ -98,6 +98,7 @@
 .search-bar-container input::placeholder {
   color: var(--md-on-surface-variant, #49454f);
 }
+
 
 /* ── Resultados de búsqueda ───────────────────────────────────────────────────── */
 .global-search-results {

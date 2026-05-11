@@ -1,4 +1,6 @@
 ﻿import math
+import psycopg
+from psycopg.rows import dict_row
 import os
 from datetime import date, datetime
 from flask import Flask, flash, jsonify, redirect, render_template, request, session, url_for, g, has_request_context
@@ -167,6 +169,26 @@ def _require_login():
         return redirect(url_for("login"))
     return None
 
+def _require_role(*allowed_roles):
+    """Para rutas que devuelven HTML. Retorna redirect o None."""
+    locked = _require_login()
+    if locked:
+        return locked
+    if session.get("role", "") not in allowed_roles:
+        flash("No tienes permisos para acceder a esta sección.", "danger")
+        return redirect(_home_url_for_role(session.get("role", "")))
+    return None
+
+def _check_role(*allowed_roles):
+    """Para endpoints JSON. Retorna True si el usuario tiene el rol requerido."""
+    return "user_name" in session and session.get("role", "") in allowed_roles
+
+def _home_url_for_role(role):
+    """Retorna la URL del dashboard correspondiente al rol."""
+    if role == "Recepcionista":
+        return url_for("recepcionista_dashboard")
+    return url_for("dashboard")
+
 def _session_vars():
     first    = session.get("user_name", "")
     last     = session.get("user_lastname", "")
@@ -284,7 +306,7 @@ def pagina_contacto():
 def login():
     error = None
     if "user_name" in session:
-        return redirect(url_for("dashboard"))
+        return redirect(_home_url_for_role(session.get("role", "")))
     if request.method == "POST":
         mail     = (request.form.get("mail") or "").strip()
         password = request.form.get("password") or ""
@@ -295,7 +317,7 @@ def login():
             session["role"]          = user["role"]
             session["worker_id"]     = user["worker_id"]
             flash(f"Bienvenido, {user['name']}.", "success")
-            return redirect(url_for("dashboard"))
+            return redirect(_home_url_for_role(user["role"]))
         error = "Credenciales inválidas."
         flash(error, "danger")
     return render_template("pages/login_2daE.html", error=error)
@@ -315,7 +337,7 @@ def logout():
 
 @app.route("/dashboard")
 def dashboard():
-    locked = _require_login()
+    locked = _require_role("Administrador", "Recepcionista", "Médico", "Almacén")
     if locked:
         return locked
 
@@ -409,7 +431,7 @@ def dashboard():
 
 @app.route("/pacientes")
 def pacientes():
-    locked = _require_login()
+    locked = _require_role("Administrador", "Recepcionista", "Médico", "Enfermero")
     if locked:
         return locked
 
@@ -446,9 +468,8 @@ def pacientes():
 
 @app.route("/register_patient", methods=["POST"])
 def register_patient():
-    locked = _require_login()
-    if locked:
-        return jsonify({"error": "No autenticado"}), 401
+    if not _check_role("Administrador", "Recepcionista"):
+        return jsonify({"error": "Sin permisos"}), 403
 
     payload = request.get_json(silent=True) or {}
     tutor = payload.get("tutor") or {}
@@ -573,9 +594,8 @@ _PHOTO_ALLOWED_EXTS    = {"png", "jpg", "jpeg", "webp"}
 @app.route("/api/guardians")
 def api_guardians():
     """Devuelve todos los tutores registrados para el dropdown del modal."""
-    locked = _require_login()
-    if locked:
-        return jsonify({"error": "No autenticado"}), 401
+    if not _check_role("Administrador", "Recepcionista", "Médico"):
+        return jsonify({"error": "Sin permisos"}), 403
 
     conn, should_close = _get_conn()
     _safe_rollback(conn)
@@ -612,9 +632,8 @@ def api_guardians():
 
 @app.route("/patients/<int:id>/photo", methods=["POST"])
 def upload_patient_photo(id):
-    locked = _require_login()
-    if locked:
-        return jsonify({"error": "No autenticado"}), 401
+    if not _check_role("Administrador", "Recepcionista"):
+        return jsonify({"error": "Sin permisos"}), 403
 
     if "photo" not in request.files:
         return jsonify({"error": "No se envió ningún archivo"}), 400
@@ -657,9 +676,8 @@ def upload_patient_photo(id):
 
 @app.route("/delete_patient/<int:id>", methods=["POST"])
 def delete_patient(id):
-    locked = _require_login()
-    if locked:
-        return jsonify({"error": "No autenticado"}), 401
+    if not _check_role("Administrador"):
+        return jsonify({"error": "Sin permisos"}), 403
 
     patient = _cur_fetchone("patients", "patient_id", id)
     if not patient:
@@ -695,7 +713,7 @@ def delete_patient(id):
 
 @app.route("/historial")
 def historial():
-    locked = _require_login()
+    locked = _require_role("Administrador", "Recepcionista", "Médico", "Enfermero")
     if locked:
         return locked
 
@@ -776,7 +794,7 @@ def historial():
 
 @app.route("/historial/<int:id>")
 def historial_paciente(id):
-    locked = _require_login()
+    locked = _require_role("Administrador", "Recepcionista", "Médico", "Enfermero")
     if locked:
         return locked
 
@@ -847,7 +865,7 @@ def historial_paciente(id):
 
 @app.route("/esquema_paciente/<int:id>")
 def esquema_paciente(id):
-    locked = _require_login()
+    locked = _require_role("Administrador", "Médico", "Enfermero")
     if locked:
         return locked
 
@@ -923,7 +941,7 @@ def esquema_paciente(id):
 
 @app.route("/esquema")
 def esquema_vacunacion():
-    locked = _require_login()
+    locked = _require_role("Administrador", "Médico", "Enfermero")
     if locked:
         return locked
 
@@ -969,7 +987,7 @@ def esquema_vacunacion():
 
 @app.route("/vacunas")
 def vacunas_page():
-    locked = _require_login()
+    locked = _require_role("Administrador", "Médico", "Enfermero", "Almacén")
     if locked:
         return locked
 
@@ -1003,9 +1021,8 @@ def vacunas_page():
 
 @app.route("/register_vaccine", methods=["POST"])
 def register_vaccine():
-    locked = _require_login()
-    if locked:
-        return jsonify({"error": "No autenticado"}), 401
+    if not _check_role("Administrador", "Almacén"):
+        return jsonify({"error": "Sin permisos"}), 403
 
     payload = request.get_json(silent=True) or {}
     name    = (payload.get("name") or "").strip()
@@ -1050,9 +1067,8 @@ def register_vaccine():
 
 @app.route("/delete_vaccine/<int:id>", methods=["POST"])
 def delete_vaccine(id):
-    locked = _require_login()
-    if locked:
-        return jsonify({"error": "No autenticado"}), 401
+    if not _check_role("Administrador"):
+        return jsonify({"error": "Sin permisos"}), 403
 
     vaccine = _cur_fetchone("vaccines", "vaccine_id", id)
     if not vaccine:
@@ -1086,7 +1102,7 @@ def delete_vaccine(id):
 
 @app.route("/aplicaciones")
 def aplicaciones():
-    locked = _require_login()
+    locked = _require_role("Administrador", "Médico", "Enfermero")
     if locked:
         return locked
 
@@ -1149,7 +1165,7 @@ def aplicaciones():
 
 @app.route("/agregar_aplicacion", methods=["GET", "POST"])
 def agregar_aplicacion():
-    locked = _require_login()
+    locked = _require_role("Administrador", "Médico", "Enfermero")
     if locked:
         return locked
 
@@ -1201,10 +1217,20 @@ def agregar_aplicacion():
                         cur.execute('FETCH ALL FROM "cur_reg_vac_record"')
                         row = cur.fetchone()
                     conn.commit()
-                except Exception as ex:
+                    
+                except psycopg.DatabaseError as ex:
                     _safe_rollback(conn)
-                    error = f"No se pudo registrar la aplicación: {ex}"
-                    row   = None
+
+                    db_error = str(ex).strip()
+
+                    if "duplicate key value" in db_error:
+                        error = "Ya existe un registro duplicado."
+                    elif "foreign key constraint" in db_error:
+                        error = "Existen referencias inválidas."
+                    else:
+                        error = db_error
+
+                    row = None
                 finally:
                     if should_close and not _conn_is_closed(conn):
                         conn.close()
@@ -1219,7 +1245,7 @@ def agregar_aplicacion():
                     error = "No se pudo registrar la aplicación en base de datos"
 
     return render_template(
-        "pages/agregarAplicacion_2daE.html",
+        "agregarAplicacion_2daE.html",
         **_session_vars(),
         patients=_cur_fetchall("patients"),
         vaccines=_cur_fetchall("vaccines"),
@@ -1239,7 +1265,7 @@ def agregar_aplicacion():
 
 @app.route("/personal")
 def personal():
-    locked = _require_login()
+    locked = _require_role("Administrador")
     if locked:
         return locked
 
@@ -1270,7 +1296,7 @@ def personal():
 
 @app.route("/personal/agregar", methods=["GET", "POST"])
 def add_user():
-    locked = _require_login()
+    locked = _require_role("Administrador")
     if locked:
         return locked
 
@@ -1359,7 +1385,7 @@ def add_user():
 
 @app.route("/personal/editar/<int:worker_id>", methods=["GET", "POST"])
 def edit_user(worker_id):
-    locked = _require_login()
+    locked = _require_role("Administrador")
     if locked:
         return locked
 
@@ -1437,7 +1463,7 @@ def edit_user(worker_id):
 
 @app.route("/reportes-publicos")
 def reportes_publicos():
-    locked = _require_login()
+    locked = _require_role("Administrador", "Médico")
     if locked:
         return locked
     return render_template("pages/reportesPublicos_2daE.html", **_session_vars())
@@ -1445,7 +1471,7 @@ def reportes_publicos():
 
 @app.route("/inventario")
 def inventario():
-    locked = _require_login()
+    locked = _require_role("Administrador", "Almacén")
     if locked:
         return locked
 
@@ -1480,7 +1506,7 @@ def inventario():
 
 @app.route("/citas")
 def citas():
-    locked = _require_login()
+    locked = _require_role("Administrador", "Recepcionista", "Médico", "Enfermero")
     if locked:
         return locked
 
@@ -1520,7 +1546,7 @@ def citas():
 
 @app.route("/nfc")
 def nfc():
-    locked = _require_login()
+    locked = _require_role("Administrador")
     if locked:
         return locked
 
@@ -1558,7 +1584,7 @@ def nfc():
 
 @app.route("/clinicas")
 def clinicas():
-    locked = _require_login()
+    locked = _require_role("Administrador")
     if locked:
         return locked
 
@@ -1584,6 +1610,85 @@ def clinicas():
         **_session_vars(),
         clinics=clinics,
         total_clinics=len(clinics),
+    )
+
+
+# =============================================================================
+# RUTAS — recepcionista
+# =============================================================================
+
+@app.route("/recepcionista/dashboard")
+def recepcionista_dashboard():
+    locked = _require_role("Recepcionista", "Administrador")
+    if locked:
+        return locked
+
+    kpis        = {}
+    citas_hoy   = []
+    actividad   = []
+    chart_data  = []
+
+    conn, should_close = _get_conn()
+    _safe_rollback(conn)
+    try:
+        with conn.cursor() as cur:
+            cur.execute("CALL sp_recepcionista_kpis(%s)", ("cur_rec_kpis",))
+            cur.execute('FETCH ALL FROM "cur_rec_kpis"')
+            row = cur.fetchone()
+            kpis = dict(row) if row else {}
+
+            cur.execute("CALL sp_recepcionista_citas_hoy(%s)", ("cur_rec_citas",))
+            cur.execute('FETCH ALL FROM "cur_rec_citas"')
+            citas_hoy = [
+                {**dict(r), "scheduled_at": _temporal_text(r.get("scheduled_at")),
+                 "hora_fin": _temporal_text(r.get("hora_fin"))}
+                for r in cur.fetchall()
+            ]
+
+            cur.execute("CALL sp_recepcionista_actividad_reciente(%s, %s)", (15, "cur_rec_actividad"))
+            cur.execute('FETCH ALL FROM "cur_rec_actividad"')
+            actividad = [
+                {**dict(r), "ts": _temporal_text(r.get("ts"))}
+                for r in cur.fetchall()
+            ]
+
+            cur.execute("CALL sp_recepcionista_pacientes_semana(%s)", ("cur_rec_semana",))
+            cur.execute('FETCH ALL FROM "cur_rec_semana"')
+            chart_data = [
+                {"dia": str(r.get("dia")), "dia_label": r.get("dia_label"), "total": r.get("total", 0)}
+                for r in cur.fetchall()
+            ]
+
+        conn.commit()
+    except Exception:
+        import traceback
+        logger.error(f"[SP ERROR] recepcionista_dashboard:\n{traceback.format_exc()}")
+        _safe_rollback(conn)
+    finally:
+        if should_close and not _conn_is_closed(conn):
+            conn.close()
+
+    citas_con_alerta = sum(1 for c in citas_hoy if c.get("alerta_tardia"))
+
+    return render_template(
+        "pages/recepcionista/dashboard_recepcionista.html",
+        **_session_vars(),
+        today=date.today().strftime("%d/%m/%Y"),
+        # KPIs citas
+        citas_hoy_total      =kpis.get("citas_hoy_total",       0),
+        citas_hoy_completadas=kpis.get("citas_hoy_completadas", 0),
+        citas_hoy_pendientes =kpis.get("citas_hoy_pendientes",  0),
+        citas_hoy_canceladas =kpis.get("citas_hoy_canceladas",  0),
+        citas_hoy_no_show    =kpis.get("citas_hoy_no_show",     0),
+        # KPIs pacientes
+        pacientes_hoy   =kpis.get("pacientes_hoy",    0),
+        pacientes_semana=kpis.get("pacientes_semana",  0),
+        # Widgets
+        citas_hoy       =citas_hoy,
+        citas_con_alerta=citas_con_alerta,
+        actividad       =actividad,
+        # Gráfica
+        chart_data=chart_data,
     )
 
 
@@ -1660,9 +1765,8 @@ def api_global_search():
 
 @app.route("/api/reportes-publicos/resumen")
 def api_reportes_publicos_resumen():
-    locked = _require_login()
-    if locked:
-        return jsonify({"error": "No autenticado"}), 401
+    if not _check_role("Administrador", "Médico"):
+        return jsonify({"error": "Sin permisos"}), 403
 
     from_date = request.args.get("from")
     to_date   = request.args.get("to")
@@ -1766,9 +1870,8 @@ def api_reportes_publicos_resumen():
 
 @app.route("/api/alertas-esquema")
 def api_alertas_esquema():
-    locked = _require_login()
-    if locked:
-        return jsonify({"error": "No autenticado"}), 401
+    if not _check_role("Administrador", "Médico", "Enfermero"):
+        return jsonify({"error": "Sin permisos"}), 403
 
     conn, should_close = _get_conn()
     _safe_rollback(conn)

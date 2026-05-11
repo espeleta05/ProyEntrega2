@@ -29,6 +29,7 @@
 
 .md3-toolbar__back-button:hover {
   background: var(--md-surface-container-high);
+  text-decoration: none;
 }
 
 .md3-toolbar__title {

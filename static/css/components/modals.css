@@ -194,4 +194,37 @@
     width: 100%;
     justify-content: center;
   }
+
+  .md3-modal > .md3-form-card .md3-form__actions {
+    border-radius: 0;
+    flex-direction: column-reverse;
+  }
+
+  .md3-modal > .md3-form-card .md3-form__actions > * {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+/* ── md3-form-card dentro de un modal: se integra como cuerpo del modal ──── */
+/* Neutraliza los estilos de tarjeta para evitar el efecto de tarjeta anidada */
+.md3-modal > .md3-form-card {
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  padding: var(--md-spacing-5) var(--md-spacing-6) 0;
+  flex: 1;
+  min-height: 0;
+}
+
+/* El bloque de acciones imita el aspecto de md3-modal__footer */
+.md3-modal > .md3-form-card .md3-form__actions {
+  margin-top: var(--md-spacing-5);
+  margin-left: calc(-1 * var(--md-spacing-6));
+  margin-right: calc(-1 * var(--md-spacing-6));
+  padding: var(--md-spacing-4) var(--md-spacing-6);
+  background: var(--md-surface-container-low);
+  border-top: 1px solid var(--md-outline-variant);
+  border-radius: 0 0 var(--md-shape-large) var(--md-shape-large);
 }
