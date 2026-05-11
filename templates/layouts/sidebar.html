@@ -48,7 +48,7 @@
 
   {% if user_role == 'Recepcionista' %}
 
-    <nav class="sidebar-nav" aria-label="Navegación principal">
+    <nav class="sidebar-nav" aria-label="Navegaci&oacute;n principal">
 
       <a href="{{ url_for('dashboard') }}"
          class="sidebar-nav-item {{ 'active' if request.endpoint == 'dashboard' else '' }}"
@@ -83,7 +83,7 @@
 
   {% else %}
 
-    <nav class="sidebar-nav" aria-label="Navegación principal">
+    <nav class="sidebar-nav" aria-label="Navegaci&oacute;n principal">
       {% for item in items %}
         {%- if item.endpoint is defined and item.endpoint %}
           {%- set item_url = url_for(item.endpoint) -%}
@@ -105,7 +105,7 @@
     </nav>
 
     {% if bottom_items %}
-      <nav class="sidebar-nav sidebar-nav--bottom" aria-label="Navegación secundaria">
+      <nav class="sidebar-nav sidebar-nav--bottom" aria-label="Navegaci&oacute;n secundaria">
         {% for item in bottom_items %}
           {%- if item.endpoint is defined and item.endpoint %}
             {%- set item_url = url_for(item.endpoint) -%}
@@ -141,7 +141,7 @@
           <p class="sidebar-user__name">{{ user_name }}</p>
           <p class="sidebar-user__role">{{ user_role }}</p>
         </div>
-        <a href="{{ logout_url }}" class="sidebar-logout" title="Cerrar sesión">
+        <a href="{{ logout_url }}" class="sidebar-logout" title="Cerrar sesi&oacute;n">
           <i class="fa-solid fa-arrow-right-from-bracket"></i>
         </a>
       </div>
