@@ -16,21 +16,21 @@
     - class:         clases adicionales
 
   Uso:
-    {% from 'components/empty_state.html' import empty_state %}
+    [from 'components/empty_state.html' import empty_state]
 
-    {# Dentro de una tabla: #}
+    -- Dentro de una tabla:
     <tr>
       <td colspan="5">
-        {{ empty_state(icon='fa-users-slash', title='Sin pacientes',
+        [[ empty_state(icon='fa-users-slash', title='Sin pacientes',
                        text='Agrega el primer paciente para comenzar.',
-                       action_text='Agregar paciente', action_onclick='openPatientModal()') }}
+                       action_text='Agregar paciente', action_onclick='openPatientModal()') ]]
       </td>
     </tr>
 
-    {# Como bloque de página: #}
-    {{ empty_state(icon='fa-calendar-xmark', title='Sin citas programadas',
+    -- Como bloque de página:
+    [[ empty_state(icon='fa-calendar-xmark', title='Sin citas programadas',
                    text='No hay citas para el período seleccionado.',
-                   size='lg') }}
+                   size='lg') ]]
 #}
 
 {% macro empty_state(icon, title, text='', action_text='', action_href='', action_onclick='', action_icon='fa-plus', size='md', color='primary', class='') %}
@@ -39,8 +39,8 @@
 
   <div class="md3-empty-state md3-empty-state--{{ size }} {{ class }}">
 
-    <div class="md3-empty-state__icon-circle" style="background:color-mix(in srgb, {{ icon_color }} 12%, transparent);">
-      <i class="fa-solid {{ icon }} md3-empty-state__icon" style="font-size:{{ {'sm':'1.75rem','md':'2.75rem','lg':'3.75rem'}[size] }}; color:{{ icon_color }};"></i>
+    <div class="md3-empty-state__icon-circle">
+      <i class="fa-solid {{ icon }} md3-empty-state__icon"></i>
     </div>
 
     <div>

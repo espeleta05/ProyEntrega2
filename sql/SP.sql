@@ -687,10 +687,11 @@ BEGIN
 
     SELECT EXISTS(
         SELECT 1
-        FROM appointments
-        WHERE patient_id = p_patient_id
-        AND scheduled_at >= CURRENT_DATE
-        AND appointment_status NOT IN ('Cancelada', 'Completada')
+        FROM appointments a
+        JOIN patient_vaccine_schedule pvs ON pvs.schedule_id = a.patient_schedule_id
+        WHERE pvs.patient_id = p_patient_id
+          AND a.scheduled_at >= CURRENT_DATE
+          AND a.appointment_status NOT IN ('Cancelada', 'Completada', 'Reagendada', 'No Show')
     )
     INTO v_has_future_appointments;
 
@@ -807,59 +808,75 @@ BEGIN
         dose_id,
         vaccine_id,
         record_id,
- 
+
         -- Paciente
         full_name,
         birth_date,
         age_years,
- 
+
         -- Vacuna / dosis
-        vaccine_name                                     AS name,
-        disease_prevented,
-        dose_label                                       AS dose,
-        dose_number,
-        ideal_age_months,
-        ideal_date,
- 
+        base.vaccine_name,
+        base.disease_prevented,
+        base.dose_label,
+        base.dose_number,
+        base.ideal_age_months,
+        base.ideal_date,
+
         -- Aplicación
-        applied_date                                     AS date,
-        doctor,
-        application_site,
-        had_reaction,
-        patient_temp_c,
- 
+        base.applied_date,
+        base.doctor,
+        base.application_site,
+        base.had_reaction,
+        base.patient_temp_c,
+
         -- Estado
-        estado,
-        dias_retraso,
- 
+        base.estado                                      AS vaccination_status,
+        base.dias_retraso,
+
         -- Próxima dosis de la misma vacuna
         CASE
-            WHEN next_dose_age_months IS NOT NULL THEN
-                'A los ' || next_dose_age_months || ' meses'
+            WHEN base.next_dose_age_months IS NOT NULL THEN
+                'A los ' || base.next_dose_age_months || ' meses'
             ELSE NULL
         END                                              AS next_date,
- 
+
         -- Etiqueta de edad ideal legible
         CASE
-            WHEN ideal_age_months = 0  THEN 'Al nacer'
-            WHEN ideal_age_months >= 12 THEN
-                (ideal_age_months / 12) || ' año(s)'
+            WHEN base.ideal_age_months = 0  THEN 'Al nacer'
+            WHEN base.ideal_age_months >= 12 THEN
+                (base.ideal_age_months / 12) || ' año(s)'
             ELSE
-                ideal_age_months || ' meses'
+                base.ideal_age_months || ' meses'
         END                                              AS edad_ideal_label,
- 
+
         -- Alerta de retraso
         CASE
-            WHEN record_id IS NULL AND dias_retraso > 0 THEN
-                'Retraso de ' || dias_retraso || ' días'
-            WHEN record_id IS NULL AND dias_retraso <= 0 THEN
-                'Programada en ' || ABS(dias_retraso) || ' días'
+            WHEN base.record_id IS NULL AND base.dias_retraso > 0 THEN
+                'Retraso de ' || base.dias_retraso || ' días'
+            WHEN base.record_id IS NULL AND base.dias_retraso <= 0 THEN
+                'Programada en ' || ABS(base.dias_retraso) || ' días'
             ELSE NULL
-        END                                              AS alerta_retraso
- 
-    FROM v_patient_vaccination_scheme_base
-    WHERE patient_id = p_patient_id
-    ORDER BY ideal_age_months, dose_number;
+        END                                              AS alerta_retraso,
+
+        -- Cita vinculada a esta dosis (la más reciente no cancelada)
+        appt.scheduled_at::DATE                          AS appointment_date,
+        appt.appointment_status,
+        appt.tutor_accepted
+
+    FROM v_patient_vaccination_scheme_base base
+    LEFT JOIN patient_vaccine_schedule pvs
+           ON pvs.patient_id     = base.patient_id
+          AND pvs.scheme_dose_id  = base.dose_id
+    LEFT JOIN LATERAL (
+        SELECT a.scheduled_at, a.appointment_status, a.tutor_accepted
+        FROM   appointments a
+        WHERE  a.patient_schedule_id = pvs.schedule_id
+          AND  a.appointment_status  NOT IN ('Cancelada', 'No Show')
+        ORDER  BY a.scheduled_at DESC
+        LIMIT  1
+    ) appt ON TRUE
+    WHERE base.patient_id = p_patient_id
+    ORDER BY base.ideal_age_months, base.dose_number;
 END;
 $$;
  
@@ -1335,108 +1352,407 @@ END;
 $$;
 
 
--- ==============================================
+-- ================================================================================
 
 -- MÓDULO: CITAS (CRUD)
 
--- ==============================================
-
-
+-- ===============================================================================
 
 CREATE OR REPLACE PROCEDURE sp_create_appointment(
-    IN    p_patient_id       INT,
-    IN    p_worker_id        INT,
-    IN    p_clinic_id        INT,
-    IN    p_area_id          INT,
-    IN    p_scheduled_at     TIMESTAMP,
-    IN    p_reason           VARCHAR,
-    IN    p_requires_tutor   BOOLEAN,   -- TRUE = espera confirmación del tutor
-    INOUT p_results          REFCURSOR
+    IN    p_worker_id           INT,
+    IN    p_clinic_id           INT,
+    IN    p_area_id             INT,
+    IN    p_scheduled_at        TIMESTAMP,
+    IN    p_reason              VARCHAR,
+    IN    p_requires_tutor      BOOLEAN,
+    IN    p_patient_schedule_id INT,
+    INOUT p_results             REFCURSOR
 )
-LANGUAGE plpgsql AS $$
+LANGUAGE plpgsql
+AS $$
 DECLARE
     v_appointment_id INT;
     v_initial_status VARCHAR(50);
+    v_patient_id INT;
 BEGIN
-    -- Las citas generadas automáticamente por el esquema de vacunación
-    -- arrancan en 'Pendiente confirmación'; las manuales van directo a 'Programada'.
-    v_initial_status := CASE WHEN p_requires_tutor THEN 'Pendiente confirmación'
-                             ELSE 'Programada'
-                        END;
 
+    --VALIDAR QUE EL PATIENT SCHEDULE EXISTA
+    SELECT patient_id
+    INTO v_patient_id
+    FROM patient_vaccine_schedule
+    WHERE schedule_id = p_patient_schedule_id;
+
+    IF v_patient_id IS NULL THEN
+        RAISE EXCEPTION
+            'El esquema de vacunación especificado no existe.';
+    END IF;
+
+
+    --VALIDAR FECHA
+    IF p_scheduled_at < NOW() THEN
+        RAISE EXCEPTION
+            'No se puede agendar una cita en una fecha pasada.';
+    END IF;
+
+
+    --VALIDAR DISPONIBILIDAD DEL AREA
+    IF EXISTS (
+        SELECT 1
+        FROM appointments
+        WHERE clinic_id = p_clinic_id
+          AND area_id = p_area_id
+          AND scheduled_at = p_scheduled_at
+          AND appointment_status NOT IN (
+                'Cancelada',
+                'No Show',
+                'Reagendada'
+          )
+    ) THEN
+        RAISE EXCEPTION
+            'Ya existe una cita programada para esa área y horario.';
+    END IF;
+
+
+    --VALIDAR DISPONIBILIDAD DEL TRABAJADOR
+    IF EXISTS (
+        SELECT 1
+        FROM appointments
+        WHERE worker_id = p_worker_id
+          AND scheduled_at = p_scheduled_at
+          AND appointment_status NOT IN (
+                'Cancelada',
+                'No Show',
+                'Reagendada'
+          )
+    ) THEN
+        RAISE EXCEPTION
+            'El trabajador ya tiene una cita asignada en ese horario.';
+    END IF;
+
+
+    --VALIDAR QUE EL ESQUEMA NO ESTE APLICADO
+    IF EXISTS (
+        SELECT 1
+        FROM patient_vaccine_schedule
+        WHERE schedule_id = p_patient_schedule_id
+          AND status = 'Aplicada'
+    ) THEN
+        RAISE EXCEPTION
+            'La dosis seleccionada ya fue aplicada.';
+    END IF;
+
+
+    --VALIDAR QUE NO EXISTA OTRA CITA ACTIVA PARA ESA DOSIS
+    IF EXISTS (
+        SELECT 1
+        FROM appointments
+        WHERE patient_schedule_id = p_patient_schedule_id
+          AND appointment_status IN (
+                'Pendiente confirmación',
+                'Confirmada',
+                'Programada'
+          )
+    ) THEN
+        RAISE EXCEPTION
+            'Ya existe una cita activa para esta dosis.';
+    END IF;
+
+
+    --DEFINIR ESTADO INICIAL
+    v_initial_status :=
+        CASE
+            WHEN p_requires_tutor THEN
+                'Pendiente confirmación'
+            ELSE
+                'Confirmada'
+        END;
+
+
+    --CREAR CITA
     INSERT INTO appointments (
-        patient_id, worker_id, clinic_id, area_id,
-        scheduled_at, appointment_status, reason, duration_min
+        patient_schedule_id,
+        worker_id,
+        clinic_id,
+        area_id,
+        scheduled_at,
+        appointment_status,
+        reason,
+        duration_min,
+        created_at,
+        confirmed_at
     )
     VALUES (
-        p_patient_id, p_worker_id, p_clinic_id, p_area_id,
-        p_scheduled_at, v_initial_status, p_reason, 15
-    )
-    RETURNING appointments.appointment_id INTO v_appointment_id;
+        p_patient_schedule_id,
+        p_worker_id,
+        p_clinic_id,
+        p_area_id,
+        p_scheduled_at,
+        v_initial_status,
+        p_reason,
+        15,
+        CURRENT_TIMESTAMP,
 
+        CASE
+            WHEN p_requires_tutor THEN NULL
+            ELSE CURRENT_TIMESTAMP
+        END
+    )
+    RETURNING appointment_id
+    INTO v_appointment_id;
+
+
+    --RETORNAR RESULTADO
     OPEN p_results FOR
-        SELECT v_appointment_id AS appointment_id;
+    SELECT
+        a.appointment_id,
+        a.patient_schedule_id,
+        p.patient_id,
+        TRIM(p.first_name || ' ' || p.last_name) AS patient_name,
+        a.worker_id,
+        a.clinic_id,
+        a.area_id,
+        a.scheduled_at,
+        a.appointment_status,
+        a.reason,
+        a.duration_min,
+        a.created_at,
+        a.confirmed_at
+    FROM appointments a
+    JOIN patient_vaccine_schedule pvs
+        ON a.patient_schedule_id = pvs.schedule_id
+    JOIN patients p
+        ON pvs.patient_id = p.patient_id
+    WHERE a.appointment_id = v_appointment_id;
+
 END;
 $$;
 
 
-
-CREATE OR REPLACE PROCEDURE sp_update_appointment(
-
-    IN    p_appointment_id INT,
-
-    IN    p_status         VARCHAR,
-
-    INOUT p_results        REFCURSOR
-
+-- SP: Tutor confirma cita generada por el trigger trg_generate_appointment_for_schedule
+CREATE OR REPLACE PROCEDURE sp_confirm_appointment(
+    IN p_appointment_id INT,
+    INOUT p_results REFCURSOR
 )
-
-LANGUAGE plpgsql AS $$
-
+LANGUAGE plpgsql
+AS $$
 BEGIN
 
-    UPDATE appointments SET
+    IF NOT EXISTS (
+        SELECT 1
+        FROM appointments
+        WHERE appointment_id = p_appointment_id
+          AND appointment_status = 'Pendiente confirmación'
+    ) THEN
+        RAISE EXCEPTION
+            'La cita no puede confirmarse.';
+    END IF;
 
-        appointment_status = p_status
-
+    UPDATE appointments
+    SET
+        appointment_status = 'Confirmada',
+        confirmed_at = CURRENT_TIMESTAMP,
+        appointment_notes =
+            COALESCE(appointment_notes || E'\n', '')
+            || '[' || CURRENT_DATE || '] Confirmada por tutor.'
     WHERE appointment_id = p_appointment_id;
 
-
-
     OPEN p_results FOR
-
-        SELECT FOUND AS success WHERE p_status IN ('Programada', 'Completada', 'Cancelada');
+    SELECT
+        appointment_id,
+        patient_schedule_id,
+        clinic_id,
+        scheduled_at,
+        appointment_status,
+        confirmed_at,
+        appointment_notes
+    FROM appointments
+    WHERE appointment_id = p_appointment_id;
 
 END;
-
 $$;
 
-
-
-CREATE OR REPLACE PROCEDURE sp_delete_appointment(
-
-    IN    p_appointment_id INT,
-
-    INOUT p_results        REFCURSOR
-
+-- SP: tutor cancela cita generada por el mismo trigger
+CREATE OR REPLACE PROCEDURE sp_cancel_appointment(
+    IN p_appointment_id INT,
+    IN p_reason TEXT,
+    INOUT p_results REFCURSOR
 )
-
-LANGUAGE plpgsql AS $$
-
+LANGUAGE plpgsql
+AS $$
 BEGIN
 
-    DELETE FROM appointments WHERE appointment_id = p_appointment_id;
+    IF EXISTS (
+        SELECT 1
+        FROM appointments
+        WHERE appointment_id = p_appointment_id
+          AND appointment_status = 'Completada'
+    ) THEN
+        RAISE EXCEPTION
+            'No se puede cancelar una cita completada.';
+    END IF;
+
+    UPDATE appointments
+    SET
+        appointment_status = 'Cancelada',
+        cancel_reason = p_reason,
+        appointment_notes =
+            COALESCE(appointment_notes || E'\n', '')
+            || '[' || CURRENT_DATE || '] Cancelada. Motivo: '
+            || COALESCE(p_reason, 'Sin motivo')
+    WHERE appointment_id = p_appointment_id;
 
     OPEN p_results FOR
-
-        SELECT FOUND AS success;
+    SELECT
+        appointment_id,
+        patient_schedule_id,
+        clinic_id,
+        scheduled_at,
+        appointment_status,
+        cancel_reason,
+        appointment_notes
+    FROM appointments
+    WHERE appointment_id = p_appointment_id;
 
 END;
-
 $$;
 
 
+-- SP: tutor reagenda cita
+CREATE OR REPLACE PROCEDURE sp_reschedule_appointment(
+    IN p_appointment_id INT,
+    IN p_new_datetime TIMESTAMP,
+    INOUT p_results REFCURSOR
+)
+LANGUAGE plpgsql
+AS $$
+DECLARE
+    v_schedule_id INT;
+    v_clinic_id INT;
+    v_new_appointment_id INT;
+BEGIN
 
+    SELECT
+        patient_schedule_id,
+        clinic_id
+    INTO
+        v_schedule_id,
+        v_clinic_id
+    FROM appointments
+    WHERE appointment_id = p_appointment_id;
+
+    UPDATE appointments
+    SET
+        appointment_status = 'Reagendada',
+        appointment_notes =
+            COALESCE(appointment_notes || E'\n', '')
+            || '[' || CURRENT_DATE || '] Reagendada.'
+    WHERE appointment_id = p_appointment_id;
+
+    INSERT INTO appointments (
+        patient_schedule_id,
+        clinic_id,
+        scheduled_at,
+        appointment_status,
+        rescheduled_from_id,
+        created_at
+    )
+    VALUES (
+        v_schedule_id,
+        v_clinic_id,
+        p_new_datetime,
+        'Pendiente confirmación',
+        p_appointment_id,
+        CURRENT_TIMESTAMP
+    )
+    RETURNING appointment_id
+    INTO v_new_appointment_id;
+
+    OPEN p_results FOR
+    SELECT
+        appointment_id,
+        patient_schedule_id,
+        clinic_id,
+        scheduled_at,
+        appointment_status,
+        rescheduled_from_id,
+        appointment_notes
+    FROM appointments
+    WHERE appointment_id = v_new_appointment_id;
+
+END;
+$$;
+
+
+-- SP: se hizo la cita pero el paciente no fue
+CREATE OR REPLACE PROCEDURE sp_mark_no_show(
+    IN p_appointment_id INT,
+    INOUT p_results REFCURSOR
+)
+LANGUAGE plpgsql
+AS $$
+BEGIN
+
+    UPDATE appointments
+    SET
+        appointment_status = 'No Show',
+        appointment_notes =
+            COALESCE(appointment_notes || E'\n', '')
+            || '[' || CURRENT_DATE || '] Paciente no asistió.'
+    WHERE appointment_id = p_appointment_id;
+
+    OPEN p_results FOR
+    SELECT
+        appointment_id,
+        patient_schedule_id,
+        clinic_id,
+        scheduled_at,
+        appointment_status,
+        appointment_notes
+    FROM appointments
+    WHERE appointment_id = p_appointment_id;
+
+END;
+$$;
+
+-- SP: se completo la cita
+CREATE OR REPLACE PROCEDURE sp_complete_appointment(
+    IN p_appointment_id INT,
+    INOUT p_results REFCURSOR
+)
+LANGUAGE plpgsql
+AS $$
+DECLARE
+    v_schedule_id INT;
+BEGIN
+
+    SELECT patient_schedule_id
+    INTO v_schedule_id
+    FROM appointments
+    WHERE appointment_id = p_appointment_id;
+
+    UPDATE appointments
+    SET appointment_status = 'Completada'
+    WHERE appointment_id = p_appointment_id;
+
+    UPDATE patient_vaccine_schedule
+    SET status = 'Aplicada'
+    WHERE schedule_id = v_schedule_id;
+
+    OPEN p_results FOR
+    SELECT
+        a.appointment_id,
+        a.patient_schedule_id,
+        a.clinic_id,
+        a.scheduled_at,
+        a.appointment_status,
+        pvs.status AS vaccine_status
+    FROM appointments a
+    JOIN patient_vaccine_schedule pvs
+        ON a.patient_schedule_id = pvs.schedule_id
+    WHERE a.appointment_id = p_appointment_id;
+
+END;
+$$;
 
 
 -- ==============================================
@@ -1954,11 +2270,12 @@ BEGIN
         FROM v_patient_vaccination_scheme_base base
         JOIN patients pat ON pat.patient_id = base.patient_id
         LEFT JOIN LATERAL (
-            SELECT scheduled_at, appointment_status, tutor_accepted
-            FROM appointments
-            WHERE patient_id   = base.patient_id
-              AND scheme_dose_id = base.dose_id
-            ORDER BY scheduled_at DESC
+            SELECT a.scheduled_at, a.appointment_status, a.tutor_accepted
+            FROM appointments a
+            JOIN patient_vaccine_schedule pvs ON pvs.schedule_id = a.patient_schedule_id
+            WHERE pvs.patient_id    = base.patient_id
+              AND pvs.scheme_dose_id = base.dose_id
+            ORDER BY a.scheduled_at DESC
             LIMIT 1
         ) appt ON TRUE
         WHERE base.patient_id = p_patient_id

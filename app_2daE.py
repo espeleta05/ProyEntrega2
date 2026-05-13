@@ -470,7 +470,7 @@ def tutor_dashboard():
             try:
                 _safe_rollback(conn)
                 with conn.cursor() as cur:
-                    cur.execute("CALL sp_get_esquema_paciente(%s, %s)",
+                    cur.execute("CALL sp_get_patient_scheme(%s, %s)",
                                 (pid, "cur_tutor_esquema"))
                     cur.execute('FETCH ALL FROM "cur_tutor_esquema"')
                     esquema_rows = [dict(r) for r in cur.fetchall()]
@@ -603,7 +603,7 @@ def tutor_esquema(patient_id):
     _safe_rollback(conn)
     try:
         with conn.cursor() as cur:
-            cur.execute("CALL sp_get_esquema_paciente(%s, %s)",
+            cur.execute("CALL sp_get_patient_scheme(%s, %s)",
                         (patient_id, "cur_tutor_esq"))
             cur.execute('FETCH ALL FROM "cur_tutor_esq"')
             esquema_rows = [dict(r) for r in cur.fetchall()]
@@ -695,25 +695,26 @@ def tutor_citas():
             cur.execute("""
                 SELECT
                     a.appointment_id,
-                    a.patient_id,
+                    pvs.patient_id,
                     a.scheduled_at,
                     a.appointment_status,
                     a.reason,
                     a.appointment_notes,
                     a.tutor_accepted,
-                    TRIM(p.first_name || ' ' || p.last_name)        AS patient_name,
+                    TRIM(p.first_name || ' ' || p.last_name)               AS patient_name,
                     COALESCE(TRIM(w.first_name || ' ' || w.last_name), '—') AS worker_name,
-                    COALESCE(c.name, '—')                           AS clinic_name,
-                    COALESCE(ca.name, '—')                          AS area_name,
-                    COALESCE(v.name, '—')                           AS vaccine_name
+                    COALESCE(c.name, '—')                                   AS clinic_name,
+                    COALESCE(ca.name, '—')                                  AS area_name,
+                    COALESCE(v.name, '—')                                   AS vaccine_name
                 FROM   appointments a
-                JOIN   patients p   ON p.patient_id = a.patient_id
-                JOIN   patient_guardian_relations pgr
-                       ON pgr.patient_id = a.patient_id
-                LEFT JOIN workers w ON w.worker_id = a.worker_id
-                LEFT JOIN clinics c ON c.clinic_id = a.clinic_id
-                LEFT JOIN clinic_areas ca ON ca.area_id = a.area_id
-                LEFT JOIN vaccines v ON v.vaccine_id = a.vaccine_id
+                JOIN   patient_vaccine_schedule pvs ON pvs.schedule_id = a.patient_schedule_id
+                JOIN   patients p   ON p.patient_id = pvs.patient_id
+                JOIN   patient_guardian_relations pgr ON pgr.patient_id = pvs.patient_id
+                LEFT JOIN workers w      ON w.worker_id  = a.worker_id
+                LEFT JOIN clinics c      ON c.clinic_id  = a.clinic_id
+                LEFT JOIN clinic_areas ca ON ca.area_id  = a.area_id
+                LEFT JOIN scheme_doses sd ON sd.dose_id  = pvs.scheme_dose_id
+                LEFT JOIN vaccines v      ON v.vaccine_id = sd.vaccine_id
                 WHERE  pgr.guardian_id = %s
                 ORDER  BY a.scheduled_at DESC;
             """, (guardian_id,))
@@ -766,12 +767,12 @@ def tutor_cita_responder(appointment_id):
     _safe_rollback(conn)
     try:
         with conn.cursor() as cur:
-            # Verificar propiedad: la cita debe ser de un hijo del tutor
+            # Verificar propiedad: la cita debe pertenecer a un hijo del tutor
             cur.execute("""
                 SELECT 1
                 FROM   appointments a
-                JOIN   patient_guardian_relations pgr
-                       ON pgr.patient_id = a.patient_id
+                JOIN   patient_vaccine_schedule pvs ON pvs.schedule_id = a.patient_schedule_id
+                JOIN   patient_guardian_relations pgr ON pgr.patient_id = pvs.patient_id
                 WHERE  a.appointment_id = %s
                   AND  pgr.guardian_id  = %s
                 LIMIT  1;
@@ -779,16 +780,17 @@ def tutor_cita_responder(appointment_id):
             if not cur.fetchone():
                 return jsonify({"ok": False, "error": "Cita no encontrada"}), 404
 
-            cur.execute("""
-                UPDATE appointments
-                SET    tutor_accepted = %s
-                WHERE  appointment_id = %s;
-            """, (nuevo_valor, appointment_id))
+            if accion == "aceptar":
+                cur.execute("CALL sp_confirm_appointment(%s, %s)", (appointment_id, "cur_resp"))
+            else:
+                cur.execute("CALL sp_cancel_appointment(%s, %s, %s)",
+                            (appointment_id, "Rechazada por tutor", "cur_resp"))
+            cur.execute('FETCH ALL FROM "cur_resp"')
         conn.commit()
     except Exception as e:
         _safe_rollback(conn)
         logger.error("Error en tutor_cita_responder: %s", e)
-        return jsonify({"ok": False, "error": "Error al actualizar"}), 500
+        return jsonify({"ok": False, "error": str(e)}), 500
     finally:
         if should_close and not _conn_is_closed(conn):
             conn.close()
@@ -1988,80 +1990,107 @@ def historial_paciente(id):
 
 @app.route("/esquema_paciente/<int:id>")
 def esquema_paciente(id):
+
     locked = _require_role("Administrador", "Medico", "Enfermero")
     if locked:
         return locked
 
     conn, should_close = _get_conn()
     _safe_rollback(conn)
+
     try:
         with conn.cursor() as cur:
-            cur.execute("CALL sp_get_esquema_paciente(%s, %s)", (id, "cur_esquema_paciente"))
+            cur.execute("CALL sp_get_patient_scheme(%s, %s)", (id, "cur_esquema_paciente"))
             cur.execute('FETCH ALL FROM "cur_esquema_paciente"')
             esquema_rows = [dict(r) for r in cur.fetchall()]
         conn.commit()
+
     except Exception as e:
         _safe_rollback(conn)
         logger.error(f"Error en /esquema_paciente/{id}: {e}")
         flash("Error al cargar el esquema del paciente.", "danger")
         return redirect(url_for("historial"))
+
     finally:
         if should_close and not _conn_is_closed(conn):
             conn.close()
 
+    # ============================================================
+    # VALIDAR RESULTADOS
+    # ============================================================
+
     if not esquema_rows:
-        flash("Paciente no encontrado o sin esquema.", "danger")
+
+        flash("Paciente no encontrado o sin esquema.", "danger" )
         return redirect(url_for("historial"))
 
-    # Datos del paciente desde la primera fila (todos tienen los mismos)
+
+    # ============================================================
+    # DATOS DEL PACIENTE
+    # ============================================================
+
     first = esquema_rows[0]
-    _photo = first.get("photo")
+
     patient = {
         "patient_id": first.get("patient_id"),
-        "full_name":  first.get("full_name"),
+        "full_name": first.get("full_name"),
         "birth_date": first.get("birth_date"),
-        "age":        first.get("age_years"),
-        "photo_url":  f"/static/uploads/patients/{_photo}" if _photo else None,
-        "initials":   (
-            (first.get("full_name") or "")[:1].upper()
-            + ((first.get("full_name") or " ").split(" ")[-1][:1].upper())
-        ),
+        "age": first.get("age_years"),
+        "initials":
+            (
+                (first.get("full_name") or "")[:1].upper()
+                +
+                ((first.get("full_name") or " ").split(" ")[-1][:1].upper())
+            ),
     }
 
-    # Dosis ya aplicadas → tabla principal del template (applications)
+
+    # ============================================================
+    # DOSIS APLICADAS
+    # ============================================================
+
     applications = [
         {
-            "name":             r.get("name"),
-            "dose":             r.get("dose"),
-            "date":             _temporal_text(r.get("date")),
+            "record_id":        r.get("record_id"),
+            "name":             r.get("vaccine_name"),
+            "dose":             r.get("dose_label"),
+            "date":             _temporal_text(r.get("applied_date")),
             "doctor":           r.get("doctor"),
             "application_site": r.get("application_site"),
             "had_reaction":     r.get("had_reaction"),
-            "next_date":        r.get("next_date"),
-            "alerta_retraso":   r.get("alerta_retraso"),
-            "estado":           r.get("estado"),
+            "estado":           r.get("vaccination_status"),
         }
         for r in esquema_rows
-        if r.get("estado") == "Aplicada"
+        if r.get("vaccination_status") == "Aplicada"
     ]
-
-    # Dosis pendientes → sección "Próximas dosis" del template (next_vaccines)
+    # ============================================================
+    # PRÓXIMAS DOSIS
+    # ============================================================
     next_vaccines = [
         {
-            "name":              r.get("name"),
-            "dose":              r.get("dose"),
-            "edad_ideal":        r.get("edad_ideal_label"),
-            "ideal_age_months":  r.get("ideal_age_months"),
-            "dias_retraso":      r.get("dias_retraso"),
-            "alerta_retraso":    r.get("alerta_retraso"),
-            "estado":            r.get("estado"),
-            "fecha_cita":        r.get("fecha_cita"),
-            "cita_estado":       r.get("cita_estado"),
-            "cita_aceptada":     r.get("cita_aceptada_tutor"),
+            "name":           r.get("name"),
+            "dose":           r.get("dose"),
+            "edad_ideal":     r.get("edad_ideal_label"),
+            "ideal_age_months": r.get("ideal_age_months"),
+            "dias_retraso":   r.get("dias_retraso"),
+            "alerta_retraso": r.get("alerta_retraso"),
+            "estado":         r.get("estado"),
+            "fecha_cita":     None,
+            "cita_estado":    None,
+            "cita_aceptada":  None,
         }
         for r in esquema_rows
-        if r.get("estado") in ("Pendiente", "Pendiente con retraso")
+        if r.get("vaccination_status") in ("Pendiente", "Atrasada")
     ]
+    
+    total_doses = len(esquema_rows)
+    applied_doses = len(applications)
+    pending_doses = len(next_vaccines)
+    progress = (
+        round((applied_doses / total_doses) * 100)
+        if total_doses > 0
+        else 0
+    )
 
     return render_template(
         "pages/esquemaPaciente_2daE.html",
@@ -2070,6 +2099,10 @@ def esquema_paciente(id):
         patient_name=patient.get("full_name", ""),
         applications=applications,
         next_vaccines=next_vaccines,
+        total_doses=total_doses,
+        applied_doses=applied_doses,
+        pending_doses=pending_doses,
+        progress=progress,
     )
 
 

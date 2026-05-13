@@ -78,7 +78,7 @@ CREATE TABLE clinic_areas (
     floor         SMALLINT,
     capacity      SMALLINT,
     UNIQUE(clinic_id, name),
-    UNIQUE(clinic_id, code);
+    UNIQUE(clinic_id, code)
 );
 
 CREATE TABLE equipment_catalog (
@@ -222,8 +222,6 @@ CREATE TABLE workers (
     address_id     INT           REFERENCES addresses(address_id),
     birth_date     DATE,
     hire_date      DATE,
-    created_at     TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    is_active      BOOLEAN  NOT NULL DEFAULT TRUE
 );
 
 ALTER TABLE workers ADD COLUMN created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
@@ -281,7 +279,7 @@ CREATE TABLE users (
     username       VARCHAR(50)  NOT NULL UNIQUE,
     password_hash  VARCHAR(255) NOT NULL,
     is_active      BOOLEAN      DEFAULT TRUE,
-    created_at     TIMESTAMP    DEFAULT CURRENT_TIMESTAMP,    
+    created_at     TIMESTAMP    DEFAULT CURRENT_TIMESTAMP  
 );
 
 CREATE TABLE guardian_accounts (
@@ -354,19 +352,22 @@ CREATE TABLE scheme_doses (
 --  MÓDULO: APPOINTMENTS
 CREATE TABLE appointments (
     appointment_id      SERIAL      PRIMARY KEY,
-    patient_id          INT         NOT NULL REFERENCES patients(patient_id),
+    patient_schedule_id INT,        -- FK a patient_vaccine_schedule; constraint al final
     clinic_id           INT         NOT NULL REFERENCES clinics(clinic_id),
     area_id             INT         REFERENCES clinic_areas(area_id),
     worker_id           INT         REFERENCES workers(worker_id),
-    vaccine_id          INT         REFERENCES vaccines(vaccine_id),
-    scheme_dose_id      INT         REFERENCES scheme_doses(dose_id),
     scheduled_at        TIMESTAMP   NOT NULL,
     duration_min        SMALLINT,
     reason              TEXT,
-    appointment_status  VARCHAR(50) CHECK (appointment_status IN ('Programada','Completada','Cancelada','No Show')),
+    appointment_status  VARCHAR(50) CHECK (appointment_status IN (
+                            'Pendiente confirmación','Confirmada','Programada',
+                            'Completada','Cancelada','No Show','Reagendada')),
     appointment_notes   TEXT,
+    tutor_accepted      BOOLEAN     DEFAULT NULL,
+    cancel_reason       TEXT,
+    confirmed_at        TIMESTAMP,
+    rescheduled_from_id INT,        -- auto-referencia; constraint al final
     created_at          TIMESTAMP   DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE(patient_id, scheduled_at),
     UNIQUE(clinic_id, area_id, scheduled_at),
     UNIQUE(worker_id, scheduled_at)
 );
@@ -406,6 +407,15 @@ CREATE TABLE patient_vaccine_schedule (
 
     UNIQUE (patient_id, scheme_dose_id)
 );
+
+-- FKs circulares: se agregan después de que ambas tablas existan
+ALTER TABLE appointments
+    ADD CONSTRAINT fk_appointments_patient_schedule
+    FOREIGN KEY (patient_schedule_id) REFERENCES patient_vaccine_schedule(schedule_id);
+
+ALTER TABLE appointments
+    ADD CONSTRAINT fk_appointments_rescheduled_from
+    FOREIGN KEY (rescheduled_from_id) REFERENCES appointments(appointment_id);
 
 CREATE TABLE post_vaccine_reactions (
     reaction_id         SERIAL   PRIMARY KEY,

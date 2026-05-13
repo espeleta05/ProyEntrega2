@@ -1,7 +1,5 @@
 {% extends 'tutor/base_tutor.html' %}
 
-{% from 'components/badge.html' import badge %}
-
 {% block title %}Citas — Portal Familiar{% endblock %}
 
 {% block head_extra %}
@@ -9,28 +7,33 @@
 {% endblock %}
 
 {% block content %}
+{% from 'components/badge.html'       import badge %}
+{% from 'components/table.html'       import table %}
+{% from 'components/toolbar.html'     import toolbar %}
+{% from 'components/empty_state.html' import empty_state %}
+{% from 'components/card.html'        import card %}
 
-{# ── Encabezado ── #}
-<div class="dash-header">
-  <div>
-    <p class="dash-date">{{ today }}</p>
-    <h2 class="dash-title">
-      <i class="fa-solid fa-calendar-check" style="color:var(--md-primary,#6B007C);font-size:1.1rem;"></i>
-      Citas programadas
-    </h2>
-    <p class="dash-welcome">
-      {% if pending_accept > 0 %}
-        <span class="tutor-pending-notice">
-          <i class="fa-solid fa-triangle-exclamation"></i>
-          {{ pending_accept }} cita{{ 's' if pending_accept != 1 else '' }}
-          esperan tu confirmación
-        </span>
-      {% else %}
-        Todas las citas han sido revisadas
-      {% endif %}
-    </p>
-  </div>
+{# ── Toolbar ── #}
+{% if pending_accept > 0 %}
+  {{ toolbar('Citas programadas',
+             subtitle=pending_accept|string
+               ~ ' cita' ~ ('s' if pending_accept != 1 else '')
+               ~ ' esperan tu confirmación',
+             icon='fa-calendar-check') }}
+{% else %}
+  {{ toolbar('Citas programadas',
+             subtitle='Todas las citas han sido revisadas · ' ~ citas|length|string ~ ' en total',
+             icon='fa-calendar-check') }}
+{% endif %}
+
+{# ── Chip de aviso si hay confirmaciones pendientes ── #}
+{% if pending_accept > 0 %}
+<div class="tutor-pending-notice" style="margin-bottom:var(--md-spacing-4,16px);">
+  <i class="fa-solid fa-triangle-exclamation"></i>
+  {{ pending_accept }} cita{{ 's' if pending_accept != 1 else '' }}
+  esperan tu confirmación
 </div>
+{% endif %}
 
 {# ── Filtros rápidos ── #}
 <div class="tutor-filter-row">
@@ -40,157 +43,159 @@
   <button class="tutor-filter-btn" data-filter="pending">
     Pendientes de confirmación
     {% set ns = namespace(n=0) %}
-    {% for c in citas %}{% if c.tutor_accepted is none and c.appointment_status == 'Programada' %}{% set ns.n = ns.n + 1 %}{% endif %}{% endfor %}
-    {% if ns.n > 0 %}<span class="tutor-filter-count tutor-filter-count--warn">{{ ns.n }}</span>{% endif %}
+    {% for c in citas %}
+      {% if c.tutor_accepted is none and c.appointment_status == 'Programada' %}
+        {% set ns.n = ns.n + 1 %}
+      {% endif %}
+    {% endfor %}
+    {% if ns.n > 0 %}
+      <span class="tutor-filter-count tutor-filter-count--warn">{{ ns.n }}</span>
+    {% endif %}
   </button>
   <button class="tutor-filter-btn" data-filter="programada">Programadas</button>
   <button class="tutor-filter-btn" data-filter="completada">Completadas</button>
   <button class="tutor-filter-btn" data-filter="cancelada">Canceladas</button>
 </div>
 
-{# ── Tabla de citas ── #}
+{# ── Tabla de citas o estado vacío ── #}
 {% if citas %}
-<div class="section-card tutor-section">
-  <div class="tutor-table-wrap">
-    <table class="tutor-next-table tutor-citas-table" id="tutorCitasTable">
-      <thead>
-        <tr>
-          <th>Paciente</th>
-          <th>Vacuna / Motivo</th>
-          <th>Fecha y Hora</th>
-          <th>Clínica · Área</th>
-          <th>Médico</th>
-          <th>Estado cita</th>
-          <th>Tu confirmación</th>
-          <th>Acción</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for cita in citas %}
-        {% set needs_action = cita.tutor_accepted is none and cita.appointment_status == 'Programada' %}
-        <tr class="tutor-cita-row {{ 'tutor-row-action' if needs_action else '' }}"
-            data-status="{{ cita.appointment_status | lower }}"
-            data-accepted="{{ 'none' if cita.tutor_accepted is none else ('true' if cita.tutor_accepted else 'false') }}">
 
-          {# Paciente #}
-          <td>
-            <div class="patient-cell">
-              <div class="avatar-sm">{{ cita.patient_name[:2]|upper }}</div>
-              <span class="vax-name">{{ cita.patient_name }}</span>
+  {% call card(class='tutor-section') %}
+
+    {% call(cita) table(
+        id='tutorCitasTable',
+        headers=[
+          {'label': 'Paciente'},
+          {'label': 'Vacuna / Motivo'},
+          {'label': 'Fecha y Hora'},
+          {'label': 'Clínica · Área'},
+          {'label': 'Médico'},
+          {'label': 'Estado cita',    'align': 'center'},
+          {'label': 'Confirmación',   'align': 'center'},
+          {'label': 'Acción',         'align': 'center'}
+        ],
+        rows=citas,
+        footer_text=citas|length|string ~ ' cita' ~ ('s' if citas|length != 1 else '') ~ ' en total'
+    ) %}
+
+      {% set needs_action = cita.tutor_accepted is none and cita.appointment_status == 'Programada' %}
+      <tr class="tutor-cita-row {{ 'tutor-row-action' if needs_action else '' }}"
+          data-status="{{ cita.appointment_status | lower }}"
+          data-accepted="{{ 'none' if cita.tutor_accepted is none
+                            else ('true' if cita.tutor_accepted else 'false') }}">
+
+        {# Paciente #}
+        <td>
+          <div class="patient-cell">
+            <div class="avatar-sm">{{ cita.patient_name[:2]|upper }}</div>
+            <span class="vax-name">{{ cita.patient_name }}</span>
+          </div>
+        </td>
+
+        {# Vacuna / Motivo #}
+        <td>
+          {% if cita.vaccine_name and cita.vaccine_name != '—' %}
+            <span class="tutor-vaccine-label">
+              <i class="fa-solid fa-syringe"></i>
+              {{ cita.vaccine_name }}
+            </span>
+          {% elif cita.reason %}
+            <span class="muted-td">{{ cita.reason }}</span>
+          {% else %}
+            <span class="ndt-muted">—</span>
+          {% endif %}
+        </td>
+
+        {# Fecha y hora #}
+        <td class="muted-td" style="white-space:nowrap;">
+          {% if cita.scheduled_at %}
+            <strong>{{ cita.scheduled_at[:10] }}</strong><br>
+            {{ cita.scheduled_at[11:16] }}
+          {% else %}
+            —
+          {% endif %}
+        </td>
+
+        {# Clínica · Área #}
+        <td class="muted-td">
+          {{ cita.clinic_name }}<br>
+          <small>{{ cita.area_name }}</small>
+        </td>
+
+        {# Médico #}
+        <td class="muted-td">{{ cita.worker_name }}</td>
+
+        {# Estado cita #}
+        <td class="col-center">
+          {% if cita.appointment_status == 'Completada' %}
+            {{ badge('Completada', color='success',   icon='fa-check',     size='sm') }}
+          {% elif cita.appointment_status == 'Programada' %}
+            {{ badge('Programada', color='secondary', icon='fa-clock',     size='sm') }}
+          {% elif cita.appointment_status == 'No Show' %}
+            {{ badge('No Show',    color='error',     icon='fa-user-slash', size='sm') }}
+          {% else %}
+            {{ badge('Cancelada',  color='neutral',   icon='fa-xmark',     size='sm') }}
+          {% endif %}
+        </td>
+
+        {# Confirmación tutor #}
+        <td class="col-center tutor-confirm-cell" id="confirm-{{ cita.appointment_id }}">
+          {% if cita.tutor_accepted is none %}
+            {% if cita.appointment_status == 'Programada' %}
+              <span class="ndt-badge ndt-badge--pending">
+                <i class="fa-regular fa-hourglass"></i> Sin respuesta
+              </span>
+            {% else %}
+              <span class="ndt-muted">N/A</span>
+            {% endif %}
+          {% elif cita.tutor_accepted %}
+            <span class="ndt-badge ndt-badge--accepted">
+              <i class="fa-solid fa-circle-check"></i> Aceptada
+            </span>
+          {% else %}
+            <span class="ndt-badge ndt-badge--rejected">
+              <i class="fa-solid fa-circle-xmark"></i> No aceptada
+            </span>
+          {% endif %}
+        </td>
+
+        {# Botones aceptar / rechazar #}
+        <td class="col-center tutor-action-cell" id="actions-{{ cita.appointment_id }}">
+          {% if needs_action %}
+            <div class="tutor-action-btns">
+              <button class="tutor-accept-btn"
+                      data-id="{{ cita.appointment_id }}"
+                      data-accion="aceptar"
+                      title="Aceptar cita">
+                <i class="fa-solid fa-check"></i>
+              </button>
+              <button class="tutor-reject-btn"
+                      data-id="{{ cita.appointment_id }}"
+                      data-accion="rechazar"
+                      title="Rechazar cita">
+                <i class="fa-solid fa-xmark"></i>
+              </button>
             </div>
-          </td>
+          {% else %}
+            <span class="ndt-muted">—</span>
+          {% endif %}
+        </td>
 
-          {# Vacuna / Motivo #}
-          <td>
-            {% if cita.vaccine_name and cita.vaccine_name != '—' %}
-              <span class="tutor-vaccine-label">
-                <i class="fa-solid fa-syringe"></i>
-                {{ cita.vaccine_name }}
-              </span>
-            {% elif cita.reason %}
-              <span class="muted-td">{{ cita.reason }}</span>
-            {% else %}
-              <span class="ndt-muted">—</span>
-            {% endif %}
-          </td>
+      </tr>
+    {% endcall %}
 
-          {# Fecha #}
-          <td class="muted-td" style="white-space:nowrap;">
-            {% if cita.scheduled_at %}
-              <strong>{{ cita.scheduled_at[:10] }}</strong><br>
-              {{ cita.scheduled_at[11:16] }}
-            {% else %}
-              —
-            {% endif %}
-          </td>
-
-          {# Clínica · Área #}
-          <td class="muted-td">
-            {{ cita.clinic_name }}<br>
-            <small>{{ cita.area_name }}</small>
-          </td>
-
-          {# Médico #}
-          <td class="muted-td">{{ cita.worker_name }}</td>
-
-          {# Estado cita #}
-          <td>
-            {% if cita.appointment_status == 'Completada' %}
-              {{ badge('Completada', color='success',   icon='fa-check',         size='sm') }}
-            {% elif cita.appointment_status == 'Programada' %}
-              {{ badge('Programada', color='secondary', icon='fa-clock',          size='sm') }}
-            {% elif cita.appointment_status == 'No Show' %}
-              {{ badge('No Show',    color='error',     icon='fa-user-slash',     size='sm') }}
-            {% else %}
-              {{ badge('Cancelada',  color='neutral',   icon='fa-xmark',          size='sm') }}
-            {% endif %}
-          </td>
-
-          {# Confirmación tutor #}
-          <td class="tutor-confirm-cell" id="confirm-{{ cita.appointment_id }}">
-            {% if cita.tutor_accepted is none %}
-              {% if cita.appointment_status == 'Programada' %}
-                <span class="ndt-badge ndt-badge--pending">
-                  <i class="fa-regular fa-hourglass"></i> Sin respuesta
-                </span>
-              {% else %}
-                <span class="ndt-muted">N/A</span>
-              {% endif %}
-            {% elif cita.tutor_accepted %}
-              <span class="ndt-badge ndt-badge--accepted">
-                <i class="fa-solid fa-circle-check"></i> Aceptada
-              </span>
-            {% else %}
-              <span class="ndt-badge ndt-badge--rejected">
-                <i class="fa-solid fa-circle-xmark"></i> No aceptada
-              </span>
-            {% endif %}
-          </td>
-
-          {# Acciones de aceptar / rechazar #}
-          <td class="tutor-action-cell" id="actions-{{ cita.appointment_id }}">
-            {% if needs_action %}
-              <div class="tutor-action-btns">
-                <button class="tutor-accept-btn"
-                        data-id="{{ cita.appointment_id }}"
-                        data-accion="aceptar"
-                        title="Aceptar cita">
-                  <i class="fa-solid fa-check"></i>
-                </button>
-                <button class="tutor-reject-btn"
-                        data-id="{{ cita.appointment_id }}"
-                        data-accion="rechazar"
-                        title="Rechazar cita">
-                  <i class="fa-solid fa-xmark"></i>
-                </button>
-              </div>
-            {% else %}
-              <span class="ndt-muted">—</span>
-            {% endif %}
-          </td>
-
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  </div>
-
-  <p class="tutor-table-footer">
-    {{ citas|length }} cita{{ 's' if citas|length != 1 else '' }} en total
-  </p>
-</div>
+  {% endcall %}
 
 {% else %}
-  <div class="tutor-coming-soon" style="margin-top:0;">
-    <div class="tutor-coming-soon__icon">
-      <i class="fa-solid fa-calendar-xmark"></i>
-    </div>
-    <h3 class="tutor-coming-soon__title">No hay citas registradas</h3>
-    <p class="tutor-coming-soon__text">
-      Cuando el personal clínico programe una cita para tu hijo/a,
-      aparecerá aquí para que puedas confirmarla.
-    </p>
-  </div>
+
+  {{ empty_state(
+      icon='fa-calendar-xmark',
+      title='No hay citas registradas',
+      text='Cuando el personal clínico programe una cita para tu hijo/a, aparecerá aquí para que puedas confirmarla.',
+      size='lg',
+      color='neutral'
+  ) }}
+
 {% endif %}
 
 {% endblock %}

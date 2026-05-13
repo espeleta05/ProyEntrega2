@@ -104,7 +104,9 @@ GROUP BY v.vaccine_id, v.name, v.commercial_name, m.name, vv.via;
 CREATE OR REPLACE VIEW v_appointments_full AS
 SELECT
     a.appointment_id,
-    a.patient_id,
+    a.patient_schedule_id,
+    pvs.patient_id,
+    pvs.scheme_dose_id,
     a.worker_id,
     a.clinic_id,
     a.area_id,
@@ -113,14 +115,23 @@ SELECT
     a.reason,
     a.appointment_status,
     a.appointment_notes,
-    p.first_name || ' ' || p.last_name AS patient_name,
-    w.first_name || ' ' || w.last_name AS worker_name,
-    c.name AS clinic_name,
-    ca.name AS area_name
+    a.tutor_accepted,
+    a.cancel_reason,
+    a.confirmed_at,
+    a.rescheduled_from_id,
+    TRIM(p.first_name || ' ' || p.last_name)        AS patient_name,
+    COALESCE(TRIM(w.first_name || ' ' || w.last_name), '—') AS worker_name,
+    c.name                                           AS clinic_name,
+    COALESCE(ca.name, '—')                           AS area_name,
+    COALESCE(v.name, '—')                            AS vaccine_name,
+    COALESCE(sd.dose_label, '—')                     AS dose_label
 FROM appointments a
-JOIN patients p ON p.patient_id = a.patient_id
-JOIN workers w ON w.worker_id = a.worker_id
-JOIN clinics c ON c.clinic_id = a.clinic_id
+JOIN patient_vaccine_schedule pvs ON pvs.schedule_id = a.patient_schedule_id
+JOIN patients p   ON p.patient_id  = pvs.patient_id
+JOIN scheme_doses sd ON sd.dose_id = pvs.scheme_dose_id
+JOIN vaccines v      ON v.vaccine_id = sd.vaccine_id
+LEFT JOIN workers w  ON w.worker_id  = a.worker_id
+JOIN clinics c       ON c.clinic_id  = a.clinic_id
 LEFT JOIN clinic_areas ca ON ca.area_id = a.area_id;
 
 -- Vista 5: Estado de inventario de insumos
@@ -360,86 +371,101 @@ LEFT JOIN worker_emails we ON we.worker_id = w.worker_id;
 
 -- Vista 11: define el esquema completo con joins (reutilizable)
 CREATE OR REPLACE VIEW v_patient_vaccination_scheme_base AS
+
 SELECT
-    -- Identificadores
+    pvs.schedule_id,
     p.patient_id,
     sd.dose_id,
- 
-    -- Datos del paciente
+    v.vaccine_id,
+
+
     p.first_name,
     p.last_name,
-    TRIM(p.first_name || ' ' || p.last_name)            AS full_name,
+    TRIM(p.first_name || ' ' || p.last_name)
+        AS full_name,
     p.birth_date,
-    DATE_PART('year', AGE(CURRENT_DATE, p.birth_date))::INT AS age_years,
- 
-    -- Datos de la vacuna / dosis
-    v.vaccine_id,
-    v.name                                               AS vaccine_name,
+    DATE_PART(
+        'year',
+        AGE(CURRENT_DATE, p.birth_date)
+    )::INT AS age_years,
+
+
+    v.name AS vaccine_name,
     v.disease_prevented,
     sd.dose_label,
     sd.dose_number,
     sd.ideal_age_months,
- 
-    -- Fecha ideal de aplicación calculada desde fecha de nacimiento
-    (p.birth_date + (sd.ideal_age_months || ' months')::INTERVAL)::DATE
-                                                         AS ideal_date,
- 
-    -- Datos del registro de vacunación (NULL si aún no aplicada)
+
+    (
+        p.birth_date
+        +
+        (sd.ideal_age_months || ' months')::INTERVAL
+    )::DATE AS ideal_date,
+
     vr.record_id,
     vr.applied_date,
     vr.had_reaction,
     vr.patient_temp_c,
     vr.lot_id,
- 
-    -- Doctor que aplicó
-    COALESCE(TRIM(w.first_name || ' ' || w.last_name), '—') AS doctor,
- 
-    -- Sitio de aplicación
-    COALESCE(aps.application_site, '—')                  AS application_site,
- 
-    -- Estado de la dosis
+
+    COALESCE(
+        TRIM(w.first_name || ' ' || w.last_name),
+        '—'
+    ) AS doctor,
+
+    
+    COALESCE(
+        aps.application_site,
+        '—'
+    ) AS application_site,
+
     CASE
-        WHEN vr.record_id IS NOT NULL THEN 'Aplicada'
-        WHEN (p.birth_date + (sd.ideal_age_months || ' months')::INTERVAL)::DATE < CURRENT_DATE
-             THEN 'Pendiente con retraso'
-        ELSE 'Pendiente'
-    END                                                  AS estado,
- 
-    -- Días de retraso (positivo = tarde, negativo = aún no vence)
+
+        WHEN vr.record_id IS NOT NULL THEN
+            'Aplicada'
+
+        WHEN pvs.due_date < CURRENT_DATE THEN
+            'Atrasada'
+
+        ELSE
+            'Pendiente'
+
+    END AS vaccination_status,
+
+
     CASE
-        WHEN vr.record_id IS NOT NULL THEN 0
-        ELSE (CURRENT_DATE - (p.birth_date + (sd.ideal_age_months || ' months')::INTERVAL)::DATE)
-    END                                                  AS dias_retraso,
- 
-    -- Próxima dosis esperada para la misma vacuna (si existe una posterior aún no aplicada)
+        WHEN vr.record_id IS NOT NULL THEN
+            0
+        ELSE
+            CURRENT_DATE - pvs.due_date
+    END AS dias_retraso,
+
     (
         SELECT MIN(sd2.ideal_age_months)
         FROM scheme_doses sd2
         WHERE sd2.vaccine_id = sd.vaccine_id
           AND sd2.dose_number > sd.dose_number
           AND NOT EXISTS (
-              SELECT 1 FROM vaccination_records vr2
-              WHERE vr2.patient_id    = p.patient_id
-                AND vr2.scheme_dose_id = sd2.dose_id
+                SELECT 1
+                FROM vaccination_records vr2
+                WHERE vr2.patient_id = p.patient_id
+                  AND vr2.scheme_dose_id = sd2.dose_id
           )
-    )                                                    AS next_dose_age_months
- 
-FROM patients p
- 
--- Cruce completo: cada paciente × cada dosis del esquema
-CROSS JOIN scheme_doses sd
-JOIN vaccines v ON v.vaccine_id = sd.vaccine_id
- 
--- Registro aplicado (si existe)
+    ) AS next_dose_age_months
+
+FROM patient_vaccine_schedule pvs
+-- PACIENTE
+JOIN patients p ON pvs.patient_id = p.patient_id
+-- DOSIS DEL ESQUEMA
+JOIN scheme_doses sd ON pvs.scheme_dose_id = sd.dose_id
+-- VACUNA
+JOIN vaccines v ON sd.vaccine_id = v.vaccine_id
+-- REGISTRO DE VACUNACIÓN
 LEFT JOIN vaccination_records vr
-       ON vr.patient_id     = p.patient_id
-      AND vr.scheme_dose_id  = sd.dose_id
- 
--- Doctor
+    ON vr.patient_id = p.patient_id
+   AND vr.scheme_dose_id = sd.dose_id
+-- TRABAJADOR
 LEFT JOIN workers w ON w.worker_id = vr.worker_id
- 
--- Sitio de aplicación
+-- SITIO DE APLICACIÓN
 LEFT JOIN application_sites aps ON aps.application_site_id = vr.application_site_id
- 
-WHERE p.is_active = TRUE
-ORDER BY p.patient_id, sd.ideal_age_months, sd.dose_number;
+WHERE p.is_active = TRUE;

@@ -31,10 +31,10 @@
     {% endcall %}
 #}
 
-{% macro table(headers, rows, empty_icon='fa-table', empty_title='Sin resultados', empty_text='', footer_text='', class='') %}
+{% macro table(headers, rows, empty_icon='fa-table', empty_title='Sin resultados', empty_text='', footer_text='', class='', id='') %}
   <div class="md3-table-wrapper {{ class }}">
     <div class="md3-table-scroll">
-      <table class="md3-table">
+      <table class="md3-table"{% if id %} id="{{ id }}"{% endif %}>
 
         <thead>
           <tr>

@@ -1,7 +1,5 @@
 {% extends 'tutor/base_tutor.html' %}
 
-{% from 'components/badge.html' import badge %}
-
 {% block title %}Vacunas — {{ patient.full_name }}{% endblock %}
 
 {% block head_extra %}
@@ -9,15 +7,17 @@
 {% endblock %}
 
 {% block content %}
+{% from 'components/badge.html'       import badge %}
+{% from 'components/table.html'       import table %}
+{% from 'components/toolbar.html'     import toolbar %}
+{% from 'components/empty_state.html' import empty_state %}
+{% from 'components/card.html'        import card %}
 
-{# ── Botón regresar ── #}
-<div class="tutor-toolbar">
-  <a href="{{ url_for('tutor_dashboard') }}" class="tutor-back-btn">
-    <i class="fa-solid fa-arrow-left"></i>
-    Volver al panel
-  </a>
-  <span class="tutor-toolbar-title">Esquema de vacunación</span>
-</div>
+{# ── Toolbar ── #}
+{{ toolbar('Esquema de vacunación',
+           subtitle='Historial y próximas dosis de ' ~ patient.full_name,
+           icon='fa-syringe',
+           back_href=url_for('tutor_dashboard')) }}
 
 {# ── Hero del paciente ── #}
 <div class="tutor-patient-hero">
@@ -38,7 +38,8 @@
         <span><i class="fa-solid fa-cake-candles"></i> {{ patient.birth_date }}</span>
       {% endif %}
       {% if patient.age is not none %}
-        <span><i class="fa-solid fa-person"></i> {{ patient.age }} año{{ 's' if patient.age != 1 else '' }}</span>
+        <span><i class="fa-solid fa-person"></i>
+          {{ patient.age }} año{{ 's' if patient.age != 1 else '' }}</span>
       {% endif %}
     </p>
 
@@ -46,8 +47,8 @@
     <div class="tutor-hero-progress">
       <div class="tutor-hero-bar">
         <div class="tutor-hero-bar-fill
-          {{ 'fill--ok'  if pct == 100 else
-             'fill--warn' if pct >= 60 else
+          {{ 'fill--ok'   if pct == 100 else
+             'fill--warn' if pct >= 60  else
              'fill--low' }}"
              style="--pct: {{ pct }}%;"></div>
       </div>
@@ -83,154 +84,131 @@
   </div>
 </div>
 
-{# ── Dosis aplicadas ── #}
-<div class="section-card tutor-section">
-  <div class="section-header-row">
-    <h3>
-      <i class="fa-solid fa-circle-check" style="color:var(--md-success,#1D7B00);"></i>
-      Dosis ya aplicadas
-    </h3>
-    <span class="chart-badge">{{ total_applied }} registros</span>
-  </div>
+{# ── Dosis ya aplicadas ── #}
+{% call card(title='Dosis ya aplicadas',
+             icon='fa-circle-check',
+             subtitle=total_applied|string ~ ' registros',
+             class='tutor-section') %}
 
-  {% if applications %}
-  <div class="tutor-table-wrap">
-    <table class="tutor-next-table">
-      <thead>
-        <tr>
-          <th>Vacuna</th>
-          <th>Dosis</th>
-          <th>Fecha aplicada</th>
-          <th>Estado</th>
-          <th style="text-align:center;">Comprobante</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for app in applications %}
-        <tr>
-          <td><strong>{{ app.name }}</strong></td>
-          <td>{{ badge(app.dose, color='primary', size='sm') }}</td>
-          <td class="muted-td">
-            <i class="fa-regular fa-calendar"></i>
-            {{ app.date[:10] if app.date else '—' }}
-          </td>
-          <td>{{ badge('Aplicada', color='success', icon='fa-check', size='sm') }}</td>
-          <td style="text-align:center;">
-            {% if app.record_id %}
-              <a href="{{ url_for('tutor_comprobante', record_id=app.record_id) }}"
-                 class="tutor-btn tutor-btn--outline tutor-btn--sm"
-                 title="Descargar comprobante PDF">
-                <i class="fa-solid fa-file-pdf"></i>
-                PDF
-              </a>
-            {% else %}
-              <span class="ndt-muted">—</span>
-            {% endif %}
-          </td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  </div>
-  {% else %}
-  <p class="tutor-empty-note">
-    <i class="fa-solid fa-info-circle"></i>
-    Aún no hay dosis registradas.
-  </p>
-  {% endif %}
-</div>
+  {% call(app) table(
+      headers=[
+        {'label': 'Vacuna'},
+        {'label': 'Dosis',          'align': 'center'},
+        {'label': 'Fecha aplicada'},
+        {'label': 'Estado',         'align': 'center'},
+        {'label': 'Comprobante',    'align': 'center'}
+      ],
+      rows=applications,
+      empty_icon='fa-syringe',
+      empty_title='Aún no hay dosis registradas',
+      empty_text='Una vez que se aplique la primera vacuna, aparecerá aquí.',
+      footer_text=total_applied|string ~ ' dosis aplicadas'
+  ) %}
+    <tr>
+      <td><strong>{{ app.name }}</strong></td>
+      <td class="col-center">{{ badge(app.dose, color='primary', size='sm') }}</td>
+      <td class="muted-td">
+        <i class="fa-regular fa-calendar"></i>
+        {{ app.date[:10] if app.date else '—' }}
+      </td>
+      <td class="col-center">
+        {{ badge('Aplicada', color='success', icon='fa-check', size='sm') }}
+      </td>
+      <td class="col-center">
+        {% if app.record_id %}
+          <a href="{{ url_for('tutor_comprobante', record_id=app.record_id) }}"
+             class="tutor-btn tutor-btn--outline tutor-btn--sm"
+             title="Descargar comprobante PDF">
+            <i class="fa-solid fa-file-pdf"></i>
+            PDF
+          </a>
+        {% else %}
+          <span class="ndt-muted">—</span>
+        {% endif %}
+      </td>
+    </tr>
+  {% endcall %}
+
+{% endcall %}
 
 {# ── Próximas dosis ── #}
-<div class="section-card tutor-section">
-  <div class="section-header-row">
-    <h3>
-      <i class="fa-solid fa-calendar-days" style="color:var(--md-primary,#6B007C);"></i>
-      Próximas dosis
-    </h3>
-    <span class="chart-badge">{{ total_pending }} pendientes</span>
-  </div>
+{% call card(title='Próximas dosis',
+             icon='fa-calendar-days',
+             subtitle=total_pending|string ~ ' pendientes',
+             class='tutor-section') %}
 
-  {% if next_vaccines %}
-  <div class="tutor-table-wrap">
-    <table class="tutor-next-table">
-      <thead>
-        <tr>
-          <th>Vacuna</th>
-          <th>Dosis</th>
-          <th>Edad ideal</th>
-          <th>Estado / Retraso</th>
-          <th>Fecha de cita</th>
-          <th>Confirmación</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for nv in next_vaccines %}
-        <tr class="{{ 'tutor-row-delayed' if nv.estado == 'Pendiente con retraso' else '' }}">
+  {% call(nv) table(
+      headers=[
+        {'label': 'Vacuna'},
+        {'label': 'Dosis',           'align': 'center'},
+        {'label': 'Edad ideal'},
+        {'label': 'Estado / Retraso'},
+        {'label': 'Fecha de cita'},
+        {'label': 'Confirmación',    'align': 'center'}
+      ],
+      rows=next_vaccines,
+      empty_icon='fa-circle-check',
+      empty_title='Todas las dosis del esquema han sido aplicadas',
+      empty_text='El esquema de vacunación está completamente al día.'
+  ) %}
+    <tr class="{{ 'tutor-row-delayed' if nv.estado == 'Pendiente con retraso' else '' }}">
 
-          <td><strong>{{ nv.name }}</strong></td>
+      <td><strong>{{ nv.name }}</strong></td>
 
-          <td>{{ badge(nv.dose, color='primary', size='sm') }}</td>
+      <td class="col-center">{{ badge(nv.dose, color='primary', size='sm') }}</td>
 
-          <td class="muted-td">{{ nv.edad_ideal or '—' }}</td>
+      <td class="muted-td">{{ nv.edad_ideal or '—' }}</td>
 
-          <td>
-            {% if nv.estado == 'Pendiente con retraso' %}
-              <span class="ndt-badge ndt-badge--delay">
-                <i class="fa-solid fa-triangle-exclamation"></i>
-                {{ nv.dias_retraso }} días atrasada
-              </span>
-            {% elif nv.alerta_retraso %}
-              <span class="ndt-badge ndt-badge--ok">
-                <i class="fa-solid fa-clock"></i>
-                {{ nv.alerta_retraso }}
-              </span>
-            {% else %}
-              <span class="muted-td">Pendiente</span>
-            {% endif %}
-          </td>
+      <td>
+        {% if nv.estado == 'Pendiente con retraso' %}
+          <span class="ndt-badge ndt-badge--delay">
+            <i class="fa-solid fa-triangle-exclamation"></i>
+            {{ nv.dias_retraso }} días atrasada
+          </span>
+        {% elif nv.alerta_retraso %}
+          <span class="ndt-badge ndt-badge--ok">
+            <i class="fa-solid fa-clock"></i>
+            {{ nv.alerta_retraso }}
+          </span>
+        {% else %}
+          <span class="muted-td">Pendiente</span>
+        {% endif %}
+      </td>
 
-          <td class="muted-td">
-            {% if nv.fecha_cita %}
-              <i class="fa-regular fa-calendar"></i>
-              {{ nv.fecha_cita[:10] }}
-            {% else %}
-              <span class="ndt-muted">Sin cita</span>
-            {% endif %}
-          </td>
+      <td class="muted-td">
+        {% if nv.fecha_cita %}
+          <i class="fa-regular fa-calendar"></i>
+          {{ nv.fecha_cita[:10] }}
+        {% else %}
+          <span class="ndt-muted">Sin cita</span>
+        {% endif %}
+      </td>
 
-          <td>
-            {% if nv.cita_aceptada is none and nv.fecha_cita %}
-              <span class="ndt-badge ndt-badge--pending">
-                <i class="fa-regular fa-hourglass"></i> Pendiente
-              </span>
-            {% elif nv.cita_aceptada %}
-              <span class="ndt-badge ndt-badge--accepted">
-                <i class="fa-solid fa-circle-check"></i> Aceptada
-              </span>
-            {% elif nv.cita_aceptada == false %}
-              <span class="ndt-badge ndt-badge--rejected">
-                <i class="fa-solid fa-circle-xmark"></i> No aceptada
-              </span>
-            {% else %}
-              <span class="ndt-muted">—</span>
-            {% endif %}
-          </td>
+      <td class="col-center">
+        {% if nv.cita_aceptada is none and nv.fecha_cita %}
+          <span class="ndt-badge ndt-badge--pending">
+            <i class="fa-regular fa-hourglass"></i> Pendiente
+          </span>
+        {% elif nv.cita_aceptada %}
+          <span class="ndt-badge ndt-badge--accepted">
+            <i class="fa-solid fa-circle-check"></i> Aceptada
+          </span>
+        {% elif nv.cita_aceptada == false %}
+          <span class="ndt-badge ndt-badge--rejected">
+            <i class="fa-solid fa-circle-xmark"></i> No aceptada
+          </span>
+        {% else %}
+          <span class="ndt-muted">—</span>
+        {% endif %}
+      </td>
 
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  </div>
-  {% else %}
-  <p class="tutor-empty-note">
-    <i class="fa-solid fa-circle-check" style="color:var(--md-success,#1D7B00);"></i>
-    Todas las dosis del esquema han sido aplicadas.
-  </p>
-  {% endif %}
-</div>
+    </tr>
+  {% endcall %}
 
-{# Ir a citas #}
-<div style="text-align:right; margin-top: 4px;">
+{% endcall %}
+
+{# ── Enlace rápido a citas ── #}
+<div style="text-align:right; margin-top:4px;">
   <a href="{{ url_for('tutor_citas') }}" class="tutor-btn tutor-btn--outline">
     <i class="fa-solid fa-calendar-check"></i>
     Ver citas de {{ patient.full_name.split()[0] }}
