@@ -120,17 +120,17 @@ LANGUAGE plpgsql
 AS $$
 BEGIN
     IF TG_OP = 'INSERT' THEN
-        INSERT INTO audit_log (table_name, operation, record_id, changed_data, changed_at)
-        VALUES ('patients', 'INSERT', NEW.patient_id, row_to_json(NEW), NOW());
+        INSERT INTO audit_log (table_name, action, record_id, changed_data, changed_at)
+        VALUES ('patients', 'INSERT', NEW.patient_id, row_to_json(NEW)::JSONB, NOW());
     ELSIF TG_OP = 'UPDATE' THEN
-        INSERT INTO audit_log (table_name, operation, record_id, changed_data, changed_at)
+        INSERT INTO audit_log (table_name, action, record_id, changed_data, changed_at)
         VALUES ('patients', 'UPDATE', NEW.patient_id, jsonb_build_object(
             'old', row_to_json(OLD),
             'new', row_to_json(NEW)
         ), NOW());
     ELSIF TG_OP = 'DELETE' THEN
-        INSERT INTO audit_log (table_name, operation, record_id, changed_data, changed_at)
-        VALUES ('patients', 'DELETE', OLD.patient_id, row_to_json(OLD), NOW());
+        INSERT INTO audit_log (table_name, action, record_id, changed_data, changed_at)
+        VALUES ('patients', 'DELETE', OLD.patient_id, row_to_json(OLD)::JSONB, NOW());
     END IF;
     RETURN COALESCE(NEW, OLD);
 END;
@@ -150,17 +150,17 @@ LANGUAGE plpgsql
 AS $$
 BEGIN
     IF TG_OP = 'INSERT' THEN
-        INSERT INTO audit_log (table_name, operation, record_id, changed_data, changed_at)
-        VALUES ('vaccination_records', 'INSERT', NEW.record_id, row_to_json(NEW), NOW());
+        INSERT INTO audit_log (table_name, action, record_id, changed_data, changed_at)
+        VALUES ('vaccination_records', 'INSERT', NEW.record_id, row_to_json(NEW)::JSONB, NOW());
     ELSIF TG_OP = 'UPDATE' THEN
-        INSERT INTO audit_log (table_name, operation, record_id, changed_data, changed_at)
+        INSERT INTO audit_log (table_name, action, record_id, changed_data, changed_at)
         VALUES ('vaccination_records', 'UPDATE', NEW.record_id, jsonb_build_object(
             'old', row_to_json(OLD),
             'new', row_to_json(NEW)
         ), NOW());
     ELSIF TG_OP = 'DELETE' THEN
-        INSERT INTO audit_log (table_name, operation, record_id, changed_data, changed_at)
-        VALUES ('vaccination_records', 'DELETE', OLD.record_id, row_to_json(OLD), NOW());
+        INSERT INTO audit_log (table_name, action, record_id, changed_data, changed_at)
+        VALUES ('vaccination_records', 'DELETE', OLD.record_id, row_to_json(OLD)::JSONB, NOW());
     END IF;
     RETURN COALESCE(NEW, OLD);
 END;
@@ -180,17 +180,17 @@ LANGUAGE plpgsql
 AS $$
 BEGIN
     IF TG_OP = 'INSERT' THEN
-        INSERT INTO audit_log (table_name, operation, record_id, changed_data, changed_at)
-        VALUES ('workers', 'INSERT', NEW.worker_id, row_to_json(NEW), NOW());
+        INSERT INTO audit_log (table_name, action, record_id, changed_data, changed_at)
+        VALUES ('workers', 'INSERT', NEW.worker_id, row_to_json(NEW)::JSONB, NOW());
     ELSIF TG_OP = 'UPDATE' THEN
-        INSERT INTO audit_log (table_name, operation, record_id, changed_data, changed_at)
+        INSERT INTO audit_log (table_name, action, record_id, changed_data, changed_at)
         VALUES ('workers', 'UPDATE', NEW.worker_id, jsonb_build_object(
             'old', row_to_json(OLD),
             'new', row_to_json(NEW)
         ), NOW());
     ELSIF TG_OP = 'DELETE' THEN
-        INSERT INTO audit_log (table_name, operation, record_id, changed_data, changed_at)
-        VALUES ('workers', 'DELETE', OLD.worker_id, row_to_json(OLD), NOW());
+        INSERT INTO audit_log (table_name, action, record_id, changed_data, changed_at)
+        VALUES ('workers', 'DELETE', OLD.worker_id, row_to_json(OLD)::JSONB, NOW());
     END IF;
     RETURN COALESCE(NEW, OLD);
 END;
@@ -273,11 +273,11 @@ RETURNS TRIGGER
 LANGUAGE plpgsql AS $$
 BEGIN
     UPDATE patient_vaccine_schedule
-    SET status = 'Pendiente'
-        AND applied_record_id IS NULL
-    WHERE patient_id = NEW.patient_id
-        AND scheme_dose_id = NEW.scheme_dose_id;
-    RETURN NEW;
+    SET status = 'Pendiente',
+        applied_record_id = NULL
+    WHERE patient_id = OLD.patient_id
+        AND scheme_dose_id = OLD.scheme_dose_id;
+    RETURN OLD;
 END ;
 $$;
 
@@ -332,27 +332,22 @@ BEGIN
     IF NEW.quantity_available <= 10 THEN
 
         INSERT INTO audit_log (
-
             table_name,
-            operation,
+            action,
             record_id,
             changed_data,
             changed_at
-
         )
         VALUES (
-
             'vaccine_lots',
-            'LOW_STOCK_ALERT',
+            'UPDATE',
             NEW.lot_id,
-
             jsonb_build_object(
+                'alerta', 'stock_bajo',
                 'lot_id', NEW.lot_id,
                 'remaining_stock', NEW.quantity_available
             ),
-
             NOW()
-
         );
 
     END IF;
