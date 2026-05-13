@@ -769,114 +769,188 @@ CREATE OR REPLACE PROCEDURE sp_get_patient_scheme(
     IN    p_patient_id INT,
     INOUT p_results    REFCURSOR
 )
-LANGUAGE plpgsql AS $$
+LANGUAGE plpgsql
+AS $$
 DECLARE
-    v_exists BOOLEAN;
+    v_patient_active BOOLEAN;
 BEGIN
- 
-    -- -------------------------------------------------------------------------
-    -- Validación 1: el paciente debe existir
-    -- -------------------------------------------------------------------------
-    SELECT EXISTS(
-        SELECT 1 FROM patients
-        WHERE patient_id = p_patient_id
-    )
-    INTO v_exists;
- 
-    IF NOT v_exists THEN
-        RAISE EXCEPTION 'El paciente con ID % no existe', p_patient_id;
+
+    -- ============================================================
+    -- VALIDAR PACIENTE
+    -- ============================================================
+
+    SELECT is_active
+    INTO v_patient_active
+    FROM patients
+    WHERE patient_id = p_patient_id;
+
+    -- No existe
+    IF v_patient_active IS NULL THEN
+        RAISE EXCEPTION
+            'El paciente con ID % no existe.',
+            p_patient_id;
     END IF;
- 
-    -- -------------------------------------------------------------------------
-    -- Validación 2: el paciente debe estar activo
-    -- -------------------------------------------------------------------------
-    SELECT EXISTS(
-        SELECT 1 FROM patients
-        WHERE patient_id = p_patient_id
-          AND is_active = TRUE
-    )
-    INTO v_exists;
- 
-    IF NOT v_exists THEN
-        RAISE EXCEPTION 'El paciente con ID % está inactivo', p_patient_id;
+
+    -- Existe pero está inactivo
+    IF v_patient_active = FALSE THEN
+        RAISE EXCEPTION
+            'El paciente con ID % está inactivo.',
+            p_patient_id;
     END IF;
- 
+
+
+    -- ============================================================
+    -- RETORNAR ESQUEMA COMPLETO
+    -- ============================================================
+
     OPEN p_results FOR
+
+    WITH latest_appointments AS (
+        SELECT
+            a.*,
+
+            ROW_NUMBER() OVER (
+                PARTITION BY a.patient_schedule_id
+                ORDER BY a.created_at DESC
+            ) AS rn
+
+        FROM appointments a
+    )
+
     SELECT
-        -- Identificadores
-        patient_id,
-        dose_id,
-        vaccine_id,
-        record_id,
 
-        -- Paciente
-        full_name,
-        birth_date,
-        age_years,
+        -- ========================================================
+        -- IDENTIFICADORES
+        -- ========================================================
 
-        -- Vacuna / dosis
-        base.vaccine_name,
-        base.disease_prevented,
-        base.dose_label,
-        base.dose_number,
-        base.ideal_age_months,
-        base.ideal_date,
+        v.schedule_id,
+        v.patient_id,
+        v.dose_id,
+        v.vaccine_id,
+        v.record_id,
 
-        -- Aplicación
-        base.applied_date,
-        base.doctor,
-        base.application_site,
-        base.had_reaction,
-        base.patient_temp_c,
+        la.appointment_id,
 
-        -- Estado
-        base.estado                                      AS vaccination_status,
-        base.dias_retraso,
 
-        -- Próxima dosis de la misma vacuna
+        -- ========================================================
+        -- PACIENTE
+        -- ========================================================
+
+        v.full_name,
+        v.birth_date,
+        v.age_years,
+
+
+        -- ========================================================
+        -- VACUNA / DOSIS
+        -- ========================================================
+
+        v.vaccine_name,
+        v.disease_prevented,
+        v.dose_label,
+        v.dose_number,
+        v.ideal_age_months,
+        v.ideal_date,
+
+
+        -- ========================================================
+        -- APLICACIÓN
+        -- ========================================================
+
+        v.applied_date,
+        v.doctor,
+        v.application_site,
+        v.had_reaction,
+        v.patient_temp_c,
+
+
+        -- ========================================================
+        -- ESTADO CLÍNICO
+        -- ========================================================
+
+        v.vaccination_status,
+        v.dias_retraso,
+
+
+        -- ========================================================
+        -- CITA
+        -- ========================================================
+
+        la.scheduled_at,
+        la.appointment_status,
+        c.name AS clinic_name,
+
+
+        -- ========================================================
+        -- PRÓXIMA DOSIS
+        -- ========================================================
+
         CASE
-            WHEN base.next_dose_age_months IS NOT NULL THEN
-                'A los ' || base.next_dose_age_months || ' meses'
+            WHEN v.next_dose_age_months IS NOT NULL THEN
+                'A los '
+                || v.next_dose_age_months
+                || ' meses'
             ELSE NULL
-        END                                              AS next_date,
+        END AS next_dose_label,
 
-        -- Etiqueta de edad ideal legible
+
+        -- ========================================================
+        -- EDAD IDEAL LEGIBLE
+        -- ========================================================
+
         CASE
-            WHEN base.ideal_age_months = 0  THEN 'Al nacer'
-            WHEN base.ideal_age_months >= 12 THEN
-                (base.ideal_age_months / 12) || ' año(s)'
+            WHEN v.ideal_age_months = 0 THEN
+                'Al nacer'
+
+            WHEN v.ideal_age_months >= 12 THEN
+                (v.ideal_age_months / 12)
+                || ' año(s)'
+
             ELSE
-                base.ideal_age_months || ' meses'
-        END                                              AS edad_ideal_label,
+                v.ideal_age_months
+                || ' meses'
+        END AS edad_ideal_label,
 
-        -- Alerta de retraso
+
+        -- ========================================================
+        -- ALERTA DE RETRASO
+        -- ========================================================
+
         CASE
-            WHEN base.record_id IS NULL AND base.dias_retraso > 0 THEN
-                'Retraso de ' || base.dias_retraso || ' días'
-            WHEN base.record_id IS NULL AND base.dias_retraso <= 0 THEN
-                'Programada en ' || ABS(base.dias_retraso) || ' días'
+
+            WHEN v.record_id IS NULL
+                 AND v.dias_retraso > 0 THEN
+
+                'Retraso de '
+                || v.dias_retraso
+                || ' días'
+
+            WHEN v.record_id IS NULL
+                 AND v.dias_retraso <= 0 THEN
+
+                'Programada en '
+                || ABS(v.dias_retraso)
+                || ' días'
+
             ELSE NULL
-        END                                              AS alerta_retraso,
 
-        -- Cita vinculada a esta dosis (la más reciente no cancelada)
-        appt.scheduled_at::DATE                          AS appointment_date,
-        appt.appointment_status,
-        appt.tutor_accepted
+        END AS alerta_retraso
 
-    FROM v_patient_vaccination_scheme_base base
-    LEFT JOIN patient_vaccine_schedule pvs
-           ON pvs.patient_id     = base.patient_id
-          AND pvs.scheme_dose_id  = base.dose_id
-    LEFT JOIN LATERAL (
-        SELECT a.scheduled_at, a.appointment_status, a.tutor_accepted
-        FROM   appointments a
-        WHERE  a.patient_schedule_id = pvs.schedule_id
-          AND  a.appointment_status  NOT IN ('Cancelada', 'No Show')
-        ORDER  BY a.scheduled_at DESC
-        LIMIT  1
-    ) appt ON TRUE
-    WHERE base.patient_id = p_patient_id
-    ORDER BY base.ideal_age_months, base.dose_number;
+    FROM v_patient_vaccination_scheme_base v
+
+    LEFT JOIN latest_appointments la
+        ON v.schedule_id = la.patient_schedule_id
+       AND la.rn = 1
+
+    LEFT JOIN clinics c
+        ON la.clinic_id = c.clinic_id
+
+    WHERE v.patient_id = p_patient_id
+
+    ORDER BY
+        v.ideal_age_months,
+        v.dose_number;
+
 END;
 $$;
  
@@ -2210,76 +2284,6 @@ BEGIN
                ON we.worker_id = w.worker_id
               AND we.is_primary = TRUE
         ORDER BY w.last_name, w.first_name;
-END;
-$$;
-
--- Esquema de un paciente (alias de sp_get_patient_scheme)
-CREATE OR REPLACE PROCEDURE sp_get_esquema_paciente(
-    IN    p_patient_id INT,
-    INOUT p_results    REFCURSOR
-)
-LANGUAGE plpgsql AS $$
-DECLARE
-    v_exists BOOLEAN;
-BEGIN
-    SELECT EXISTS(SELECT 1 FROM patients WHERE patient_id = p_patient_id AND is_active = TRUE)
-    INTO v_exists;
-    IF NOT v_exists THEN
-        RAISE EXCEPTION 'Paciente % no encontrado o inactivo', p_patient_id;
-    END IF;
-
-    OPEN p_results FOR
-        SELECT
-            base.patient_id, base.dose_id, base.vaccine_id, base.record_id,
-            base.full_name, base.birth_date, base.age_years,
-            pat.photo,
-            base.vaccine_name AS name,
-            base.disease_prevented,
-            base.dose_label   AS dose,
-            base.dose_number,
-            base.ideal_age_months,
-            base.ideal_date,
-            base.applied_date AS date,
-            base.doctor,
-            base.application_site,
-            base.had_reaction,
-            base.patient_temp_c,
-            base.estado,
-            base.dias_retraso,
-            CASE
-                WHEN base.next_dose_age_months IS NOT NULL
-                    THEN 'A los ' || base.next_dose_age_months || ' meses'
-                ELSE NULL
-            END AS next_date,
-            CASE
-                WHEN base.ideal_age_months = 0  THEN 'Al nacer'
-                WHEN base.ideal_age_months >= 12 THEN (base.ideal_age_months / 12) || ' año(s)'
-                ELSE base.ideal_age_months || ' meses'
-            END AS edad_ideal_label,
-            CASE
-                WHEN base.record_id IS NULL AND base.dias_retraso > 0
-                    THEN 'Retraso de ' || base.dias_retraso || ' días'
-                WHEN base.record_id IS NULL AND base.dias_retraso <= 0
-                    THEN 'Programada en ' || ABS(base.dias_retraso) || ' días'
-                ELSE NULL
-            END AS alerta_retraso,
-            -- Cita más reciente no cancelada para esta dosis
-            appt.scheduled_at::DATE AS fecha_cita,
-            appt.appointment_status AS cita_estado,
-            appt.tutor_accepted     AS cita_aceptada_tutor
-        FROM v_patient_vaccination_scheme_base base
-        JOIN patients pat ON pat.patient_id = base.patient_id
-        LEFT JOIN LATERAL (
-            SELECT a.scheduled_at, a.appointment_status, a.tutor_accepted
-            FROM appointments a
-            JOIN patient_vaccine_schedule pvs ON pvs.schedule_id = a.patient_schedule_id
-            WHERE pvs.patient_id    = base.patient_id
-              AND pvs.scheme_dose_id = base.dose_id
-            ORDER BY a.scheduled_at DESC
-            LIMIT 1
-        ) appt ON TRUE
-        WHERE base.patient_id = p_patient_id
-        ORDER BY base.ideal_age_months, base.dose_number;
 END;
 $$;
 

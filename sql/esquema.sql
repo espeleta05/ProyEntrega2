@@ -352,31 +352,82 @@ CREATE TABLE scheme_doses (
 --  MÓDULO: APPOINTMENTS
 CREATE TABLE appointments (
     appointment_id      SERIAL      PRIMARY KEY,
-    patient_schedule_id INT,        -- FK a patient_vaccine_schedule; constraint al final
+    patient_id          INT         NOT NULL REFERENCES patients(patient_id),
     clinic_id           INT         NOT NULL REFERENCES clinics(clinic_id),
     area_id             INT         REFERENCES clinic_areas(area_id),
     worker_id           INT         REFERENCES workers(worker_id),
+    vaccine_id          INT         REFERENCES vaccines(vaccine_id),
+    scheme_dose_id      INT         REFERENCES scheme_doses(dose_id),
     scheduled_at        TIMESTAMP   NOT NULL,
     duration_min        SMALLINT,
     reason              TEXT,
-    appointment_status  VARCHAR(50) CHECK (appointment_status IN (
-                            'Pendiente confirmación','Confirmada','Programada',
-                            'Completada','Cancelada','No Show','Reagendada')),
+    appointment_status  VARCHAR(50) CHECK (appointment_status IN ('Programada','Completada','Cancelada','No Show')),
     appointment_notes   TEXT,
-    tutor_accepted      BOOLEAN     DEFAULT NULL,
-    cancel_reason       TEXT,
-    confirmed_at        TIMESTAMP,
-    rescheduled_from_id INT,        -- auto-referencia; constraint al final
     created_at          TIMESTAMP   DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(patient_id, scheduled_at),
     UNIQUE(clinic_id, area_id, scheduled_at),
     UNIQUE(worker_id, scheduled_at)
 );
+
+ALTER TABLE appointments ADD COLUMN patient_schedule_id INT REFERENCES patient_vaccine_schedule(schedule_id);
+
+-- 2. Hacer el mapeo
+UPDATE appointments a 
+SET patient_schedule_id = pvs.schedule_id 
+FROM patient_vaccine_schedule pvs 
+WHERE a.patient_id = pvs.patient_id 
+AND a.scheme_dose_id = pvs.scheme_dose_id;
+
+-- 3. Revisar si alguna cita no pudo mapearse
+SELECT * FROM appointments WHERE patient_schedule_id IS NULL;
+
+-- 4. Crear FK
+ALTER TABLE appointments ADD CONSTRAINT fk_appointments_schedule FOREIGN KEY (patient_schedule_id) REFERENCES patient_vaccine_schedule(schedule_id);
+
+-- 5. Hacer NOT NULL
+ALTER TABLE appointments ALTER COLUMN patient_schedule_id SET NOT NULL;
+
+ALTER TABLE appointments DROP CONSTRAINT appointments_appointment_status_check;
+
+ALTER TABLE appointments ADD CONSTRAINT appointments_appointment_status_check 
+CHECK (appointment_status IN (
+        'Pendiente confirmación',
+        'Confirmada',
+        'Programada',
+        'Reagendada',
+        'Completada',
+        'Cancelada',
+        'No Show'
+    )
+);
+
+ALTER TABLE appointments ADD COLUMN confirmed_at TIMESTAMP;
+ALTER TABLE appointments ADD COLUMN cancel_reason TEXT;
+ALTER TABLE appointments ADD COLUMN rescheduled_from_id INT REFERENCES appointments(appointment_id);
+
+
+--finalmente
+ALTER TABLE appointments DROP COLUMN patient_id;
+ALTER TABLE appointments DROP COLUMN vaccine_id;
+ALTER TABLE appointments DROP COLUMN scheme_dose_id;
 
 
 --  MÓDULO: VACCINATION RECORD
 CREATE TABLE application_sites (
     application_site_id  SERIAL PRIMARY KEY,
     application_site     VARCHAR(50) NOT NULL UNIQUE
+);
+
+
+CREATE TABLE patient_vaccine_schedule (
+    schedule_id SERIAL PRIMARY KEY,
+    patient_id INT NOT NULL REFERENCES patients(patient_id),
+    scheme_dose_id INT NOT NULL REFERENCES scheme_doses(dose_id),
+    due_date DATE NOT NULL,
+    status VARCHAR(20) DEFAULT 'Pendiente' CHECK (status IN ('Pendiente','Aplicada','Atrasada')),
+    applied_record_id INT REFERENCES vaccination_records(record_id),
+
+    UNIQUE (patient_id, scheme_dose_id)
 );
 
 CREATE TABLE vaccination_records (
@@ -397,25 +448,8 @@ CREATE TABLE vaccination_records (
 
 ALTER TABLE vaccination_records ADD COLUMN created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
 
-CREATE TABLE patient_vaccine_schedule (
-    schedule_id SERIAL PRIMARY KEY,
-    patient_id INT NOT NULL REFERENCES patients(patient_id),
-    scheme_dose_id INT NOT NULL REFERENCES scheme_doses(dose_id),
-    due_date DATE NOT NULL,
-    status VARCHAR(20) DEFAULT 'Pendiente' CHECK (status IN ('Pendiente','Aplicada','Atrasada')),
-    applied_record_id INT REFERENCES vaccination_records(record_id),
+ALTER TABLE vaccination_records ADD COLUMN patient_schedule_id INT REFERENCES patient_vaccine_schedule(schedule_id);
 
-    UNIQUE (patient_id, scheme_dose_id)
-);
-
--- FKs circulares: se agregan después de que ambas tablas existan
-ALTER TABLE appointments
-    ADD CONSTRAINT fk_appointments_patient_schedule
-    FOREIGN KEY (patient_schedule_id) REFERENCES patient_vaccine_schedule(schedule_id);
-
-ALTER TABLE appointments
-    ADD CONSTRAINT fk_appointments_rescheduled_from
-    FOREIGN KEY (rescheduled_from_id) REFERENCES appointments(appointment_id);
 
 CREATE TABLE post_vaccine_reactions (
     reaction_id         SERIAL   PRIMARY KEY,
