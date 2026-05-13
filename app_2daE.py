@@ -2966,7 +2966,40 @@ def api_reportes_publicos_resumen():
             conn.close()
 
     if sp_row:
-        return jsonify(dict(sp_row))
+        import json as _json
+        row = dict(sp_row)
+
+        def _parse_col(val):
+            if val is None:
+                return []
+            if isinstance(val, (list, dict)):
+                return val
+            try:
+                return _json.loads(val)
+            except Exception:
+                return []
+
+        return jsonify({
+            "kpis": {
+                "total_doses_applied":         row.get("total_doses_applied", 0),
+                "target_population":           row.get("target_population", 0),
+                "reached_population":          row.get("reached_population", 0),
+                "coverage_percent":            float(row.get("coverage_percent") or 0),
+                "avg_delay_days":              float(row.get("avg_delay_days") or 0),
+                "active_zones":                row.get("active_zones", 0),
+                "reaction_rate":               float(row.get("reaction_rate")) if row.get("reaction_rate") is not None else None,
+                "completed_scheme":            row.get("completed_scheme"),
+                "delayed_patients":            row.get("delayed_patients"),
+                "appointment_completion_rate": float(row.get("appointment_completion_rate")) if row.get("appointment_completion_rate") is not None else None,
+                "low_stock_count":             row.get("low_stock_count"),
+                "new_patients":                row.get("new_patients"),
+                "active_workers":              row.get("active_workers"),
+                "avg_temp_c":                  float(row.get("avg_temp_c")) if row.get("avg_temp_c") is not None else None,
+            },
+            "vaccines": _parse_col(row.get("vaccines")),
+            "monthly":  _parse_col(row.get("monthly")),
+            "zones":    _parse_col(row.get("zones")),
+        })
 
     # Fallback Python
     all_records  = _cur_fetchall("vaccination_records")
@@ -3091,4 +3124,3 @@ if __name__ == "__main__":
 
     logger.info("✓ Flask iniciando en http://127.0.0.1:5000")
     app.run(debug=True)
-

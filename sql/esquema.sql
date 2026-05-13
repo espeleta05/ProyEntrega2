@@ -547,13 +547,14 @@ CREATE TABLE scan_logs (
 );
 
 CREATE TABLE audit_log (
-    audit_id    SERIAL PRIMARY KEY,
-    table_name  VARCHAR(100) NOT NULL,
-    record_id   INT          NOT NULL,
-    action      VARCHAR(20)  NOT NULL CHECK (action IN ('INSERT','UPDATE','DELETE')),
-    worker_id   INT          REFERENCES workers(worker_id),
-    changed_at  TIMESTAMP    NOT NULL DEFAULT NOW(),
-    ip_address  VARCHAR(45)
+    audit_id     SERIAL PRIMARY KEY,
+    table_name   VARCHAR(100) NOT NULL,
+    record_id    INT          NOT NULL,
+    action       VARCHAR(20)  NOT NULL CHECK (action IN ('INSERT','UPDATE','DELETE')),
+    changed_data JSONB,
+    worker_id    INT          REFERENCES workers(worker_id),
+    changed_at   TIMESTAMP    NOT NULL DEFAULT NOW(),
+    ip_address   VARCHAR(45)
 );
 
 -- ============================================================
