@@ -107,16 +107,7 @@
                 compact=True
             ) }}
           {% endfor %}
-          {% for a in child.alerts_pending_accept %}
-            {% set ns.found = true %}
-            {{ alert(
-                child.full_name ~ ': cita ' ~ a.name ~ ' sin confirmar'
-                ~ (' · ' ~ a.fecha_cita[:10] if a.fecha_cita else ''),
-                type='warning',
-                icon='fa-calendar-clock',
-                compact=True
-            ) }}
-          {% endfor %}
+          {# [CORREGIDO] alerts_pending_accept eliminado (flujo tutor_accepted deprecado) #}
         {% endfor %}
         {% if not ns.found %}
           {{ alert('Todo al día — sin alertas activas', type='success',
@@ -183,11 +174,8 @@
               {{ badge(child.delayed_count ~ ' atrasada' ~ ('s' if child.delayed_count > 1 else ''),
                        color='error', icon='fa-triangle-exclamation', size='sm') }}
             {% endif %}
-            {% if child.pending_accept_count > 0 %}
-              {{ badge(child.pending_accept_count ~ ' cita' ~ ('s' if child.pending_accept_count > 1 else '') ~ ' sin confirmar',
-                       color='secondary', icon='fa-calendar-clock', size='sm') }}
-            {% endif %}
-            {% if child.delayed_count == 0 and child.pending_accept_count == 0 %}
+            
+            {% if child.delayed_count == 0 %}  {# [CORREGIDO] pending_accept_count deprecado #}
               {{ badge('Al día', color='success', icon='fa-check', size='sm') }}
             {% endif %}
           </div>
@@ -196,12 +184,12 @@
         {# Acciones #}
         <div class="tutor-child-actions">
           <a href="{{ url_for('tutor_esquema', patient_id=child.patient_id) }}"
-             class="tutor-btn tutor-btn--primary" title="Ver esquema de vacunación">
+             class="md3-btn md3-btn--filled" title="Ver esquema de vacunación">
             <i class="fa-solid fa-syringe"></i>
             Ver vacunas
           </a>
           <a href="{{ url_for('tutor_qr', patient_id=child.patient_id) }}"
-             class="tutor-btn tutor-btn--outline" title="Ver código QR de identificación">
+             class="md3-btn md3-btn--outlined md3-btn--icon" title="Ver código QR de identificación">
             <i class="fa-solid fa-qrcode"></i>
           </a>
         </div>
@@ -214,12 +202,12 @@
   {# ── Tabla: próximas dosis (todos los hijos) ── #}
   {% set all_next = [] %}
   {% for child in children %}
-    {% for dose in child.next_doses %}
+    {% for dose in child.doses %}  {# [CORREGIDO] next_doses → doses (clave real en Flask) #}
       {% set _ = all_next.append({'child': child.full_name, 'dose': dose}) %}
     {% endfor %}
   {% endfor %}
 
-  {% call card(title='Próximas dosis programadas',
+  {% call card(title='Dosis pendientes del esquema',
                icon='fa-calendar-days',
                subtitle=all_next|length|string ~ ' dosis pendientes entre todos los niños',
                class='mt-tutor') %}
@@ -228,11 +216,9 @@
         headers=[
           {'label': 'Niño/a'},
           {'label': 'Vacuna'},
-          {'label': 'Dosis',         'align': 'center'},
+          {'label': 'Dosis',      'align': 'center'},
           {'label': 'Edad ideal'},
-          {'label': 'Estado'},
-          {'label': 'Fecha cita'},
-          {'label': 'Confirmación',  'align': 'center'}
+          {'label': 'Estado'}
         ],
         rows=all_next,
         empty_icon='fa-circle-check',
@@ -257,44 +243,12 @@
 
         <td>
           {% if d.estado == 'Pendiente con retraso' %}
-            <span class="ndt-badge ndt-badge--delay">
-              <i class="fa-solid fa-triangle-exclamation"></i>
-              {{ d.dias_retraso }} días atrasada
-            </span>
+            {{ badge(d.dias_retraso|string ~ ' días atrasada',
+                     color='error', icon='fa-triangle-exclamation', size='sm') }}
           {% elif d.alerta_retraso %}
-            <span class="ndt-badge ndt-badge--ok">
-              <i class="fa-solid fa-clock"></i>
-              {{ d.alerta_retraso }}
-            </span>
+            {{ badge(d.alerta_retraso, color='secondary', icon='fa-clock', size='sm') }}
           {% else %}
-            <span class="muted-td">Pendiente</span>
-          {% endif %}
-        </td>
-
-        <td class="muted-td">
-          {% if d.fecha_cita %}
-            <i class="fa-regular fa-calendar"></i>
-            {{ d.fecha_cita[:10] }}
-          {% else %}
-            <span class="muted-td">Sin cita</span>
-          {% endif %}
-        </td>
-
-        <td class="col-center">
-          {% if d.cita_aceptada is none and d.fecha_cita %}
-            <span class="ndt-badge ndt-badge--pending">
-              <i class="fa-regular fa-hourglass"></i> Pendiente
-            </span>
-          {% elif d.cita_aceptada %}
-            <span class="ndt-badge ndt-badge--accepted">
-              <i class="fa-solid fa-circle-check"></i> Aceptada
-            </span>
-          {% elif d.cita_aceptada == false %}
-            <span class="ndt-badge ndt-badge--rejected">
-              <i class="fa-solid fa-circle-xmark"></i> No aceptada
-            </span>
-          {% else %}
-            <span class="muted-td">—</span>
+            <span class="text-muted">Pendiente</span>
           {% endif %}
         </td>
 

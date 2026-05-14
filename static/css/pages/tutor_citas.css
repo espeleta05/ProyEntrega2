@@ -2,11 +2,97 @@
  * tutor_citas.css — Vista de citas del portal familiar
  */
 
-/* ── Encabezado ───────────────────────────────────────────────────────────── */
-.dash-header    { margin-bottom: var(--md-spacing-6, 24px); }
-.dash-date      { font-size: 0.75rem; color: var(--md-on-surface-variant, #49454f); margin: 0 0 2px; }
-.dash-title     { font-size: 1.5rem; font-weight: 800; color: var(--md-on-surface, #1a1a1a); margin: 0 0 2px; display: flex; align-items: center; gap: 10px; }
-.dash-welcome   { font-size: 0.875rem; color: var(--md-on-surface-variant, #49454f); margin: 0; }
+/* ── Encabezado de sección (MD3) ──────────────────────────────────────────── */
+.citas-section-header {
+  display: flex;
+  align-items: center;
+  gap: var(--md-spacing-2);
+  margin: var(--md-spacing-6) 0 var(--md-spacing-3);
+}
+
+.citas-section-title {
+  font-family: var(--md-font-family-display);
+  font-size: var(--md-font-size-body-lg);
+  font-weight: var(--md-font-weight-extrabold);
+  color: var(--md-on-surface);
+  display: flex;
+  align-items: center;
+  gap: var(--md-spacing-2);
+  margin: 0;
+  flex: 1;
+}
+.citas-section-title i { color: var(--md-primary); }
+
+/* ── Cards de citas activas ───────────────────────────────────────────────── */
+.pending-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: var(--md-spacing-3);
+}
+
+.pending-card {
+  background: var(--md-surface-container-lowest);
+  border: 1px solid var(--md-outline-variant);
+  border-radius: var(--md-shape-large);
+  padding: var(--md-spacing-5) var(--md-spacing-5) var(--md-spacing-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--md-spacing-3);
+  box-shadow: var(--md-shadow-level-1);
+  transition: box-shadow var(--md-transition-short);
+}
+.pending-card:hover { box-shadow: var(--md-shadow-level-2); }
+.pending-card--urgent { border-color: var(--md-error); }
+
+.pending-card__header { display: flex; flex-direction: column; gap: 2px; }
+
+.pending-card__patient {
+  font-family: var(--md-font-family-display);
+  font-size: var(--md-font-size-body-lg);
+  font-weight: var(--md-font-weight-bold);
+  color: var(--md-on-surface);
+}
+
+.pending-card__vaccine {
+  font-size: var(--md-font-size-body-sm);
+  color: var(--md-on-surface-variant);
+  display: flex;
+  align-items: center;
+  gap: var(--md-spacing-1);
+}
+.pending-card__vaccine i { font-size: 0.72rem; opacity: .65; }
+
+.pending-card__row {
+  display: flex;
+  align-items: center;
+  gap: var(--md-spacing-2);
+  font-size: var(--md-font-size-body-sm);
+  color: var(--md-on-surface-variant);
+}
+.pending-card__row i { width: 14px; text-align: center; opacity: .65; }
+
+.pending-card__actions {
+  display: flex;
+  gap: var(--md-spacing-2);
+  margin-top: var(--md-spacing-1);
+}
+
+/* ── Estado vacío ─────────────────────────────────────────────────────────── */
+.citas-empty-notice {
+  text-align: center;
+  padding: var(--md-spacing-8) 0;
+  color: var(--md-on-surface-variant);
+  font-size: var(--md-font-size-body-md);
+}
+.citas-empty-notice i {
+  font-size: 1.8rem;
+  display: block;
+  margin-bottom: var(--md-spacing-2);
+  opacity: .45;
+  color: var(--md-primary);
+}
+.citas-empty-notice p { margin: 0; }
+.citas-empty-notice p + p { margin-top: var(--md-spacing-1); }
 
 .tutor-pending-notice {
   display: inline-flex;
@@ -85,48 +171,7 @@
 }
 .tutor-vaccine-label i { color: var(--md-primary, #6B007C); font-size: 0.75rem; }
 
-/* ── Botones aceptar / rechazar ───────────────────────────────────────────── */
-.tutor-action-btns {
-  display: flex;
-  gap: 6px;
-  align-items: center;
-}
-
-.tutor-accept-btn,
-.tutor-reject-btn {
-  width: 32px;
-  height: 32px;
-  border: none;
-  border-radius: 50%;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 0.85rem;
-  transition: background var(--md-transition-short), transform 0.15s;
-}
-.tutor-accept-btn:hover { transform: scale(1.1); }
-.tutor-reject-btn:hover { transform: scale(1.1); }
-
-.tutor-accept-btn {
-  background: color-mix(in srgb, var(--md-success, #1D7B00) 14%, white);
-  color: var(--md-success, #1D7B00);
-}
-.tutor-accept-btn:hover { background: color-mix(in srgb, var(--md-success, #1D7B00) 22%, white); }
-
-.tutor-reject-btn {
-  background: color-mix(in srgb, var(--md-error, #C40000) 12%, white);
-  color: var(--md-error, #C40000);
-}
-.tutor-reject-btn:hover { background: color-mix(in srgb, var(--md-error, #C40000) 20%, white); }
-
-/* Botón en estado loading */
-.tutor-accept-btn[disabled],
-.tutor-reject-btn[disabled] {
-  opacity: 0.4;
-  cursor: not-allowed;
-  transform: none !important;
-}
+/* ── (tutor-accept-btn / tutor-reject-btn deprecados — ahora se usa md3-btn) ── */
 
 /* ── Footer de tabla ──────────────────────────────────────────────────────── */
 .tutor-table-footer {

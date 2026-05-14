@@ -117,13 +117,13 @@
       <td class="col-center">
         {% if app.record_id %}
           <a href="{{ url_for('tutor_comprobante', record_id=app.record_id) }}"
-             class="tutor-btn tutor-btn--outline tutor-btn--sm"
+             class="md3-btn md3-btn--outlined md3-btn--sm"
              title="Descargar comprobante PDF">
             <i class="fa-solid fa-file-pdf"></i>
             PDF
           </a>
         {% else %}
-          <span class="ndt-muted">—</span>
+          <span class="text-muted">—</span>
         {% endif %}
       </td>
     </tr>
@@ -132,9 +132,11 @@
 {% endcall %}
 
 {# ── Próximas dosis ── #}
-{% call card(title='Próximas dosis',
+{# Esta tabla muestra el estado médico del esquema de vacunación.              #}
+{# Agendar citas es una acción separada, accesible desde el menú lateral.      #}
+{% call card(title='Dosis pendientes del esquema',
              icon='fa-calendar-days',
-             subtitle=total_pending|string ~ ' pendientes',
+             subtitle=total_pending|string ~ ' dosis pendientes de aplicación',
              class='tutor-section') %}
 
   {% call(nv) table(
@@ -142,9 +144,7 @@
         {'label': 'Vacuna'},
         {'label': 'Dosis',           'align': 'center'},
         {'label': 'Edad ideal'},
-        {'label': 'Estado / Retraso'},
-        {'label': 'Fecha de cita'},
-        {'label': 'Confirmación',    'align': 'center'}
+        {'label': 'Estado / Retraso'}
       ],
       rows=next_vaccines,
       empty_icon='fa-circle-check',
@@ -161,44 +161,12 @@
 
       <td>
         {% if nv.estado == 'Pendiente con retraso' %}
-          <span class="ndt-badge ndt-badge--delay">
-            <i class="fa-solid fa-triangle-exclamation"></i>
-            {{ nv.dias_retraso }} días atrasada
-          </span>
+          {{ badge(nv.dias_retraso|string ~ ' días atrasada',
+                   color='error', icon='fa-triangle-exclamation', size='sm') }}
         {% elif nv.alerta_retraso %}
-          <span class="ndt-badge ndt-badge--ok">
-            <i class="fa-solid fa-clock"></i>
-            {{ nv.alerta_retraso }}
-          </span>
+          {{ badge(nv.alerta_retraso, color='secondary', icon='fa-clock', size='sm') }}
         {% else %}
-          <span class="muted-td">Pendiente</span>
-        {% endif %}
-      </td>
-
-      <td class="muted-td">
-        {% if nv.fecha_cita %}
-          <i class="fa-regular fa-calendar"></i>
-          {{ nv.fecha_cita[:10] }}
-        {% else %}
-          <span class="ndt-muted">Sin cita</span>
-        {% endif %}
-      </td>
-
-      <td class="col-center">
-        {% if nv.cita_aceptada is none and nv.fecha_cita %}
-          <span class="ndt-badge ndt-badge--pending">
-            <i class="fa-regular fa-hourglass"></i> Pendiente
-          </span>
-        {% elif nv.cita_aceptada %}
-          <span class="ndt-badge ndt-badge--accepted">
-            <i class="fa-solid fa-circle-check"></i> Aceptada
-          </span>
-        {% elif nv.cita_aceptada == false %}
-          <span class="ndt-badge ndt-badge--rejected">
-            <i class="fa-solid fa-circle-xmark"></i> No aceptada
-          </span>
-        {% else %}
-          <span class="ndt-muted">—</span>
+          <span class="text-muted">Pendiente</span>
         {% endif %}
       </td>
 
@@ -207,11 +175,16 @@
 
 {% endcall %}
 
-{# ── Enlace rápido a citas ── #}
-<div style="text-align:right; margin-top:4px;">
-  <a href="{{ url_for('tutor_citas') }}" class="tutor-btn tutor-btn--outline">
+{# ── Acciones separadas de la tabla de dosis ── #}
+<div class="md3-form__actions" style="margin-top:var(--md-spacing-4);">
+  <a href="{{ url_for('tutor_citas') }}" class="md3-btn md3-btn--outlined">
     <i class="fa-solid fa-calendar-check"></i>
     Ver citas de {{ patient.full_name.split()[0] }}
+  </a>
+  <a href="{{ url_for('tutor_agendar') }}?patient_id={{ patient.patient_id }}"
+     class="md3-btn md3-btn--filled">
+    <i class="fa-solid fa-calendar-plus"></i>
+    Agendar nueva cita
   </a>
 </div>
 

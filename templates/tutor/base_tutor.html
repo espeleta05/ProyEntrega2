@@ -83,10 +83,17 @@
           </a>
 
           <a href="{{ url_for('tutor_citas') }}"
-             class="sidebar-nav-item {{ 'active' if request.endpoint == 'tutor_citas' else '' }}"
-             {% if request.endpoint == 'tutor_citas' %}aria-current="page"{% endif %}>
+             class="sidebar-nav-item {{ 'active' if request.endpoint in ('tutor_citas', 'tutor_cancelar_cita') else '' }}"
+             {% if request.endpoint in ('tutor_citas', 'tutor_cancelar_cita') %}aria-current="page"{% endif %}>
             <i class="fa-solid fa-calendar-check"></i>
             <span>Citas</span>
+          </a>
+
+          <a href="{{ url_for('tutor_agendar') }}"
+             class="sidebar-nav-item {{ 'active' if request.endpoint == 'tutor_agendar' else '' }}"
+             {% if request.endpoint == 'tutor_agendar' %}aria-current="page"{% endif %}>
+            <i class="fa-solid fa-calendar-plus"></i>
+            <span>Agendar cita</span>
           </a>
 
           <a href="#"

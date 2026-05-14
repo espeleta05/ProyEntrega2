@@ -230,43 +230,11 @@
   gap: var(--md-spacing-1, 4px);
 }
 
-/* Botones de acción */
+/* Botones de acción — ahora se usan clases md3-btn del design system */
 .tutor-child-actions {
   display: flex;
   gap: var(--md-spacing-2, 8px);
   align-items: center;
-}
-
-.tutor-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--md-spacing-1, 4px);
-  padding: 7px 14px;
-  border-radius: var(--md-shape-extra-large, 999px);
-  font-size: var(--md-font-size-body-sm, 0.8rem);
-  font-weight: var(--md-font-weight-semibold, 600);
-  text-decoration: none;
-  transition: background var(--md-transition-short), box-shadow var(--md-transition-short);
-}
-
-.tutor-btn--primary {
-  background: var(--md-primary, #6B007C);
-  color: var(--md-on-primary, #fff);
-}
-.tutor-btn--primary:hover {
-  background: color-mix(in srgb, var(--md-primary, #6B007C) 88%, black);
-  box-shadow: var(--md-shadow-level-1);
-}
-
-.tutor-btn--outline {
-  background: transparent;
-  color: var(--md-primary, #6B007C);
-  border: 1.5px solid var(--md-outline-variant, #c4c7c5);
-  padding: 6px 12px;
-}
-.tutor-btn--outline:hover {
-  background: var(--md-primary-container, #FAD9FF);
-  border-color: var(--md-primary, #6B007C);
 }
 
 /* ── Tabla de próximas dosis ──────────────────────────────────────────────── */

@@ -2,7 +2,7 @@
 import psycopg
 from psycopg.rows import dict_row
 import os
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from flask import Flask, flash, jsonify, redirect, render_template, request, session, url_for, g, has_request_context
 from werkzeug.utils import secure_filename
 import bcrypt
@@ -260,11 +260,26 @@ def _authenticate_user(login_value, password):
             password.encode("utf-8"), stored_hash.encode("utf-8")
         ):
             return None
+        # Obtener la clínica principal del trabajador desde su horario
+        worker_id = row["worker_id"]
+        clinic_id = None
+        try:
+            cur.execute("""
+                SELECT clinic_id FROM worker_schedules
+                WHERE worker_id = %s
+                ORDER BY clinic_id LIMIT 1
+            """, (worker_id,))
+            clinic_row = cur.fetchone()
+            if clinic_row:
+                clinic_id = clinic_row["clinic_id"]
+        except Exception:
+            pass  # clinic_id queda en None; el SP acepta NULL
         return {
-            "worker_id": row["worker_id"],
+            "worker_id": worker_id,
             "name":      (row.get("first_name") or "").strip(),
             "lastname":  (row.get("last_name")  or "").strip(),
             "role":      row.get("name") or "Administrador",
+            "clinic_id": clinic_id,
         }
     except Exception as e:
         logger.warning("Error en autenticación: %s", e)
@@ -383,6 +398,7 @@ def login():
             session["user_lastname"] = user["lastname"]
             session["role"]          = user["role"]
             session["worker_id"]     = user["worker_id"]
+            session["clinic_id"]     = user.get("clinic_id")  # None si sin horario registrado
             flash(f"Bienvenido, {user['name']}.", "success")
             return redirect(_home_url_for_role(user["role"]))
         error = "Credenciales inválidas."
@@ -404,14 +420,14 @@ def logout():
 
 @app.route("/tutor/login", methods=["GET", "POST"])
 def tutor_login():
-    if "tutor_id" in session:
-        return redirect(url_for("tutor_dashboard"))
     error = None
     if request.method == "POST":
         email    = (request.form.get("email") or "").strip()
         password = request.form.get("password") or ""
         tutor    = _authenticate_tutor(email, password)
         if tutor:
+            for key in ("tutor_id", "guardian_id", "tutor_name", "tutor_lastname"):
+                session.pop(key, None)
             session["tutor_id"]       = tutor["guardian_account_id"]
             session["guardian_id"]    = tutor["guardian_id"]
             session["tutor_name"]     = tutor["name"]
@@ -420,6 +436,8 @@ def tutor_login():
             return redirect(url_for("tutor_dashboard"))
         error = "Correo o contraseña incorrectos."
         flash(error, "danger")
+    elif "tutor_id" in session:
+        return redirect(url_for("tutor_dashboard"))
     return render_template("tutor/login.html", error=error)
 
 
@@ -435,107 +453,26 @@ def tutor_logout():
 @app.route("/tutor")
 @app.route("/tutor/dashboard")
 def tutor_dashboard():
+    # [REFACTORED] Reemplaza loop N+1 (1 query por hijo) + inline SQL por una
+    #              sola llamada a sp_dashboard_tutor que devuelve todas las
+    #              dosis pendientes/atrasadas de todos los hijos del tutor.
+    #              Eliminada lógica de tutor_accepted / pending_accept_count.
     locked = _require_tutor()
     if locked:
         return locked
 
-    vars_        = _tutor_session_vars()
-    guardian_id  = vars_["guardian_id"]
-    children_data = []
+    vars_       = _tutor_session_vars()
+    guardian_id = vars_["guardian_id"]
+    rows        = []
 
     conn, should_close = _get_conn()
     _safe_rollback(conn)
     try:
         with conn.cursor() as cur:
-            # 1. Obtener todos los hijos del tutor
-            cur.execute("""
-                SELECT p.patient_id,
-                       p.first_name,
-                       p.last_name,
-                       TRIM(p.first_name || ' ' || p.last_name) AS full_name,
-                       p.birth_date,
-                       p.photo,
-                       DATE_PART('year', AGE(CURRENT_DATE, p.birth_date))::INT AS age_years
-                FROM   patient_guardian_relations pgr
-                JOIN   patients p ON p.patient_id = pgr.patient_id
-                WHERE  pgr.guardian_id = %s
-                  AND  p.is_active = TRUE
-                ORDER  BY p.birth_date;
-            """, (guardian_id,))
-            children = [dict(r) for r in cur.fetchall()]
-
-        # 2. Para cada hijo, obtener su esquema completo
-        for child in children:
-            pid = child["patient_id"]
-            try:
-                _safe_rollback(conn)
-                with conn.cursor() as cur:
-                    cur.execute("CALL sp_get_patient_scheme(%s, %s)",
-                                (pid, "cur_tutor_esquema"))
-                    cur.execute('FETCH ALL FROM "cur_tutor_esquema"')
-                    esquema_rows = [dict(r) for r in cur.fetchall()]
-                conn.commit()
-            except Exception:
-                _safe_rollback(conn)
-                esquema_rows = []
-
-            applied  = [r for r in esquema_rows if r.get("estado") == "Aplicada"]
-            pending  = [r for r in esquema_rows
-                        if r.get("estado") in ("Pendiente", "Pendiente con retraso")]
-            total_d  = len(applied) + len(pending)
-            pct      = int(len(applied) / total_d * 100) if total_d > 0 else 0
-
-            # Próximas dosis (máx 5, pendientes)
-            next_doses = [
-                {
-                    "name":           r.get("name"),
-                    "dose":           r.get("dose"),
-                    "edad_ideal":     r.get("edad_ideal_label"),
-                    "dias_retraso":   r.get("dias_retraso") or 0,
-                    "alerta_retraso": r.get("alerta_retraso"),
-                    "estado":         r.get("estado"),
-                    "fecha_cita":     _temporal_text(r.get("fecha_cita")),
-                    "cita_estado":    r.get("cita_estado"),
-                    "cita_aceptada":  r.get("cita_aceptada_tutor"),
-                }
-                for r in pending
-            ][:5]
-
-            delayed     = [r for r in pending if (r.get("dias_retraso") or 0) > 0]
-            pend_accept = [r for r in next_doses
-                           if r["cita_aceptada"] is None and r["fecha_cita"] is not None]
-
-            _photo = child.get("photo")
-            fn     = child.get("full_name", "")
-            parts  = fn.split()
-            initials = (fn[:1] + (parts[-1][:1] if len(parts) > 1 else "")).upper()
-
-            children_data.append({
-                "patient_id":             pid,
-                "full_name":              fn,
-                "age_years":              child.get("age_years", 0),
-                "birth_date":             _temporal_text(child.get("birth_date")),
-                "photo_url":              f"/static/uploads/patients/{_photo}" if _photo else None,
-                "initials":               initials,
-                "total_applied":          len(applied),
-                "total_pending":          len(pending),
-                "total_doses":            total_d,
-                "pct":                    pct,
-                "next_doses":             next_doses,
-                "delayed_count":          len(delayed),
-                "pending_accept_count":   len(pend_accept),
-                "alerts_delayed":         [
-                    {"name": r.get("name"), "dose": r.get("dose"),
-                     "dias": r.get("dias_retraso") or 0}
-                    for r in delayed[:3]
-                ],
-                "alerts_pending_accept":  [
-                    {"name": r.get("name"), "dose": r.get("dose"),
-                     "fecha_cita": r.get("fecha_cita")}
-                    for r in pend_accept[:3]
-                ],
-            })
-
+            cur.execute("CALL sp_dashboard_tutor(%s, %s)",
+                        (guardian_id, "cur_dash_tutor"))
+            cur.execute('FETCH ALL FROM "cur_dash_tutor"')
+            rows = [dict(r) for r in cur.fetchall()]
         conn.commit()
     except Exception as e:
         _safe_rollback(conn)
@@ -545,23 +482,98 @@ def tutor_dashboard():
         if should_close and not _conn_is_closed(conn):
             conn.close()
 
-    # KPIs globales (suma de todos los hijos)
+    # ── Agrupar filas por paciente ─────────────────────────────────────────
+    patients_map: dict = {}
+    for r in rows:
+        pid = r["patient_id"]
+        if pid not in patients_map:
+            fn    = r.get("full_name", "")
+            parts = fn.split()
+            patients_map[pid] = {
+                "patient_id":    pid,
+                "full_name":     fn,
+                "age_years":     r.get("age_years", 0),
+                "birth_date":    _temporal_text(r.get("birth_date")),
+                "photo_url":     (f"/static/uploads/patients/{r['photo']}"
+                                  if r.get("photo") else None),
+                "initials":      (fn[:1] + (parts[-1][:1]
+                                  if len(parts) > 1 else "")).upper(),
+                "total_applied": r.get("total_applied", 0),
+                "total_pending": r.get("total_pending", 0),
+                "total_doses":   r.get("total_doses", 0),
+                "pct":           r.get("pct", 0),
+                "delayed_count": r.get("delayed_count", 0),
+                "doses":         [],
+                "alerts_delayed": [],
+            }
+
+        # Acumular dosis del hijo (excluyendo filas de estado FUTURA para no saturar)
+        action_state = r.get("action_state", "")
+        due_dt       = r.get("due_date")
+        dias         = r.get("dias_retraso") or 0
+
+        # [CORREGIDO] Calcular alerta_retraso (el SP de dashboard no la devuelve)
+        alerta = None
+        if isinstance(due_dt, date):
+            if dias > 0:
+                alerta = f"Retraso de {dias} días"
+            else:
+                remaining = (due_dt - date.today()).days
+                alerta = f"Programada en {remaining} días"
+
+        # [CORREGIDO] Calcular edad_ideal legible desde ideal_age_months
+        months = r.get("ideal_age_months") or 0
+        if months == 0:
+            edad_label = "Al nacer"
+        elif months >= 12:
+            edad_label = f"{months // 12} año(s)"
+        else:
+            edad_label = f"{months} meses"
+
+        # [CORREGIDO] Claves alineadas con lo que usa la template (name, dose, estado, etc.)
+        dose_entry = {
+            "name":           r.get("vaccine_name"),
+            "dose":           r.get("dose_label"),
+            "due_date":       _temporal_text(due_dt),
+            "dias_retraso":   dias,
+            "dose_status":    r.get("dose_status"),
+            "estado":         ("Pendiente con retraso" if r.get("dose_status") == "Atrasada"
+                               else r.get("dose_status") or "Pendiente"),
+            "alerta_retraso": alerta,
+            "edad_ideal":     edad_label,
+            "action_state":   action_state,
+            "appointment_id": r.get("appointment_id"),
+            "fecha_cita":     _temporal_text(r.get("scheduled_at")),
+            "appt_status":    r.get("appointment_status"),
+        }
+        patients_map[pid]["doses"].append(dose_entry)
+
+        if action_state in ("ATRASADA_SIN_CITA", "ATRASADA_CON_CITA"):
+            if len(patients_map[pid]["alerts_delayed"]) < 3:
+                # [CORREGIDO] Claves name/dose (template usa a.name, a.dose, a.dias)
+                patients_map[pid]["alerts_delayed"].append({
+                    "name": r.get("vaccine_name"),
+                    "dose": r.get("dose_label"),
+                    "dias": dias,
+                })
+
+    children_data = list(patients_map.values())
+
+    # ── KPIs globales ──────────────────────────────────────────────────────
     total_applied_all = sum(c["total_applied"] for c in children_data)
     total_doses_all   = sum(c["total_doses"]   for c in children_data)
     total_pending_all = sum(c["total_pending"] for c in children_data)
-    pct_global        = int(total_applied_all / total_doses_all * 100) if total_doses_all > 0 else 0
-    total_alerts      = sum(c["delayed_count"] + c["pending_accept_count"]
-                            for c in children_data)
+    pct_global        = (int(total_applied_all / total_doses_all * 100)
+                         if total_doses_all > 0 else 0)
+    total_alerts      = sum(c["delayed_count"] for c in children_data)
 
     return render_template(
         "tutor/dashboard.html",
         today=date.today().strftime("%A, %d de %B de %Y"),
         children=children_data,
-        # KPIs
         pct_global=pct_global,
         total_pending_all=total_pending_all,
         total_alerts=total_alerts,
-        # Datos para el donut chart (JSON)
         chart_applied=total_applied_all,
         chart_pending=total_pending_all,
         **vars_,
@@ -644,6 +656,7 @@ def tutor_esquema(patient_id):
         for r in esquema_rows if r.get("estado") == "Aplicada"
     ]
 
+    # [REFACTORED] Eliminado cita_aceptada_tutor (flujo deprecado).
     next_vaccines = [
         {
             "name":           r.get("name"),
@@ -652,9 +665,10 @@ def tutor_esquema(patient_id):
             "dias_retraso":   r.get("dias_retraso") or 0,
             "alerta_retraso": r.get("alerta_retraso"),
             "estado":         r.get("estado"),
+            "schedule_id":    r.get("schedule_id"),
             "fecha_cita":     _temporal_text(r.get("fecha_cita")),
             "cita_estado":    r.get("cita_estado"),
-            "cita_aceptada":  r.get("cita_aceptada_tutor"),
+            "appointment_id": r.get("appointment_id"),
         }
         for r in esquema_rows
         if r.get("estado") in ("Pendiente", "Pendiente con retraso")
@@ -681,6 +695,84 @@ def tutor_esquema(patient_id):
 
 @app.route("/tutor/citas")
 def tutor_citas():
+    # [REFACTORED] sp_get_tutor_pending_citas y sp_get_tutor_citas_history
+    #              deprecados (usaban tutor_accepted IS NULL).
+    #              Ahora consulta v_appointments_full directamente:
+    #              - pending  → Programada / Confirmada
+    #              - history  → Completada / Cancelada / No Show
+    locked = _require_tutor()
+    if locked:
+        return locked
+
+    vars_       = _tutor_session_vars()
+    guardian_id = vars_["guardian_id"]
+    all_citas   = []                         # inicializar siempre antes del try
+
+    conn, should_close = _get_conn()
+    _safe_rollback(conn)
+    try:
+        with conn.cursor() as cur:
+            cur.execute("""
+                SELECT af.appointment_id,
+                       af.scheduled_at,
+                       af.appointment_status,
+                       af.reason,
+                       af.appointment_notes,
+                       af.cancel_reason,
+                       af.patient_name,
+                       af.clinic_name,
+                       af.area_name,
+                       af.worker_name,
+                       af.vaccine_name,
+                       af.dose_label,
+                       af.dose_due_date,
+                       af.patient_id
+                FROM   v_appointments_full af
+                JOIN   patient_guardian_relations pgr
+                       ON pgr.patient_id = af.patient_id
+                WHERE  pgr.guardian_id = %s
+                ORDER  BY af.scheduled_at DESC;
+            """, (guardian_id,))
+            all_citas = [dict(r) for r in cur.fetchall()]
+        conn.commit()
+    except Exception as e:
+        _safe_rollback(conn)
+        logger.error("Error en tutor_citas: %s", e)
+        flash("Error al cargar las citas.", "danger")
+    finally:
+        if should_close and not _conn_is_closed(conn):
+            conn.close()
+
+    ACTIVE_STATES  = {"Programada", "Confirmada"}
+    HISTORY_STATES = {"Completada", "Cancelada", "No Show"}
+
+    def _fmt_cita(c):
+        return {**c, "scheduled_at": _temporal_text(c.get("scheduled_at")),
+                "dose_due_date": _temporal_text(c.get("dose_due_date"))}
+
+    pending_citas = [_fmt_cita(c) for c in all_citas
+                     if c.get("appointment_status") in ACTIVE_STATES]
+    history_citas = [_fmt_cita(c) for c in all_citas
+                     if c.get("appointment_status") in HISTORY_STATES]
+
+    return render_template(
+        "tutor/citas.html",
+        today=date.today().strftime("%A, %d de %B de %Y"),
+        pending_citas=pending_citas,
+        history_citas=history_citas,
+        **vars_,
+    )
+
+
+# [ELIMINADO] tutor_cita_responder — Ruta eliminada.
+# La lógica de tutor_accepted (aceptar/rechazar citas auto-generadas) fue
+# deprecada junto con el Trigger 11. Las citas ahora se crean manualmente
+# a través de tutor_agendar y se cancelan a través de tutor_cancelar_cita.
+
+
+@app.route("/tutor/agendar", methods=["GET", "POST"])
+def tutor_agendar():
+    """Permite al tutor crear una cita manualmente para uno de sus hijos."""
     locked = _require_tutor()
     if locked:
         return locked
@@ -688,114 +780,142 @@ def tutor_citas():
     vars_       = _tutor_session_vars()
     guardian_id = vars_["guardian_id"]
 
+    # ── GET: mostrar formulario ────────────────────────────────────────────
+    if request.method == "GET":
+        conn, should_close = _get_conn()
+        _safe_rollback(conn)
+        try:
+            with conn.cursor() as cur:
+                # Hijos del tutor
+                cur.execute("""
+                    SELECT p.patient_id,
+                           TRIM(p.first_name || ' ' || p.last_name) AS full_name
+                    FROM   patient_guardian_relations pgr
+                    JOIN   patients p ON p.patient_id = pgr.patient_id
+                    WHERE  pgr.guardian_id = %s AND p.is_active = TRUE
+                    ORDER  BY p.first_name;
+                """, (guardian_id,))
+                children = [dict(r) for r in cur.fetchall()]
+
+                # Clínicas activas
+                cur.execute("""
+                    SELECT clinic_id, name
+                    FROM   clinics
+                    WHERE  is_active = TRUE
+                    ORDER  BY name;
+                """)
+                clinics = [dict(r) for r in cur.fetchall()]
+            conn.commit()
+        except Exception as e:
+            _safe_rollback(conn)
+            logger.error("Error en tutor_agendar GET: %s", e)
+            flash("Error al cargar el formulario.", "danger")
+            return redirect(url_for("tutor_citas"))
+        finally:
+            if should_close and not _conn_is_closed(conn):
+                conn.close()
+
+        return render_template(
+            "tutor/agendar.html",
+            today=date.today().strftime("%A, %d de %B de %Y"),
+            today_iso=date.today().isoformat(),   # para min del datetime-local
+            children=children,
+            clinics=clinics,
+            **vars_,
+        )
+
+    # ── POST: crear cita vía sp_create_appointment ─────────────────────────
+    patient_id          = request.form.get("patient_id", type=int)
+    clinic_id           = request.form.get("clinic_id", type=int)
+    scheduled_at_str    = request.form.get("scheduled_at", "").strip()
+    reason              = request.form.get("reason", "").strip() or None
+    patient_schedule_id = request.form.get("patient_schedule_id", type=int)   # opcional
+
+    if not all([patient_id, clinic_id, scheduled_at_str]):
+        flash("Paciente, clínica y fecha son obligatorios.", "warning")
+        return redirect(url_for("tutor_agendar"))
+
+    if not _tutor_owns_patient(guardian_id, patient_id):
+        flash("No tienes acceso a este paciente.", "danger")
+        return redirect(url_for("tutor_agendar"))
+
     conn, should_close = _get_conn()
     _safe_rollback(conn)
     try:
         with conn.cursor() as cur:
-            cur.execute("""
-                SELECT
-                    a.appointment_id,
-                    pvs.patient_id,
-                    a.scheduled_at,
-                    a.appointment_status,
-                    a.reason,
-                    a.appointment_notes,
-                    a.tutor_accepted,
-                    TRIM(p.first_name || ' ' || p.last_name)               AS patient_name,
-                    COALESCE(TRIM(w.first_name || ' ' || w.last_name), '—') AS worker_name,
-                    COALESCE(c.name, '—')                                   AS clinic_name,
-                    COALESCE(ca.name, '—')                                  AS area_name,
-                    COALESCE(v.name, '—')                                   AS vaccine_name
-                FROM   appointments a
-                JOIN   patient_vaccine_schedule pvs ON pvs.schedule_id = a.patient_schedule_id
-                JOIN   patients p   ON p.patient_id = pvs.patient_id
-                JOIN   patient_guardian_relations pgr ON pgr.patient_id = pvs.patient_id
-                LEFT JOIN workers w      ON w.worker_id  = a.worker_id
-                LEFT JOIN clinics c      ON c.clinic_id  = a.clinic_id
-                LEFT JOIN clinic_areas ca ON ca.area_id  = a.area_id
-                LEFT JOIN scheme_doses sd ON sd.dose_id  = pvs.scheme_dose_id
-                LEFT JOIN vaccines v      ON v.vaccine_id = sd.vaccine_id
-                WHERE  pgr.guardian_id = %s
-                ORDER  BY a.scheduled_at DESC;
-            """, (guardian_id,))
-            citas_raw = [dict(r) for r in cur.fetchall()]
+            cur.execute(
+                "CALL sp_create_appointment(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",
+                (
+                    patient_id,
+                    clinic_id,
+                    None,           # area_id (opcional)
+                    None,           # worker_id (el tutor no asigna médico)
+                    scheduled_at_str,
+                    reason,
+                    patient_schedule_id,
+                    "Tutor",        # created_by_role
+                    None,           # created_by_worker_id
+                    guardian_id,    # created_by_guardian_id
+                    "cur_agendar",
+                ),
+            )
+            cur.execute('FETCH ALL FROM "cur_agendar"')
+            result = cur.fetchone()
         conn.commit()
+        flash("Cita agendada correctamente.", "success")
     except Exception as e:
         _safe_rollback(conn)
-        logger.error("Error en tutor_citas: %s", e)
-        citas_raw = []
-        flash("Error al cargar las citas.", "danger")
+        logger.error("Error en tutor_agendar POST: %s", e)
+        flash(f"No se pudo agendar la cita: {e}", "danger")
     finally:
         if should_close and not _conn_is_closed(conn):
             conn.close()
 
-    citas = [
-        {**c, "scheduled_at": _temporal_text(c.get("scheduled_at"))}
-        for c in citas_raw
-    ]
-
-    pending_accept = sum(
-        1 for c in citas
-        if c.get("tutor_accepted") is None
-        and c.get("appointment_status") == "Programada"
-    )
-
-    return render_template(
-        "tutor/citas.html",
-        today=date.today().strftime("%A, %d de %B de %Y"),
-        citas=citas,
-        pending_accept=pending_accept,
-        **vars_,
-    )
+    return redirect(url_for("tutor_citas"))
 
 
-@app.route("/tutor/cita/<int:appointment_id>/responder", methods=["POST"])
-def tutor_cita_responder(appointment_id):
-    if "tutor_id" not in session:
-        return jsonify({"ok": False, "error": "No autenticado"}), 401
+@app.route("/tutor/cita/<int:appointment_id>/cancelar", methods=["POST"])
+def tutor_cancelar_cita(appointment_id):
+    """Cancela una cita que pertenece a un hijo del tutor autenticado."""
+    locked = _require_tutor()
+    if locked:
+        return locked
 
     guardian_id = session.get("guardian_id")
-    payload     = request.get_json(silent=True) or {}
-    accion      = payload.get("accion", "")
+    cancel_reason = request.form.get("cancel_reason", "Cancelada por tutor").strip()
 
-    if accion not in ("aceptar", "rechazar"):
-        return jsonify({"ok": False, "error": "Acción inválida"}), 400
-
-    nuevo_valor = True if accion == "aceptar" else False
-
+    # Verificar propiedad usando patient_id directo en appointments
     conn, should_close = _get_conn()
     _safe_rollback(conn)
     try:
         with conn.cursor() as cur:
-            # Verificar propiedad: la cita debe pertenecer a un hijo del tutor
             cur.execute("""
                 SELECT 1
                 FROM   appointments a
-                JOIN   patient_vaccine_schedule pvs ON pvs.schedule_id = a.patient_schedule_id
-                JOIN   patient_guardian_relations pgr ON pgr.patient_id = pvs.patient_id
+                JOIN   patient_guardian_relations pgr
+                       ON pgr.patient_id = a.patient_id
                 WHERE  a.appointment_id = %s
                   AND  pgr.guardian_id  = %s
                 LIMIT  1;
             """, (appointment_id, guardian_id))
             if not cur.fetchone():
-                return jsonify({"ok": False, "error": "Cita no encontrada"}), 404
+                flash("Cita no encontrada o sin permiso.", "danger")
+                return redirect(url_for("tutor_citas"))
 
-            if accion == "aceptar":
-                cur.execute("CALL sp_confirm_appointment(%s, %s)", (appointment_id, "cur_resp"))
-            else:
-                cur.execute("CALL sp_cancel_appointment(%s, %s, %s)",
-                            (appointment_id, "Rechazada por tutor", "cur_resp"))
-            cur.execute('FETCH ALL FROM "cur_resp"')
+            cur.execute("CALL sp_cancel_appointment(%s, %s, %s)",
+                        (appointment_id, cancel_reason, "cur_cancel"))
+            cur.execute('FETCH ALL FROM "cur_cancel"')
         conn.commit()
+        flash("Cita cancelada.", "info")
     except Exception as e:
         _safe_rollback(conn)
-        logger.error("Error en tutor_cita_responder: %s", e)
-        return jsonify({"ok": False, "error": str(e)}), 500
+        logger.error("Error en tutor_cancelar_cita: %s", e)
+        flash(f"No se pudo cancelar la cita: {e}", "danger")
     finally:
         if should_close and not _conn_is_closed(conn):
             conn.close()
 
-    return jsonify({"ok": True, "accion": accion})
+    return redirect(url_for("tutor_citas"))
 
 
 # ── Helpers PDF / QR ──────────────────────────────────────────────────────────
@@ -2049,48 +2169,54 @@ def esquema_paciente(id):
     # DOSIS APLICADAS
     # ============================================================
 
+    # sp_get_patient_scheme ahora devuelve aliases: name, dose, date, estado,
+    # fecha_cita, cita_estado  (antes: vaccine_name, dose_label, applied_date,
+    # vaccination_status, appointment_date, appointment_status)
     applications = [
         {
             "record_id":        r.get("record_id"),
-            "name":             r.get("vaccine_name"),
-            "dose":             r.get("dose_label"),
-            "date":             _temporal_text(r.get("applied_date")),
+            "name":             r.get("name"),
+            "dose":             r.get("dose"),
+            "date":             _temporal_text(r.get("date")),
             "doctor":           r.get("doctor"),
             "application_site": r.get("application_site"),
             "had_reaction":     r.get("had_reaction"),
-            "estado":           r.get("vaccination_status"),
+            "estado":           r.get("estado"),
         }
         for r in esquema_rows
-        if r.get("vaccination_status") == "Aplicada"
+        if r.get("estado") == "Aplicada"
     ]
+
     # ============================================================
-    # PRÓXIMAS DOSIS
+    # DOSIS PENDIENTES
     # ============================================================
-    next_vaccines = [
+    # "estado" ahora devuelve: "Pendiente", "Pendiente con retraso", "Aplicada"
+    pending_rows = [
+        r for r in esquema_rows
+        if r.get("estado") in ("Pendiente", "Pendiente con retraso")
+    ]
+
+    pending_doses = [
         {
-            "name":           r.get("name"),
-            "dose":           r.get("dose"),
-            "edad_ideal":     r.get("edad_ideal_label"),
+            "name":             r.get("name"),
+            "dose":             r.get("dose"),
+            "edad_ideal":       r.get("edad_ideal_label"),
             "ideal_age_months": r.get("ideal_age_months"),
-            "dias_retraso":   r.get("dias_retraso"),
-            "alerta_retraso": r.get("alerta_retraso"),
-            "estado":         r.get("estado"),
-            "fecha_cita":     None,
-            "cita_estado":    None,
-            "cita_aceptada":  None,
+            "schedule_id":      r.get("schedule_id"),
+            "dias_retraso":     r.get("dias_retraso"),
+            "alerta_retraso":   r.get("alerta_retraso"),
+            "estado":           r.get("estado"),
+            "appointment_id":   r.get("appointment_id"),
+            "fecha_cita":       _temporal_text(r.get("fecha_cita")),
+            "cita_estado":      r.get("cita_estado"),
         }
-        for r in esquema_rows
-        if r.get("vaccination_status") in ("Pendiente", "Atrasada")
+        for r in pending_rows
     ]
-    
-    total_doses = len(esquema_rows)
+
+    total_doses   = len(esquema_rows)
     applied_doses = len(applications)
-    pending_doses = len(next_vaccines)
-    progress = (
-        round((applied_doses / total_doses) * 100)
-        if total_doses > 0
-        else 0
-    )
+    n_pending     = len(pending_doses)
+    progress = round((applied_doses / total_doses) * 100) if total_doses > 0 else 0
 
     return render_template(
         "pages/esquemaPaciente_2daE.html",
@@ -2098,10 +2224,12 @@ def esquema_paciente(id):
         patient=patient,
         patient_name=patient.get("full_name", ""),
         applications=applications,
-        next_vaccines=next_vaccines,
+        next_vaccines=pending_doses,
+        pending_doses=pending_doses,
+        suggested_appointments=[],   # deprecado; siempre vacío
         total_doses=total_doses,
         applied_doses=applied_doses,
-        pending_doses=pending_doses,
+        pending_doses_count=n_pending,
         progress=progress,
     )
 
@@ -2332,6 +2460,13 @@ def aplicaciones():
 
 @app.route("/agregar_aplicacion", methods=["GET", "POST"])
 def agregar_aplicacion():
+    # [REFACTORED] Reemplaza sp_register_vaccination_record por sp_apply_vaccine.
+    #   - sp_apply_vaccine incluye validaciones clínicas (edad, intervalo, lote).
+    #   - No acepta applied_date (usa CURRENT_DATE internamente).
+    #   - Acepta appointment_id opcional para cerrar la cita automáticamente
+    #     (via Trigger 15).
+    #   - Stock se descuenta via Trigger 4 (no en el SP).
+    #   - schedule se marca Aplicada via Trigger 12 (no en el SP).
     locked = _require_role("Administrador", "Medico", "Enfermero")
     if locked:
         return locked
@@ -2349,6 +2484,8 @@ def agregar_aplicacion():
             scheme_dose_id = int(scheme_dose_id) if scheme_dose_id else None
             app_site_id    = request.form.get("application_site_id")
             app_site_id    = int(app_site_id) if app_site_id else None
+            appointment_id = request.form.get("appointment_id")
+            appointment_id = int(appointment_id) if appointment_id else None
         except ValueError:
             error = "IDs inválidos"
         else:
@@ -2357,7 +2494,7 @@ def agregar_aplicacion():
             if not patient or not vaccine:
                 error = "Paciente o vacuna no encontrados"
             else:
-                clinic_id = int(request.form.get("clinic_id") or 1)
+                clinic_id = int(request.form.get("clinic_id") or session.get("clinic_id") or 1)
                 lot_id    = request.form.get("lot_id")
                 lot_id    = int(lot_id) if lot_id else None
 
@@ -2366,7 +2503,7 @@ def agregar_aplicacion():
                 try:
                     with conn.cursor() as cur:
                         cur.execute(
-                            "CALL sp_register_vaccination_record(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",
+                            "CALL sp_apply_vaccine(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",
                             (
                                 patient_id,
                                 vaccine_id,
@@ -2374,29 +2511,30 @@ def agregar_aplicacion():
                                 clinic_id,
                                 lot_id,
                                 scheme_dose_id,
-                                request.form.get("applied_date") or date.today().isoformat(),
+                                appointment_id,
                                 app_site_id,
                                 request.form.get("patient_temp_c") or None,
                                 request.form.get("had_reaction") == "true",
-                                "cur_reg_vac_record",
+                                "cur_apply_vaccine",
                             ),
                         )
-                        cur.execute('FETCH ALL FROM "cur_reg_vac_record"')
+                        cur.execute('FETCH ALL FROM "cur_apply_vaccine"')
                         row = cur.fetchone()
                     conn.commit()
-                    
+
                 except psycopg.DatabaseError as ex:
                     _safe_rollback(conn)
-
                     db_error = str(ex).strip()
-
                     if "duplicate key value" in db_error:
-                        error = "Ya existe un registro duplicado."
+                        error = "Esta dosis ya fue registrada para el paciente."
                     elif "foreign key constraint" in db_error:
-                        error = "Existen referencias inválidas."
+                        error = "Referencia inválida (lote, clínica o paciente)."
+                    elif "no tiene stock" in db_error.lower():
+                        error = "El lote seleccionado no tiene stock disponible."
+                    elif "vacuna vencida" in db_error.lower():
+                        error = "No se puede aplicar: el lote está vencido."
                     else:
                         error = db_error
-
                     row = None
                 finally:
                     if should_close and not _conn_is_closed(conn):
@@ -2673,7 +2811,200 @@ def inventario():
 
 @app.route("/citas")
 def citas():
+    # Usa sp_get_citas_admin: rango de fechas, todas las columnas de v_appointments_full
+    # + tutor principal. Sin SQL embebido.
     locked = _require_role("Administrador", "Recepcionista", "Medico", "Enfermero")
+    if locked:
+        return locked
+
+    clinic_id = session.get("clinic_id")
+    # Si la sesión no tiene clinic_id (login anterior al fix), intentar resolverlo
+    if clinic_id is None:
+        worker_id = session.get("worker_id")
+        if worker_id:
+            try:
+                _conn_tmp = get_db_connection()
+                with _conn_tmp.cursor() as _cur:
+                    _cur.execute(
+                        "SELECT clinic_id FROM worker_schedules WHERE worker_id=%s ORDER BY clinic_id LIMIT 1",
+                        (worker_id,)
+                    )
+                    _row = _cur.fetchone()
+                    if _row:
+                        clinic_id = _row["clinic_id"]
+                        session["clinic_id"] = clinic_id
+                _conn_tmp.close()
+            except Exception:
+                pass  # clinic_id queda en None; el SP devuelve todas las clínicas
+
+    date_from = date.today()
+    date_to   = date.today() + timedelta(days=30)
+    rows      = []
+
+    conn, should_close = _get_conn()
+    _safe_rollback(conn)
+    try:
+        with conn.cursor() as cur:
+            cur.execute("CALL sp_get_citas_admin(%s, %s, %s, %s)",
+                        (clinic_id,
+                         date_from.isoformat(),
+                         date_to.isoformat(),
+                         "cur_citas_admin"))
+            cur.execute('FETCH ALL FROM "cur_citas_admin"')
+            rows = [dict(r) for r in cur.fetchall()]
+        conn.commit()
+    except Exception as e:
+        _safe_rollback(conn)
+        logger.error("Error en /citas: %s", e)
+        flash("Error al cargar las citas.", "danger")
+    finally:
+        if should_close and not _conn_is_closed(conn):
+            conn.close()
+
+    ACTIVE_STATES  = {"Programada", "Confirmada"}
+    HISTORY_STATES = {"Completada", "Cancelada", "No Show"}
+
+    def _fmt(r):
+        return {**r,
+                "scheduled_at":  _temporal_text(r.get("scheduled_at")),
+                "dose_due_date": _temporal_text(r.get("dose_due_date"))}
+
+    all_fmt        = [_fmt(r) for r in rows]
+    upcoming_citas = [r for r in all_fmt if r.get("appointment_status") in ACTIVE_STATES]
+    history_citas  = [r for r in all_fmt if r.get("appointment_status") in HISTORY_STATES]
+
+    session["last_section"] = "citas"
+    return render_template(
+        "pages/citas_2daE.html",
+        **_session_vars(),
+        upcoming_citas=upcoming_citas,
+        history_citas=history_citas,
+        date_from=date_from.strftime("%d/%m/%Y"),
+        date_to=date_to.strftime("%d/%m/%Y"),
+    )
+
+
+@app.route("/citas/nueva", methods=["GET", "POST"])
+def admin_nueva_cita():
+    """Agendar una cita manualmente desde el portal admin."""
+    locked = _require_role("Administrador", "Recepcionista", "Medico", "Enfermero")
+    if locked:
+        return locked
+
+    clinic_id = session.get("clinic_id")
+
+    if request.method == "GET":
+        conn, should_close = _get_conn()
+        _safe_rollback(conn)
+        patients, workers, areas = [], [], []
+        try:
+            with conn.cursor() as cur:
+                cur.execute(
+                    "CALL sp_get_agenda_form_data(%s, %s, %s, %s)",
+                    (clinic_id, "cur_pat", "cur_wrk", "cur_area"),
+                )
+                cur.execute('FETCH ALL FROM "cur_pat"')
+                patients = [dict(r) for r in cur.fetchall()]
+                cur.execute('FETCH ALL FROM "cur_wrk"')
+                workers  = [dict(r) for r in cur.fetchall()]
+                cur.execute('FETCH ALL FROM "cur_area"')
+                areas    = [dict(r) for r in cur.fetchall()]
+            conn.commit()
+        except Exception as e:
+            _safe_rollback(conn)
+            logger.error("Error cargando form nueva cita: %s", e)
+            flash("Error al cargar el formulario.", "danger")
+        finally:
+            if should_close and not _conn_is_closed(conn):
+                conn.close()
+
+        return render_template(
+            "pages/nueva_cita.html",
+            **_session_vars(),
+            patients=patients,
+            workers=workers,
+            areas=areas,
+            today_iso=date.today().isoformat(),
+        )
+
+    # POST — crear cita
+    patient_id          = request.form.get("patient_id",          type=int)
+    worker_id           = request.form.get("worker_id",           type=int)  or None
+    area_id             = request.form.get("area_id",             type=int)  or None
+    scheduled_at_str    = request.form.get("scheduled_at",        "").strip()
+    reason              = request.form.get("reason",              "").strip() or None
+    patient_schedule_id = request.form.get("patient_schedule_id", type=int)  or None
+
+    if not patient_id or not scheduled_at_str:
+        flash("Paciente y fecha/hora son obligatorios.", "warning")
+        return redirect(url_for("admin_nueva_cita"))
+
+    conn, should_close = _get_conn()
+    _safe_rollback(conn)
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                "CALL sp_create_appointment(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",
+                (patient_id, clinic_id, area_id, worker_id,
+                 scheduled_at_str, reason, patient_schedule_id,
+                 session.get("role"), session.get("worker_id"), None,
+                 "cur_nueva_cita"),
+            )
+            cur.execute('FETCH ALL FROM "cur_nueva_cita"')
+            result = dict(cur.fetchone() or {})
+        conn.commit()
+        if result.get("success"):
+            flash("Cita creada correctamente.", "success")
+        else:
+            flash(f"No se pudo crear la cita: {result.get('message')}", "danger")
+    except Exception as e:
+        _safe_rollback(conn)
+        logger.error("Error en admin_nueva_cita POST: %s", e)
+        flash(f"Error al agendar la cita: {e}", "danger")
+    finally:
+        if should_close and not _conn_is_closed(conn):
+            conn.close()
+
+    return redirect(url_for("citas"))
+
+
+@app.route("/citas/<int:appointment_id>/cancelar", methods=["POST"])
+def admin_cancelar_cita(appointment_id):
+    """Cancela una cita desde el portal admin."""
+    locked = _require_role("Administrador", "Recepcionista", "Medico", "Enfermero")
+    if locked:
+        return locked
+
+    cancel_reason = request.form.get("cancel_reason", "Cancelada por staff").strip()
+
+    conn, should_close = _get_conn()
+    _safe_rollback(conn)
+    try:
+        with conn.cursor() as cur:
+            cur.execute("CALL sp_cancel_appointment(%s, %s, %s)",
+                        (appointment_id, cancel_reason, "cur_cancel"))
+            cur.execute('FETCH ALL FROM "cur_cancel"')
+            result = dict(cur.fetchone() or {})
+        conn.commit()
+        if result.get("success"):
+            flash("Cita cancelada correctamente.", "info")
+        else:
+            flash(f"No se pudo cancelar: {result.get('message')}", "danger")
+    except Exception as e:
+        _safe_rollback(conn)
+        logger.error("Error en admin_cancelar_cita: %s", e)
+        flash(f"Error al cancelar la cita: {e}", "danger")
+    finally:
+        if should_close and not _conn_is_closed(conn):
+            conn.close()
+
+    return redirect(url_for("citas"))
+
+
+@app.route("/citas/<int:appointment_id>/no-show", methods=["POST"])
+def admin_no_show(appointment_id):
+    """Marca una cita como No Show."""
+    locked = _require_role("Administrador", "Medico", "Enfermero")
     if locked:
         return locked
 
@@ -2681,34 +3012,163 @@ def citas():
     _safe_rollback(conn)
     try:
         with conn.cursor() as cur:
-            cur.execute("CALL sp_get_appointments_full(%s)", ("cur_appointments_full",))
-            cur.execute('FETCH ALL FROM "cur_appointments_full"')
-            raw_appointments = cur.fetchall()
+            cur.execute("CALL sp_mark_no_show(%s, %s)",
+                        (appointment_id, "cur_ns"))
+            cur.execute('FETCH ALL FROM "cur_ns"')
         conn.commit()
+        flash("Cita marcada como No Show.", "warning")
     except Exception as e:
         _safe_rollback(conn)
-        logger.error(f"Error en /citas: {e}")
-        raw_appointments = []
+        logger.error("Error en admin_no_show: %s", e)
+        flash(f"Error al marcar No Show: {e}", "danger")
     finally:
         if should_close and not _conn_is_closed(conn):
             conn.close()
 
-    appointments = [
-        {**dict(r), "scheduled_at": _temporal_text(r.get("scheduled_at"))}
-        for r in raw_appointments
-    ]
+    return redirect(url_for("citas"))
 
-    session["last_section"] = "citas"
-    return render_template(
-        "pages/citas_2daE.html",
-        **_session_vars(),
-        appointments=appointments,
-        total_appointments=len(appointments),
-        patients=_cur_fetchall("patients"),
-        vaccines=_cur_fetchall("vaccines"),
-        workers=_cur_fetchall("workers"),
-        clinics=_cur_fetchall("clinics"),
-    )
+
+@app.route("/citas/<int:appointment_id>/reagendar", methods=["POST"])
+def admin_reagendar_cita(appointment_id):
+    """Reagenda una cita a una nueva fecha."""
+    locked = _require_role("Administrador", "Recepcionista", "Medico", "Enfermero")
+    if locked:
+        return locked
+
+    new_scheduled_at = request.form.get("new_scheduled_at", "").strip()
+    reschedule_reason = request.form.get("reschedule_reason", "").strip() or None
+
+    if not new_scheduled_at:
+        flash("La nueva fecha es obligatoria.", "warning")
+        return redirect(url_for("citas"))
+
+    conn, should_close = _get_conn()
+    _safe_rollback(conn)
+    try:
+        with conn.cursor() as cur:
+            cur.execute("CALL sp_reschedule_appointment(%s, %s, %s, %s)",
+                        (appointment_id, new_scheduled_at, reschedule_reason,
+                         "cur_reagendar"))
+            cur.execute('FETCH ALL FROM "cur_reagendar"')
+            result = dict(cur.fetchone() or {})
+        conn.commit()
+        if result.get("success"):
+            flash("Cita reagendada correctamente.", "success")
+        else:
+            flash(f"No se pudo reagendar: {result.get('message')}", "danger")
+    except Exception as e:
+        _safe_rollback(conn)
+        logger.error("Error en admin_reagendar_cita: %s", e)
+        flash(f"Error al reagendar: {e}", "danger")
+    finally:
+        if should_close and not _conn_is_closed(conn):
+            conn.close()
+
+    return redirect(url_for("citas"))
+
+
+@app.route("/citas/<int:appointment_id>/editar", methods=["GET", "POST"])
+def admin_editar_cita(appointment_id):
+    """Edición completa de una cita existente (admin)."""
+    locked = _require_role("Administrador", "Recepcionista", "Medico", "Enfermero")
+    if locked:
+        return locked
+
+    clinic_id = session.get("clinic_id")
+
+    if request.method == "GET":
+        cita      = {}
+        workers   = []
+        areas     = []
+        conn, should_close = _get_conn()
+        _safe_rollback(conn)
+        try:
+            with conn.cursor() as cur:
+                # Datos actuales de la cita
+                cur.execute("CALL sp_get_appointment_detail(%s, %s)",
+                            (appointment_id, "cur_appt_detail"))
+                cur.execute('FETCH ALL FROM "cur_appt_detail"')
+                row = cur.fetchone()
+                cita = dict(row) if row else {}
+
+                # Workers y areas del form (reutiliza sp_get_agenda_form_data)
+                cur.execute("CALL sp_get_agenda_form_data(%s, %s, %s, %s)",
+                            (clinic_id, "cur_pat2", "cur_wrk2", "cur_area2"))
+                cur.execute('FETCH ALL FROM "cur_pat2"')
+                cur.fetchall()  # descartar pacientes (no se edita)
+                cur.execute('FETCH ALL FROM "cur_wrk2"')
+                workers = [dict(r) for r in cur.fetchall()]
+                cur.execute('FETCH ALL FROM "cur_area2"')
+                areas   = [dict(r) for r in cur.fetchall()]
+            conn.commit()
+        except Exception as e:
+            _safe_rollback(conn)
+            logger.error("Error cargando editar cita %s: %s", appointment_id, e)
+            flash("Error al cargar la cita.", "danger")
+            return redirect(url_for("citas"))
+        finally:
+            if should_close and not _conn_is_closed(conn):
+                conn.close()
+
+        if not cita:
+            flash("Cita no encontrada.", "warning")
+            return redirect(url_for("citas"))
+
+        # Formatear scheduled_at para datetime-local input (YYYY-MM-DDTHH:MM)
+        sched = cita.get("scheduled_at")
+        if sched:
+            if hasattr(sched, "strftime"):
+                cita["scheduled_at_local"] = sched.strftime("%Y-%m-%dT%H:%M")
+            else:
+                sched_str = str(sched)
+                cita["scheduled_at_local"] = sched_str[:16].replace(" ", "T")
+        else:
+            cita["scheduled_at_local"] = ""
+
+        return render_template(
+            "pages/editar_cita.html",
+            **_session_vars(),
+            cita=cita,
+            workers=workers,
+            areas=areas,
+            statuses=["Programada", "Confirmada", "Completada", "Cancelada", "No Show"],
+            today_iso=date.today().isoformat(),
+        )
+
+    # ── POST — guardar cambios ────────────────────────────────────
+    worker_id    = request.form.get("worker_id",    type=int) or None
+    area_id      = request.form.get("area_id",      type=int) or None
+    scheduled_at = request.form.get("scheduled_at", "").strip() or None
+    reason       = request.form.get("reason",       "").strip() or None
+    notes        = request.form.get("notes",        "").strip() or None
+    status       = request.form.get("status",       "").strip() or None
+    duration_min = request.form.get("duration_min", type=int)  or None
+
+    conn, should_close = _get_conn()
+    _safe_rollback(conn)
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                "CALL sp_update_appointment(%s,%s,%s,%s,%s,%s,%s,%s,%s)",
+                (appointment_id, worker_id, area_id, scheduled_at,
+                 reason, notes, status, duration_min, "cur_edit_appt"),
+            )
+            cur.execute('FETCH ALL FROM "cur_edit_appt"')
+            result = dict(cur.fetchone() or {})
+        conn.commit()
+        if result.get("success"):
+            flash("Cita actualizada correctamente.", "success")
+        else:
+            flash(f"No se pudo actualizar: {result.get('message')}", "danger")
+    except Exception as e:
+        _safe_rollback(conn)
+        logger.error("Error en admin_editar_cita POST %s: %s", appointment_id, e)
+        flash(f"Error al guardar: {e}", "danger")
+    finally:
+        if should_close and not _conn_is_closed(conn):
+            conn.close()
+
+    return redirect(url_for("citas"))
 
 
 @app.route("/nfc")

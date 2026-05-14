@@ -1,0 +1,130 @@
+{% extends 'base_2daE.html' %}
+
+{% from 'components/toolbar.html' import toolbar %}
+
+{% block title %}Nueva cita — Personal Clínico{% endblock %}
+
+{% block content %}
+
+{{ toolbar(
+    title='Agendar nueva cita',
+    subtitle='Registra una cita para un paciente en esta clínica',
+    icon='fa-calendar-plus',
+    back_href=url_for('citas')
+) }}
+
+<div class="md3-form-card" style="max-width:640px;margin:var(--md-spacing-4) auto 0;">
+
+  <div class="md3-form-card__header">
+    <p class="md3-form-card__title">
+      <i class="fa-solid fa-calendar-plus" style="color:var(--md-primary);"></i>
+      Datos de la nueva cita
+    </p>
+    <p class="md3-form-card__subtitle">
+      Todos los campos marcados con * son obligatorios.
+    </p>
+  </div>
+
+  <form method="POST" action="{{ url_for('admin_nueva_cita') }}" class="md3-form">
+
+    <hr class="md3-form__divider">
+    <p class="md3-form__section-title">
+      <i class="fa-solid fa-child"></i>
+      Paciente
+    </p>
+
+    <div class="md3-field">
+      <label class="md3-field__label" for="patient_id">Paciente *</label>
+      <select name="patient_id" id="patient_id" class="md3-select" required>
+        <option value="" disabled selected>— Selecciona un paciente —</option>
+        {% for p in patients %}
+          <option value="{{ p.patient_id }}">
+            P{{ p.patient_id }} — {{ p.full_name }}
+          </option>
+        {% endfor %}
+      </select>
+      <span class="md3-field__helper">Busca por nombre o ID de paciente.</span>
+    </div>
+
+    <hr class="md3-form__divider">
+    <p class="md3-form__section-title">
+      <i class="fa-solid fa-clock"></i>
+      Fecha y hora
+    </p>
+
+    <div class="md3-field">
+      <label class="md3-field__label" for="scheduled_at">Fecha y hora de la cita *</label>
+      <input type="datetime-local" name="scheduled_at" id="scheduled_at"
+             class="md3-input" required
+             min="{{ today_iso }}T00:00">
+      <span class="md3-field__helper">
+        Selecciona una fecha dentro del horario laboral del trabajador asignado.
+      </span>
+    </div>
+
+    <hr class="md3-form__divider">
+    <p class="md3-form__section-title">
+      <i class="fa-solid fa-stethoscope"></i>
+      Personal y área
+    </p>
+
+    <div class="md3-field">
+      <label class="md3-field__label" for="worker_id">Trabajador asignado</label>
+      <select name="worker_id" id="worker_id" class="md3-select">
+        <option value="">— Sin asignar —</option>
+        {% for w in workers %}
+          <option value="{{ w.worker_id }}">
+            {{ w.full_name }}{% if w.role_name %} ({{ w.role_name }}){% endif %}
+          </option>
+        {% endfor %}
+      </select>
+      <span class="md3-field__helper">
+        Solo aparecen trabajadores con horario registrado en esta clínica.
+      </span>
+    </div>
+
+    <div class="md3-field">
+      <label class="md3-field__label" for="area_id">Área de atención</label>
+      <select name="area_id" id="area_id" class="md3-select">
+        <option value="">— Sin área específica —</option>
+        {% for a in areas %}
+          <option value="{{ a.area_id }}">
+            {{ a.name }}{% if a.capacity %} (cap. {{ a.capacity }}){% endif %}
+          </option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <hr class="md3-form__divider">
+    <p class="md3-form__section-title">
+      <i class="fa-solid fa-note-sticky"></i>
+      Motivo
+    </p>
+
+    <div class="md3-field">
+      <label class="md3-field__label" for="reason">Motivo de la cita</label>
+      <textarea name="reason" id="reason" class="md3-textarea"
+                rows="3"
+                placeholder="Describe brevemente el motivo de la cita (ej. vacuna DPT — 2da dosis)…"></textarea>
+      <span class="md3-field__helper">Opcional. Visible para el personal clínico.</span>
+    </div>
+
+    {# Campo oculto — se puede pre-poblar desde esquema del paciente #}
+    <input type="hidden" name="patient_schedule_id"
+           value="{{ request.args.get('schedule_id', '') }}">
+
+    <div class="md3-form__actions">
+      <a href="{{ url_for('citas') }}" class="md3-btn md3-btn--outlined">
+        <i class="fa-solid fa-xmark"></i>
+        Cancelar
+      </a>
+      <button type="submit" class="md3-btn md3-btn--filled">
+        <i class="fa-solid fa-calendar-check"></i>
+        Agendar cita
+      </button>
+    </div>
+
+  </form>
+</div>
+
+{% endblock %}

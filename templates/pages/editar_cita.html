@@ -1,0 +1,157 @@
+{% extends 'base_2daE.html' %}
+
+{% from 'components/toolbar.html' import toolbar %}
+{% from 'components/badge.html'   import badge   %}
+
+{% block title %}Editar cita — {{ cita.patient_name }}{% endblock %}
+
+{% block content %}
+
+{% call toolbar(
+    title='Editar cita',
+    subtitle='Modificar datos de la cita de ' ~ (cita.patient_name or '—'),
+    icon='fa-calendar-pen',
+    back_href=url_for('citas')
+) %}
+  <span style="font-size:var(--md-font-size-body-sm);color:var(--md-on-surface-variant);">
+    ID #{{ cita.appointment_id }}
+  </span>
+{% endcall %}
+
+{# ── Resumen de la cita (solo lectura) ── #}
+<div class="md3-form-card" style="max-width:680px;margin:0 auto var(--md-spacing-4);">
+  <div class="md3-form-card__header" style="padding-bottom:0;">
+    <p class="md3-form-card__title" style="margin-bottom:var(--md-spacing-2);">
+      <i class="fa-solid fa-user" style="color:var(--md-primary);"></i>
+      {{ cita.patient_name or '—' }}
+    </p>
+    <div style="display:flex;gap:var(--md-spacing-2);flex-wrap:wrap;padding-bottom:var(--md-spacing-3);">
+      {% if cita.vaccine_name %}
+        {{ badge(cita.vaccine_name, color='primary', size='sm') }}
+      {% endif %}
+      {% if cita.dose_label %}
+        {{ badge(cita.dose_label, color='secondary', size='sm') }}
+      {% endif %}
+      {% if cita.clinic_name %}
+        {{ badge(cita.clinic_name, color='neutral', icon='fa-hospital', size='sm') }}
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+{# ── Formulario de edición ── #}
+<div class="md3-form-card" style="max-width:680px;margin:0 auto 0;">
+
+  <div class="md3-form-card__header">
+    <p class="md3-form-card__title">
+      <i class="fa-solid fa-pen-to-square" style="color:var(--md-primary);"></i>
+      Modificar datos de la cita
+    </p>
+    <p class="md3-form-card__subtitle">
+      Los campos vacíos conservan su valor actual.
+    </p>
+  </div>
+
+  <form method="POST"
+        action="{{ url_for('admin_editar_cita', appointment_id=cita.appointment_id) }}"
+        class="md3-form">
+
+    <hr class="md3-form__divider">
+    <p class="md3-form__section-title">
+      <i class="fa-solid fa-clock"></i>
+      Fecha y hora
+    </p>
+
+    <div class="md3-field">
+      <label class="md3-field__label" for="scheduled_at">Nueva fecha y hora</label>
+      <input type="datetime-local" name="scheduled_at" id="scheduled_at"
+             class="md3-input"
+             value="{{ cita.scheduled_at_local }}"
+             min="{{ today_iso }}T00:00">
+      <span class="md3-field__helper">Deja vacío para mantener la fecha actual.</span>
+    </div>
+
+    <div class="md3-field">
+      <label class="md3-field__label" for="duration_min">Duración (minutos)</label>
+      <input type="number" name="duration_min" id="duration_min"
+             class="md3-input"
+             value="{{ cita.duration_min or 20 }}"
+             min="5" max="120" step="5">
+    </div>
+
+    <hr class="md3-form__divider">
+    <p class="md3-form__section-title">
+      <i class="fa-solid fa-stethoscope"></i>
+      Personal y área
+    </p>
+
+    <div class="md3-field">
+      <label class="md3-field__label" for="worker_id">Trabajador asignado</label>
+      <select name="worker_id" id="worker_id" class="md3-select">
+        <option value="">— Sin asignar —</option>
+        {% for w in workers %}
+          <option value="{{ w.worker_id }}"
+            {{ 'selected' if w.worker_id == cita.worker_id else '' }}>
+            {{ w.full_name }}{% if w.role_name %} ({{ w.role_name }}){% endif %}
+          </option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="md3-field">
+      <label class="md3-field__label" for="area_id">Área de atención</label>
+      <select name="area_id" id="area_id" class="md3-select">
+        <option value="">— Sin área —</option>
+        {% for a in areas %}
+          <option value="{{ a.area_id }}"
+            {{ 'selected' if a.area_id == cita.area_id else '' }}>
+            {{ a.name }}{% if a.capacity %} (cap. {{ a.capacity }}){% endif %}
+          </option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <hr class="md3-form__divider">
+    <p class="md3-form__section-title">
+      <i class="fa-solid fa-circle-info"></i>
+      Estado y notas
+    </p>
+
+    <div class="md3-field">
+      <label class="md3-field__label" for="status">Estado de la cita</label>
+      <select name="status" id="status" class="md3-select">
+        {% for s in statuses %}
+          <option value="{{ s }}"
+            {{ 'selected' if s == cita.appointment_status else '' }}>
+            {{ s }}
+          </option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="md3-field">
+      <label class="md3-field__label" for="reason">Motivo</label>
+      <textarea name="reason" id="reason" class="md3-textarea" rows="2">{{ cita.reason or '' }}</textarea>
+    </div>
+
+    <div class="md3-field">
+      <label class="md3-field__label" for="notes">Notas clínicas</label>
+      <textarea name="notes" id="notes" class="md3-textarea" rows="3"
+                placeholder="Observaciones del personal clínico…">{{ cita.appointment_notes or '' }}</textarea>
+    </div>
+
+    <div class="md3-form__actions">
+      <a href="{{ url_for('citas') }}" class="md3-btn md3-btn--outlined">
+        <i class="fa-solid fa-xmark"></i>
+        Cancelar
+      </a>
+      <button type="submit" class="md3-btn md3-btn--filled">
+        <i class="fa-solid fa-floppy-disk"></i>
+        Guardar cambios
+      </button>
+    </div>
+
+  </form>
+</div>
+
+{% endblock %}

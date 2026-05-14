@@ -351,23 +351,49 @@ CREATE TABLE scheme_doses (
 
 --  MÓDULO: APPOINTMENTS
 CREATE TABLE appointments (
-    appointment_id      SERIAL      PRIMARY KEY,
-    patient_id          INT         NOT NULL REFERENCES patients(patient_id),
-    clinic_id           INT         NOT NULL REFERENCES clinics(clinic_id),
-    area_id             INT         REFERENCES clinic_areas(area_id),
-    worker_id           INT         REFERENCES workers(worker_id),
-    vaccine_id          INT         REFERENCES vaccines(vaccine_id),
-    scheme_dose_id      INT         REFERENCES scheme_doses(dose_id),
-    scheduled_at        TIMESTAMP   NOT NULL,
-    duration_min        SMALLINT,
-    reason              TEXT,
-    appointment_status  VARCHAR(50) CHECK (appointment_status IN ('Programada','Completada','Cancelada','No Show')),
-    appointment_notes   TEXT,
-    created_at          TIMESTAMP   DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE(patient_id, scheduled_at),
-    UNIQUE(clinic_id, area_id, scheduled_at),
-    UNIQUE(worker_id, scheduled_at)
+    appointment_id       SERIAL      PRIMARY KEY,
+    patient_id           INT         NOT NULL REFERENCES patients(patient_id),
+    clinic_id            INT         NOT NULL REFERENCES clinics(clinic_id),
+    area_id              INT         REFERENCES clinic_areas(area_id),
+    worker_id            INT         REFERENCES workers(worker_id),
+    patient_schedule_id  INT         REFERENCES patient_vaccine_schedule(schedule_id),
+    scheduled_at         TIMESTAMP   NOT NULL,
+    duration_min         SMALLINT    DEFAULT 20,
+    reason               TEXT,
+    appointment_status   VARCHAR(30) NOT NULL DEFAULT 'Programada' CHECK (appointment_status IN (
+                                         'Programada','Confirmada','Reagendada',
+                                         'Completada','Cancelada','No Show'
+                                     )),
+    appointment_notes    TEXT,
+    cancel_reason        TEXT,
+    confirmed_at         TIMESTAMP,
+    rescheduled_from_id  INT         REFERENCES appointments(appointment_id),
+    created_by_role      VARCHAR(20) NOT NULL
+                                     CHECK (created_by_role IN (
+                                         'Tutor','Recepcionista','Medico','Enfermero','Administrador'
+                                     )),
+    created_by_worker_id INT         REFERENCES workers(worker_id),
+    created_by_guardian_id INT       REFERENCES guardians(guardian_id),
+    created_at           TIMESTAMP   DEFAULT NOW(),
+    UNIQUE (worker_id, scheduled_at),
+    UNIQUE (clinic_id, area_id, scheduled_at)
 );
+
+ALTER TABLE appointments DROP COLUMN tutor_accepted;
+ALTER TABLE appointments ADD COLUMN patient_id INT REFERENCES patients(patient_id);
+ALTER TABLE appointments ADD COLUMN created_by_role VARCHAR(20); -- quien creo: 'Tutor', 'Recepcionista', 'Medico', 'Enfermero'
+ALTER TABLE appointments ADD COLUMN created_by_worker_id INT; -- quien del personal la creo
+ALTER TABLE appointments ADD COLUMN created_by_guardian_id INT; -- quien del portal tutor la creo
+ALTER TABLE appointments ALTER COLUMN patient_schedule_id INT REFERENCES patient_vaccine_schedule(schedule_id);
+
+UPDATE appointments a
+SET patient_id = pvs.patient_id
+FROM patient_vaccine_schedule pvs
+WHERE a.patient_schedule_id = pvs.schedule_id;
+
+ALTER TABLE appointments
+ALTER COLUMN patient_id SET NOT NULL;
+
 
 ALTER TABLE appointments ADD COLUMN patient_schedule_id INT REFERENCES patient_vaccine_schedule(schedule_id);
 
@@ -420,15 +446,17 @@ CREATE TABLE application_sites (
 
 
 CREATE TABLE patient_vaccine_schedule (
-    schedule_id SERIAL PRIMARY KEY,
-    patient_id INT NOT NULL REFERENCES patients(patient_id),
-    scheme_dose_id INT NOT NULL REFERENCES scheme_doses(dose_id),
-    due_date DATE NOT NULL,
-    status VARCHAR(20) DEFAULT 'Pendiente' CHECK (status IN ('Pendiente','Aplicada','Atrasada')),
-    applied_record_id INT REFERENCES vaccination_records(record_id),
-
+    schedule_id    SERIAL      PRIMARY KEY,
+    patient_id     INT         NOT NULL REFERENCES patients(patient_id),
+    scheme_dose_id INT         NOT NULL REFERENCES scheme_doses(dose_id),
+    due_date       DATE        NOT NULL,
+    status         VARCHAR(20) NOT NULL DEFAULT 'Pendiente'
+                               CHECK (status IN ('Pendiente','Aplicada','Atrasada')),
+    updated_at     TIMESTAMP   DEFAULT NOW(),
     UNIQUE (patient_id, scheme_dose_id)
 );
+
+ALTER TABLE patient_vaccine_schedule ADD COLUMN updated_at TIMESTAMP DEFAULT NOW();
 
 CREATE TABLE vaccination_records (
     record_id            SERIAL   PRIMARY KEY,
@@ -445,6 +473,7 @@ CREATE TABLE vaccination_records (
     patient_temp_c       NUMERIC(4,1),
     had_reaction         BOOLEAN  NOT NULL DEFAULT FALSE
 );
+
 
 ALTER TABLE vaccination_records ADD COLUMN created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
 
@@ -501,13 +530,19 @@ CREATE TABLE nfc_scan_events (
 
 --  MÓDULO: ALERTS AND AUDITS
 CREATE TABLE scheme_completion_alerts (
-    alert_id        SERIAL PRIMARY KEY,
-    patient_id      INT          NOT NULL REFERENCES patients(patient_id),
-    scheme_dose_id  INT          NOT NULL REFERENCES scheme_doses(dose_id),
-    due_date        DATE         NOT NULL,
-    status          VARCHAR(30)  NOT NULL DEFAULT 'Pendiente' CHECK (status IN ('Pendiente','Enviada','Completada','Cancelada')),
-    notified_at     TIMESTAMP
+    alert_id       SERIAL      PRIMARY KEY,
+    patient_id     INT         NOT NULL REFERENCES patients(patient_id),
+    schedule_id    INT         NOT NULL REFERENCES patient_vaccine_schedule(schedule_id),
+    alert_type     VARCHAR(30) NOT NULL CHECK (alert_type IN ('Proximidad','Atraso','Critico')),
+    due_date       DATE        NOT NULL,
+    status         VARCHAR(20) NOT NULL DEFAULT 'Pendiente'
+                               CHECK (status IN ('Pendiente','Enviada','Leida', 'Ignorada')),
+    notified_at    TIMESTAMP,
+    read_at        TIMESTAMP,
+    created_at     TIMESTAMP   DEFAULT NOW()
 );
+
+ALTER TABLE scheme_completion_alerts ADD COLUMN schedule_id INT NOT NULL REFERENCES patient_vaccine_schedule(schedule_id);
 
 CREATE TABLE supply_catalog (
     supply_id  SERIAL PRIMARY KEY,
@@ -567,3 +602,15 @@ CREATE INDEX idx_vaccination_records_date  ON vaccination_records(applied_date);
 CREATE INDEX idx_appointments_pat_date     ON appointments(patient_id, scheduled_at);
 CREATE INDEX idx_nfc_scan_events_card      ON nfc_scan_events(nfc_card_id, scanned_at);
 CREATE INDEX idx_audit_log_table_record    ON audit_log(table_name, record_id);
+CREATE INDEX idx_pvs_patient_status        ON patient_vaccine_schedule(patient_id, status);
+CREATE INDEX idx_pvs_due_date_status       ON patient_vaccine_schedule(due_date, status) WHERE status IN ('Pendiente','Atrasada');
+CREATE INDEX idx_appointments_patient      ON appointments(patient_id, scheduled_at);
+CREATE INDEX idx_appointments_status_date  ON appointments(appointment_status, scheduled_at) WHERE appointment_status NOT IN ('Cancelada','No Show','Completada');
+CREATE INDEX idx_appointments_worker_date  ON appointments(worker_id, scheduled_at);
+CREATE INDEX idx_appointments_clinic_date  ON appointments(clinic_id, scheduled_at::DATE);
+
+CREATE INDEX idx_alerts_patient_status     ON scheme_completion_alerts(patient_id, status);
+CREATE INDEX idx_alerts_due_date           ON scheme_completion_alerts(due_date, status) WHERE status = 'Pendiente';
+
+CREATE INDEX idx_vaccination_records_schedule ON vaccination_records(patient_schedule_id);
+CREATE INDEX idx_patients_active           ON patients(patient_id) WHERE is_active = TRUE;

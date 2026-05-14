@@ -249,73 +249,41 @@ EXECUTE FUNCTION fn_generate_expected_vaccination_scheme();
 
 
 
--- trigger 11: dependiendo de las dosis faltantes del paciente, genera posibles citas para aplicarlas, las cuales el tutor podra aceptar, cancelar o reagendar
-CREATE OR REPLACE FUNCTION fn_generate_appointment_for_schedule()
-RETURNS TRIGGER
-LANGUAGE plpgsql
-AS $$
-DECLARE
-    v_clinic_id INT;
-BEGIN
-
-    -- Solo generar citas cercanas o atrasadas
-    IF NEW.due_date > CURRENT_DATE + INTERVAL '30 days' THEN
-        RETURN NEW;
-    END IF;
-
-    -- Buscar clínica activa
-    SELECT clinic_id
-    INTO v_clinic_id
-    FROM clinics
-    WHERE is_active = TRUE
-    LIMIT 1;
-
-    -- Crear cita sugerida
-    INSERT INTO appointments (
-        patient_schedule_id,
-        clinic_id,
-        scheduled_at,
-        appointment_status,
-        created_at
-    )
-    VALUES (
-        NEW.schedule_id,
-        v_clinic_id,
-        NEW.due_date + TIME '09:00',
-        'Pendiente confirmación',
-        CURRENT_TIMESTAMP
-    );
-
-    RETURN NEW;
-END;
-$$;
-
-DROP TRIGGER IF EXISTS trg_generate_appointment_for_schedule
-ON patient_vaccine_schedule;
-
-CREATE TRIGGER trg_generate_appointment_for_schedule
-AFTER INSERT ON patient_vaccine_schedule
-FOR EACH ROW
-EXECUTE FUNCTION fn_generate_appointment_for_schedule();
+-- ============================================================
+-- [DEPRECADO] trigger 11: generación automática de citas
+-- ELIMINADO: generaba miles de citas ficticias para dosis futuras,
+-- mezclando dominio médico con dominio operativo clínico.
+-- Las citas ahora SOLO se crean manualmente vía sp_create_appointment.
+-- ============================================================
+-- CREATE OR REPLACE FUNCTION fn_generate_appointment_for_schedule() ...
+-- DROP TRIGGER IF EXISTS trg_generate_appointment_for_schedule ON patient_vaccine_schedule;
+-- (ver sección DEPRECATED al fondo del archivo triggers.sql)
 
 
 
 
--- Trigger 12: Actualizar el estado del esquema de vacunacion esperado despues de aplicar una dosis
+-- ============================================================
+-- [CORREGIDO] Trigger 12: Marcar dosis como Aplicada en patient_vaccine_schedule
+-- CAMBIO: eliminada referencia a applied_record_id (FK circular removida).
+--         Ahora solo actualiza status y updated_at.
+-- ============================================================
 CREATE OR REPLACE FUNCTION fn_update_expected_vaccination_scheme()
 RETURNS TRIGGER
 LANGUAGE plpgsql AS $$
 BEGIN
-    UPDATE patient_vaccine_schedule
-    SET 
-        status = 'Aplicada',
-        applied_record_id = NEW.record_id
-    WHERE schedule_id = NEW.patient_schedule_id;
+    IF NEW.patient_schedule_id IS NOT NULL THEN
+        UPDATE patient_vaccine_schedule
+        SET    status     = 'Aplicada',
+               updated_at = NOW()
+        WHERE  schedule_id = NEW.patient_schedule_id
+          AND  status     <> 'Aplicada';
+    END IF;
     RETURN NEW;
 END;
 $$;
 
-CREATE OR REPLACE TRIGGER trg_update_expected_vaccination_scheme
+DROP TRIGGER IF EXISTS trg_update_expected_vaccination_scheme ON vaccination_records;
+CREATE TRIGGER trg_update_expected_vaccination_scheme
 AFTER INSERT ON vaccination_records
 FOR EACH ROW
 EXECUTE FUNCTION fn_update_expected_vaccination_scheme();
@@ -442,3 +410,74 @@ BEFORE INSERT
 ON vaccination_records
 FOR EACH ROW
 EXECUTE FUNCTION fn_validate_lot_expiration();
+
+
+-- ============================================================
+-- [NUEVO] Trigger 15: Marcar cita como Completada al registrar vacuna
+-- Separa el acto de vacunar (dominio médico) del estado de la cita
+-- (dominio operativo) sin necesidad de llamar sp_complete_appointment.
+-- ============================================================
+CREATE OR REPLACE FUNCTION fn_complete_appointment_on_vaccination()
+RETURNS TRIGGER LANGUAGE plpgsql AS $$
+BEGIN
+    IF NEW.appointment_id IS NOT NULL THEN
+        UPDATE appointments
+        SET    appointment_status = 'Completada'
+        WHERE  appointment_id    = NEW.appointment_id
+          AND  appointment_status NOT IN ('Cancelada', 'No Show', 'Completada');
+    END IF;
+    RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS trg_complete_appointment_on_vaccination ON vaccination_records;
+CREATE TRIGGER trg_complete_appointment_on_vaccination
+AFTER INSERT ON vaccination_records
+FOR EACH ROW
+EXECUTE FUNCTION fn_complete_appointment_on_vaccination();
+
+
+-- ============================================================
+-- [NUEVO] Trigger 16: Actualizar status de patient_vaccine_schedule
+-- cuando se genera una nueva dosis en el esquema (ON INSERT).
+-- Si due_date ya pasó → Atrasada, si no → Pendiente.
+-- Complementa a fn_generate_expected_vaccination_scheme (trigger 10)
+-- para que el status sea correcto desde el día de inserción.
+-- ============================================================
+CREATE OR REPLACE FUNCTION fn_set_initial_schedule_status()
+RETURNS TRIGGER LANGUAGE plpgsql AS $$
+BEGIN
+    IF NEW.due_date < CURRENT_DATE AND NEW.status = 'Pendiente' THEN
+        NEW.status := 'Atrasada';
+    END IF;
+    RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS trg_set_initial_schedule_status ON patient_vaccine_schedule;
+CREATE TRIGGER trg_set_initial_schedule_status
+BEFORE INSERT ON patient_vaccine_schedule
+FOR EACH ROW
+EXECUTE FUNCTION fn_set_initial_schedule_status();
+
+
+-- ============================================================
+-- DEPRECATED — trigger 11 original (auto-generación de citas)
+-- Guardado aquí como referencia histórica. NO ejecutar.
+-- ============================================================
+/*
+CREATE OR REPLACE FUNCTION fn_generate_appointment_for_schedule()
+RETURNS TRIGGER LANGUAGE plpgsql AS $$
+DECLARE v_clinic_id INT;
+BEGIN
+    IF NEW.due_date > CURRENT_DATE + INTERVAL '30 days' THEN RETURN NEW; END IF;
+    SELECT clinic_id INTO v_clinic_id FROM clinics WHERE is_active = TRUE LIMIT 1;
+    INSERT INTO appointments (patient_schedule_id, clinic_id, scheduled_at, appointment_status, created_at)
+    VALUES (NEW.schedule_id, v_clinic_id, NEW.due_date + TIME '09:00', 'Pendiente confirmación', CURRENT_TIMESTAMP);
+    RETURN NEW;
+END;
+$$;
+CREATE TRIGGER trg_generate_appointment_for_schedule
+AFTER INSERT ON patient_vaccine_schedule
+FOR EACH ROW EXECUTE FUNCTION fn_generate_appointment_for_schedule();
+*/

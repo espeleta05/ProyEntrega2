@@ -1,0 +1,87 @@
+/* ═══════════════════════════════════════════════════════════════════
+   citas.css  —  Admin citas page  (MD3 tokens only, no inline styles)
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* ── Section headers ─────────────────────────────────────────── */
+.citas-section-header {
+  display: flex;
+  align-items: center;
+  gap: var(--md-spacing-2);
+  margin: var(--md-spacing-6) 0 var(--md-spacing-3);
+}
+
+.citas-section-title {
+  font-family:    var(--md-font-family-display);
+  font-size:      var(--md-font-size-body-lg);
+  font-weight:    var(--md-font-weight-extrabold);
+  color:          var(--md-on-surface);
+  display:        flex;
+  align-items:    center;
+  gap:            var(--md-spacing-2);
+  margin:         0;
+  flex:           1;
+}
+
+.citas-section-title i {
+  color: var(--md-primary);
+}
+
+/* ── Empty state notice ───────────────────────────────────────── */
+.citas-empty-notice {
+  text-align: center;
+  padding:    var(--md-spacing-8) 0;
+  color:      var(--md-on-surface-variant);
+}
+
+.citas-empty-notice i {
+  font-size:     1.8rem;
+  display:       block;
+  margin-bottom: var(--md-spacing-2);
+  opacity:       0.45;
+  color:         var(--md-primary);
+}
+
+.citas-empty-notice p {
+  margin:      var(--md-spacing-1) 0 0;
+  font-size:   var(--md-font-size-body-sm);
+}
+
+/* ── Action buttons inside table rows ────────────────────────── */
+.citas-row-actions {
+  display:         flex;
+  gap:             var(--md-spacing-1);
+  justify-content: center;
+  flex-wrap:       wrap;
+}
+
+/* ── Historial table — muted row ─────────────────────────────── */
+.citas-row-history td {
+  opacity: 0.8;
+}
+
+/* ── Date range info bar ─────────────────────────────────────── */
+.citas-date-bar {
+  display:       flex;
+  align-items:   center;
+  gap:           var(--md-spacing-2);
+  font-size:     var(--md-font-size-body-sm);
+  color:         var(--md-on-surface-variant);
+  margin-bottom: var(--md-spacing-3);
+}
+
+.citas-date-bar i {
+  color: var(--md-primary);
+  opacity: 0.7;
+}
+
+/* ── Reagendar inline form (modal-less) ──────────────────────── */
+.citas-reagendar-form {
+  display:        flex;
+  flex-direction: column;
+  gap:            var(--md-spacing-2);
+  min-width:      220px;
+}
+
+.citas-reagendar-form .md3-input {
+  font-size: var(--md-font-size-body-sm);
+}

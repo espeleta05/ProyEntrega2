@@ -14,6 +14,48 @@
 <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/esquemaPaciente.css') }}">
 <style>
   .content-info { background-color: transparent !important; box-shadow: none !important; }
+  .section-title {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--ndt-text-secondary, #555);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin: 1.5rem 0 0.6rem 2px;
+  }
+  .appt-cards-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 1rem;
+    margin-top: 0.5rem;
+  }
+  .appt-card {
+    background: var(--ndt-surface, #fff);
+    border: 1px solid var(--ndt-border, #e5e7eb);
+    border-radius: 10px;
+    padding: 1rem 1.1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.55rem;
+    box-shadow: 0 1px 3px rgba(0,0,0,.06);
+  }
+  .appt-card__header { display: flex; flex-direction: column; gap: 2px; }
+  .appt-card__name { font-weight: 600; font-size: 0.92rem; }
+  .appt-card__dose { font-size: 0.78rem; color: var(--ndt-text-muted, #888); }
+  .appt-card__row {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    font-size: 0.83rem;
+    color: var(--ndt-text-secondary, #555);
+  }
+  .appt-card__row i { width: 14px; text-align: center; opacity: .7; }
+  .appt-cards-empty {
+    text-align: center;
+    color: var(--ndt-text-muted, #aaa);
+    padding: 2rem 0;
+    font-size: 0.9rem;
+  }
+  .appt-cards-empty i { font-size: 1.6rem; display: block; margin-bottom: 0.4rem; }
 </style>
 {% endblock %}
 
@@ -110,90 +152,124 @@
     </div>
 </div>
 
-{# ── Próximas dosis programadas ── #}
-<div class="second-section">
+{# ── Dosis pendientes ── #}
+<p class="section-title"><i class="fa-solid fa-clock"></i> Dosis pendientes</p>
 
-  {% set _nv = namespace(i=0) %}
-  {% call(nv) table(
-      headers=[
-          {'label': 'Vacuna'},
-          {'label': 'Dosis'},
-          {'label': 'Edad recomendada'},
-          {'label': 'Estado / Retraso'},
-          {'label': 'Fecha de cita'},
-          {'label': 'Estado cita'},
-          {'label': 'Aceptada por tutor'},
-      ],
-      rows=next_vaccines,
-      empty_icon='fa-calendar-xmark',
-      empty_title='Sin próximas dosis programadas.',
-      footer_text=next_vaccines|length ~ ' dosis pendientes'
-  ) %}
-    {% set is_delayed = nv.estado == 'Pendiente con retraso' %}
-    <tr class="{{ 'row-even' if _nv.i % 2 == 1 else 'row-odd' }} {{ 'row-delayed' if is_delayed else '' }}">
+{% set _pd = namespace(i=0) %}
+{% call(pd) table(
+    headers=[
+        {'label': 'Vacuna'},
+        {'label': 'Dosis'},
+        {'label': 'Edad recomendada'},
+        {'label': 'Estado / Retraso'},
+    ],
+    rows=pending_doses,
+    empty_icon='fa-calendar-xmark',
+    empty_title='Sin dosis pendientes.',
+    footer_text=pending_doses|length ~ ' dosis pendientes'
+) %}
+  {% set is_delayed = pd.estado == 'Atrasada' %}
+  {% set dias = pd.dias_retraso | int %}
+  <tr class="{{ 'row-even' if _pd.i % 2 == 1 else 'row-odd' }} {{ 'row-delayed' if is_delayed else '' }}">
 
-      <td class="name-td"><strong>{{ nv.name }}</strong></td>
+    <td class="name-td"><strong>{{ pd.name }}</strong></td>
 
-      <td>{{ badge(nv.dose, color='primary', size='sm') }}</td>
+    <td>{{ badge(pd.dose, color='primary', size='sm') }}</td>
 
-      <td class="muted-td">{{ nv.edad_ideal }}</td>
+    <td class="muted-td">{{ pd.edad_ideal }}</td>
 
-      <td>
-        {% if is_delayed and nv.dias_retraso %}
+    <td>
+      {% if is_delayed and dias > 0 %}
+        {% if dias >= 365 %}
+          {% set años = (dias / 365) | int %}
           <span class="ndt-badge ndt-badge--delay">
-            <i class="fa-solid fa-triangle-exclamation"></i> {{ nv.dias_retraso }} días atrasada
+            <i class="fa-solid fa-triangle-exclamation"></i>
+            {{ años }} año{{ 's' if años != 1 else '' }} atrasada
           </span>
-        {% elif nv.alerta_retraso %}
-          <span class="ndt-badge ndt-badge--ok">
-            <i class="fa-solid fa-clock"></i> {{ nv.alerta_retraso }}
-          </span>
-        {% else %}
-          <span class="ndt-muted">—</span>
-        {% endif %}
-      </td>
-
-      <td class="muted-td ndt-date">
-        {% if nv.fecha_cita %}
-          <i class="fa-regular fa-calendar"></i> {{ nv.fecha_cita }}
-        {% else %}
-          <span class="ndt-muted">Sin cita</span>
-        {% endif %}
-      </td>
-
-      <td>
-        {% if nv.cita_estado == 'Programada' %}
-          {{ badge('Programada', color='secondary', icon='fa-calendar-check', size='sm') }}
-        {% elif nv.cita_estado == 'Completada' %}
-          {{ badge('Completada', color='success', icon='fa-check', size='sm') }}
-        {% elif nv.cita_estado == 'Cancelada' %}
-          {{ badge('Cancelada', color='error', icon='fa-xmark', size='sm') }}
-        {% elif nv.cita_estado == 'No Show' %}
-          {{ badge('No Show', color='tertiary', icon='fa-user-slash', size='sm') }}
-        {% else %}
-          <span class="ndt-muted">Sin cita</span>
-        {% endif %}
-      </td>
-
-      <td>
-        {% if nv.cita_aceptada is none %}
-          <span class="ndt-badge ndt-badge--pending">
-            <i class="fa-regular fa-hourglass"></i> Pendiente
-          </span>
-        {% elif nv.cita_aceptada %}
-          <span class="ndt-badge ndt-badge--accepted">
-            <i class="fa-solid fa-circle-check"></i> Aceptada
+        {% elif dias > 31 %}
+          {% set meses = (dias / 30) | int %}
+          <span class="ndt-badge ndt-badge--delay">
+            <i class="fa-solid fa-triangle-exclamation"></i>
+            {{ meses }} mes{{ 'es' if meses != 1 else '' }} atrasada
           </span>
         {% else %}
-          <span class="ndt-badge ndt-badge--rejected">
-            <i class="fa-solid fa-circle-xmark"></i> No aceptada
+          <span class="ndt-badge ndt-badge--delay">
+            <i class="fa-solid fa-triangle-exclamation"></i>
+            {{ dias }} día{{ 's' if dias != 1 else '' }} atrasada
           </span>
         {% endif %}
-      </td>
+      {% elif pd.alerta_retraso %}
+        <span class="ndt-badge ndt-badge--ok">
+          <i class="fa-solid fa-clock"></i> {{ pd.alerta_retraso }}
+        </span>
+      {% else %}
+        <span class="ndt-muted">Pendiente</span>
+      {% endif %}
+    </td>
 
-    </tr>
-    {% set _nv.i = _nv.i + 1 %}
-  {% endcall %}
+  </tr>
+  {% set _pd.i = _pd.i + 1 %}
+{% endcall %}
 
-</div>
+{# ── Citas sugeridas (cards) ── #}
+<p class="section-title"><i class="fa-solid fa-calendar-plus"></i> Citas sugeridas</p>
+
+{% if suggested_appointments %}
+  <div class="appt-cards-grid">
+    {% for ca in suggested_appointments %}
+      <div class="appt-card">
+        <div class="appt-card__header">
+          <span class="appt-card__name">{{ ca.name }}</span>
+          <span class="appt-card__dose">{{ ca.dose }}</span>
+        </div>
+
+        <div class="appt-card__row">
+          <i class="fa-regular fa-calendar"></i>
+          {{ ca.fecha_cita or '—' }}
+        </div>
+
+        <div class="appt-card__row">
+          <i class="fa-solid fa-hospital"></i>
+          {{ ca.clinic_name or '—' }}
+        </div>
+
+        <div class="appt-card__row">
+          {% if ca.cita_estado == 'Programada' %}
+            {{ badge('Programada', color='secondary', icon='fa-calendar-check', size='sm') }}
+          {% elif ca.cita_estado == 'Completada' %}
+            {{ badge('Completada', color='success', icon='fa-check', size='sm') }}
+          {% elif ca.cita_estado == 'Cancelada' %}
+            {{ badge('Cancelada', color='error', icon='fa-xmark', size='sm') }}
+          {% elif ca.cita_estado == 'No Show' %}
+            {{ badge('No Show', color='tertiary', icon='fa-user-slash', size='sm') }}
+          {% else %}
+            <span class="ndt-muted">Sin estado</span>
+          {% endif %}
+        </div>
+
+        <div class="appt-card__row">
+          {% if ca.cita_aceptada is none %}
+            <span class="ndt-badge ndt-badge--pending">
+              <i class="fa-regular fa-hourglass"></i> Pendiente de tutor
+            </span>
+          {% elif ca.cita_aceptada %}
+            <span class="ndt-badge ndt-badge--accepted">
+              <i class="fa-solid fa-circle-check"></i> Aceptada por tutor
+            </span>
+          {% else %}
+            <span class="ndt-badge ndt-badge--rejected">
+              <i class="fa-solid fa-circle-xmark"></i> No aceptada
+            </span>
+          {% endif %}
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+{% else %}
+  <div class="appt-cards-empty">
+    <i class="fa-regular fa-calendar-xmark"></i>
+    No hay citas sugeridas aún.
+  </div>
+{% endif %}
 
 {% endblock %}
