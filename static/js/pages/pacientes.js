@@ -236,6 +236,8 @@ document.getElementById('formNewPatient')?.addEventListener('submit', async e =>
     } : {},
   };
 
+  const wantsNfc = document.getElementById('nfc_mode_yes')?.checked === true;
+
   let patientId;
   try {
     const res    = await fetch('/register_patient', {
@@ -259,7 +261,12 @@ document.getElementById('formNewPatient')?.addEventListener('submit', async e =>
   }
 
   closePatientModal();
-  window.location.reload();
+
+  if (wantsNfc && patientId) {
+    _openNfcAssignModal(patientId);
+  } else {
+    window.location.reload();
+  }
 });
 
 // ── Upload foto desde card ──────────────────────────────────────────────────
@@ -490,3 +497,50 @@ document.querySelectorAll('.edit-patient-btn').forEach(btn => {
     openEditPatientModal(this.dataset.patientId);
   });
 });
+
+// ── Mini-modal de asignación NFC ─────────────────────────────────────────────
+
+let _nfcPendingPatientId = null;
+
+function _openNfcAssignModal(patientId) {
+  const nfcModal = document.getElementById('nfcAssignModal');
+  if (!nfcModal) { window.location.reload(); return; }
+  _nfcPendingPatientId = patientId;
+  const uid  = document.getElementById('nfc_uid');
+  const type = document.getElementById('nfc_card_type');
+  const note = document.getElementById('nfc_notes');
+  if (uid)  uid.value  = '';
+  if (type) type.value = 'Estándar';
+  if (note) note.value = '';
+  nfcModal.classList.add('active');
+}
+
+function _closeNfcAssignModal() {
+  document.getElementById('nfcAssignModal')?.classList.remove('active');
+  _nfcPendingPatientId = null;
+  window.location.reload();
+}
+
+document.getElementById('nfcSkipBtn')?.addEventListener('click', _closeNfcAssignModal);
+
+document.getElementById('nfcAssignBtn')?.addEventListener('click', async () => {
+  const uid  = document.getElementById('nfc_uid')?.value.trim();
+  if (!uid) { alert('El UID de la tarjeta es obligatorio'); return; }
+  try {
+    const res    = await fetch('/assign_nfc_card', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({
+        patient_id: _nfcPendingPatientId,
+        uid,
+        card_type: document.getElementById('nfc_card_type')?.value || '',
+        notes:     document.getElementById('nfc_notes')?.value     || '',
+      }),
+    });
+    const result = await res.json();
+    if (res.ok) { alert(result.message || 'Tarjeta NFC asignada'); }
+    else        { alert(result.error   || 'Error al asignar NFC'); }
+  } catch { alert('Error de conexión'); }
+  _closeNfcAssignModal();
+});
+

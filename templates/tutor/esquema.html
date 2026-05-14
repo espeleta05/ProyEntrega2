@@ -7,11 +7,12 @@
 {% endblock %}
 
 {% block content %}
-{% from 'components/badge.html'       import badge %}
-{% from 'components/table.html'       import table %}
-{% from 'components/toolbar.html'     import toolbar %}
+{% from 'components/badge.html'       import badge    %}
+{% from 'components/table.html'       import table    %}
+{% from 'components/toolbar.html'     import toolbar  %}
 {% from 'components/empty_state.html' import empty_state %}
-{% from 'components/card.html'        import card %}
+{% from 'components/card.html'        import card     %}
+{% from 'components/kpi_card.html'    import kpi_card %}
 
 {# ── Toolbar ── #}
 {{ toolbar('Esquema de vacunación',
@@ -59,29 +60,37 @@
   </div>
 </div>
 
-{# ── KPI chips ── #}
-<div class="tutor-kpi-chips">
-  <div class="tutor-kpi-chip tutor-kpi-chip--applied">
-    <i class="fa-solid fa-syringe"></i>
-    <span class="tutor-kpi-num">{{ total_applied }}</span>
-    <span class="tutor-kpi-lbl">Aplicadas</span>
-  </div>
-  <div class="tutor-kpi-chip tutor-kpi-chip--pending">
-    <i class="fa-solid fa-clock"></i>
-    <span class="tutor-kpi-num">{{ total_pending }}</span>
-    <span class="tutor-kpi-lbl">Pendientes</span>
-  </div>
-  <div class="tutor-kpi-chip tutor-kpi-chip--total">
-    <i class="fa-solid fa-calendar-days"></i>
-    <span class="tutor-kpi-num">{{ total_doses }}</span>
-    <span class="tutor-kpi-lbl">Total</span>
-  </div>
-  <div class="tutor-kpi-chip
-    {{ 'tutor-kpi-chip--ok' if pct == 100 else 'tutor-kpi-chip--pct' }}">
-    <i class="fa-solid fa-chart-simple"></i>
-    <span class="tutor-kpi-num">{{ pct }}%</span>
-    <span class="tutor-kpi-lbl">Progreso</span>
-  </div>
+{# ── KPIs del esquema ── #}
+<div class="kpi-grid" style="grid-template-columns:repeat(4,1fr);margin-bottom:var(--md-spacing-4);">
+
+  {{ kpi_card(
+      value=total_applied,
+      label='Dosis aplicadas',
+      icon='fa-syringe',
+      color='success'
+  ) }}
+
+  {{ kpi_card(
+      value=total_pending,
+      label='Pendientes',
+      icon='fa-clock',
+      color='primary' if total_pending > 0 else 'neutral'
+  ) }}
+
+  {{ kpi_card(
+      value=total_doses,
+      label='Total en esquema',
+      icon='fa-calendar-days',
+      color='secondary'
+  ) }}
+
+  {{ kpi_card(
+      value=pct ~ '%',
+      label='Progreso del esquema',
+      icon='fa-chart-simple',
+      color='success' if pct == 100 else 'primary'
+  ) }}
+
 </div>
 
 {# ── Dosis ya aplicadas ── #}

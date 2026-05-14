@@ -1,4 +1,4 @@
-﻿import math
+import math
 import psycopg
 from psycopg.rows import dict_row
 import os
@@ -16,6 +16,7 @@ app = Flask(__name__)
 app.config["DATABASE_URL"] = DATABASE_URL
 app.config["DB_ENGINE"] = DB_ENGINE
 app.secret_key = SECRET_KEY
+app.config['JSON_AS_ASCII'] = False
 
 logger = logging.getLogger(__name__)
 try:
@@ -1676,6 +1677,53 @@ def api_patient_detail(id):
     return jsonify(data)
 
 
+@app.route("/api/paciente/<int:patient_id>/dosis")
+def api_patient_doses(patient_id):
+    """Devuelve las dosis pendientes/atrasadas de un paciente para el select de 'Vacuna/Dosis'."""
+    # Accesible por personal clínico Y tutores.
+    is_staff  = _check_role("Administrador", "Recepcionista", "Medico", "Enfermero")
+    is_tutor  = "tutor_id" in session
+    if not is_staff and not is_tutor:
+        return jsonify({"error": "Sin permisos"}), 403
+
+    conn, should_close = _get_conn()
+    _safe_rollback(conn)
+    try:
+        with conn.cursor() as cur:
+            cur.execute("""
+                SELECT
+                    pvs.schedule_id        AS patient_schedule_id,
+                    v.name                 AS vaccine_name,
+                    sd.dose_label,
+                    pvs.due_date,
+                    pvs.status
+                FROM patient_vaccine_schedule pvs
+                JOIN scheme_doses sd ON sd.dose_id   = pvs.scheme_dose_id
+                JOIN vaccines     v  ON v.vaccine_id = sd.vaccine_id
+                WHERE pvs.patient_id = %s
+                  AND pvs.status NOT IN ('Aplicada')
+                ORDER BY pvs.due_date ASC NULLS LAST, v.name, sd.dose_label
+            """, (patient_id,))
+            rows = cur.fetchall()
+        conn.commit()
+    except Exception as e:
+        _safe_rollback(conn)
+        logger.error("Error en api_patient_doses: %s", e)
+        return jsonify({"error": str(e)}), 500
+    finally:
+        if should_close and not _conn_is_closed(conn):
+            conn.close()
+
+    dosis = []
+    for r in rows:
+        d = dict(r)
+        if d.get("due_date"):
+            d["due_date"] = d["due_date"].isoformat()
+        dosis.append(d)
+
+    return jsonify(dosis)
+
+
 @app.route("/api/guardians")
 def api_guardians():
     """Devuelve todos los tutores registrados para el dropdown del modal."""
@@ -2302,7 +2350,8 @@ def vacunas_page():
         if should_close and not _conn_is_closed(conn):
             conn.close()
 
-    lots = _cur_fetchall("vaccine_lots")
+    lots    = _cur_fetchall("vaccine_lots")
+    clinics = _cur_fetchall("clinics")
 
     return render_template(
         "pages/vacunas_2daE.html",
@@ -2310,6 +2359,7 @@ def vacunas_page():
         total_vaccines=len(vaccines),
         vaccines=vaccines,
         lots=lots,
+        clinics=clinics,
         today=date.today().isoformat(),
     )
 
@@ -3169,6 +3219,44 @@ def admin_editar_cita(appointment_id):
             conn.close()
 
     return redirect(url_for("citas"))
+
+
+@app.route("/assign_nfc_card", methods=["POST"])
+def assign_nfc_card():
+    if not _check_role("Administrador", "Recepcionista", "Enfermero"):
+        return jsonify({"error": "Sin permisos"}), 403
+
+    body       = request.get_json(force=True) or {}
+    patient_id = body.get("patient_id")
+    uid        = (body.get("uid") or "").strip()
+    card_type  = (body.get("card_type") or "").strip()
+    notes      = (body.get("notes") or "").strip()
+    worker_id  = session.get("worker_id")
+
+    if not patient_id or not uid:
+        return jsonify({"error": "patient_id y uid son obligatorios"}), 400
+
+    conn, should_close = _get_conn()
+    _safe_rollback(conn)
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                "CALL sp_assign_nfc_card(%s, %s, %s, %s, %s, %s)",
+                (patient_id, uid, card_type or None, worker_id, notes or None, "cur_assign_nfc"),
+            )
+            cur.execute('FETCH ALL FROM "cur_assign_nfc"')
+            row = dict(cur.fetchone())
+        conn.commit()
+        if row.get("success"):
+            return jsonify({"message": row["message"], "nfc_card_id": row["nfc_card_id"]}), 200
+        return jsonify({"error": row.get("message", "Error al asignar NFC")}), 400
+    except Exception as e:
+        _safe_rollback(conn)
+        logger.error(f"Error en /assign_nfc_card: {e}")
+        return jsonify({"error": str(e)}), 500
+    finally:
+        if should_close and not _conn_is_closed(conn):
+            conn.close()
 
 
 @app.route("/nfc")

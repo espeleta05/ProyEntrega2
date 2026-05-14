@@ -57,6 +57,7 @@
     headers=[
         {'label': 'Tipo de vacuna'},
         {'label': 'Lote'},
+        {'label': 'Clínica'},
         {'label': 'Fecha vencimiento'},
         {'label': 'Saldo inicial',       'align': 'right'},
         {'label': 'Dosis recibidas',     'align': 'right'},
@@ -69,6 +70,7 @@
     class='vaccines-table'
 ) %}
     {% set vaccine = vaccines | selectattr('vaccine_id', 'equalto', lot.vaccine_id) | first %}
+    {% set clinic  = clinics  | selectattr('clinic_id',  'equalto', lot.clinic_id)  | first %}
     {% if vaccine %}
         {% if lot.vaccine_id != ns.last_vaccine_id %}
             {% set ns.color_index     = ns.color_index + 1 %}
@@ -82,6 +84,7 @@
                 <span class="vax-name">{{ vaccine.name }}</span>
             </td>
             <td class="lot-td">{{ lot.lot_number }}</td>
+            <td class="clinic-td">{{ clinic.name if clinic else '—' }}</td>
             <td class="date-td">
                 {% set exp = lot.expiration_date | string %}
                 {% if lot.expiration_date %}

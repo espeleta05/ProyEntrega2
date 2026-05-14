@@ -91,6 +91,23 @@
                         <label class="md3-field__label" for="p_weight">Peso actual (kg)</label>
                         <input class="md3-input" type="text" id="p_weight" placeholder="30.50">
                     </div>
+                    <div class="md3-field nfc-mode-wrap">
+                        <p class="md3-field__label">¿Desea asignar un NFC al paciente?</p>
+                        <div class="tutor-mode-radios">
+                            <label class="tutor-mode-opt">
+                                <input type="radio" name="nfc_mode" id="nfc_mode_yes" value="yes">
+                                <span class="tutor-mode-opt__label">
+                                     Sí
+                                </span>
+                            </label>
+                            <label class="tutor-mode-opt">
+                                <input type="radio" name="nfc_mode" id="nfc_mode_no" value="no" checked>
+                                <span class="tutor-mode-opt__label">
+                                     No
+                                </span>
+                            </label>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -185,5 +202,45 @@
 
         {% endcall %}
 
+    </div>
+</div>
+
+{# ── Mini-modal de asignación NFC ── #}
+<div class="md3-modal-overlay" id="nfcAssignModal" role="dialog" aria-modal="true" aria-labelledby="nfcModal-title">
+    <div class="md3-modal" style="max-width:420px">
+        <div class="md3-modal__header">
+            <div class="md3-modal__header-content">
+                <i class="fa-solid fa-id-card md3-modal__header-icon"></i>
+                <h2 class="md3-modal__title" id="nfcModal-title">Asignar tarjeta NFC</h2>
+            </div>
+        </div>
+        <div style="padding:1.5rem 1.5rem 0">
+            <p style="margin-bottom:1rem;color:var(--md3-on-surface-variant)">
+                El paciente fue registrado. Ingresa los datos de la tarjeta NFC para asignarla.
+            </p>
+            <div class="md3-field" style="margin-bottom:1rem">
+                <label class="md3-field__label" for="nfc_uid">UID de la tarjeta *</label>
+                <input class="md3-input" type="text" id="nfc_uid" placeholder="Ej: A1B2C3D4">
+            </div>
+            <div class="md3-field" style="margin-bottom:1rem">
+                <label class="md3-field__label" for="nfc_card_type">Tipo de tarjeta</label>
+                <select class="md3-select" id="nfc_card_type">
+                    <option value="Estándar">Estándar</option>
+                    <option value="Pulsera">Pulsera</option>
+                    <option value="Llavero">Llavero</option>
+                    <option value="Sticker">Sticker</option>
+                </select>
+            </div>
+            <div class="md3-field" style="margin-bottom:1.5rem">
+                <label class="md3-field__label" for="nfc_notes">Notas (opcional)</label>
+                <input class="md3-input" type="text" id="nfc_notes" placeholder="Observaciones">
+            </div>
+        </div>
+        <div style="display:flex;gap:.75rem;justify-content:flex-end;padding:1rem 1.5rem 1.5rem">
+            <button type="button" class="md3-btn md3-btn--text" id="nfcSkipBtn">Omitir</button>
+            <button type="button" class="md3-btn md3-btn--filled" id="nfcAssignBtn">
+                <i class="fa-solid fa-id-card"></i> Asignar
+            </button>
+        </div>
     </div>
 </div>

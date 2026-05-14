@@ -61,9 +61,9 @@
         se activa cuando request.endpoint coincide. Si no tiene endpoint, se usa 'url' directo.
 #}
 
-{% macro sidebar(sections=[], logo_text='ImmuniCare', logo_src=None, logo_href='#', user_name='', user_role='', user_initials='', logout_url='/logout') %}
+{% macro sidebar(sections=[], logo_text='ImmuniCare', logo_src=None, logo_href='#', user_name='', user_role='', user_initials='', logout_url='/logout', sidebar_class='') %}
 
-<aside class="sidebar" id="appSidebar">
+<aside class="sidebar {{ sidebar_class }}" id="appSidebar">
 
   <div class="sidebar-content">
 
@@ -114,16 +114,31 @@
           {% endif %}
           <nav class="sidebar-nav" aria-label="{{ section.title or 'Navegaci&oacute;n' }}">
             {% for item in section['items'] %}
+              {# ── Resolver URL ── #}
               {%- if item.endpoint is defined and item.endpoint %}
                 {%- set item_url = url_for(item.endpoint) -%}
+              {%- elif item.url is defined %}
+                {%- set item_url = item.url -%}
+              {%- else %}
+                {%- set item_url = '#' -%}
+              {%- endif %}
+
+              {# ── Resolver estado activo ── #}
+              {%- if item.active_if is defined and item.active_if %}
+                {%- set is_active = request.endpoint in item.active_if -%}
+              {%- elif item.endpoint is defined and item.endpoint %}
                 {%- set is_active = request.endpoint == item.endpoint -%}
               {%- else %}
-                {%- set item_url = item.url | default('#') -%}
                 {%- set is_active = False -%}
               {%- endif %}
+
+              {# ── Resolver si está deshabilitado ── #}
+              {%- set is_disabled = item.disabled is defined and item.disabled -%}
+
               <a href="{{ item_url }}"
-                 class="sidebar-nav-item {{ 'active' if is_active else '' }}"
-                 {% if is_active %}aria-current="page"{% endif %}>
+                 class="sidebar-nav-item {{ 'active' if is_active else '' }} {{ 'disabled' if is_disabled else '' }}"
+                 {% if is_active %}aria-current="page"{% endif %}
+                 {% if is_disabled %}aria-disabled="true"{% endif %}>
                 <i class="fa-solid {{ item.icon }}"></i>
                 <span>{{ item.label }}</span>
                 {% if item.badge is defined and item.badge %}

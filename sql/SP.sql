@@ -3815,7 +3815,8 @@ BEGIN
         WHERE  is_active = TRUE
         ORDER  BY last_name, first_name;
 
-    -- Trabajadores que tienen horario registrado en esta clinica
+    -- Trabajadores con rol Medico o Enfermero con horario en esta clinica
+    -- Solo estos roles pueden ser asignados a citas de vacunacion
     -- ORDER BY debe usar columnas del SELECT cuando hay DISTINCT
     OPEN p_workers_cur FOR
         SELECT DISTINCT
@@ -3827,6 +3828,7 @@ BEGIN
         JOIN   worker_schedules ws
                ON  ws.worker_id = w.worker_id
                AND ws.clinic_id = p_clinic_id
+        WHERE  r.name IN ('Medico', 'Enfermero')
         ORDER  BY full_name;
 
     -- Areas de la clinica
@@ -3837,5 +3839,118 @@ BEGIN
         FROM   clinic_areas
         WHERE  clinic_id = p_clinic_id
         ORDER  BY name;
+END;
+$$;
+
+
+-- ============================================================
+-- sp_get_appointment_detail
+-- Devuelve todos los campos de una cita para pre-llenar el
+-- formulario de edicion en el portal admin.
+-- ============================================================
+CREATE OR REPLACE PROCEDURE sp_get_appointment_detail(
+    IN    p_appointment_id INT,
+    INOUT p_result         REFCURSOR
+)
+LANGUAGE plpgsql AS $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM appointments WHERE appointment_id = p_appointment_id
+    ) THEN
+        RAISE EXCEPTION 'Cita no encontrada (id=%)', p_appointment_id;
+    END IF;
+
+    OPEN p_result FOR
+    SELECT
+        af.appointment_id,
+        af.patient_id,
+        af.patient_name,
+        af.clinic_id,
+        af.clinic_name,
+        af.worker_id,
+        af.worker_name,
+        af.area_id,
+        af.area_name,
+        af.patient_schedule_id,
+        af.scheduled_at,
+        af.duration_min,
+        af.reason,
+        af.appointment_status,
+        af.appointment_notes,
+        af.vaccine_name,
+        af.dose_label
+    FROM v_appointments_full af
+    WHERE af.appointment_id = p_appointment_id;
+END;
+$$;
+
+
+-- ============================================================
+-- sp_update_appointment
+-- Edicion completa de una cita existente por el personal admin.
+-- Campos editables: worker, area, scheduled_at, reason,
+-- appointment_notes, appointment_status, duration_min.
+-- Valida solapamiento de trabajador excluyendo la cita actual.
+-- ============================================================
+CREATE OR REPLACE PROCEDURE sp_update_appointment(
+    IN    p_appointment_id  INT,
+    IN    p_worker_id       INT,
+    IN    p_area_id         INT,
+    IN    p_scheduled_at    TIMESTAMP,
+    IN    p_reason          TEXT,
+    IN    p_notes           TEXT,
+    IN    p_status          VARCHAR(30),
+    IN    p_duration_min    SMALLINT,
+    INOUT p_result          REFCURSOR
+)
+LANGUAGE plpgsql AS $$
+DECLARE
+    v_clinic_id INT;
+BEGIN
+    -- Verificar que la cita existe y obtener su clinica
+    SELECT clinic_id INTO v_clinic_id
+    FROM   appointments
+    WHERE  appointment_id = p_appointment_id;
+
+    IF NOT FOUND THEN
+        RAISE EXCEPTION 'Cita no encontrada (id=%)', p_appointment_id;
+    END IF;
+
+    -- Verificar solapamiento del trabajador (excluye la cita que se esta editando)
+    IF p_worker_id IS NOT NULL AND p_scheduled_at IS NOT NULL THEN
+        IF EXISTS (
+            SELECT 1 FROM appointments a
+            WHERE  a.worker_id           = p_worker_id
+              AND  a.appointment_id     <> p_appointment_id
+              AND  a.appointment_status NOT IN ('Cancelada', 'No Show', 'Reagendada')
+              AND  a.scheduled_at < p_scheduled_at + (COALESCE(p_duration_min, 20) * INTERVAL '1 minute')
+              AND  a.scheduled_at + (a.duration_min * INTERVAL '1 minute') > p_scheduled_at
+        ) THEN
+            RAISE EXCEPTION 'El trabajador ya tiene una cita que se solapa en ese horario';
+        END IF;
+    END IF;
+
+    -- Actualizar solo los campos editables
+    -- area_id puede ser NULL (sin area), por eso no usa COALESCE
+    UPDATE appointments SET
+        worker_id          = COALESCE(p_worker_id,    worker_id),
+        area_id            = p_area_id,
+        scheduled_at       = COALESCE(p_scheduled_at, scheduled_at),
+        reason             = COALESCE(p_reason,       reason),
+        appointment_notes  = p_notes,
+        appointment_status = COALESCE(p_status,       appointment_status),
+        duration_min       = COALESCE(p_duration_min, duration_min)
+    WHERE appointment_id = p_appointment_id;
+
+    OPEN p_result FOR
+        SELECT TRUE             AS success,
+               p_appointment_id AS appointment_id,
+               'Cita actualizada correctamente' AS message;
+
+EXCEPTION WHEN OTHERS THEN
+    OPEN p_result FOR
+        SELECT FALSE AS success,
+               SQLERRM AS message,
+               NULL::INT AS appointment_id;
 END;
 $$;

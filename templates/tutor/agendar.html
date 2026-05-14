@@ -2,17 +2,19 @@
 
 {% block title %}Agendar cita — Portal Familiar{% endblock %}
 
+{% block head_extra %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/agendar.css') }}">
+{% endblock %}
+
 {% block content %}
 {% from 'components/toolbar.html' import toolbar %}
 {% from 'components/alert.html'   import alert   %}
 
-{# ── Toolbar ── #}
 {{ toolbar('Agendar nueva cita',
            subtitle='Elige el niño, la clínica y el horario',
            icon='fa-calendar-plus',
            back_href=url_for('tutor_citas')) }}
 
-{# ── Flash messages ── #}
 {% with messages = get_flashed_messages(with_categories=true) %}
   {% if messages %}
     {% for category, message in messages %}
@@ -21,7 +23,11 @@
   {% endif %}
 {% endwith %}
 
-{# ── Formulario ── #}
+{# ── Datos para el typeahead ── #}
+<script id="patients-data" type="application/json">
+  {{ children | tojson }}
+</script>
+
 <div class="md3-form-card" style="max-width:600px;margin:var(--md-spacing-4) auto 0;">
 
   <div class="md3-form-card__header">
@@ -37,27 +43,60 @@
   <form method="POST" action="{{ url_for('tutor_agendar') }}" class="md3-form">
 
     <hr class="md3-form__divider">
+    <p class="md3-form__section-title">
+      <i class="fa-solid fa-child"></i>
+      Datos de la cita
+    </p>
 
-    <p class="md3-form__section-title">Datos de la cita</p>
-
-    {# Paciente #}
+    {# ── Paciente (hijo/a) con typeahead ── #}
     <div class="md3-field">
-      <label class="md3-field__label" for="patient_id">
-        <i class="fa-solid fa-child" style="opacity:.65;"></i>
+      <label class="md3-field__label" for="ac-patient-input">
         Niño/a *
       </label>
-      <select name="patient_id" id="patient_id" class="md3-select" required>
-        <option value="" disabled selected>— Selecciona un hijo/a —</option>
-        {% for child in children %}
-          <option value="{{ child.patient_id }}"
-            {% if request.args.get('patient_id')|int == child.patient_id %}selected{% endif %}>
-            {{ child.full_name }}
-          </option>
-        {% endfor %}
-      </select>
+
+      <input type="hidden" name="patient_id" id="patient_id" required>
+
+      <div class="ac-wrap" id="ac-patient-wrap">
+        <div class="ac-input-row">
+          <i class="fa-solid fa-child"></i>
+          <input type="text" id="ac-patient-input"
+                 class="ac-input"
+                 placeholder="Escribe el nombre del niño/a…"
+                 autocomplete="off"
+                 {% if children|length == 1 %}value="{{ children[0].full_name }}"{% endif %}>
+          <button type="button" class="ac-clear" title="Limpiar">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+        <div class="ac-dropdown"></div>
+
+        <div class="ac-chip" id="ac-patient-chip"
+             {% if children|length == 1 %}style="display:flex;" class="ac-chip visible"{% endif %}>
+          <div class="ac-chip-avatar">
+            {% if children|length == 1 %}{{ children[0].full_name[:2]|upper }}{% endif %}
+          </div>
+          <span class="ac-chip-label">
+            {% if children|length == 1 %}{{ children[0].full_name }}{% endif %}
+          </span>
+          <button type="button" class="ac-chip-clear" title="Cambiar">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+      </div>
     </div>
 
-    {# Clínica #}
+    {# Pre-seleccionar si viene un patient_id en query string o hay un solo hijo #}
+    {% if request.args.get('patient_id') %}
+      <script>
+        document.getElementById('patient_id').value = '{{ request.args.get("patient_id") }}';
+      </script>
+    {% elif children|length == 1 %}
+      <script>
+        document.getElementById('patient_id').value = '{{ children[0].patient_id }}';
+      </script>
+    {% endif %}
+
+    {# ── Clínica ── #}
     <div class="md3-field">
       <label class="md3-field__label" for="clinic_id">
         <i class="fa-solid fa-hospital" style="opacity:.65;"></i>
@@ -71,24 +110,78 @@
       </select>
     </div>
 
-    {# Fecha y hora #}
-    <div class="md3-field">
-      <label class="md3-field__label" for="scheduled_at">
-        <i class="fa-regular fa-calendar" style="opacity:.65;"></i>
-        Fecha y hora *
+    {# ── Vacuna / Dosis (opcional) ── #}
+    <div class="md3-field" id="dose-field" style="display:none;">
+      <label class="md3-field__label" for="patient_schedule_id">
+        <i class="fa-solid fa-syringe" style="opacity:.65;"></i>
+        Vacuna / Dosis
+        <span style="font-weight:400;color:var(--md-on-surface-variant);">(opcional)</span>
       </label>
-      <input type="datetime-local" name="scheduled_at" id="scheduled_at"
-             class="md3-input" required
-             min="{{ today_iso }}T07:00">
+      <select name="patient_schedule_id" id="patient_schedule_id" class="md3-select">
+        <option value="">— Sin vacuna específica —</option>
+      </select>
       <span class="md3-field__helper">
-        La cita debe ser en el futuro. Horario de atención: 7:00 – 20:00.
+        Solo se muestran dosis pendientes o atrasadas del niño/a seleccionado.
       </span>
     </div>
 
-    {# Motivo #}
+    {# ── Fecha y hora ── #}
+    <hr class="md3-form__divider">
+    <p class="md3-form__section-title">
+      <i class="fa-solid fa-calendar-days"></i>
+      Fecha y hora *
+    </p>
+
+    <div class="md3-field">
+      <label class="md3-field__label">Fecha y hora</label>
+
+      <input type="hidden" name="scheduled_at" id="scheduled_at" required>
+
+      <div class="dt-field">
+
+        <div class="dt-row">
+          <input type="date" id="dt-date" class="dt-date"
+                 min="{{ today_iso }}" required>
+
+          <div class="dt-time-block">
+            <i class="fa-regular fa-clock"></i>
+            <select id="dt-hour" class="dt-sel">
+              {% for h in range(7, 21) %}
+                <option value="{{ '%02d' % h }}"
+                  {{ 'selected' if h == 8 else '' }}>{{ '%02d' % h }}</option>
+              {% endfor %}
+            </select>
+            <span class="dt-sep">:</span>
+            <select id="dt-min" class="dt-sel">
+              <option value="00">00</option>
+              <option value="15">15</option>
+              <option value="30">30</option>
+              <option value="45">45</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="dt-preview" id="dt-preview">
+          <div class="dt-tile">
+            <div class="dt-tile__month"></div>
+            <div class="dt-tile__day"></div>
+          </div>
+          <div class="dt-info">
+            <div class="dt-info__weekday"></div>
+            <div class="dt-info__time"></div>
+            <div class="dt-info__full"></div>
+          </div>
+        </div>
+
+      </div>
+      <span class="md3-field__helper">
+        Horario: 07:00 – 20:00 hrs. La clínica confirmará tu cita.
+      </span>
+    </div>
+
+    {# ── Motivo ── #}
     <div class="md3-field">
       <label class="md3-field__label" for="reason">
-        <i class="fa-solid fa-comment-medical" style="opacity:.65;"></i>
         Motivo de la cita
         <span class="text-muted" style="font-weight:400;">(opcional)</span>
       </label>
@@ -96,19 +189,11 @@
                 placeholder="Ej. Aplicación de vacuna pentavalente, revisión de reacción previa…"></textarea>
     </div>
 
-    {# Dosis del esquema vinculada (opcional, viene de query string) #}
-    {% if request.args.get('schedule_id') %}
-      <input type="hidden" name="patient_schedule_id"
-             value="{{ request.args.get('schedule_id') }}">
-      <div class="md3-field">
-        <span class="md3-field__helper">
-          <i class="fa-solid fa-link" style="opacity:.65;"></i>
-          Esta cita quedará vinculada a la dosis del esquema de vacunación.
-        </span>
-      </div>
-    {% endif %}
+    {# Si viene schedule_id por URL, se pre-seleccionará vía JS al cargar las dosis #}
+    <script>
+      window.__PRESELECTSCHEDULE__ = {{ request.args.get('schedule_id', 'null') }};
+    </script>
 
-    {# Acciones #}
     <div class="md3-form__actions">
       <a href="{{ url_for('tutor_citas') }}" class="md3-btn md3-btn--outlined">
         <i class="fa-solid fa-arrow-left"></i>
@@ -123,4 +208,8 @@
   </form>
 </div>
 
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/pages/agendar.js') }}"></script>
 {% endblock %}

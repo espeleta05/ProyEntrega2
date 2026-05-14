@@ -4,6 +4,10 @@
 
 {% block title %}Nueva cita — Personal Clínico{% endblock %}
 
+{% block head_extra %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/agendar.css') }}">
+{% endblock %}
+
 {% block content %}
 
 {{ toolbar(
@@ -13,6 +17,14 @@
     back_href=url_for('citas')
 ) }}
 
+{# ── Datos embebidos para el JS (typeahead) ── #}
+<script id="patients-data" type="application/json">
+  {{ patients | tojson }}
+</script>
+<script id="workers-data" type="application/json">
+  {{ workers | tojson }}
+</script>
+
 <div class="md3-form-card" style="max-width:640px;margin:var(--md-spacing-4) auto 0;">
 
   <div class="md3-form-card__header">
@@ -21,47 +33,123 @@
       Datos de la nueva cita
     </p>
     <p class="md3-form-card__subtitle">
-      Todos los campos marcados con * son obligatorios.
+      Escribe para buscar el paciente y el médico/enfermero asignado.
     </p>
   </div>
 
   <form method="POST" action="{{ url_for('admin_nueva_cita') }}" class="md3-form">
 
+    {# ══ Paciente ══ #}
     <hr class="md3-form__divider">
     <p class="md3-form__section-title">
       <i class="fa-solid fa-child"></i>
-      Paciente
+      Paciente *
     </p>
 
     <div class="md3-field">
-      <label class="md3-field__label" for="patient_id">Paciente *</label>
-      <select name="patient_id" id="patient_id" class="md3-select" required>
-        <option value="" disabled selected>— Selecciona un paciente —</option>
-        {% for p in patients %}
-          <option value="{{ p.patient_id }}">
-            P{{ p.patient_id }} — {{ p.full_name }}
-          </option>
-        {% endfor %}
-      </select>
-      <span class="md3-field__helper">Busca por nombre o ID de paciente.</span>
+      <label class="md3-field__label" for="ac-patient-input">Buscar paciente</label>
+
+      {# Input hidden que recibe el ID real #}
+      <input type="hidden" name="patient_id" id="patient_id" required>
+
+      <div class="ac-wrap" id="ac-patient-wrap">
+        <div class="ac-input-row">
+          <i class="fa-solid fa-magnifying-glass"></i>
+          <input type="text" id="ac-patient-input"
+                 class="ac-input"
+                 placeholder="Nombre o ID del paciente…"
+                 autocomplete="off">
+          <button type="button" class="ac-clear" title="Limpiar">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+        <div class="ac-dropdown"></div>
+
+        <div class="ac-chip" id="ac-patient-chip">
+          <div class="ac-chip-avatar"></div>
+          <span class="ac-chip-label"></span>
+          <button type="button" class="ac-chip-clear" title="Cambiar">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+      </div>
+
+      <span class="md3-field__helper">Escribe el nombre o número de expediente.</span>
     </div>
 
-    <hr class="md3-form__divider">
-    <p class="md3-form__section-title">
-      <i class="fa-solid fa-clock"></i>
-      Fecha y hora
-    </p>
-
-    <div class="md3-field">
-      <label class="md3-field__label" for="scheduled_at">Fecha y hora de la cita *</label>
-      <input type="datetime-local" name="scheduled_at" id="scheduled_at"
-             class="md3-input" required
-             min="{{ today_iso }}T00:00">
+    {# ══ Vacuna / Dosis (opcional) ══ #}
+    <div class="md3-field" id="dose-field" style="display:none;">
+      <label class="md3-field__label" for="patient_schedule_id">
+        <i class="fa-solid fa-syringe" style="opacity:.65;"></i>
+        Vacuna / Dosis
+        <span style="font-weight:400;color:var(--md-on-surface-variant);">(opcional)</span>
+      </label>
+      <select name="patient_schedule_id" id="patient_schedule_id" class="md3-select">
+        <option value="">— Sin vacuna específica —</option>
+      </select>
       <span class="md3-field__helper">
-        Selecciona una fecha dentro del horario laboral del trabajador asignado.
+        Solo aparecen dosis pendientes o atrasadas del paciente seleccionado.
       </span>
     </div>
 
+    {# ══ Fecha y hora ══ #}
+    <hr class="md3-form__divider">
+    <p class="md3-form__section-title">
+      <i class="fa-solid fa-calendar-days"></i>
+      Fecha y hora *
+    </p>
+
+    <div class="md3-field">
+      <label class="md3-field__label">Fecha y hora</label>
+
+      {# Hidden que acumula "YYYY-MM-DDTHH:MM" para el backend #}
+      <input type="hidden" name="scheduled_at" id="scheduled_at" required>
+
+      <div class="dt-field">
+
+        <div class="dt-row">
+          {# Selector de fecha #}
+          <input type="date" id="dt-date" class="dt-date"
+                 min="{{ today_iso }}" required
+                 placeholder="dd/mm/aaaa">
+
+          {# Selectores de hora y minuto #}
+          <div class="dt-time-block">
+            <i class="fa-regular fa-clock"></i>
+            <select id="dt-hour" class="dt-sel">
+              {% for h in range(7, 21) %}
+                <option value="{{ '%02d' % h }}"
+                  {{ 'selected' if h == 8 else '' }}>{{ '%02d' % h }}</option>
+              {% endfor %}
+            </select>
+            <span class="dt-sep">:</span>
+            <select id="dt-min" class="dt-sel">
+              <option value="00">00</option>
+              <option value="15">15</option>
+              <option value="30">30</option>
+              <option value="45">45</option>
+            </select>
+          </div>
+        </div>
+
+        {# Preview visual #}
+        <div class="dt-preview" id="dt-preview">
+          <div class="dt-tile">
+            <div class="dt-tile__month"></div>
+            <div class="dt-tile__day"></div>
+          </div>
+          <div class="dt-info">
+            <div class="dt-info__weekday"></div>
+            <div class="dt-info__time"></div>
+            <div class="dt-info__full"></div>
+          </div>
+        </div>
+
+      </div>
+      <span class="md3-field__helper">Horario de atención: 07:00 – 20:00 hrs.</span>
+    </div>
+
+    {# ══ Personal y área ══ #}
     <hr class="md3-form__divider">
     <p class="md3-form__section-title">
       <i class="fa-solid fa-stethoscope"></i>
@@ -69,18 +157,33 @@
     </p>
 
     <div class="md3-field">
-      <label class="md3-field__label" for="worker_id">Trabajador asignado</label>
-      <select name="worker_id" id="worker_id" class="md3-select">
-        <option value="">— Sin asignar —</option>
-        {% for w in workers %}
-          <option value="{{ w.worker_id }}">
-            {{ w.full_name }}{% if w.role_name %} ({{ w.role_name }}){% endif %}
-          </option>
-        {% endfor %}
-      </select>
-      <span class="md3-field__helper">
-        Solo aparecen trabajadores con horario registrado en esta clínica.
-      </span>
+      <label class="md3-field__label" for="ac-worker-input">Médico o enfermero asignado</label>
+
+      <input type="hidden" name="worker_id" id="worker_id">
+
+      <div class="ac-wrap" id="ac-worker-wrap">
+        <div class="ac-input-row">
+          <i class="fa-solid fa-user-doctor"></i>
+          <input type="text" id="ac-worker-input"
+                 class="ac-input"
+                 placeholder="Buscar médico o enfermero…"
+                 autocomplete="off">
+          <button type="button" class="ac-clear" title="Limpiar">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+        <div class="ac-dropdown"></div>
+
+        <div class="ac-chip" id="ac-worker-chip">
+          <div class="ac-chip-avatar"></div>
+          <span class="ac-chip-label"></span>
+          <button type="button" class="ac-chip-clear" title="Cambiar">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+      </div>
+
+      <span class="md3-field__helper">Solo aparecen médicos y enfermeros con horario en esta clínica.</span>
     </div>
 
     <div class="md3-field">
@@ -95,6 +198,7 @@
       </select>
     </div>
 
+    {# ══ Motivo ══ #}
     <hr class="md3-form__divider">
     <p class="md3-form__section-title">
       <i class="fa-solid fa-note-sticky"></i>
@@ -103,15 +207,15 @@
 
     <div class="md3-field">
       <label class="md3-field__label" for="reason">Motivo de la cita</label>
-      <textarea name="reason" id="reason" class="md3-textarea"
-                rows="3"
-                placeholder="Describe brevemente el motivo de la cita (ej. vacuna DPT — 2da dosis)…"></textarea>
+      <textarea name="reason" id="reason" class="md3-textarea" rows="3"
+                placeholder="Ej. vacuna DPT — 2da dosis, control de reacción…"></textarea>
       <span class="md3-field__helper">Opcional. Visible para el personal clínico.</span>
     </div>
 
-    {# Campo oculto — se puede pre-poblar desde esquema del paciente #}
-    <input type="hidden" name="patient_schedule_id"
-           value="{{ request.args.get('schedule_id', '') }}">
+    {# Pre-selección de schedule si viene por query string #}
+    <script>
+      window.__PRESELECTSCHEDULE__ = {{ request.args.get('schedule_id', 'null') }};
+    </script>
 
     <div class="md3-form__actions">
       <a href="{{ url_for('citas') }}" class="md3-btn md3-btn--outlined">
@@ -127,4 +231,8 @@
   </form>
 </div>
 
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/pages/agendar.js') }}"></script>
 {% endblock %}

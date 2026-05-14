@@ -1,0 +1,375 @@
+/* ═══════════════════════════════════════════════════════════════════
+   agendar.css — Formularios de agendamiento (admin + tutor)
+   Typeahead search + DateTime picker mejorado
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* ── Typeahead wrapper ───────────────────────────────────────────── */
+.ac-wrap {
+  position: relative;
+}
+
+.ac-input-row {
+  display: flex;
+  align-items: center;
+  gap: var(--md-spacing-2);
+  background: var(--md-surface-container-highest);
+  border: 1.5px solid var(--md-outline-variant);
+  border-radius: var(--md-shape-small);
+  padding: 10px 14px;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  cursor: text;
+}
+
+.ac-input-row:focus-within {
+  border-color: var(--md-primary);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--md-primary) 12%, transparent);
+}
+
+.ac-input-row > i {
+  color: var(--md-on-surface-variant);
+  font-size: 0.88rem;
+  flex-shrink: 0;
+}
+
+.ac-input {
+  flex: 1;
+  border: none;
+  background: transparent;
+  outline: none;
+  font-family: var(--md-font-family-body);
+  font-size: var(--md-font-size-body-md);
+  color: var(--md-on-surface);
+  min-width: 0;
+}
+
+.ac-input::placeholder {
+  color: var(--md-on-surface-variant);
+  opacity: 0.7;
+}
+
+.ac-clear {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--md-on-surface-variant);
+  padding: 2px 4px;
+  font-size: 0.78rem;
+  border-radius: 50%;
+  display: none;
+  line-height: 1;
+  transition: background 0.15s, color 0.15s;
+}
+
+.ac-clear.visible { display: flex; align-items: center; }
+.ac-clear:hover   { background: var(--md-error-container); color: var(--md-error); }
+
+/* ── Dropdown ────────────────────────────────────────────────────── */
+.ac-dropdown {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0; right: 0;
+  background: var(--md-surface-container-lowest);
+  border: 1px solid var(--md-outline-variant);
+  border-radius: var(--md-shape-medium);
+  box-shadow: var(--md-shadow-level-3);
+  max-height: 260px;
+  overflow-y: auto;
+  z-index: 300;
+  display: none;
+  animation: acSlideIn 0.12s ease;
+}
+
+.ac-dropdown.open { display: block; }
+
+@keyframes acSlideIn {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.ac-option {
+  display: flex;
+  align-items: center;
+  gap: var(--md-spacing-3);
+  padding: 10px 14px;
+  cursor: pointer;
+  border-bottom: 1px solid var(--md-outline-variant);
+  transition: background 0.1s;
+}
+
+.ac-option:last-child { border-bottom: none; }
+
+.ac-option:hover,
+.ac-option.active {
+  background: var(--md-primary-container);
+}
+
+.ac-option:hover .ac-option-name,
+.ac-option.active .ac-option-name {
+  color: var(--md-on-primary-container);
+}
+
+.ac-avatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.68rem;
+  font-weight: 800;
+  flex-shrink: 0;
+  background: var(--md-secondary-container);
+  color: var(--md-on-secondary-container);
+  text-transform: uppercase;
+}
+
+.ac-option-name {
+  font-size: var(--md-font-size-body-md);
+  font-weight: 600;
+  color: var(--md-on-surface);
+  line-height: 1.2;
+}
+
+.ac-option-sub {
+  font-size: var(--md-font-size-label-lg);
+  color: var(--md-on-surface-variant);
+  margin-top: 1px;
+}
+
+.ac-no-results {
+  padding: var(--md-spacing-4) var(--md-spacing-4);
+  text-align: center;
+  color: var(--md-on-surface-variant);
+  font-size: var(--md-font-size-body-sm);
+}
+
+.ac-no-results i {
+  display: block;
+  font-size: 1.2rem;
+  margin-bottom: var(--md-spacing-1);
+  opacity: 0.4;
+}
+
+/* ── Chip de selección ───────────────────────────────────────────── */
+.ac-chip {
+  display: none;
+  align-items: center;
+  gap: var(--md-spacing-2);
+  background: var(--md-primary-container);
+  color: var(--md-on-primary-container);
+  border-radius: var(--md-shape-extra-large);
+  padding: 5px 10px 5px 6px;
+  font-size: var(--md-font-size-body-sm);
+  font-weight: 600;
+  margin-top: var(--md-spacing-2);
+  width: fit-content;
+  max-width: 100%;
+}
+
+.ac-chip.visible { display: flex; }
+
+.ac-chip-avatar {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--md-primary);
+  color: var(--md-on-primary);
+  font-size: 0.6rem;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.ac-chip-label {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ac-chip-clear {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: inherit;
+  padding: 2px;
+  font-size: 0.7rem;
+  opacity: 0.65;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  transition: opacity 0.15s, background 0.15s;
+}
+
+.ac-chip-clear:hover { opacity: 1; background: rgba(0,0,0,0.1); }
+
+/* ── DateTime picker — Fecha + Hora separados ────────────────────── */
+.dt-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--md-spacing-3);
+}
+
+/* Fila Fecha + Hora */
+.dt-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: var(--md-spacing-2);
+  align-items: end;
+}
+
+/* Input de fecha (type=date) */
+.dt-date {
+  width: 100%;
+  background: var(--md-surface-container-highest);
+  border: 1.5px solid var(--md-outline-variant);
+  border-radius: var(--md-shape-small);
+  padding: 10px 14px;
+  font-family: var(--md-font-family-body);
+  font-size: var(--md-font-size-body-md);
+  color: var(--md-on-surface);
+  outline: none;
+  cursor: pointer;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  box-sizing: border-box;
+}
+
+.dt-date:focus {
+  border-color: var(--md-primary);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--md-primary) 12%, transparent);
+}
+
+.dt-date::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  opacity: 0.55;
+  transition: opacity 0.15s;
+}
+.dt-date::-webkit-calendar-picker-indicator:hover { opacity: 1; }
+
+/* Bloque de hora — dos selects con separador */
+.dt-time-block {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--md-surface-container-highest);
+  border: 1.5px solid var(--md-outline-variant);
+  border-radius: var(--md-shape-small);
+  padding: 8px 12px;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  white-space: nowrap;
+}
+
+.dt-time-block:focus-within {
+  border-color: var(--md-primary);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--md-primary) 12%, transparent);
+}
+
+.dt-time-block i {
+  color: var(--md-on-surface-variant);
+  font-size: 0.82rem;
+  margin-right: 4px;
+}
+
+.dt-sel {
+  border: none;
+  background: transparent;
+  outline: none;
+  font-family: var(--md-font-family-body);
+  font-size: var(--md-font-size-body-md);
+  font-weight: 600;
+  color: var(--md-on-surface);
+  cursor: pointer;
+  padding: 0 2px;
+  -webkit-appearance: none;
+  appearance: none;
+  text-align: center;
+}
+
+.dt-sep {
+  font-weight: 800;
+  color: var(--md-primary);
+  font-size: 1rem;
+  line-height: 1;
+}
+
+/* Preview card */
+.dt-preview {
+  display: none;
+  gap: var(--md-spacing-3);
+  align-items: center;
+  background: var(--md-surface-container-lowest);
+  border: 1px solid var(--md-outline-variant);
+  border-radius: var(--md-shape-medium);
+  padding: 14px 16px;
+  box-shadow: var(--md-shadow-level-1);
+  animation: acSlideIn 0.15s ease;
+}
+
+.dt-preview.visible { display: flex; }
+
+/* Tile de calendario */
+.dt-tile {
+  width: 58px;
+  border-radius: var(--md-shape-medium);
+  overflow: hidden;
+  flex-shrink: 0;
+  box-shadow: var(--md-shadow-level-1);
+  text-align: center;
+  border: 1px solid var(--md-outline-variant);
+}
+
+.dt-tile__month {
+  background: var(--md-primary);
+  color: var(--md-on-primary);
+  font-size: 0.6rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 4px 0;
+}
+
+.dt-tile__day {
+  background: var(--md-surface-container-lowest);
+  color: var(--md-on-surface);
+  font-size: 1.7rem;
+  font-weight: 900;
+  line-height: 1;
+  padding: 6px 0 5px;
+  font-family: var(--md-font-family-display);
+}
+
+/* Info lateral */
+.dt-info { flex: 1; min-width: 0; }
+
+.dt-info__weekday {
+  font-size: var(--md-font-size-body-sm);
+  font-weight: 600;
+  color: var(--md-on-surface-variant);
+  text-transform: capitalize;
+}
+
+.dt-info__time {
+  font-size: 1.8rem;
+  font-weight: 800;
+  color: var(--md-primary);
+  line-height: 1.05;
+  font-family: var(--md-font-family-display);
+  letter-spacing: -0.02em;
+}
+
+.dt-info__full {
+  font-size: var(--md-font-size-label-lg);
+  color: var(--md-on-surface-variant);
+  margin-top: 2px;
+  text-transform: capitalize;
+}
+
+/* ── Responsive ──────────────────────────────────────────────────── */
+@media (max-width: 520px) {
+  .dt-row                { grid-template-columns: 1fr; }
+  .dt-info__time         { font-size: 1.4rem; }
+  .dt-tile               { width: 48px; }
+  .dt-tile__day          { font-size: 1.3rem; }
+}

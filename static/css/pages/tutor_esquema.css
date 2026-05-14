@@ -111,36 +111,8 @@
   white-space: nowrap;
 }
 
-/* ── KPI chips ────────────────────────────────────────────────────────────── */
-.tutor-kpi-chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--md-spacing-2, 8px);
-  margin-bottom: var(--md-spacing-4, 16px);
-}
-
-.tutor-kpi-chip {
-  display: flex;
-  align-items: center;
-  gap: var(--md-spacing-2, 8px);
-  padding: 10px 18px;
-  border-radius: var(--md-shape-large, 16px);
-  border: 0.5px solid var(--md-outline-variant, #c4c7c5);
-  background: var(--md-surface-container-lowest, #fff);
-  box-shadow: var(--md-shadow-level-1);
-  flex: 1;
-  min-width: 120px;
-}
-.tutor-kpi-chip i { font-size: 1rem; }
-.tutor-kpi-num { font-size: 1.2rem; font-weight: 800; color: var(--md-on-surface, #1a1a1a); }
-.tutor-kpi-lbl { font-size: var(--md-font-size-label-lg, 0.72rem); color: var(--md-on-surface-variant, #49454f); }
-
-.tutor-kpi-chip--applied i { color: var(--md-success, #1D7B00); }
-.tutor-kpi-chip--pending i { color: var(--md-tertiary, #7B6800); }
-.tutor-kpi-chip--total   i { color: var(--md-primary, #6B007C); }
-.tutor-kpi-chip--pct     i { color: var(--md-secondary, #4B1535); }
-.tutor-kpi-chip--ok      i { color: var(--md-success, #1D7B00); }
-.tutor-kpi-chip--ok .tutor-kpi-num { color: var(--md-success, #1D7B00); }
+/* ── KPI chips eliminados — ahora se usa el componente kpi_card.html ─────── */
+/* Estilos correspondientes en: static/css/components/kpi_card.css (.md3-kpi) */
 
 /* ── Secciones ────────────────────────────────────────────────────────────── */
 .tutor-section { margin-bottom: var(--md-spacing-3, 12px); }

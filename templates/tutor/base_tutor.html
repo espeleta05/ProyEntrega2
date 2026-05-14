@@ -40,6 +40,8 @@
   {% block head_extra %}{% endblock %}
 </head>
 
+{%- from 'layouts/sidebar.html' import sidebar -%}
+
 <body class="tutor-portal">
 
 <div class="main-layout">
@@ -60,73 +62,50 @@
     </div>
   </header>
 
-  {# ── Sidebar del tutor ── #}
-  <aside class="sidebar tutor-sidebar" id="tutorSidebar">
-    <div class="sidebar-content">
-
-      <div class="sidebar-section">
-        <p class="sidebar-section-title">Mi familia</p>
-        <nav class="sidebar-nav" aria-label="Navegación familiar">
-
-          <a href="{{ url_for('tutor_dashboard') }}"
-             class="sidebar-nav-item {{ 'active' if request.endpoint == 'tutor_dashboard' else '' }}"
-             {% if request.endpoint == 'tutor_dashboard' %}aria-current="page"{% endif %}>
-            <i class="fa-solid fa-house-medical"></i>
-            <span>Inicio</span>
-          </a>
-
-          <a href="{{ url_for('tutor_dashboard') }}#mis-hijos"
-             class="sidebar-nav-item {{ 'active' if request.endpoint == 'tutor_esquema' else '' }}"
-             {% if request.endpoint == 'tutor_esquema' %}aria-current="page"{% endif %}>
-            <i class="fa-solid fa-syringe"></i>
-            <span>Vacunas</span>
-          </a>
-
-          <a href="{{ url_for('tutor_citas') }}"
-             class="sidebar-nav-item {{ 'active' if request.endpoint in ('tutor_citas', 'tutor_cancelar_cita') else '' }}"
-             {% if request.endpoint in ('tutor_citas', 'tutor_cancelar_cita') %}aria-current="page"{% endif %}>
-            <i class="fa-solid fa-calendar-check"></i>
-            <span>Citas</span>
-          </a>
-
-          <a href="{{ url_for('tutor_agendar') }}"
-             class="sidebar-nav-item {{ 'active' if request.endpoint == 'tutor_agendar' else '' }}"
-             {% if request.endpoint == 'tutor_agendar' %}aria-current="page"{% endif %}>
-            <i class="fa-solid fa-calendar-plus"></i>
-            <span>Agendar cita</span>
-          </a>
-
-          <a href="#"
-             class="sidebar-nav-item disabled"
-             aria-disabled="true"
-             title="Próximamente">
-            <i class="fa-solid fa-file-medical"></i>
-            <span>Historial</span>
-            <span class="sidebar-nav-badge">Próximo</span>
-          </a>
-
-        </nav>
-      </div>
-
-    </div>
-
-    {# ── Pie del sidebar: avatar + nombre + logout ── #}
-    <div class="sidebar-footer">
-      <div class="sidebar-user__row">
-        <div class="sidebar-user__avatar">{{ tutor_initials }}</div>
-        <div class="sidebar-user__info">
-          <p class="sidebar-user__name">{{ tutor_name }} {{ tutor_lastname }}</p>
-          <p class="sidebar-user__role">Tutor / Padre de familia</p>
-        </div>
-        <a href="{{ url_for('tutor_logout') }}"
-           class="sidebar-logout"
-           title="Cerrar sesión">
-          <i class="fa-solid fa-arrow-right-from-bracket"></i>
-        </a>
-      </div>
-    </div>
-
-  </aside>
+  {# ── Sidebar del tutor (via macro compartido) ── #}
+  {{ sidebar(
+      sections=[
+        {
+          'title': 'Mi familia',
+          'items': [
+            {
+              'label':    'Inicio',
+              'icon':     'fa-house-medical',
+              'endpoint': 'tutor_dashboard'
+            },
+            {
+              'label':     'Vacunas',
+              'icon':      'fa-syringe',
+              'url':       url_for('tutor_dashboard') ~ '#mis-hijos',
+              'active_if': ['tutor_esquema']
+            },
+            {
+              'label':     'Citas',
+              'icon':      'fa-calendar-check',
+              'endpoint':  'tutor_citas',
+              'active_if': ['tutor_citas', 'tutor_cancelar_cita']
+            },
+            {
+              'label':    'Agendar cita',
+              'icon':     'fa-calendar-plus',
+              'endpoint': 'tutor_agendar'
+            },
+            {
+              'label':    'Historial',
+              'icon':     'fa-file-medical',
+              'url':      '#',
+              'disabled': true,
+              'badge':    'Próximo'
+            },
+          ]
+        }
+      ],
+      sidebar_class='tutor-sidebar',
+      user_name=tutor_name ~ ' ' ~ tutor_lastname,
+      user_role='Tutor / Padre de familia',
+      user_initials=tutor_initials,
+      logout_url=url_for('tutor_logout')
+  ) }}
 
   {# ── Área de contenido ── #}
   <main class="content">

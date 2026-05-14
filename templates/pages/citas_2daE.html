@@ -77,9 +77,13 @@
 
       {# Vacuna / Dosis #}
       <td>
-        <span>{{ c.vaccine_name or '—' }}</span>
-        {% if c.dose_label and c.dose_label != '—' %}
-          <br>{{ badge(c.dose_label, color='primary', size='sm') }}
+        {% if c.vaccine_name and c.vaccine_name not in ('—', '-', '') %}
+          <span>{{ c.vaccine_name }}</span>
+          {% if c.dose_label and c.dose_label not in ('—', '-', '') %}
+            <br>{{ badge(c.dose_label, color='primary', size='sm') }}
+          {% endif %}
+        {% else %}
+          <span class="muted-td">—</span>
         {% endif %}
       </td>
 
@@ -185,9 +189,13 @@
       <td class="muted-td">{{ h.guardian_name or '—' }}</td>
 
       <td>
-        <span>{{ h.vaccine_name or '—' }}</span>
-        {% if h.dose_label and h.dose_label != '—' %}
-          <br>{{ badge(h.dose_label, color='primary', size='sm') }}
+        {% if h.vaccine_name and h.vaccine_name not in ('—', '-', '') %}
+          <span>{{ h.vaccine_name }}</span>
+          {% if h.dose_label and h.dose_label not in ('—', '-', '') %}
+            <br>{{ badge(h.dose_label, color='primary', size='sm') }}
+          {% endif %}
+        {% else %}
+          <span class="muted-td">—</span>
         {% endif %}
       </td>
 
