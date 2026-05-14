@@ -1,15 +1,6 @@
 /**
  * vacunas.css — Tabla de inventario de vacunas
- * Solo variables --md-*. Sin vars legacy ni `:root` local.
- * Barras de color (bar-*) son paleta data-viz intencional.
  */
-
-.btn-container{
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    margin: 20px;
-}
 
 /* ── Tabla wrapper ── */
 .inv-table-wrapper {
@@ -42,24 +33,27 @@
 }
 .inv-table thead th.num { text-align: right; }
 
-/* Anchos de columnas */
-.inv-table thead th:nth-child(1) { width: 20%; }
-.inv-table thead th:nth-child(2) { width: 10%; }
-.inv-table thead th:nth-child(3) { width: 16%; }
-.inv-table thead th:nth-child(4),
-.inv-table thead th:nth-child(5),
-.inv-table thead th:nth-child(6) { width: 12%; }
-.inv-table thead th:nth-child(7) { width: 14%; }
-
 /* Filas */
 .inv-row {
     border-bottom: 1px solid var(--md-outline-variant, #c4c7c5);
-    transition: background var(--md-transition-short);
+    transition: background var(--md-transition-short, 150ms);
 }
 .inv-row:last-child { border-bottom: none; }
 .inv-row:nth-child(odd)  { background: var(--md-surface-container-lowest, #fff); }
 .inv-row:nth-child(even) { background: var(--md-surface-container-low, #f8f3f8); }
 .inv-row:hover { background: color-mix(in srgb, var(--md-primary, #6B007C) 8%, transparent); }
+
+/* Fila inactiva */
+.inv-row--inactive {
+    opacity: .55;
+}
+.inv-row--inactive .vax-name {
+    text-decoration: line-through;
+    color: var(--md-on-surface-variant, #49454f);
+}
+.inv-row--inactive:hover {
+    opacity: .75;
+}
 
 .inv-table td {
     padding: 13px 16px;
@@ -69,11 +63,10 @@
 }
 .inv-table td.num { text-align: right; font-weight: var(--md-font-weight-bold, 700); }
 
-/* ── Barra de color en la celda de nombre — data-viz ─────────────────────── */
+/* ── Barra de color lateral — data-viz ── */
 td.name-td {
     border-left: 5px solid transparent;
     padding-left: 14px !important;
-    border-radius: 0;
 }
 
 .inv-row.bar-0  td.name-td { border-left-color: #4CAF7D; }
@@ -103,27 +96,118 @@ td.name-td {
     letter-spacing: .3px;
 }
 
-/* ── Fecha vencimiento ── */
-.exp-badge {
-    display: inline-block;
-    padding: 3px 10px;
-    border-radius: var(--md-shape-extra-large, 999px);
-    font-size: var(--md-font-size-label-lg, 0.75rem);
-    font-weight: var(--md-font-weight-bold, 700);
+/* ── Acciones ── */
+.actions-td {
+    white-space: nowrap;
+    text-align: center;
+    padding: 8px 10px !important;
 }
-.exp-ok   { background: color-mix(in srgb, var(--md-primary, #6B007C) 12%, transparent); color: var(--md-primary, #6B007C); }
-.exp-warn { background: var(--md-tertiary-container, #FFEEC0); color: var(--md-tertiary, #7B6800); }
 
-/* ── Stock pill ── */
-.stock-pill {
-    display: inline-block;
-    padding: 3px 12px;
-    border-radius: var(--md-shape-extra-large, 999px);
-    font-size: var(--md-font-size-body-sm, 0.8rem);
-    font-weight: var(--md-font-weight-bold, 700);
+.action-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    border: none;
+    border-radius: var(--md-shape-full, 50%);
+    background: transparent;
+    cursor: pointer;
+    font-size: .85rem;
+    transition: background 120ms, color 120ms, transform 120ms;
+    color: var(--md-on-surface-variant, #49454f);
 }
-.stock-ok  { background: var(--md-success-container, #CFFFC0); color: var(--md-success, #1D7B00); }
-.stock-low { background: var(--md-error-container, #FFB9B9); color: var(--md-error, #C40000); }
+.action-btn:hover {
+    transform: scale(1.12);
+}
+
+.action-btn--add:hover {
+    background: color-mix(in srgb, var(--md-primary, #6B007C) 12%, transparent);
+    color: var(--md-primary, #6B007C);
+}
+.action-btn--edit:hover {
+    background: color-mix(in srgb, #1565c0 12%, transparent);
+    color: #1565c0;
+}
+.action-btn--stock:hover {
+    background: color-mix(in srgb, #2e7d32 12%, transparent);
+    color: #2e7d32;
+}
+.action-btn--deactivate:hover {
+    background: color-mix(in srgb, var(--md-error, #b3261e) 12%, transparent);
+    color: var(--md-error, #b3261e);
+}
+
+/* ── Toggle "Mostrar vencidos" ── */
+.vax-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    user-select: none;
+    padding: 6px 12px;
+    border-radius: var(--md-shape-extra-large, 999px);
+    border: 1.5px solid var(--md-outline-variant, #c4c7c5);
+    background: var(--md-surface-container-lowest, #fff);
+    transition: border-color 150ms, background 150ms;
+}
+.vax-toggle:hover {
+    border-color: var(--md-primary, #6B007C);
+    background: color-mix(in srgb, var(--md-primary, #6B007C) 6%, transparent);
+}
+.vax-toggle input[type="checkbox"] {
+    display: none;
+}
+.vax-toggle__track {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    border-radius: 4px;
+    border: 2px solid var(--md-outline, #79747e);
+    background: transparent;
+    transition: background 150ms, border-color 150ms;
+    color: transparent;
+    font-size: .7rem;
+}
+.vax-toggle input:checked ~ .vax-toggle__track {
+    background: var(--md-primary, #6B007C);
+    border-color: var(--md-primary, #6B007C);
+    color: #fff;
+}
+.vax-toggle__label {
+    font-size: var(--md-font-size-label-lg, 0.8rem);
+    font-weight: 500;
+    color: var(--md-on-surface-variant, #49454f);
+}
+.vax-toggle input:checked ~ .vax-toggle__track + .vax-toggle__label {
+    color: var(--md-primary, #6B007C);
+}
+
+/* ── Mensajes de error/hint en modales ── */
+.modal-error {
+    color: var(--md-error, #b3261e);
+    font-size: var(--md-font-size-body-sm, 0.82rem);
+    margin-top: .5rem;
+    padding: 8px 12px;
+    background: color-mix(in srgb, var(--md-error, #b3261e) 10%, transparent);
+    border-radius: 8px;
+    border-left: 3px solid var(--md-error, #b3261e);
+}
+
+.modal-hint {
+    font-size: var(--md-font-size-body-sm, 0.82rem);
+    color: var(--md-on-surface-variant, #49454f);
+    background: color-mix(in srgb, var(--md-primary, #6B007C) 7%, transparent);
+    border-radius: 8px;
+    padding: 8px 12px;
+    margin-top: .25rem;
+    display: flex;
+    gap: 8px;
+    align-items: flex-start;
+}
+.modal-hint i { color: var(--md-primary, #6B007C); margin-top: 2px; flex-shrink: 0; }
 
 /* ── Empty state ── */
 .empty-state {

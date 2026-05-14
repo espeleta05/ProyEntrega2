@@ -327,6 +327,8 @@ CREATE TABLE vaccine_lots (
     received_date       DATE
 );
 
+ALTER TABLE vaccine_lots ADD COLUMN is_active BOOLEAN NOT NULL DEFAULT TRUE;
+
 
 --  MÓDULO: OFFICIAL SCHEME
 CREATE TABLE vaccination_scheme (
@@ -378,64 +380,6 @@ CREATE TABLE appointments (
     UNIQUE (worker_id, scheduled_at),
     UNIQUE (clinic_id, area_id, scheduled_at)
 );
-
-ALTER TABLE appointments DROP COLUMN tutor_accepted;
-ALTER TABLE appointments ADD COLUMN patient_id INT REFERENCES patients(patient_id);
-ALTER TABLE appointments ADD COLUMN created_by_role VARCHAR(20); -- quien creo: 'Tutor', 'Recepcionista', 'Medico', 'Enfermero'
-ALTER TABLE appointments ADD COLUMN created_by_worker_id INT; -- quien del personal la creo
-ALTER TABLE appointments ADD COLUMN created_by_guardian_id INT; -- quien del portal tutor la creo
-ALTER TABLE appointments ALTER COLUMN patient_schedule_id INT REFERENCES patient_vaccine_schedule(schedule_id);
-
-UPDATE appointments a
-SET patient_id = pvs.patient_id
-FROM patient_vaccine_schedule pvs
-WHERE a.patient_schedule_id = pvs.schedule_id;
-
-ALTER TABLE appointments
-ALTER COLUMN patient_id SET NOT NULL;
-
-
-ALTER TABLE appointments ADD COLUMN patient_schedule_id INT REFERENCES patient_vaccine_schedule(schedule_id);
-
--- 2. Hacer el mapeo
-UPDATE appointments a 
-SET patient_schedule_id = pvs.schedule_id 
-FROM patient_vaccine_schedule pvs 
-WHERE a.patient_id = pvs.patient_id 
-AND a.scheme_dose_id = pvs.scheme_dose_id;
-
--- 3. Revisar si alguna cita no pudo mapearse
-SELECT * FROM appointments WHERE patient_schedule_id IS NULL;
-
--- 4. Crear FK
-ALTER TABLE appointments ADD CONSTRAINT fk_appointments_schedule FOREIGN KEY (patient_schedule_id) REFERENCES patient_vaccine_schedule(schedule_id);
-
--- 5. Hacer NOT NULL
-ALTER TABLE appointments ALTER COLUMN patient_schedule_id SET NOT NULL;
-
-ALTER TABLE appointments DROP CONSTRAINT appointments_appointment_status_check;
-
-ALTER TABLE appointments ADD CONSTRAINT appointments_appointment_status_check 
-CHECK (appointment_status IN (
-        'Pendiente confirmación',
-        'Confirmada',
-        'Programada',
-        'Reagendada',
-        'Completada',
-        'Cancelada',
-        'No Show'
-    )
-);
-
-ALTER TABLE appointments ADD COLUMN confirmed_at TIMESTAMP;
-ALTER TABLE appointments ADD COLUMN cancel_reason TEXT;
-ALTER TABLE appointments ADD COLUMN rescheduled_from_id INT REFERENCES appointments(appointment_id);
-
-
---finalmente
-ALTER TABLE appointments DROP COLUMN patient_id;
-ALTER TABLE appointments DROP COLUMN vaccine_id;
-ALTER TABLE appointments DROP COLUMN scheme_dose_id;
 
 
 --  MÓDULO: VACCINATION RECORD

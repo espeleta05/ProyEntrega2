@@ -69,6 +69,7 @@
 
     {% if user_role == 'Recepcionista' %}
 
+
       <div class="sidebar-section">
         <p class="sidebar-section-title">Principal</p>
         <nav class="sidebar-nav" aria-label="Navegaci&oacute;n principal">
@@ -102,6 +103,56 @@
             <span class="sidebar-nav-badge">Solo lectura</span>
           </a>
 
+        </nav>
+      </div>
+
+    {% elif user_role == 'Medico' %}
+
+      <div class="sidebar-section">
+        <p class="sidebar-section-title">Principal</p>
+        <nav class="sidebar-nav" aria-label="Navegación médico">
+          <a href="{{ url_for('medico_dashboard') }}"
+             class="sidebar-nav-item {{ 'active' if request.endpoint == 'medico_dashboard' else '' }}"
+             {{ 'aria-current=page' if request.endpoint == 'medico_dashboard' else '' }}>
+            <i class="fa-solid fa-stethoscope"></i>
+            <span>Dashboard</span>
+          </a>
+          <a href="{{ url_for('medico_citas_hoy') }}"
+             class="sidebar-nav-item {{ 'active' if request.endpoint == 'medico_citas_hoy' else '' }}"
+             {{ 'aria-current=page' if request.endpoint == 'medico_citas_hoy' else '' }}>
+            <i class="fa-solid fa-calendar-check"></i>
+            <span>Mis citas del día</span>
+          </a>
+          <a href="{{ url_for('pacientes') }}"
+             class="sidebar-nav-item {{ 'active' if request.endpoint == 'pacientes' else '' }}"
+             {{ 'aria-current=page' if request.endpoint == 'pacientes' else '' }}>
+            <i class="fa-solid fa-users"></i>
+            <span>Mis pacientes</span>
+          </a>
+        </nav>
+      </div>
+
+      <div class="sidebar-section">
+        <p class="sidebar-section-title">Clínica</p>
+        <nav class="sidebar-nav" aria-label="Clínica">
+          <a href="{{ url_for('agregar_aplicacion') }}"
+             class="sidebar-nav-item {{ 'active' if request.endpoint == 'agregar_aplicacion' else '' }}"
+             {{ 'aria-current=page' if request.endpoint == 'agregar_aplicacion' else '' }}>
+            <i class="fa-solid fa-syringe"></i>
+            <span>Aplicar vacuna</span>
+          </a>
+          <a href="{{ url_for('historial') }}"
+             class="sidebar-nav-item {{ 'active' if request.endpoint == 'historial' else '' }}"
+             {{ 'aria-current=page' if request.endpoint == 'historial' else '' }}>
+            <i class="fa-solid fa-file-medical"></i>
+            <span>Historial</span>
+          </a>
+          <a href="{{ url_for('esquema_vacunacion') }}"
+             class="sidebar-nav-item {{ 'active' if request.endpoint == 'esquema_vacunacion' else '' }}"
+             {{ 'aria-current=page' if request.endpoint == 'esquema_vacunacion' else '' }}>
+            <i class="fa-solid fa-shield-virus"></i>
+            <span>Esquema</span>
+          </a>
         </nav>
       </div>
 

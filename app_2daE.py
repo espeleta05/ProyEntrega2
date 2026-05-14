@@ -188,6 +188,8 @@ def _home_url_for_role(role):
     """Retorna la URL del dashboard correspondiente al rol."""
     if role == "Recepcionista":
         return url_for("recepcionista_dashboard")
+    if role == "Medico":
+        return url_for("medico_dashboard")
     return url_for("dashboard")
 
 def _session_vars():
@@ -2441,6 +2443,159 @@ def delete_vaccine(id):
     return jsonify({"message": "Vacuna eliminada"})
 
 
+@app.route("/create_vaccine_lot", methods=["POST"])
+def create_vaccine_lot():
+    if not _check_role("Administrador", "Almacen"):
+        return jsonify({"error": "Sin permisos"}), 403
+
+    payload      = request.get_json(silent=True) or {}
+    vaccine_id   = payload.get("vaccine_id")
+    clinic_id    = payload.get("clinic_id")
+    lot_number   = (payload.get("lot_number") or "").strip()
+    qty_received = payload.get("quantity_received")
+    exp_date     = payload.get("expiration_date")
+
+    if not all([vaccine_id, clinic_id, lot_number, qty_received, exp_date]):
+        return jsonify({"error": "Todos los campos son requeridos"}), 400
+
+    conn, should_close = _get_conn()
+    _safe_rollback(conn)
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                "CALL sp_create_vaccine_lot(%s,%s,%s,%s,%s,%s)",
+                (vaccine_id, clinic_id, lot_number, int(qty_received), exp_date, "cur_create_lot"),
+            )
+            cur.execute('FETCH ALL FROM "cur_create_lot"')
+            row = cur.fetchone()
+        conn.commit()
+    except Exception as ex:
+        _safe_rollback(conn)
+        return jsonify({"error": f"No se pudo crear el lote: {ex}"}), 500
+    finally:
+        if should_close and not _conn_is_closed(conn):
+            conn.close()
+
+    if not row:
+        return jsonify({"error": "No se pudo crear el lote"}), 500
+
+    flash(f"Lote '{lot_number}' agregado al inventario.", "success")
+    return jsonify({"message": "Lote creado", "lot_id": row.get("lot_id")})
+
+
+@app.route("/update_vaccine_lot_stock", methods=["POST"])
+def update_vaccine_lot_stock():
+    if not _check_role("Administrador", "Almacen"):
+        return jsonify({"error": "Sin permisos"}), 403
+
+    payload   = request.get_json(silent=True) or {}
+    lot_id    = payload.get("lot_id")
+    qty_avail = payload.get("quantity_available")
+
+    if lot_id is None or qty_avail is None:
+        return jsonify({"error": "lot_id y quantity_available son requeridos"}), 400
+
+    conn, should_close = _get_conn()
+    _safe_rollback(conn)
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                "CALL sp_update_vaccine_lot_stock(%s,%s,%s)",
+                (int(lot_id), int(qty_avail), "cur_upd_stock"),
+            )
+            cur.execute('FETCH ALL FROM "cur_upd_stock"')
+            row = cur.fetchone()
+        conn.commit()
+    except Exception as ex:
+        _safe_rollback(conn)
+        return jsonify({"error": f"No se pudo actualizar el stock: {ex}"}), 500
+    finally:
+        if should_close and not _conn_is_closed(conn):
+            conn.close()
+
+    if row and not row.get("success", True):
+        return jsonify({"error": "Lote no encontrado"}), 404
+
+    return jsonify({"message": "Stock actualizado"})
+
+
+@app.route("/delete_vaccine_lot/<int:lot_id>", methods=["POST"])
+def delete_vaccine_lot(lot_id):
+    if not _check_role("Administrador", "Almacen"):
+        return jsonify({"error": "Sin permisos"}), 403
+
+    lot = _cur_fetchone("vaccine_lots", "lot_id", lot_id)
+    if not lot:
+        return jsonify({"error": "Lote no encontrado"}), 404
+
+    today = date.today()
+    exp   = lot.get("expiration_date")
+    if exp and (exp if isinstance(exp, type(today)) else date.fromisoformat(str(exp))) > today:
+        return jsonify({"error": "Solo se pueden desactivar lotes vencidos"}), 400
+
+    conn, should_close = _get_conn()
+    _safe_rollback(conn)
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                "CALL sp_deactivate_vaccine_lot(%s,%s)",
+                (lot_id, "cur_deact_lot"),
+            )
+            cur.execute('FETCH ALL FROM "cur_deact_lot"')
+            row = cur.fetchone()
+        conn.commit()
+    except Exception as ex:
+        _safe_rollback(conn)
+        return jsonify({"error": f"No se pudo desactivar el lote: {ex}"}), 500
+    finally:
+        if should_close and not _conn_is_closed(conn):
+            conn.close()
+
+    if row and not row.get("success", True):
+        return jsonify({"error": "No se pudo desactivar el lote"}), 400
+
+    flash(f"Lote '{lot['lot_number']}' desactivado.", "warning")
+    return jsonify({"message": "Lote desactivado"})
+
+
+@app.route("/edit_vaccine_lot/<int:lot_id>", methods=["POST"])
+def edit_vaccine_lot(lot_id):
+    if not _check_role("Administrador", "Almacen"):
+        return jsonify({"error": "Sin permisos"}), 403
+
+    payload      = request.get_json(silent=True) or {}
+    clinic_id    = payload.get("clinic_id")
+    lot_number   = (payload.get("lot_number") or "").strip()
+    qty_received = payload.get("quantity_received")
+    exp_date     = payload.get("expiration_date")
+
+    if not all([clinic_id, lot_number, qty_received, exp_date]):
+        return jsonify({"error": "Todos los campos son requeridos"}), 400
+
+    conn, should_close = _get_conn()
+    _safe_rollback(conn)
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                "CALL sp_edit_vaccine_lot(%s,%s,%s,%s,%s,%s)",
+                (lot_id, int(clinic_id), lot_number, int(qty_received), exp_date, "cur_edit_lot"),
+            )
+            cur.execute('FETCH ALL FROM "cur_edit_lot"')
+            row = cur.fetchone()
+        conn.commit()
+    except Exception as ex:
+        _safe_rollback(conn)
+        return jsonify({"error": f"No se pudo editar el lote: {ex}"}), 500
+    finally:
+        if should_close and not _conn_is_closed(conn):
+            conn.close()
+
+    if not row or not row.get("success"):
+        return jsonify({"error": "Lote no encontrado"}), 404
+
+    return jsonify({"message": "Lote actualizado"})
+
+
 # =============================================================================
 # RUTAS — aplicaciones (vaccination records)
 # =============================================================================
@@ -2595,7 +2750,8 @@ def agregar_aplicacion():
                 elif row:
                     p_name = f"{patient['first_name']} {patient['last_name']}".strip()
                     flash(f"Aplicación de {vaccine['name']} registrada para {p_name}.", "success")
-                    return redirect(url_for("aplicaciones"))
+                    next_url = request.form.get("next") or url_for("aplicaciones")
+                    return redirect(next_url)
                 elif not error:
                     error = "No se pudo registrar la aplicación en base de datos"
 
@@ -3048,7 +3204,8 @@ def admin_cancelar_cita(appointment_id):
         if should_close and not _conn_is_closed(conn):
             conn.close()
 
-    return redirect(url_for("citas"))
+    next_url = request.form.get("next") or url_for("citas")
+    return redirect(next_url)
 
 
 @app.route("/citas/<int:appointment_id>/no-show", methods=["POST"])
@@ -3075,7 +3232,8 @@ def admin_no_show(appointment_id):
         if should_close and not _conn_is_closed(conn):
             conn.close()
 
-    return redirect(url_for("citas"))
+    next_url = request.form.get("next") or url_for("citas")
+    return redirect(next_url)
 
 
 @app.route("/citas/<int:appointment_id>/reagendar", methods=["POST"])
@@ -3414,6 +3572,148 @@ def recepcionista_dashboard():
         actividad       =actividad,
         # Gráfica
         chart_data=chart_data,
+    )
+
+
+# =============================================================================
+# RUTAS — medico
+# =============================================================================
+
+@app.route("/medico")
+@app.route("/medico/dashboard")
+def medico_dashboard():
+    locked = _require_role("Medico", "Administrador")
+    if locked:
+        return locked
+
+    worker_id = session.get("worker_id")
+    clinic_id = session.get("clinic_id")
+    today_iso = date.today().isoformat()
+
+    citas_hoy        = []
+    alertas          = []
+    vacunas_hoy      = 0
+    pacientes_semana = 0
+    chart_data       = []
+
+    conn, should_close = _get_conn()
+    _safe_rollback(conn)
+    try:
+        with conn.cursor() as cur:
+            # Q1: Citas del día filtradas por médico
+            cur.execute("CALL sp_get_citas_admin(%s, %s, %s, %s)",
+                        (clinic_id, today_iso, today_iso, "cur_md_citas"))
+            cur.execute('FETCH ALL FROM "cur_md_citas"')
+            all_citas = [dict(r) for r in cur.fetchall()]
+            citas_hoy = [r for r in all_citas if r.get("worker_id") == worker_id]
+
+            # Q2: Alertas pendientes (Atraso + Critico)
+            cur.execute("CALL sp_get_schema_alerts_full(%s)", ("cur_md_alertas",))
+            cur.execute('FETCH ALL FROM "cur_md_alertas"')
+            all_alertas = [dict(r) for r in cur.fetchall()]
+            alertas = [a for a in all_alertas
+                       if a.get("alert_status") == "Pendiente"
+                       and a.get("alert_type") in ("Atraso", "Critico")]
+
+            # Q3: Vacunas aplicadas hoy por este médico
+            cur.execute(
+                "SELECT COUNT(*) AS cnt FROM vaccination_records "
+                "WHERE worker_id=%s AND applied_date=CURRENT_DATE",
+                (worker_id,)
+            )
+            vacunas_hoy = (cur.fetchone() or {}).get("cnt", 0)
+
+            # Q4: Pacientes atendidos esta semana
+            cur.execute(
+                "SELECT COUNT(DISTINCT patient_id) AS cnt FROM vaccination_records "
+                "WHERE worker_id=%s AND applied_date >= DATE_TRUNC('week', CURRENT_DATE)",
+                (worker_id,)
+            )
+            pacientes_semana = (cur.fetchone() or {}).get("cnt", 0)
+
+            # Q5: Citas por día esta semana (gráfica)
+            cur.execute(
+                "SELECT DATE(scheduled_at) AS dia, "
+                "TO_CHAR(DATE(scheduled_at), 'Dy') AS dia_label, "
+                "COUNT(*) AS total "
+                "FROM appointments "
+                "WHERE worker_id=%s "
+                "  AND scheduled_at >= DATE_TRUNC('week', CURRENT_DATE) "
+                "  AND scheduled_at < DATE_TRUNC('week', CURRENT_DATE) + INTERVAL '7 days' "
+                "GROUP BY dia ORDER BY dia",
+                (worker_id,)
+            )
+            chart_data = [dict(r) for r in cur.fetchall()]
+        conn.commit()
+    except Exception as e:
+        _safe_rollback(conn)
+        logger.error("Error en medico_dashboard: %s", e)
+        flash("Error al cargar el dashboard.", "danger")
+    finally:
+        if should_close and not _conn_is_closed(conn):
+            conn.close()
+
+    citas_pendientes  = [c for c in citas_hoy
+                         if c.get("appointment_status") in ("Programada", "Confirmada")]
+    citas_completadas = [c for c in citas_hoy
+                         if c.get("appointment_status") == "Completada"]
+
+    return render_template(
+        "pages/medico/dashboard_medico.html",
+        **_session_vars(),
+        today=date.today().strftime("%d/%m/%Y"),
+        citas_hoy=citas_pendientes,
+        citas_hoy_total=len(citas_hoy),
+        citas_hoy_pendientes=len(citas_pendientes),
+        citas_hoy_completadas=len(citas_completadas),
+        vacunas_hoy=vacunas_hoy,
+        pacientes_semana=pacientes_semana,
+        alertas_pendientes=len(alertas),
+        alertas=alertas,
+        chart_data=chart_data,
+    )
+
+
+@app.route("/medico/citas")
+def medico_citas_hoy():
+    locked = _require_role("Medico", "Administrador")
+    if locked:
+        return locked
+
+    worker_id = session.get("worker_id")
+    clinic_id = session.get("clinic_id")
+    today     = date.today()
+
+    rows = []
+    conn, should_close = _get_conn()
+    _safe_rollback(conn)
+    try:
+        with conn.cursor() as cur:
+            cur.execute("CALL sp_get_citas_admin(%s, %s, %s, %s)",
+                        (clinic_id, today.isoformat(), today.isoformat(), "cur_mc_citas"))
+            cur.execute('FETCH ALL FROM "cur_mc_citas"')
+            rows = [dict(r) for r in cur.fetchall()]
+        conn.commit()
+    except Exception as e:
+        _safe_rollback(conn)
+        logger.error("Error en medico_citas_hoy: %s", e)
+        flash("Error al cargar las citas.", "danger")
+    finally:
+        if should_close and not _conn_is_closed(conn):
+            conn.close()
+
+    mis_citas = [r for r in rows if r.get("worker_id") == worker_id]
+    ACTIVE    = {"Programada", "Confirmada"}
+    HISTORY   = {"Completada", "Cancelada", "No Show"}
+    upcoming  = [r for r in mis_citas if r.get("appointment_status") in ACTIVE]
+    history   = [r for r in mis_citas if r.get("appointment_status") in HISTORY]
+
+    return render_template(
+        "pages/medico/citas_medico.html",
+        **_session_vars(),
+        upcoming=upcoming,
+        history=history,
+        today_label=today.strftime("%d/%m/%Y"),
     )
 
 

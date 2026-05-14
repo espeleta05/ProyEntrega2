@@ -1,0 +1,168 @@
+{% extends 'base_2daE.html' %}
+
+{% from 'components/toolbar.html' import toolbar %}
+{% from 'components/table.html'   import table   %}
+{% from 'components/badge.html'   import badge   %}
+{% from 'components/card.html'    import card    %}
+
+{% block head_extra %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/citas.css') }}">
+{% endblock %}
+
+{% block title %}Mis Citas — {{ today_label }}{% endblock %}
+
+{% block content %}
+
+{% call toolbar(
+    title='Mis citas de hoy',
+    subtitle=today_label ~ '  ·  Programadas: ' ~ upcoming|length ~ '  ·  Historial: ' ~ history|length,
+    icon='fa-calendar-check'
+) %}
+  <a href="{{ url_for('admin_nueva_cita') }}" class="md3-btn md3-btn--filled">
+    <i class="fa-solid fa-calendar-plus"></i> Nueva cita
+  </a>
+{% endcall %}
+
+<!-- Barra de búsqueda y filtro -->
+<div class="search-bar-container section">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="text" id="searchInput" placeholder="Buscar por paciente...">
+  <select id="roleFilterSelect" class="sort-select" style="margin-left:12px;">
+    <option value="">Todos los estados</option>
+    <option value="programada">Programada</option>
+    <option value="confirmada">Confirmada</option>
+    <option value="completada">Completada</option>
+    <option value="cancelada">Cancelada</option>
+    <option value="no show">No Show</option>
+  </select>
+</div>
+
+<!-- Tabla: citas pendientes -->
+{% call card() %}
+  {% call(c) table(
+      id='appointmentsTable',
+      headers=[
+        {'label': 'Hora'},
+        {'label': 'Paciente'},
+        {'label': 'Vacuna / Dosis'},
+        {'label': 'Área'},
+        {'label': 'Estado',   'align': 'center'},
+        {'label': 'Acciones', 'align': 'center'},
+      ],
+      rows=upcoming,
+      empty_icon='fa-calendar-xmark',
+      empty_title='Sin citas programadas para hoy'
+  ) %}
+    <tr data-patient="{{ c.patient_name|lower if c.patient_name else '' }}"
+        data-status="{{ c.appointment_status|lower if c.appointment_status else '' }}">
+
+      <td>{{ c.scheduled_at[11:16] if c.scheduled_at else '—' }}</td>
+
+      <td>
+        <div class="patient-cell">
+          <div class="avatar-sm">{{ c.patient_name[0] if c.patient_name else '?' }}</div>
+          <div>
+            <span class="vax-name">{{ c.patient_name }}</span>
+            <span class="pt-id">ID: P{{ c.patient_id }}</span>
+          </div>
+        </div>
+      </td>
+
+      <td>
+        {{ c.vaccine_name or '—' }}
+        {% if c.dose_label and c.dose_label != '—' %}
+          <br>{{ badge(c.dose_label, color='primary', size='sm') }}
+        {% endif %}
+      </td>
+
+      <td class="muted-td">{{ c.area_name or '—' }}</td>
+
+      <td class="col-center">
+        {% if c.appointment_status == 'Confirmada' %}
+          {{ badge('Confirmada', color='success',   size='sm', icon='fa-circle-check') }}
+        {% elif c.appointment_status == 'Programada' %}
+          {{ badge('Programada', color='secondary', size='sm', icon='fa-clock')       }}
+        {% else %}
+          {{ badge(c.appointment_status or '—', color='neutral', size='sm') }}
+        {% endif %}
+      </td>
+
+      <td class="col-center">
+        <div class="citas-row-actions">
+          <a href="{{ url_for('agregar_aplicacion') }}?patient_id={{ c.patient_id }}&appointment_id={{ c.appointment_id }}&next={{ url_for('medico_citas_hoy') }}"
+             class="md3-btn md3-btn--tonal md3-btn--sm" title="Aplicar vacuna">
+            <i class="fa-solid fa-syringe"></i>
+          </a>
+          <a href="{{ url_for('historial') }}?q={{ c.patient_id }}"
+             class="md3-btn md3-btn--outlined md3-btn--sm" title="Historial">
+            <i class="fa-solid fa-file-medical"></i>
+          </a>
+          <form action="{{ url_for('admin_no_show', appointment_id=c.appointment_id) }}"
+                method="POST"
+                onsubmit="return confirm('¿Marcar como No Show?')">
+            <input type="hidden" name="next" value="{{ url_for('medico_citas_hoy') }}">
+            <button type="submit" class="md3-btn md3-btn--outlined md3-btn--sm" title="No Show">
+              <i class="fa-solid fa-user-slash"></i>
+            </button>
+          </form>
+          <form action="{{ url_for('admin_cancelar_cita', appointment_id=c.appointment_id) }}"
+                method="POST"
+                onsubmit="return confirm('¿Cancelar esta cita?')">
+            <input type="hidden" name="next" value="{{ url_for('medico_citas_hoy') }}">
+            <input type="hidden" name="cancel_reason" value="Cancelada por médico">
+            <button type="submit"
+                    class="md3-btn md3-btn--outlined md3-btn--sm"
+                    style="color:var(--md-error);border-color:var(--md-error);"
+                    title="Cancelar">
+              <i class="fa-solid fa-xmark"></i>
+            </button>
+          </form>
+        </div>
+      </td>
+
+    </tr>
+  {% endcall %}
+{% endcall %}
+
+<!-- Historial del día -->
+<div class="citas-section-header" style="margin-top:24px;display:flex;align-items:center;gap:8px;">
+  <h3 class="citas-section-title">
+    <i class="fa-solid fa-clock-rotate-left"></i> Historial del día
+  </h3>
+  {{ badge(history|length|string, color='neutral', size='sm') }}
+</div>
+
+{% call card() %}
+  {% call(h) table(
+      headers=[
+        {'label': 'Hora'},
+        {'label': 'Paciente'},
+        {'label': 'Vacuna / Dosis'},
+        {'label': 'Estado', 'align': 'center'},
+      ],
+      rows=history,
+      empty_icon='fa-clock-rotate-left',
+      empty_title='Sin historial hoy'
+  ) %}
+    <tr>
+      <td>{{ h.scheduled_at[11:16] if h.scheduled_at else '—' }}</td>
+      <td>{{ h.patient_name or '—' }}</td>
+      <td>{{ h.vaccine_name or '—' }}</td>
+      <td class="col-center">
+        {% if h.appointment_status == 'Completada' %}
+          {{ badge('Completada', color='success', size='sm', icon='fa-check')      }}
+        {% elif h.appointment_status == 'No Show' %}
+          {{ badge('No Show',    color='error',   size='sm', icon='fa-user-slash') }}
+        {% else %}
+          {{ badge('Cancelada',  color='neutral', size='sm', icon='fa-xmark')      }}
+        {% endif %}
+      </td>
+    </tr>
+  {% endcall %}
+{% endcall %}
+
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/pages/citas.js') }}" defer></script>
+{% endblock %}
