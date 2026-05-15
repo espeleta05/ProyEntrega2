@@ -237,6 +237,12 @@ document.getElementById('formNewPatient')?.addEventListener('submit', async e =>
   };
 
   const wantsNfc = document.getElementById('nfc_mode_yes')?.checked === true;
+  const nfcId    = wantsNfc ? (document.getElementById('p_nfc_id')?.value.trim() || '') : '';
+
+  if (wantsNfc && (!nfcId || !/^\d+$/.test(nfcId))) {
+    alert('El número NFC debe contener solo dígitos.');
+    return;
+  }
 
   let patientId;
   try {
@@ -260,13 +266,18 @@ document.getElementById('formNewPatient')?.addEventListener('submit', async e =>
     await fetch(`/patients/${patientId}/photo`, { method: 'POST', body: formData });
   }
 
-  closePatientModal();
-
-  if (wantsNfc && patientId) {
-    _openNfcAssignModal(patientId);
-  } else {
-    window.location.reload();
+  if (wantsNfc && nfcId && patientId) {
+    try {
+      await fetch('/api/assign-nfc-id', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ patient_id: patientId, nfc_id: nfcId }),
+      });
+    } catch { /* ignorar — el paciente ya quedó registrado */ }
   }
+
+  closePatientModal();
+  window.location.reload();
 });
 
 // ── Upload foto desde card ──────────────────────────────────────────────────
@@ -377,6 +388,9 @@ async function openEditPatientModal(patientId) {
       .find(o => o.value.toUpperCase() === (patient.blood_type || '').toUpperCase());
     bloodSel.value = opt ? opt.value : '';
   }
+
+  // NFC
+  _epSetupNfc(patientId, patient.nfc_id || null);
 
   // Pre-llenar tutor
   const hasGuardian = !!patient.guardian_id;
@@ -498,49 +512,91 @@ document.querySelectorAll('.edit-patient-btn').forEach(btn => {
   });
 });
 
-// ── Mini-modal de asignación NFC ─────────────────────────────────────────────
+// ── Toggle NFC input en formulario nuevo paciente ────────────────────────────
 
-let _nfcPendingPatientId = null;
+document.querySelectorAll('input[name="nfc_mode"]').forEach(radio => {
+  radio.addEventListener('change', function () {
+    const wrap = document.getElementById('nfc-id-wrap');
+    const input = document.getElementById('p_nfc_id');
+    if (!wrap) return;
+    if (this.value === 'yes') {
+      wrap.style.display = 'block';
+      input?.focus();
+    } else {
+      wrap.style.display = 'none';
+      if (input) input.value = '';
+    }
+  });
+});
 
-function _openNfcAssignModal(patientId) {
-  const nfcModal = document.getElementById('nfcAssignModal');
-  if (!nfcModal) { window.location.reload(); return; }
-  _nfcPendingPatientId = patientId;
-  const uid  = document.getElementById('nfc_uid');
-  const type = document.getElementById('nfc_card_type');
-  const note = document.getElementById('nfc_notes');
-  if (uid)  uid.value  = '';
-  if (type) type.value = 'Estándar';
-  if (note) note.value = '';
-  nfcModal.classList.add('active');
+// ── NFC en modal editar paciente ─────────────────────────────────────────────
+
+let _epNfcPatientId = null;
+
+function _epSetupNfc(patientId, nfcId) {
+  _epNfcPatientId = patientId;
+  const display   = document.getElementById('ep-nfc-display');
+  const noWrap    = document.getElementById('ep-nfc-no-wrap');
+  const addBtn    = document.getElementById('ep-nfc-add-btn');
+  const inputWrap = document.getElementById('ep-nfc-input-wrap');
+  const valueEl   = document.getElementById('ep-nfc-value');
+  const inputEl   = document.getElementById('ep_nfc_id');
+
+  if (nfcId) {
+    if (display)  { display.style.display = 'block'; }
+    if (noWrap)   { noWrap.style.display  = 'none';  }
+    if (valueEl)  { valueEl.textContent   = nfcId;   }
+  } else {
+    if (display)  { display.style.display  = 'none';  }
+    if (noWrap)   { noWrap.style.display   = 'block'; }
+    if (addBtn)   { addBtn.style.display   = 'inline-flex'; }
+    if (inputWrap){ inputWrap.style.display = 'none'; }
+    if (inputEl)  { inputEl.value = ''; }
+  }
 }
 
-function _closeNfcAssignModal() {
-  document.getElementById('nfcAssignModal')?.classList.remove('active');
-  _nfcPendingPatientId = null;
-  window.location.reload();
-}
+document.getElementById('ep-nfc-add-btn')?.addEventListener('click', () => {
+  document.getElementById('ep-nfc-add-btn').style.display   = 'none';
+  document.getElementById('ep-nfc-input-wrap').style.display = 'block';
+  document.getElementById('ep_nfc_id')?.focus();
+});
 
-document.getElementById('nfcSkipBtn')?.addEventListener('click', _closeNfcAssignModal);
+document.getElementById('ep-nfc-cancel-btn')?.addEventListener('click', () => {
+  document.getElementById('ep-nfc-add-btn').style.display    = 'inline-flex';
+  document.getElementById('ep-nfc-input-wrap').style.display = 'none';
+  const inp = document.getElementById('ep_nfc_id');
+  if (inp) inp.value = '';
+});
 
-document.getElementById('nfcAssignBtn')?.addEventListener('click', async () => {
-  const uid  = document.getElementById('nfc_uid')?.value.trim();
-  if (!uid) { alert('El UID de la tarjeta es obligatorio'); return; }
+document.getElementById('ep-nfc-save-btn')?.addEventListener('click', async () => {
+  const nfcId = document.getElementById('ep_nfc_id')?.value.trim();
+  if (!nfcId || !/^\d+$/.test(nfcId)) {
+    alert('El número NFC debe contener solo dígitos.');
+    return;
+  }
   try {
-    const res    = await fetch('/assign_nfc_card', {
+    const res    = await fetch('/api/assign-nfc-id', {
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify({
-        patient_id: _nfcPendingPatientId,
-        uid,
-        card_type: document.getElementById('nfc_card_type')?.value || '',
-        notes:     document.getElementById('nfc_notes')?.value     || '',
-      }),
+      body:    JSON.stringify({ patient_id: _epNfcPatientId, nfc_id: nfcId }),
     });
     const result = await res.json();
-    if (res.ok) { alert(result.message || 'Tarjeta NFC asignada'); }
-    else        { alert(result.error   || 'Error al asignar NFC'); }
+    if (!res.ok) { alert(result.error || 'Error al guardar NFC'); return; }
+    _epSetupNfc(_epNfcPatientId, nfcId);
   } catch { alert('Error de conexión'); }
-  _closeNfcAssignModal();
+});
+
+document.getElementById('ep-nfc-clear-btn')?.addEventListener('click', async () => {
+  if (!confirm('¿Quitar el NFC asignado a este paciente?')) return;
+  try {
+    const res    = await fetch('/api/clear-nfc-id', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ patient_id: _epNfcPatientId }),
+    });
+    const result = await res.json();
+    if (!res.ok) { alert(result.error || 'Error al quitar NFC'); return; }
+    _epSetupNfc(_epNfcPatientId, null);
+  } catch { alert('Error de conexión'); }
 });
 

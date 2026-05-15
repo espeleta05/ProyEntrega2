@@ -112,7 +112,7 @@ CREATE TABLE patients (
     birth_date     DATE         NOT NULL,
     blood_type_id  INT          REFERENCES blood_types(blood_type_id),
     gender         CHAR(1)      CHECK (gender IN ('M','F','O')),
-    nfc_token      VARCHAR(50)  UNIQUE,
+    nfc_id         VARCHAR(50)  UNIQUE,
     curp           VARCHAR(18)     UNIQUE,
     weight_kg      NUMERIC(5,2),
     premature      BOOLEAN      NOT NULL DEFAULT FALSE,
@@ -540,7 +540,7 @@ CREATE TABLE audit_log (
 --  ÍNDICES
 -- ============================================================
 CREATE INDEX idx_patients_curp             ON patients(curp);
-CREATE INDEX idx_patients_nfc_token        ON patients(nfc_token);
+CREATE INDEX idx_patients_nfc_id           ON patients(nfc_id);
 CREATE INDEX idx_vaccination_records_pat   ON vaccination_records(patient_id);
 CREATE INDEX idx_vaccination_records_date  ON vaccination_records(applied_date);
 CREATE INDEX idx_appointments_pat_date     ON appointments(patient_id, scheduled_at);
@@ -558,3 +558,11 @@ CREATE INDEX idx_alerts_due_date           ON scheme_completion_alerts(due_date,
 
 CREATE INDEX idx_vaccination_records_schedule ON vaccination_records(patient_schedule_id);
 CREATE INDEX idx_patients_active           ON patients(patient_id) WHERE is_active = TRUE;
+
+-- ============================================================
+--  MIGRACIÓN: eliminar beacons/scan_logs, nfc_token → nfc_id
+-- ============================================================
+DROP TABLE IF EXISTS scan_logs;
+DROP TABLE IF EXISTS beacons;
+
+-- nfc_id ya definido en CREATE TABLE patients (migración: renombrado de nfc_token)

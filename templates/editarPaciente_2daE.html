@@ -145,6 +145,43 @@
 
             </div>
 
+            {# ── NFC ── #}
+            <div class="md3-form__section">
+                <h4 class="md3-form__section-title">Identificador NFC</h4>
+
+                {# Tiene nfc_id #}
+                <div id="ep-nfc-display" style="display:none">
+                    <div style="display:flex;align-items:center;gap:1rem;flex-wrap:wrap">
+                        <i class="fa-solid fa-tachograph-digital" style="color:var(--md3-primary);font-size:1.2rem"></i>
+                        <span id="ep-nfc-value" style="font-weight:600;font-size:1.1rem;letter-spacing:.05em"></span>
+                        <button type="button" class="md3-btn md3-btn--text" id="ep-nfc-clear-btn"
+                                style="color:var(--md3-error,#b00020)">
+                            <i class="fa-solid fa-xmark"></i> Quitar
+                        </button>
+                    </div>
+                </div>
+
+                {# No tiene nfc_id #}
+                <div id="ep-nfc-no-wrap">
+                    <button type="button" class="md3-btn md3-btn--tonal" id="ep-nfc-add-btn" style="display:none">
+                        <i class="fa-solid fa-tachograph-digital"></i> Agregar NFC
+                    </button>
+                    <div id="ep-nfc-input-wrap" style="display:none;margin-top:.75rem">
+                        <div class="md3-field" style="max-width:280px">
+                            <label class="md3-field__label" for="ep_nfc_id">Número NFC (solo dígitos)</label>
+                            <input class="md3-input" type="text" id="ep_nfc_id"
+                                   placeholder="Ej: 1234567890" inputmode="numeric" pattern="[0-9]*">
+                        </div>
+                        <div style="display:flex;gap:.5rem;margin-top:.5rem">
+                            <button type="button" class="md3-btn md3-btn--filled" id="ep-nfc-save-btn">
+                                <i class="fa-solid fa-check"></i> Guardar
+                            </button>
+                            <button type="button" class="md3-btn md3-btn--text" id="ep-nfc-cancel-btn">Cancelar</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
         {% endcall %}
 
     </div>

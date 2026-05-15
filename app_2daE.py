@@ -1638,6 +1638,7 @@ def api_patient_detail(id):
                 SELECT
                     p.patient_id, p.first_name, p.last_name,
                     p.curp, p.birth_date, p.gender, p.weight_kg,
+                    p.nfc_id,
                     COALESCE(bt.blood_type, '')  AS blood_type,
                     g.guardian_id,
                     g.first_name                 AS guardian_first_name,
@@ -1893,7 +1894,7 @@ def update_patient(id):
         with conn.cursor() as cur:
             # 1. Actualizar datos del paciente via SP
             cur.execute(
-                "CALL sp_update_patient(%s, %s, %s, %s, %s, %s, %s, %s)",
+                "CALL sp_update_patient(%s::int, %s, %s, %s, %s::date, %s::int, %s::numeric, %s)",
                 (id, first_name, last_name, curp, birth_date_raw,
                  blood_type_id, weight_kg, "cur_upd_patient"),
             )
@@ -3454,17 +3455,6 @@ def nfc():
         active_cards=sum(1 for c in cards if c.get("status") == "Activa"),
     )
 
-@app.route("/beacons")
-def beacon():
-    locked = _require_role("Administrador")
-    if locked:
-        return locked
-
-    return render_template(
-        "pages/beacons.html.html",
-        **_session_vars(),
-    )
-
 @app.route("/clinicas")
 def clinicas():
     locked = _require_role("Administrador")
@@ -3733,16 +3723,29 @@ def api_global_search():
 
     results = []
 
-    # Buscar pacientes
+    is_numeric = q.isdigit()
+
+    # Buscar pacientes — prioriza nfc_id si la query es solo números
+    patient_results = []
     for p in _cur_fetchall("patients"):
-        full = f"{p['first_name']} {p['last_name']}".strip()
-        if q in full.lower() or q in str(p["patient_id"]):
-            results.append({
+        full    = f"{p['first_name']} {p['last_name']}".strip()
+        nfc_id  = str(p.get("nfc_id") or "")
+        matched = (
+            q in full.lower()
+            or q in str(p["patient_id"])
+            or (nfc_id and q in nfc_id)
+        )
+        if matched:
+            priority = 0 if (is_numeric and nfc_id == q) else 1
+            patient_results.append((priority, {
                 "type":     "paciente",
                 "title":    full,
-                "subtitle": f"ID: P{p['patient_id']}",
-                "url":      url_for("historial_paciente", id=p["patient_id"]),
-            })
+                "subtitle": f"ID: P{p['patient_id']}" + (f" · NFC: {nfc_id}" if nfc_id else ""),
+                "url":      url_for("esquema_paciente", id=p["patient_id"]),
+            }))
+
+    patient_results.sort(key=lambda x: x[0])
+    results.extend(r for _, r in patient_results)
 
     # Buscar vacunas
     for v in _cur_fetchall("vaccines"):
@@ -3786,6 +3789,65 @@ def api_global_search():
             })
 
     return jsonify({"results": results[:10]})
+
+
+@app.route("/api/assign-nfc-id", methods=["POST"])
+def api_assign_nfc_id():
+    if not _check_role("Administrador", "Recepcionista"):
+        return jsonify({"error": "Sin permisos"}), 403
+
+    data = request.get_json(silent=True) or {}
+    patient_id = data.get("patient_id")
+    nfc_id = str(data.get("nfc_id", "")).strip()
+
+    if not patient_id:
+        return jsonify({"error": "patient_id requerido"}), 400
+    if not nfc_id or not nfc_id.isdigit():
+        return jsonify({"error": "nfc_id debe ser solo números"}), 400
+
+    conn, should_close = _get_conn()
+    _safe_rollback(conn)
+    try:
+        with conn.cursor() as cur:
+            cur.execute("CALL sp_update_patient_nfc_id(%s, %s)", (patient_id, nfc_id))
+        conn.commit()
+    except Exception as e:
+        _safe_rollback(conn)
+        logger.error(f"Error en /api/assign-nfc-id: {e}")
+        return jsonify({"error": str(e)}), 400
+    finally:
+        if should_close and not _conn_is_closed(conn):
+            conn.close()
+
+    return jsonify({"message": "OK", "nfc_id": nfc_id}), 200
+
+
+@app.route("/api/clear-nfc-id", methods=["POST"])
+def api_clear_nfc_id():
+    if not _check_role("Administrador", "Recepcionista"):
+        return jsonify({"error": "Sin permisos"}), 403
+
+    data = request.get_json(silent=True) or {}
+    patient_id = data.get("patient_id")
+
+    if not patient_id:
+        return jsonify({"error": "patient_id requerido"}), 400
+
+    conn, should_close = _get_conn()
+    _safe_rollback(conn)
+    try:
+        with conn.cursor() as cur:
+            cur.execute("CALL sp_clear_patient_nfc_id(%s)", (patient_id,))
+        conn.commit()
+    except Exception as e:
+        _safe_rollback(conn)
+        logger.error(f"Error en /api/clear-nfc-id: {e}")
+        return jsonify({"error": str(e)}), 400
+    finally:
+        if should_close and not _conn_is_closed(conn):
+            conn.close()
+
+    return jsonify({"message": "OK"}), 200
 
 
 @app.route("/api/reportes-publicos/resumen")

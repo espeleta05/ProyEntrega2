@@ -1818,6 +1818,42 @@ $$;
 
 
 
+-- Asigna o actualiza el nfc_id de un paciente (valida UNIQUE)
+CREATE OR REPLACE PROCEDURE sp_update_patient_nfc_id(
+    IN p_patient_id INT,
+    IN p_new_nfc_id VARCHAR(50)
+)
+LANGUAGE plpgsql AS $$
+BEGIN
+    IF EXISTS (
+        SELECT 1 FROM patients
+        WHERE nfc_id = p_new_nfc_id AND patient_id <> p_patient_id
+    ) THEN
+        RAISE EXCEPTION 'nfc_id % ya está asignado a otro paciente', p_new_nfc_id;
+    END IF;
+
+    UPDATE patients
+    SET nfc_id     = p_new_nfc_id,
+        updated_at = NOW()
+    WHERE patient_id = p_patient_id;
+END;
+$$;
+
+
+-- Limpia el nfc_id de un paciente (lo pone en NULL)
+CREATE OR REPLACE PROCEDURE sp_clear_patient_nfc_id(
+    IN p_patient_id INT
+)
+LANGUAGE plpgsql AS $$
+BEGIN
+    UPDATE patients
+    SET nfc_id     = NULL,
+        updated_at = NOW()
+    WHERE patient_id = p_patient_id;
+END;
+$$;
+
+
 CREATE OR REPLACE PROCEDURE sp_global_search(
 
     IN    p_query   VARCHAR,
@@ -1832,6 +1868,7 @@ BEGIN
 
     OPEN p_results FOR
 
+    -- Si la query es solo dígitos, priorizar búsqueda por nfc_id
     SELECT
 
         patient_id AS id,
@@ -1840,11 +1877,18 @@ BEGIN
 
         'patient' AS type,
 
-        birth_date::text AS metadata
+        birth_date::text AS metadata,
+
+        CASE
+            WHEN p_query ~ '^[0-9]+$' AND nfc_id = p_query THEN 0
+            ELSE 1
+        END AS sort_priority
 
     FROM v_patients_full
 
-    WHERE full_name ILIKE '%' || p_query || '%' OR curp ILIKE '%' || p_query || '%'
+    WHERE full_name ILIKE '%' || p_query || '%'
+       OR curp ILIKE '%' || p_query || '%'
+       OR nfc_id ILIKE '%' || p_query || '%'
 
 
 
@@ -1860,7 +1904,9 @@ BEGIN
 
         'worker' AS type,
 
-        NULL AS metadata
+        NULL AS metadata,
+
+        1 AS sort_priority
 
     FROM workers
 
@@ -1880,7 +1926,9 @@ BEGIN
 
         'vaccine' AS type,
 
-        NULL AS metadata
+        NULL AS metadata,
+
+        1 AS sort_priority
 
     FROM vaccines
 
@@ -1900,7 +1948,9 @@ BEGIN
 
         'clinic' AS type,
 
-        NULL AS metadata
+        NULL AS metadata,
+
+        1 AS sort_priority
 
     FROM clinics
 
@@ -1908,7 +1958,7 @@ BEGIN
 
 
 
-    ORDER BY type, name
+    ORDER BY sort_priority, type, name
 
     LIMIT 50;
 

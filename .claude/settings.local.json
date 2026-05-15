@@ -3,7 +3,12 @@
     "allow": [
       "Bash(not exist *)",
       "PowerShell(New-Item -ItemType Directory -Force -Path \"C:\\\\Users\\\\Andrea Escobar\\\\OneDrive\\\\Documents\\\\GitHub\\\\ProyEntrega2\\\\templates\\\\pages\\\\recepcionista\")",
-      "PowerShell(New-Item -ItemType Directory -Force -Path \"C:\\\\Users\\\\Andrea Escobar\\\\OneDrive\\\\Documents\\\\GitHub\\\\ProyEntrega2\\\\static\\\\js\\\\pages\")"
+      "PowerShell(New-Item -ItemType Directory -Force -Path \"C:\\\\Users\\\\Andrea Escobar\\\\OneDrive\\\\Documents\\\\GitHub\\\\ProyEntrega2\\\\static\\\\js\\\\pages\")",
+      "Bash(Remove-Item \"c:\\\\Users\\\\eugenio\\\\OneDrive\\\\Documentos\\\\C++\\\\segunda_entrega\\\\templates\\\\pages\\\\beacons.html\" -Force)",
+      "PowerShell(& \"c:\\\\Users\\\\eugenio\\\\OneDrive\\\\Documentos\\\\C++\\\\segunda_entrega\\\\.venv\\\\Scripts\\\\python.exe\" -m flask --version 2>&1)",
+      "PowerShell(& \"c:\\\\Users\\\\eugenio\\\\OneDrive\\\\Documentos\\\\C++\\\\segunda_entrega\\\\.venv\\\\Scripts\\\\pip.exe\" list 2>&1)",
+      "PowerShell(& \"c:\\\\Users\\\\eugenio\\\\OneDrive\\\\Documentos\\\\C++\\\\segunda_entrega\\\\.venv\\\\Scripts\\\\pip.exe\" install \"psycopg[binary]==3.2.13\" 2>&1)",
+      "PowerShell(& \"c:\\\\Users\\\\eugenio\\\\OneDrive\\\\Documentos\\\\C++\\\\segunda_entrega\\\\.venv\\\\Scripts\\\\python.exe\" -c \"import psycopg; print\\('psycopg OK:', psycopg.__version__\\)\" 2>&1)"
     ]
   }
 }
