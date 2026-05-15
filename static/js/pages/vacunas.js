@@ -89,11 +89,11 @@
   window.openLotModal = function (vaccineId) {
     clearError('lotModal-error');
     if (vaccineId) document.getElementById('lot_vaccine_id').value = vaccineId;
-    document.getElementById('lotModal').classList.add('is-open');
+    document.getElementById('lotModal').classList.add('active');
   };
 
   window.closeLotModal = function () {
-    document.getElementById('lotModal').classList.remove('is-open');
+    document.getElementById('lotModal').classList.remove('active');
     document.getElementById('lot_vaccine_id').value = '';
     document.getElementById('lot_clinic_id').value  = '';
     document.getElementById('lot_number').value     = '';
@@ -132,11 +132,11 @@
     document.getElementById('edit_lot_number').value   = lotNumber;
     document.getElementById('edit_qty_received').value = qtyReceived;
     document.getElementById('edit_exp_date').value     = expDate;
-    document.getElementById('editLotModal').classList.add('is-open');
+    document.getElementById('editLotModal').classList.add('active');
   };
 
   window.closeEditLotModal = function () {
-    document.getElementById('editLotModal').classList.remove('is-open');
+    document.getElementById('editLotModal').classList.remove('active');
     clearError('editLotModal-error');
   };
 
@@ -168,11 +168,11 @@
     document.getElementById('upd_lot_id').value     = lotId;
     document.getElementById('upd_lot_number').value = lotNumber;
     document.getElementById('upd_stock').value      = currentStock;
-    document.getElementById('updateStockModal').classList.add('is-open');
+    document.getElementById('updateStockModal').classList.add('active');
   };
 
   window.closeUpdateStockModal = function () {
-    document.getElementById('updateStockModal').classList.remove('is-open');
+    document.getElementById('updateStockModal').classList.remove('active');
     clearError('updateStockModal-error');
   };
 

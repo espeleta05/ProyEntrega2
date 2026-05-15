@@ -2009,159 +2009,91 @@ $$;
 
 
 CREATE OR REPLACE PROCEDURE sp_get_clinics(
-
     INOUT p_results REFCURSOR
-
 )
-
 LANGUAGE plpgsql AS $$
-
 BEGIN
-
     OPEN p_results FOR
-
         SELECT clinic_id, name FROM clinics WHERE is_active = TRUE ORDER BY name;
-
 END;
-
 $$;
 
 
 
 CREATE OR REPLACE PROCEDURE sp_get_workers_for_dropdown(
-
     INOUT p_results REFCURSOR
-
 )
-
 LANGUAGE plpgsql AS $$
-
 BEGIN
-
     OPEN p_results FOR
-
         SELECT w.worker_id, w.first_name || ' ' || w.last_name AS name, r.name AS role
-
         FROM workers w
-
         LEFT JOIN roles r ON w.role_id = r.role_id
-
         ORDER BY w.first_name, w.last_name;
-
 END;
-
 $$;
 
 
-
 CREATE OR REPLACE PROCEDURE sp_get_vaccine_lots_available(
-
     IN    p_vaccine_id INT,
-
     INOUT p_results    REFCURSOR
-
 )
-
 LANGUAGE plpgsql AS $$
-
 BEGIN
-
     OPEN p_results FOR
-
         SELECT lot_id, lot_number, quantity_available, expiration_date
-
         FROM vaccine_lots
-
         WHERE vaccine_id = p_vaccine_id AND quantity_available > 0 AND expiration_date > NOW()::DATE
-
         ORDER BY expiration_date ASC;
-
 END;
-
 $$;
 
 
 
 CREATE OR REPLACE PROCEDURE sp_get_application_sites(
-
     INOUT p_results REFCURSOR
-
 )
-
 LANGUAGE plpgsql AS $$
-
 BEGIN
-
     OPEN p_results FOR
-
         SELECT application_site_id, application_site FROM application_sites ORDER BY application_site;
-
 END;
-
 $$;
-
 
 
 CREATE OR REPLACE PROCEDURE sp_get_countries(
-
     INOUT p_results REFCURSOR
-
 )
-
 LANGUAGE plpgsql AS $$
-
 BEGIN
-
     OPEN p_results FOR
-
         SELECT country_id, name, iso_code FROM countries ORDER BY name;
-
 END;
-
 $$;
 
 
-
 CREATE OR REPLACE PROCEDURE sp_get_states(
-
     IN    p_country_id INT,
-
     INOUT p_results    REFCURSOR
-
 )
-
 LANGUAGE plpgsql AS $$
-
 BEGIN
-
     OPEN p_results FOR
-
         SELECT state_id, name, code FROM states WHERE country_id = p_country_id ORDER BY name;
-
 END;
-
 $$;
 
 
 
 CREATE OR REPLACE PROCEDURE sp_get_municipalities(
-
     IN    p_state_id INT,
-
     INOUT p_results  REFCURSOR
-
 )
-
 LANGUAGE plpgsql AS $$
-
 BEGIN
-
     OPEN p_results FOR
-
         SELECT municipality_id, name FROM municipalities WHERE state_id = p_state_id ORDER BY name;
-
 END;
-
 $$;
 
 
