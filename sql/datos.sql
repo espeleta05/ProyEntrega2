@@ -177,22 +177,22 @@ INSERT INTO allergies (name, allergy_type) VALUES
 ('Amoxicilina','Medicamento');
 
 -- PATIENTS
-INSERT INTO patients (first_name, last_name, birth_date, blood_type_id, gender, nfc_token, curp, weight_kg, premature) VALUES
-('Mateo','García','2018-03-15',1,'M','NFC001','GAMM180315HNLRTRA1',25.50,FALSE),
-('Sofía','Martínez','2019-07-20',2,'F','NFC002','MASS190720MNLRFBA2',22.10,FALSE),
-('Diego','López','2020-01-10',3,'M','NFC003','LODD200110HNLRPCA3',18.00,TRUE),
-('Valentina','Hernández','2017-11-05',4,'F','NFC004','HEVV171105MNLRLDA4',28.40,FALSE),
-('Lucas','Ramírez','2021-06-12',5,'M','NFC005','RALL210612HNLRMNA5',16.20,FALSE),
-('Emma','Torres','2018-08-18',6,'F','NFC006','TOEE180818MNLRRSA6',24.30,FALSE),
-('Sebastián','Flores','2019-04-09',7,'M','NFC007','FOSS190409HNLRBTA7',20.00,FALSE),
-('Camila','Rivera','2020-09-14',8,'F','NFC008','RICC200914MNLRVCA8',19.40,TRUE),
-('Leonardo','Gómez','2017-12-30',1,'M','NFC009','GOAL171230HNLRMDA9',29.10,FALSE),
-('Renata','Díaz','2021-02-25',2,'F','NFC010','DIRR210225MNLRZEA1',15.70,FALSE),
-('Emiliano','Castro','2018-05-03',3,'M','NFC011','CAEE180503HNLRMSA2',23.60,FALSE),
-('Regina','Ortiz','2019-10-16',4,'F','NFC012','OARR191016MNLRRGA3',21.80,FALSE),
-('Daniel','Morales','2020-07-01',5,'M','NFC013','MODD200701HNLRNTA4',17.90,TRUE),
-('Victoria','Ruiz','2017-09-27',6,'F','NFC014','RUVV170927MNLRKLA5',30.20,FALSE),
-('Ángel','Navarro','2021-04-11',7,'M','NFC015','NAAA210411HNLRVSA6',14.50,FALSE);
+INSERT INTO patients (first_name, last_name, birth_date, blood_type_id, gender, curp, weight_kg, premature) VALUES
+('Mateo','García','2018-03-15',1,'M','GAMM180315HNLRTRA1',25.50,FALSE),
+('Sofía','Martínez','2019-07-20',2,'F','MASS190720MNLRFBA2',22.10,FALSE),
+('Diego','López','2020-01-10',3,'M','LODD200110HNLRPCA3',18.00,TRUE),
+('Valentina','Hernández','2017-11-05',4,'F','HEVV171105MNLRLDA4',28.40,FALSE),
+('Lucas','Ramírez','2021-06-12',5,'M','RALL210612HNLRMNA5',16.20,FALSE),
+('Emma','Torres','2018-08-18',6,'F','TOEE180818MNLRRSA6',24.30,FALSE),
+('Sebastián','Flores','2019-04-09',7,'M','FOSS190409HNLRBTA7',20.00,FALSE),
+('Camila','Rivera','2020-09-14',8,'F','RICC200914MNLRVCA8',19.40,TRUE),
+('Leonardo','Gómez','2017-12-30',1,'M','GOAL171230HNLRMDA9',29.10,FALSE),
+('Renata','Díaz','2021-02-25',2,'F','DIRR210225MNLRZEA1',15.70,FALSE),
+('Emiliano','Castro','2018-05-03',3,'M','CAEE180503HNLRMSA2',23.60,FALSE),
+('Regina','Ortiz','2019-10-16',4,'F','OARR191016MNLRRGA3',21.80,FALSE),
+('Daniel','Morales','2020-07-01',5,'M','MODD200701HNLRNTA4',17.90,TRUE),
+('Victoria','Ruiz','2017-09-27',6,'F','RUVV170927MNLRKLA5',30.20,FALSE),
+('Ángel','Navarro','2021-04-11',7,'M','NAAA210411HNLRVSA6',14.50,FALSE);
 
 INSERT INTO patient_allergies (patient_allergy_id, patient_id, allergy_id, severity, reaction_desc) VALUES
 (1,  3,  2, 'Moderada', 'Eritema cutáneo en zona de aplicación'),
@@ -201,9 +201,7 @@ INSERT INTO patient_allergies (patient_allergy_id, patient_id, allergy_id, sever
 (4,  9,  1, 'Moderada', 'Erupción cutánea y prurito generalizado'),
 (5,  11, 5, 'Leve',     'Náuseas leves'),
 (6,  13, 6, 'Leve',     'Estornudos y lagrimeo'),
-(7,  14, 8, 'Moderada', 'Dolor abdominal e inflamación'),
-(8,  2,  7, 'Leve',     'Rinitis alérgica'),
-(9,  6,  9, 'Severa',   'Reacción anafiláctica previa'),
+(7,  14, 8, 'Moderada', 'Dolor abdominal e inflamación'), 
 (10, 8, 10, 'Leve',     'Eritema leve'),
 (11, 10, 11, 'Moderada', 'Diarrea y dolor abdominal'),
 (12, 12, 12, 'Leve',     'Irritación cutánea leve'),
@@ -713,32 +711,6 @@ INSERT INTO post_vaccine_reactions (reaction_id, record_id, reported_by, symptom
     (10, 3,  1, 250,  80, '2025-03-18'),
     (11, 3,  3, 400, 100, '2025-03-18'),
     (12, 4,  1, 200,  80, '2025-03-15');
-
-    INSERT INTO beacons (beacon_id, uuid, major, minor, area_id, clinic_id, beacon_status, last_ping) VALUES
-    (1,  '550e8400-e29b-41d4-a001', 1, 1, 5,  1, 'Online',  '2025-03-24 07:55'),
-    (2,  '550e8400-e29b-41d4-a002', 1, 2, 3,  1, 'Online',  '2025-03-24 07:57'),
-    (3,  '550e8400-e29b-41d4-a003', 1, 3, 2,  1, 'Online',  '2025-03-24 07:58'),
-    (4,  '550e8400-e29b-41d4-a004', 2, 1, 6,  2, 'Online',  '2025-03-24 08:00'),
-    (5,  '550e8400-e29b-41d4-a005', 2, 2, 8,  2, 'Online',  '2025-03-24 08:01'),
-    (6,  '550e8400-e29b-41d4-a006', 3, 1, 10, 3, 'Online',  '2025-03-24 07:59'),
-    (7,  '550e8400-e29b-41d4-a007', 3, 2, 12, 3, 'Offline', '2025-03-22 18:00'),
-    (8,  '550e8400-e29b-41d4-a008', 4, 1, 13, 4, 'Online',  '2025-03-24 08:02'),
-    (9,  '550e8400-e29b-41d4-a009', 4, 2, 14, 4, 'Online',  '2025-03-24 08:03'),
-    (10, '550e8400-e29b-41d4-a010', 5, 1, 15, 5, 'Online',  '2025-03-24 08:05');
-
-    INSERT INTO scan_logs (log_id, patient_id, beacon_id, rssi, scanned_at, scan_type) VALUES
-    (1,  1,  2, -65, '2025-03-10 09:00', 'NFC'),
-    (2,  2,  2, -70, '2025-03-15 10:30', 'NFC'),
-    (3,  3,  4, -72, '2025-02-28 09:15', 'BLE'),
-    (4,  5,  5, -68, '2025-03-01 09:42', 'NFC'),
-    (5,  6,  6, -75, '2025-02-14 09:58', 'BLE'),
-    (6,  7,  1, -62, '2025-03-05 08:47', 'NFC'),
-    (7,  9,  1, -66, '2025-01-15 10:08', 'NFC'),
-    (8,  11, 4, -71, '2025-03-12 09:02', 'NFC'),
-    (9,  12, 5, -69, '2025-03-08 10:18', 'BLE'),
-    (10, 4,  8, -74, '2025-01-20 10:58', 'NFC'),
-    (11, 8,  4, -73, '2025-02-20 09:28', 'NFC'),
-    (12, 1,  3, -64, '2025-03-10 09:05', 'BLE');
 
     INSERT INTO audit_log (audit_id, table_name, record_id, action, worker_id, changed_at, ip_address) VALUES
     (1,  'vaccination_records', 1,  'INSERT', 3,  '2024-01-15 09:10', '192.168.1.45'),
