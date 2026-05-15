@@ -1,6 +1,5 @@
 {% extends 'base_2daE.html' %}
 
-{# ── Macros ── #}
 {% from 'components/toolbar.html' import toolbar %}
 {% from 'components/table.html'   import table   %}
 {% from 'components/button.html'  import button  %}
@@ -17,24 +16,35 @@
 
 {# ── Encabezado ── #}
 {% call toolbar(title='Inventario de vacunas',
-                subtitle='Total de vacunas registradas: ' ~ total_vaccines) %}
-    {{ button('Agregar vacuna', size='lg', icon='fa-plus', onclick='openVaccineModal()', class= 'md3-btn md3-btn--filled') }}
+                subtitle='Total de tipos de vacuna: ' ~ total_vaccines) %}
+    {{ button('Agregar lote', size='lg', icon='fa-boxes-stacking', onclick='openLotModal()', class='md3-btn md3-btn--tonal') }}
+    {{ button('Agregar vacuna', size='lg', icon='fa-plus', onclick='openVaccineModal()', class='md3-btn md3-btn--filled') }}
 {% endcall %}
 
-{# ── Búsqueda — IDs requeridos por vacunas.js ── #}
+{# ── Búsqueda ── #}
 <div class="search-bar-container section">
     <i class="fa-solid fa-magnifying-glass"></i>
-    <input type="text" id="searchInput" placeholder="Buscar vacuna por nombre...">
+    <input type="text" id="searchInput" placeholder="Buscar vacuna o número de lote...">
 </div>
 
-{# ── Filtros — IDs requeridos por vacunas.js ── #}
+{# ── Filtros y controles ── #}
 <div class="sort-and-filter">
     <div class="sort-options">
-        <p class="sort-label">Filtrar por nombre:</p>
+        <p class="sort-label">Vacuna:</p>
         <select id="roleFilterSelect" class="sort-select">
-            <option value="">Todos</option>
+            <option value="">Todas</option>
             {% for v in vaccines %}
             <option value="{{ v.name | lower }}">{{ v.name }}</option>
+            {% endfor %}
+        </select>
+    </div>
+
+    <div class="sort-options">
+        <p class="sort-label">Clínica:</p>
+        <select id="clinicFilterSelect" class="sort-select">
+            <option value="">Todas</option>
+            {% for c in clinics %}
+            <option value="{{ c.clinic_id }}">{{ c.name }}</option>
             {% endfor %}
         </select>
     </div>
@@ -49,20 +59,29 @@
             <option value="dosis">Dosis aplicadas</option>
         </select>
     </div>
+
+    <label class="vax-toggle" title="Mostrar lotes vencidos o desactivados">
+        <input type="checkbox" id="showInactiveToggle">
+        <span class="vax-toggle__track">
+            <i class="fa-solid fa-eye-slash"></i>
+        </span>
+        <span class="vax-toggle__label">Mostrar vencidos</span>
+    </label>
 </div>
 
-{# ── Tabla de inventario ── #}
+{# ── Tabla ── #}
 {% set ns = namespace(color_index=0, last_vaccine_id=None) %}
 {% call(lot) table(
     headers=[
         {'label': 'Tipo de vacuna'},
         {'label': 'Lote'},
         {'label': 'Clínica'},
-        {'label': 'Fecha vencimiento'},
-        {'label': 'Saldo inicial',       'align': 'right'},
-        {'label': 'Dosis recibidas',     'align': 'right'},
-        {'label': 'Dosis aplicadas',     'align': 'right'},
-        {'label': 'Saldo final (Stock)', 'align': 'right'}
+        {'label': 'Vencimiento'},
+        {'label': 'Dosis recibidas', 'align': 'right'},
+        {'label': 'Dosis aplicadas', 'align': 'right'},
+        {'label': 'Stock',           'align': 'right'},
+        {'label': 'Estado',          'align': 'center'},
+        {'label': 'Acciones',        'align': 'center'}
     ],
     rows=lots,
     empty_icon='fa-syringe',
@@ -77,25 +96,28 @@
             {% set ns.last_vaccine_id = lot.vaccine_id %}
         {% endif %}
         {% set dosis_aplicadas = lot.quantity_received - lot.quantity_available %}
-        <tr class="inv-row bar-{{ ns.color_index % 12 }}"
+        {% set exp_str         = lot.expiration_date | string %}
+        {% set is_active       = lot.get('is_active', True) %}
+        {% set is_expired      = lot.expiration_date and exp_str <= today %}
+        <tr class="inv-row bar-{{ ns.color_index % 12 }}{% if not is_active %} inv-row--inactive{% endif %}"
             data-name="{{ vaccine.name | lower }}"
-            data-lot="{{ lot.lot_number | lower }}">
+            data-lot="{{ lot.lot_number | lower }}"
+            data-clinic="{{ lot.clinic_id }}"
+            data-active="{{ 'true' if is_active else 'false' }}">
             <td class="name-td">
                 <span class="vax-name">{{ vaccine.name }}</span>
             </td>
             <td class="lot-td">{{ lot.lot_number }}</td>
             <td class="clinic-td">{{ clinic.name if clinic else '—' }}</td>
             <td class="date-td">
-                {% set exp = lot.expiration_date | string %}
                 {% if lot.expiration_date %}
-                    {{ badge(lot.expiration_date | string,
-                             color='success' if exp > today else 'error',
+                    {{ badge(exp_str,
+                             color='success' if exp_str > today else 'error',
                              size='sm') }}
                 {% else %}
                     —
                 {% endif %}
             </td>
-            <td class="col-right">{{ lot.quantity_received }}</td>
             <td class="col-right">{{ lot.quantity_received }}</td>
             <td class="col-right">{{ dosis_aplicadas }}</td>
             <td class="col-right stock-td">
@@ -103,13 +125,199 @@
                          color='error' if lot.quantity_available <= 10 else 'success',
                          size='sm') }}
             </td>
+            <td class="col-center">
+                {% if not is_active %}
+                    {{ badge('Inactivo', color='neutral', size='sm') }}
+                {% elif is_expired %}
+                    {{ badge('Vencido', color='error', size='sm') }}
+                {% elif lot.quantity_available == 0 %}
+                    {{ badge('Sin stock', color='neutral', size='sm') }}
+                {% else %}
+                    {{ badge('Activo', color='success', size='sm') }}
+                {% endif %}
+            </td>
+            <td class="col-center actions-td">
+                <button class="action-btn action-btn--add"
+                        title="Registrar nuevo lote para {{ vaccine.name }}"
+                        onclick="openLotModal({{ lot.vaccine_id }})">
+                    <i class="fa-solid fa-plus"></i>
+                </button>
+                <button class="action-btn action-btn--edit"
+                        title="Editar lote"
+                        onclick="openEditLotModal({{ lot.lot_id }}, {{ lot.clinic_id }}, '{{ lot.lot_number }}', {{ lot.quantity_received }}, '{{ exp_str }}')">
+                    <i class="fa-solid fa-pen"></i>
+                </button>
+                <button class="action-btn action-btn--stock"
+                        title="Actualizar stock"
+                        onclick="openUpdateStockModal({{ lot.lot_id }}, '{{ lot.lot_number }}', {{ lot.quantity_available }})">
+                    <i class="fa-solid fa-boxes-stacking"></i>
+                </button>
+                {% if is_active and is_expired %}
+                <button class="action-btn action-btn--deactivate"
+                        title="Desactivar lote vencido"
+                        onclick="deactivateLot({{ lot.lot_id }}, '{{ lot.lot_number }}')">
+                    <i class="fa-solid fa-eye-slash"></i>
+                </button>
+                {% endif %}
+            </td>
         </tr>
     {% endif %}
 {% endcall %}
 
-{# El id="tableBody" lo asigna vacunas.js al iniciarse. #}
-
 {% include 'nuevaVacuna_2daE.html' %}
+
+{# ── Modal: Agregar lote ── #}
+<div class="md3-modal-overlay" id="lotModal" role="dialog" aria-modal="true" aria-labelledby="lotModal-title">
+    <div class="md3-modal md3-modal--lg">
+        <div class="md3-modal__header">
+            <div class="md3-modal__header-content">
+                <i class="fa-solid fa-boxes-stacking md3-modal__header-icon"></i>
+                <h2 class="md3-modal__title" id="lotModal-title">Agregar lote al inventario</h2>
+            </div>
+            <button class="md3-modal__close" onclick="closeLotModal()" aria-label="Cerrar">&times;</button>
+        </div>
+        <div class="md3-modal__body">
+            <div class="md3-form__section">
+                <div class="md3-form__row md3-form__row--2">
+                    <div class="md3-field">
+                        <label class="md3-field__label" for="lot_vaccine_id">Vacuna *</label>
+                        <select class="md3-input" id="lot_vaccine_id" required>
+                            <option value="">Seleccionar…</option>
+                            {% for v in vaccines %}
+                            <option value="{{ v.vaccine_id }}">{{ v.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="md3-field">
+                        <label class="md3-field__label" for="lot_clinic_id">Clínica *</label>
+                        <select class="md3-input" id="lot_clinic_id" required>
+                            <option value="">Seleccionar…</option>
+                            {% for c in clinics %}
+                            <option value="{{ c.clinic_id }}">{{ c.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <div class="md3-form__row md3-form__row--2">
+                    <div class="md3-field">
+                        <label class="md3-field__label" for="lot_number">Número de lote *</label>
+                        <input class="md3-input" type="text" id="lot_number" placeholder="Ej: BCG-2025-A001" required>
+                    </div>
+                    <div class="md3-field">
+                        <label class="md3-field__label" for="lot_qty">Cantidad recibida *</label>
+                        <input class="md3-input" type="number" id="lot_qty" placeholder="0" min="1" required>
+                    </div>
+                </div>
+                <div class="md3-form__row">
+                    <div class="md3-field">
+                        <label class="md3-field__label" for="lot_exp">Fecha de vencimiento *</label>
+                        <input class="md3-input" type="date" id="lot_exp" required>
+                    </div>
+                </div>
+                <p id="lotModal-error" class="modal-error" style="display:none;"></p>
+            </div>
+        </div>
+        <div class="md3-modal__footer">
+            <button class="md3-btn md3-btn--text" onclick="closeLotModal()">Cancelar</button>
+            <button class="md3-btn md3-btn--filled" onclick="submitLotForm()">
+                <i class="fa-solid fa-floppy-disk"></i> Guardar lote
+            </button>
+        </div>
+    </div>
+</div>
+
+{# ── Modal: Editar lote ── #}
+<div class="md3-modal-overlay" id="editLotModal" role="dialog" aria-modal="true" aria-labelledby="editLotModal-title">
+    <div class="md3-modal md3-modal--lg">
+        <div class="md3-modal__header">
+            <div class="md3-modal__header-content">
+                <i class="fa-solid fa-pen md3-modal__header-icon"></i>
+                <h2 class="md3-modal__title" id="editLotModal-title">Editar lote</h2>
+            </div>
+            <button class="md3-modal__close" onclick="closeEditLotModal()" aria-label="Cerrar">&times;</button>
+        </div>
+        <div class="md3-modal__body">
+            <div class="md3-form__section">
+                <input type="hidden" id="edit_lot_id">
+                <div class="md3-form__row">
+                    <div class="md3-field">
+                        <label class="md3-field__label" for="edit_clinic_id">Clínica *</label>
+                        <select class="md3-input" id="edit_clinic_id" required>
+                            <option value="">Seleccionar…</option>
+                            {% for c in clinics %}
+                            <option value="{{ c.clinic_id }}">{{ c.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <div class="md3-form__row md3-form__row--2">
+                    <div class="md3-field">
+                        <label class="md3-field__label" for="edit_lot_number">Número de lote *</label>
+                        <input class="md3-input" type="text" id="edit_lot_number" required>
+                    </div>
+                    <div class="md3-field">
+                        <label class="md3-field__label" for="edit_qty_received">Dosis recibidas *</label>
+                        <input class="md3-input" type="number" id="edit_qty_received" min="1" required>
+                    </div>
+                </div>
+                <div class="md3-form__row">
+                    <div class="md3-field">
+                        <label class="md3-field__label" for="edit_exp_date">Fecha de vencimiento *</label>
+                        <input class="md3-input" type="date" id="edit_exp_date" required>
+                    </div>
+                </div>
+                <p class="modal-hint">
+                    <i class="fa-solid fa-circle-info"></i>
+                    Si actualizas la fecha a una futura, el lote se reactivará automáticamente.
+                </p>
+                <p id="editLotModal-error" class="modal-error" style="display:none;"></p>
+            </div>
+        </div>
+        <div class="md3-modal__footer">
+            <button class="md3-btn md3-btn--text" onclick="closeEditLotModal()">Cancelar</button>
+            <button class="md3-btn md3-btn--filled" onclick="submitEditLotForm()">
+                <i class="fa-solid fa-floppy-disk"></i> Guardar cambios
+            </button>
+        </div>
+    </div>
+</div>
+
+{# ── Modal: Actualizar stock ── #}
+<div class="md3-modal-overlay" id="updateStockModal" role="dialog" aria-modal="true" aria-labelledby="updateStockModal-title">
+    <div class="md3-modal">
+        <div class="md3-modal__header">
+            <div class="md3-modal__header-content">
+                <i class="fa-solid fa-boxes-stacking md3-modal__header-icon"></i>
+                <h2 class="md3-modal__title" id="updateStockModal-title">Actualizar stock disponible</h2>
+            </div>
+            <button class="md3-modal__close" onclick="closeUpdateStockModal()" aria-label="Cerrar">&times;</button>
+        </div>
+        <div class="md3-modal__body">
+            <div class="md3-form__section">
+                <div class="md3-form__row">
+                    <div class="md3-field">
+                        <label class="md3-field__label" for="upd_lot_number">Lote</label>
+                        <input class="md3-input" type="text" id="upd_lot_number" readonly>
+                    </div>
+                </div>
+                <div class="md3-form__row">
+                    <div class="md3-field">
+                        <label class="md3-field__label" for="upd_stock">Nuevo stock disponible *</label>
+                        <input class="md3-input" type="number" id="upd_stock" min="0" required>
+                    </div>
+                </div>
+                <input type="hidden" id="upd_lot_id">
+                <p id="updateStockModal-error" class="modal-error" style="display:none;"></p>
+            </div>
+        </div>
+        <div class="md3-modal__footer">
+            <button class="md3-btn md3-btn--text" onclick="closeUpdateStockModal()">Cancelar</button>
+            <button class="md3-btn md3-btn--filled" onclick="submitUpdateStockForm()">
+                <i class="fa-solid fa-floppy-disk"></i> Guardar
+            </button>
+        </div>
+    </div>
+</div>
 
 {% endblock %}
 

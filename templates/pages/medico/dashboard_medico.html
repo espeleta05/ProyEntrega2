@@ -1,0 +1,186 @@
+{% extends 'base_2daE.html' %}
+
+{% from 'components/kpi_card.html' import kpi_card %}
+{% from 'components/alert.html'    import alert    %}
+{% from 'components/badge.html'    import badge    %}
+{% from 'components/table.html'    import table    %}
+
+{% block head_extra %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/dashboard.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/medico_dashboard.css') }}">
+{% endblock %}
+
+{% block title %}Dashboard — Médico{% endblock %}
+
+{% block content %}
+
+<!-- Encabezado -->
+<div class="dash-header">
+  <div>
+    <p class="dash-date">{{ today }}</p>
+    <h2 class="dash-title">Panel médico</h2>
+    <p class="dash-welcome">Dr. {{ name }} {{ lastname }}</p>
+  </div>
+  <div style="display:flex;gap:8px;align-self:flex-end;">
+    <a href="{{ url_for('agregar_aplicacion') }}" class="md3-btn md3-btn--filled">
+      <i class="fa-solid fa-syringe"></i> Aplicar vacuna
+    </a>
+    <a href="{{ url_for('medico_citas_hoy') }}" class="md3-btn md3-btn--tonal">
+      <i class="fa-solid fa-calendar-check"></i> Ver mis citas
+    </a>
+  </div>
+</div>
+
+<!-- KPIs -->
+<div class="kpi-grid">
+  {{ kpi_card(
+      value=citas_hoy_total,
+      label='Citas hoy',
+      icon='fa-calendar-day',
+      color='primary',
+      sub='Pendientes: ' ~ citas_hoy_pendientes ~ ' · Completadas: ' ~ citas_hoy_completadas,
+      href=url_for('medico_citas_hoy')
+  ) }}
+  {{ kpi_card(
+      value=vacunas_hoy,
+      label='Vacunas aplicadas hoy',
+      icon='fa-syringe',
+      color='secondary'
+  ) }}
+  {{ kpi_card(
+      value=pacientes_semana,
+      label='Pacientes atendidos esta semana',
+      icon='fa-users',
+      color='primary'
+  ) }}
+  {{ kpi_card(
+      value=alertas_pendientes,
+      label='Alertas pendientes',
+      icon='fa-bell',
+      color='secondary'
+  ) }}
+</div>
+
+<!-- Fila: gráfica + alertas -->
+<div class="bottom-row">
+
+  <!-- Gráfica: citas por día esta semana -->
+  <div class="chart-card">
+    <div class="chart-card-header">
+      <h3>Citas esta semana</h3>
+      <span class="chart-badge">{{ citas_hoy_total }} hoy</span>
+    </div>
+    <div class="chart-wrap">
+      <div id="chartCitasSemana"></div>
+    </div>
+  </div>
+
+  <!-- Panel de alertas -->
+  <div class="alerts-card">
+    <div class="chart-card-header">
+      <h3><i class="fa-solid fa-triangle-exclamation"></i> Pacientes con alertas</h3>
+      {% if alertas_pendientes > 0 %}
+        <span class="chart-badge" style="background:var(--md-error-container);color:var(--md-on-error-container);">
+          {{ alertas_pendientes }}
+        </span>
+      {% endif %}
+    </div>
+    <div class="alerts-list">
+      {% for a in alertas[:8] %}
+        {{ alert(
+            a.patient_name ~ ' — ' ~ a.vaccine_name ~ ' (' ~ (a.dose_label or '') ~ ')',
+            type='error'   if a.alert_type == 'Critico' else 'warning',
+            icon='fa-circle-exclamation' if a.alert_type == 'Critico' else 'fa-clock',
+            compact=True
+        ) }}
+      {% else %}
+        {{ alert('Sin alertas pendientes.', type='success', icon='fa-circle-check', compact=True) }}
+      {% endfor %}
+    </div>
+  </div>
+
+</div>
+
+<!-- Tabla: mis citas del día -->
+<div class="section-card mt-20">
+  <div class="section-header-row">
+    <h3><i class="fa-solid fa-list-check"></i> Mis citas de hoy</h3>
+    <a href="{{ url_for('medico_citas_hoy') }}" class="chart-badge">Ver todas</a>
+  </div>
+
+  {% set _row = namespace(i=0) %}
+  {% call(c) table(
+      headers=[
+        {'label': 'Hora'},
+        {'label': 'Paciente'},
+        {'label': 'Vacuna / Dosis'},
+        {'label': 'Área'},
+        {'label': 'Estado',   'align': 'center'},
+        {'label': 'Acciones', 'align': 'center'},
+      ],
+      rows=citas_hoy,
+      empty_icon='fa-calendar-check',
+      empty_title='Sin citas pendientes para hoy',
+      footer_text='Total: ' ~ citas_hoy|length ~ ' cita(s) pendiente(s)'
+  ) %}
+    <tr class="inv-row bar-{{ _row.i % 9 }}">
+
+      <td>{{ c.scheduled_at[11:16] if c.scheduled_at else '—' }}</td>
+
+      <td>
+        <div class="patient-cell">
+          <div class="avatar-sm">{{ c.patient_name[0] if c.patient_name else '?' }}</div>
+          <div>
+            <span class="vax-name">{{ c.patient_name }}</span>
+            <span class="pt-id">ID: P{{ c.patient_id }}</span>
+          </div>
+        </div>
+      </td>
+
+      <td>
+        {{ c.vaccine_name or '—' }}
+        {% if c.dose_label and c.dose_label != '—' %}
+          <br>{{ badge(c.dose_label, color='primary', size='sm') }}
+        {% endif %}
+      </td>
+
+      <td class="muted-td">{{ c.area_name or '—' }}</td>
+
+      <td class="col-center">
+        {% if c.appointment_status == 'Confirmada' %}
+          {{ badge('Confirmada', color='success',   size='sm', icon='fa-circle-check') }}
+        {% elif c.appointment_status == 'Programada' %}
+          {{ badge('Programada', color='secondary', size='sm', icon='fa-clock')       }}
+        {% else %}
+          {{ badge(c.appointment_status or '—', color='neutral', size='sm') }}
+        {% endif %}
+      </td>
+
+      <td class="col-center">
+        <div style="display:flex;gap:6px;justify-content:center;">
+          <a href="{{ url_for('agregar_aplicacion') }}?patient_id={{ c.patient_id }}&appointment_id={{ c.appointment_id }}"
+             class="md3-btn md3-btn--tonal md3-btn--sm" title="Aplicar vacuna">
+            <i class="fa-solid fa-syringe"></i>
+          </a>
+          <a href="{{ url_for('historial') }}?q={{ c.patient_id }}"
+             class="md3-btn md3-btn--outlined md3-btn--sm" title="Ver historial">
+            <i class="fa-solid fa-file-medical"></i>
+          </a>
+        </div>
+      </td>
+
+    </tr>
+    {% set _row.i = _row.i + 1 %}
+  {% endcall %}
+</div>
+
+<!-- Datos para Highcharts -->
+<div id="medico-chart-data" hidden
+     data-semana="{{ chart_data | tojson | e }}"></div>
+
+{% endblock %}
+
+{% block scripts %}
+<script src="https://code.highcharts.com/highcharts.js"></script>
+<script src="{{ url_for('static', filename='js/pages/medico_dashboard.js') }}" defer></script>
+{% endblock %}

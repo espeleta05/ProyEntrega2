@@ -997,16 +997,69 @@ DECLARE
 BEGIN
     INSERT INTO vaccine_lots (
         vaccine_id, clinic_id, lot_number,
-        quantity_received, quantity_available, expiration_date, received_date
+        quantity_received, quantity_available, expiration_date, received_date, is_active
     )
     VALUES (
         p_vaccine_id, p_clinic_id, p_lot_number,
-        p_quantity_received, p_quantity_received, p_expiration_date, NOW()::DATE
+        p_quantity_received, p_quantity_received, p_expiration_date, NOW()::DATE,
+        (p_expiration_date >= NOW()::DATE)
     )
     RETURNING vaccine_lots.lot_id INTO v_lot_id;
 
     OPEN p_results FOR
         SELECT v_lot_id AS lot_id;
+END;
+$$;
+
+
+-- Editar datos de un lote existente.
+-- Si la nueva fecha de vencimiento es futura, reactiva el lote automáticamente.
+CREATE OR REPLACE PROCEDURE sp_edit_vaccine_lot(
+    IN    p_lot_id            INT,
+    IN    p_clinic_id         INT,
+    IN    p_lot_number        VARCHAR,
+    IN    p_quantity_received INT,
+    IN    p_expiration_date   DATE,
+    INOUT p_results           REFCURSOR
+)
+LANGUAGE plpgsql AS $$
+DECLARE
+    v_rows INT;
+BEGIN
+    UPDATE vaccine_lots SET
+        clinic_id         = p_clinic_id,
+        lot_number        = p_lot_number,
+        quantity_received = p_quantity_received,
+        expiration_date   = p_expiration_date,
+        is_active         = (p_expiration_date >= NOW()::DATE)
+    WHERE lot_id = p_lot_id;
+
+    GET DIAGNOSTICS v_rows = ROW_COUNT;
+
+    OPEN p_results FOR
+        SELECT (v_rows > 0) AS success;
+END;
+$$;
+
+
+-- Desactivar (soft-delete) un lote vencido. No elimina el registro.
+CREATE OR REPLACE PROCEDURE sp_deactivate_vaccine_lot(
+    IN    p_lot_id   INT,
+    INOUT p_results  REFCURSOR
+)
+LANGUAGE plpgsql AS $$
+DECLARE
+    v_rows INT;
+BEGIN
+    UPDATE vaccine_lots
+    SET    is_active = FALSE
+    WHERE  lot_id          = p_lot_id
+      AND  expiration_date <= NOW()::DATE;
+
+    GET DIAGNOSTICS v_rows = ROW_COUNT;
+
+    OPEN p_results FOR
+        SELECT (v_rows > 0) AS success;
 END;
 $$;
 
