@@ -2680,12 +2680,19 @@ def agregar_aplicacion():
     form  = {}
     error = None
 
+    # Soporte para pre-llenar paciente desde esquema o historial
+    prefilled_patient_id = request.args.get("patient_id", type=int)
+    prefilled_patient    = _cur_fetchone("patients", "patient_id", prefilled_patient_id) if prefilled_patient_id else None
+    next_url             = request.args.get("next") or url_for("aplicaciones")
+
     if request.method == "POST":
         form = dict(request.form)
+        # Preservar next_url desde form hidden si viene de esquema
+        next_url = request.form.get("next") or next_url
         try:
             patient_id     = int(request.form.get("patient_id", "0"))
             vaccine_id     = int(request.form.get("vaccine_id", "0"))
-            worker_id      = int(request.form.get("worker_id",  "0"))
+            worker_id      = int(request.form.get("worker_id",  "0") or "0")
             scheme_dose_id = request.form.get("scheme_dose_id")
             scheme_dose_id = int(scheme_dose_id) if scheme_dose_id else None
             app_site_id    = request.form.get("application_site_id")
@@ -2699,7 +2706,35 @@ def agregar_aplicacion():
             vaccine = _cur_fetchone("vaccines",  "vaccine_id", vaccine_id)
             if not patient or not vaccine:
                 error = "Paciente o vacuna no encontrados"
+            elif not worker_id:
+                error = "Selecciona un médico o enfermero válido del listado."
             else:
+                # Validar que el trabajador tenga rol Médico o Enfermero
+                conn_wv, sc_wv = _get_conn()
+                _safe_rollback(conn_wv)
+                try:
+                    with conn_wv.cursor() as cur:
+                        cur.execute(
+                            """SELECT w.worker_id FROM workers w
+                               JOIN roles r ON w.role_id = r.role_id
+                               WHERE w.worker_id = %s
+                                 AND r.name IN ('Medico','Enfermero')
+                                 AND w.is_active = TRUE""",
+                            (worker_id,),
+                        )
+                        valid_worker = cur.fetchone()
+                    conn_wv.commit()
+                except Exception:
+                    _safe_rollback(conn_wv)
+                    valid_worker = None
+                finally:
+                    if sc_wv and not _conn_is_closed(conn_wv):
+                        conn_wv.close()
+
+                if not valid_worker:
+                    error = "Solo médicos o enfermeros pueden registrar una aplicación de vacuna."
+
+            if not error:
                 clinic_id = int(request.form.get("clinic_id") or session.get("clinic_id") or 1)
                 lot_id    = request.form.get("lot_id")
                 lot_id    = int(lot_id) if lot_id else None
@@ -2756,18 +2791,41 @@ def agregar_aplicacion():
                 elif not error:
                     error = "No se pudo registrar la aplicación en base de datos"
 
+    # Solo médicos y enfermeros pueden aplicar vacunas
+    conn_mw, sc_mw = _get_conn()
+    _safe_rollback(conn_mw)
+    try:
+        with conn_mw.cursor() as cur:
+            cur.execute(
+                """SELECT w.worker_id, w.first_name, w.last_name, r.name AS role_name
+                   FROM workers w
+                   JOIN roles r ON w.role_id = r.role_id
+                   WHERE r.name IN ('Medico','Enfermero') AND w.is_active = TRUE
+                   ORDER BY w.first_name, w.last_name"""
+            )
+            medical_workers = [dict(r) for r in cur.fetchall()]
+        conn_mw.commit()
+    except Exception:
+        _safe_rollback(conn_mw)
+        medical_workers = []
+    finally:
+        if sc_mw and not _conn_is_closed(conn_mw):
+            conn_mw.close()
+
     return render_template(
         "agregarAplicacion_2daE.html",
         **_session_vars(),
         patients=_cur_fetchall("patients"),
         vaccines=_cur_fetchall("vaccines"),
-        workers=_cur_fetchall("workers"),
+        medical_workers=medical_workers,
         clinics=_cur_fetchall("clinics"),
         lots=_cur_fetchall("vaccine_lots"),
         scheme_doses=_cur_fetchall("scheme_doses"),
         application_sites=_cur_fetchall("application_sites"),
         form=form,
         error=error,
+        prefilled_patient=prefilled_patient,
+        next_url=next_url,
     )
 
 

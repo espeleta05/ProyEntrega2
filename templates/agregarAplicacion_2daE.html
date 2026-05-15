@@ -12,7 +12,7 @@
 {% block content %}
 
 <div class="content-header">
-    <a href="{{ url_for('aplicaciones') }}" class="back">
+    <a href="{{ next_url or url_for('aplicaciones') }}" class="back">
         <i class="fa-solid fa-arrow-left"></i> Regresar
     </a>
 </div>
@@ -20,10 +20,13 @@
 {% call form_card(
     action=url_for('agregar_aplicacion'),
     title='Registrar aplicación de vacuna',
-    cancel_href=url_for('aplicaciones'),
+    cancel_href=next_url or url_for('aplicaciones'),
     submit_text='Registrar aplicación',
     submit_icon='fa-syringe'
 ) %}
+
+    {# Campo oculto para redirigir de regreso al esquema del paciente #}
+    <input type="hidden" name="next" value="{{ next_url or '' }}">
 
     {% if error %}
     <div class="md3-alert md3-alert--error" style="margin-bottom: var(--md-spacing-5);">
@@ -36,17 +39,31 @@
         <h3 class="md3-form__section-title">Datos de la aplicación</h3>
 
         <div class="md3-form__row md3-form__row--2">
+
+            {# ── Paciente: prellenado (solo lectura) o seleccionable ── #}
             <div class="md3-field">
                 <label class="md3-field__label" for="ap_patient">Paciente *</label>
-                <select class="md3-select" id="ap_patient" name="patient_id" required>
-                    <option value="" disabled {% if not form.patient_id %}selected{% endif %}>Seleccionar paciente</option>
-                    {% for p in patients %}
-                    <option value="{{ p.patient_id }}" {% if form.patient_id | string == p.patient_id | string %}selected{% endif %}>
-                        {{ p.first_name }} {{ p.last_name }} — ID: P{{ p.patient_id }}
-                    </option>
-                    {% endfor %}
-                </select>
+                {% if prefilled_patient %}
+                    {# Mostrar nombre como campo bloqueado y enviar el ID por hidden #}
+                    <input class="md3-input"
+                           type="text"
+                           id="ap_patient"
+                           value="{{ prefilled_patient.first_name }} {{ prefilled_patient.last_name }} — ID: P{{ prefilled_patient.patient_id }}"
+                           readonly
+                           style="background:var(--md-surface-container,#ede8f4);cursor:not-allowed;opacity:.85;">
+                    <input type="hidden" name="patient_id" value="{{ prefilled_patient.patient_id }}">
+                {% else %}
+                    <select class="md3-select" id="ap_patient" name="patient_id" required>
+                        <option value="" disabled {% if not form.patient_id %}selected{% endif %}>Seleccionar paciente</option>
+                        {% for p in patients %}
+                        <option value="{{ p.patient_id }}" {% if form.patient_id | string == p.patient_id | string %}selected{% endif %}>
+                            {{ p.first_name }} {{ p.last_name }} — ID: P{{ p.patient_id }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                {% endif %}
             </div>
+
             <div class="md3-field">
                 <label class="md3-field__label" for="ap_vaccine">Vacuna *</label>
                 <select class="md3-select" id="ap_vaccine" name="vaccine_id" required>
@@ -60,17 +77,40 @@
             </div>
         </div>
 
+        {# Mapa worker_name → worker_id para sincronizar el campo oculto #}
+        <script>
+        const _workerMap = {
+            {% for w in medical_workers %}
+            "{{ w.first_name }} {{ w.last_name }} ({{ w.role_name }})": {{ w.worker_id }}{% if not loop.last %},{% endif %}
+            {% endfor %}
+        };
+        function _syncWorker(input) {
+            const id = _workerMap[input.value.trim()] || '';
+            document.getElementById('ap_worker_id').value = id;
+        }
+        </script>
+
+        <datalist id="medical-workers-list">
+            {% for w in medical_workers %}
+            <option value="{{ w.first_name }} {{ w.last_name }} ({{ w.role_name }})"></option>
+            {% endfor %}
+        </datalist>
+
         <div class="md3-form__row md3-form__row--2">
             <div class="md3-field">
-                <label class="md3-field__label" for="ap_worker">Aplicado por *</label>
-                <select class="md3-select" id="ap_worker" name="worker_id" required>
-                    <option value="" disabled {% if not form.worker_id %}selected{% endif %}>Seleccionar personal</option>
-                    {% for w in workers %}
-                    <option value="{{ w.worker_id }}" {% if form.worker_id | string == w.worker_id | string %}selected{% endif %}>
-                        {{ w.first_name }} {{ w.last_name }}
-                    </option>
-                    {% endfor %}
-                </select>
+                <label class="md3-field__label" for="ap_worker">Aplicado por * <span style="font-weight:400;opacity:.65;font-size:.8em">(solo médicos y enfermeros)</span></label>
+                {# Campo de texto con autocompletado — el hidden envía el worker_id real #}
+                <input class="md3-input"
+                       type="text"
+                       id="ap_worker"
+                       list="medical-workers-list"
+                       autocomplete="off"
+                       placeholder="Escribe el nombre del médico o enfermero…"
+                       value="{{ form.worker_name or '' }}"
+                       oninput="_syncWorker(this)"
+                       onchange="_syncWorker(this)"
+                       required>
+                <input type="hidden" id="ap_worker_id" name="worker_id" value="{{ form.worker_id or '' }}">
             </div>
             <div class="md3-field">
                 <label class="md3-field__label" for="ap_scheme_dose">Dosis del esquema</label>
@@ -149,4 +189,3 @@
 {% endcall %}
 
 {% endblock %}
-

@@ -6,6 +6,7 @@
 {% from 'components/kpi_card.html' import kpi_card %}
 {% from 'components/badge.html'    import badge    %}
 {% from 'components/card.html'     import card     %}
+{% from 'components/button.html'   import button   %}
 
 {% block title %}Esquema de Vacunación - {{ patient_name }}{% endblock %}
 
@@ -67,12 +68,17 @@
 {% set total_doses   = total_applied + total_pending %}
 {% set pct = ((total_applied / total_doses * 100) | int) if total_doses > 0 else 0 %}
 
-{# ── Botón regresar ── #}
-{{ toolbar(
+{# ── Toolbar ── #}
+{% call toolbar(
     title='Esquema de vacunación',
     subtitle='ID: P' ~ patient.patient_id ~ '  ·  ' ~ (patient.age if patient.age is defined else '') ~ ' años',
     back_href=url_for('historial')
-) }}
+) %}
+    <a href="{{ url_for('agregar_aplicacion', patient_id=patient.patient_id, next='/esquema_paciente/' ~ patient.patient_id) }}"
+       class="md3-btn md3-btn--filled">
+        <i class="fa-solid fa-syringe"></i> Registrar aplicación
+    </a>
+{% endcall %}
 
 {# ── Header del paciente: foto + nombre ── #}
 <div class="patient-hero">
