@@ -1,0 +1,270 @@
+/* mongo_reportes.css — estilos para los reportes híbridos MongoDB */
+
+.mr-wrap {
+  background: var(--md-surface-container-low, #f8f3f8);
+  min-height: 100vh;
+  padding: 32px 40px 64px;
+  color: var(--md-on-surface, #1a1a1a);
+}
+
+/* Encabezado */
+.mr-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-bottom: 32px;
+  padding-bottom: 24px;
+  border-bottom: 1px solid var(--md-outline-variant, #c4c7c5);
+}
+.mr-header h1 {
+  font-family: var(--md-font-family-display, 'Montserrat', sans-serif);
+  font-size: 2rem;
+  font-weight: 800;
+  color: var(--md-primary, #6B007C);
+  margin: 6px 0 4px;
+}
+.mr-header p {
+  color: var(--md-on-surface-variant, #49454f);
+  font-size: 0.9rem;
+}
+.mr-badge {
+  display: inline-block;
+  background: rgba(107, 0, 124, .12);
+  color: var(--md-primary, #6B007C);
+  border: 1px solid rgba(107, 0, 124, .25);
+  border-radius: 20px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  padding: 3px 12px;
+  margin-bottom: 6px;
+}
+
+/* Estado de conexión */
+.mr-estado {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  background: #fff;
+  border: 1px solid var(--md-outline-variant, #c4c7c5);
+  border-radius: 999px;
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+.mr-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+.mr-dot-ok  { background: #1ca657; }
+.mr-dot-err { background: #c62828; }
+
+/* KPIs de colecciones */
+.mr-kpis {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+.mr-kpi-card {
+  background: #fff;
+  border: 1px solid var(--md-outline-variant, #c4c7c5);
+  border-radius: 12px;
+  padding: 18px 20px;
+}
+.mr-kpi-card p {
+  font-family: ui-monospace, monospace;
+  font-size: 0.78rem;
+  color: var(--md-on-surface-variant, #49454f);
+}
+.mr-kpi-card h3 {
+  font-size: 2rem;
+  font-weight: 800;
+  color: var(--md-primary, #6B007C);
+  margin: 6px 0 2px;
+}
+.mr-kpi-card span {
+  font-size: 0.78rem;
+  color: var(--md-on-surface-variant, #49454f);
+}
+
+/* Filtros */
+.mr-filtros {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 32px;
+}
+.mr-filtros label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  color: var(--md-on-surface-variant, #49454f);
+}
+.mr-filtros input {
+  width: 88px;
+  padding: 8px 12px;
+  border: 1.5px solid var(--md-outline-variant, #c4c7c5);
+  border-radius: 8px;
+  background: #fff;
+  font-size: .875rem;
+}
+.mr-filtros input:focus {
+  outline: none;
+  border-color: var(--md-primary, #6B007C);
+}
+.mr-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 40px;
+  padding: 0 18px;
+  background: var(--md-primary, #6B007C);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: .875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity .15s;
+}
+.mr-btn:hover { opacity: .88; }
+
+/* Secciones */
+.mr-seccion {
+  margin-bottom: 48px;
+}
+.mr-seccion h2 {
+  font-family: var(--md-font-family-display, 'Montserrat', sans-serif);
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: var(--md-primary, #6B007C);
+  margin-bottom: 6px;
+}
+.mr-desc {
+  font-size: 0.875rem;
+  color: var(--md-on-surface-variant, #49454f);
+  margin-bottom: 16px;
+  max-width: 900px;
+  line-height: 1.6;
+}
+.mr-desc code {
+  background: rgba(107, 0, 124, .08);
+  color: var(--md-primary, #6B007C);
+  padding: 1px 5px;
+  border-radius: 4px;
+  font-size: .85em;
+}
+
+/* Grid de gráficas */
+.mr-chart-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+.mr-chart-card {
+  background: #fff;
+  border: 1px solid var(--md-outline-variant, #c4c7c5);
+  border-radius: 12px;
+  padding: 16px;
+  min-height: 360px;
+}
+.mr-chart-ancho {
+  grid-column: span 2;
+}
+@media (max-width: 1000px) {
+  .mr-chart-grid { grid-template-columns: 1fr; }
+  .mr-chart-ancho { grid-column: span 1; }
+}
+
+/* Gauges */
+.mr-gauges {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 16px;
+}
+.mr-gauge-card {
+  background: #fff;
+  border: 1px solid var(--md-outline-variant, #c4c7c5);
+  border-radius: 12px;
+  padding: 12px;
+  min-height: 220px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.mr-gauge-card h4 {
+  font-size: .85rem;
+  font-weight: 600;
+  text-align: center;
+  color: var(--md-on-surface, #1a1a1a);
+  margin-bottom: 4px;
+}
+.mr-gauge-meta {
+  font-size: .72rem;
+  color: var(--md-on-surface-variant, #49454f);
+  margin-top: 4px;
+}
+
+/* Estilos para cuando las secciones mongo van dentro de reportes públicos */
+.mr-filtros-rp {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+.mr-filtros-rp label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  color: var(--md-on-surface-variant, #49454f);
+}
+.mr-filtros-rp input {
+  width: 88px;
+  padding: 8px 12px;
+  border: 1.5px solid var(--md-outline-variant, #c4c7c5);
+  border-radius: 8px;
+  background: #fff;
+  font-size: .875rem;
+}
+.mr-filtros-rp input:focus {
+  outline: none;
+  border-color: var(--md-primary, #6B007C);
+}
+.chart-panel--full {
+  flex: 1 1 100%;
+  width: 100%;
+}
+.chart-desc {
+  font-size: 0.82rem;
+  color: var(--md-on-surface-variant, #49454f);
+  margin-bottom: 8px;
+}
+.chart-desc code {
+  background: rgba(107,0,124,.08);
+  color: var(--md-primary, #6B007C);
+  padding: 1px 5px;
+  border-radius: 4px;
+  font-size: .85em;
+}
+.mr-gauges-rp {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 16px;
+  margin-top: 8px;
+  margin-bottom: 32px;
+}
