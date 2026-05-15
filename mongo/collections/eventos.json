@@ -1,0 +1,5791 @@
+[
+  {
+    "tipo": "nfc_scan",
+    "timestamp": "2026-03-21T09:52:59.124000",
+    "paciente_id": 9,
+    "trabajador_id": 7,
+    "clinica_id": 3,
+    "payload": {
+      "accion": "Registrar_Llegada"
+    },
+    "ip": "192.168.1.103",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "cita_creada",
+    "timestamp": "2026-03-25T14:26:21.124000",
+    "paciente_id": 2,
+    "trabajador_id": 1,
+    "clinica_id": 4,
+    "payload": {
+      "cita_id": 31
+    },
+    "ip": "192.168.1.33",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "login",
+    "timestamp": "2026-04-07T18:40:08.124000",
+    "paciente_id": null,
+    "trabajador_id": 2,
+    "clinica_id": 10,
+    "payload": {},
+    "ip": "192.168.1.159",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "cita_creada",
+    "timestamp": "2026-03-21T11:02:09.124000",
+    "paciente_id": 9,
+    "trabajador_id": 7,
+    "clinica_id": 10,
+    "payload": {
+      "cita_id": 18
+    },
+    "ip": "192.168.1.84",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "cita_creada",
+    "timestamp": "2026-04-15T16:52:57.124000",
+    "paciente_id": 11,
+    "trabajador_id": 10,
+    "clinica_id": 2,
+    "payload": {
+      "cita_id": 24
+    },
+    "ip": "192.168.1.36",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "cita_cancelada",
+    "timestamp": "2026-03-26T16:45:50.124000",
+    "paciente_id": 2,
+    "trabajador_id": 6,
+    "clinica_id": 4,
+    "payload": {
+      "cita_id": 73
+    },
+    "ip": "192.168.1.25",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "vacuna_aplicada",
+    "timestamp": "2026-04-16T15:37:01.124000",
+    "paciente_id": 15,
+    "trabajador_id": 7,
+    "clinica_id": 9,
+    "payload": {
+      "vacuna_id": 8,
+      "vacuna": "SRP"
+    },
+    "ip": "192.168.1.102",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "alerta_generada",
+    "timestamp": "2026-03-24T17:19:13.124000",
+    "paciente_id": 9,
+    "trabajador_id": 4,
+    "clinica_id": 3,
+    "payload": {
+      "tipo_alerta": "Atraso"
+    },
+    "ip": "192.168.1.234",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "vacuna_aplicada",
+    "timestamp": "2026-03-24T09:32:17.124000",
+    "paciente_id": 7,
+    "trabajador_id": 10,
+    "clinica_id": 5,
+    "payload": {
+      "vacuna_id": 3,
+      "vacuna": "Pentavalente acelular"
+    },
+    "ip": "192.168.1.203",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "vacuna_aplicada",
+    "timestamp": "2026-03-24T16:36:11.124000",
+    "paciente_id": 13,
+    "trabajador_id": 1,
+    "clinica_id": 7,
+    "payload": {
+      "vacuna_id": 6,
+      "vacuna": "Neumococo conjugada"
+    },
+    "ip": "192.168.1.97",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "cita_creada",
+    "timestamp": "2026-04-30T09:53:11.124000",
+    "paciente_id": 2,
+    "trabajador_id": 10,
+    "clinica_id": 8,
+    "payload": {
+      "cita_id": 35
+    },
+    "ip": "192.168.1.131",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "login",
+    "timestamp": "2026-05-12T18:52:48.124000",
+    "paciente_id": null,
+    "trabajador_id": 5,
+    "clinica_id": 1,
+    "payload": {},
+    "ip": "192.168.1.124",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "vacuna_aplicada",
+    "timestamp": "2026-04-30T13:10:44.124000",
+    "paciente_id": 10,
+    "trabajador_id": 1,
+    "clinica_id": 6,
+    "payload": {
+      "vacuna_id": 2,
+      "vacuna": "Hepatitis B"
+    },
+    "ip": "192.168.1.136",
+    "resultado": "error"
+  },
+  {
+    "tipo": "alerta_generada",
+    "timestamp": "2026-04-09T14:25:07.124000",
+    "paciente_id": 15,
+    "trabajador_id": 3,
+    "clinica_id": 5,
+    "payload": {
+      "tipo_alerta": "Atraso"
+    },
+    "ip": "192.168.1.30",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "vacuna_aplicada",
+    "timestamp": "2026-03-30T14:55:43.124000",
+    "paciente_id": 9,
+    "trabajador_id": 5,
+    "clinica_id": 9,
+    "payload": {
+      "vacuna_id": 5,
+      "vacuna": "Rotavirus"
+    },
+    "ip": "192.168.1.190",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "nfc_scan",
+    "timestamp": "2026-03-31T09:11:20.124000",
+    "paciente_id": 3,
+    "trabajador_id": 4,
+    "clinica_id": 7,
+    "payload": {
+      "accion": "Registrar_Llegada"
+    },
+    "ip": "192.168.1.178",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "vacuna_aplicada",
+    "timestamp": "2026-04-11T12:00:42.124000",
+    "paciente_id": 3,
+    "trabajador_id": 3,
+    "clinica_id": 10,
+    "payload": {
+      "vacuna_id": 7,
+      "vacuna": "Influenza"
+    },
+    "ip": "192.168.1.146",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "cita_creada",
+    "timestamp": "2026-05-05T17:41:59.124000",
+    "paciente_id": 11,
+    "trabajador_id": 3,
+    "clinica_id": 6,
+    "payload": {
+      "cita_id": 95
+    },
+    "ip": "192.168.1.23",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "alerta_generada",
+    "timestamp": "2026-04-24T14:25:14.124000",
+    "paciente_id": 2,
+    "trabajador_id": 7,
+    "clinica_id": 9,
+    "payload": {
+      "tipo_alerta": "Atraso"
+    },
+    "ip": "192.168.1.172",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "logout",
+    "timestamp": "2026-04-28T10:07:10.124000",
+    "paciente_id": null,
+    "trabajador_id": 4,
+    "clinica_id": 2,
+    "payload": {},
+    "ip": "192.168.1.97",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "login",
+    "timestamp": "2026-03-31T16:06:26.124000",
+    "paciente_id": null,
+    "trabajador_id": 10,
+    "clinica_id": 1,
+    "payload": {},
+    "ip": "192.168.1.103",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "login",
+    "timestamp": "2026-04-22T10:40:44.124000",
+    "paciente_id": null,
+    "trabajador_id": 10,
+    "clinica_id": 4,
+    "payload": {},
+    "ip": "192.168.1.74",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "cita_creada",
+    "timestamp": "2026-03-28T09:54:39.124000",
+    "paciente_id": 8,
+    "trabajador_id": 8,
+    "clinica_id": 6,
+    "payload": {
+      "cita_id": 60
+    },
+    "ip": "192.168.1.132",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "login",
+    "timestamp": "2026-04-19T12:30:01.124000",
+    "paciente_id": null,
+    "trabajador_id": 2,
+    "clinica_id": 3,
+    "payload": {},
+    "ip": "192.168.1.222",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "cita_creada",
+    "timestamp": "2026-05-07T13:09:48.124000",
+    "paciente_id": 12,
+    "trabajador_id": 4,
+    "clinica_id": 1,
+    "payload": {
+      "cita_id": 70
+    },
+    "ip": "192.168.1.244",
+    "resultado": "error"
+  },
+  {
+    "tipo": "cita_creada",
+    "timestamp": "2026-04-11T16:23:37.124000",
+    "paciente_id": 15,
+    "trabajador_id": 2,
+    "clinica_id": 5,
+    "payload": {
+      "cita_id": 22
+    },
+    "ip": "192.168.1.101",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "cita_creada",
+    "timestamp": "2026-04-17T18:14:34.124000",
+    "paciente_id": 10,
+    "trabajador_id": 9,
+    "clinica_id": 9,
+    "payload": {
+      "cita_id": 98
+    },
+    "ip": "192.168.1.228",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "logout",
+    "timestamp": "2026-04-05T16:31:37.124000",
+    "paciente_id": null,
+    "trabajador_id": 4,
+    "clinica_id": 7,
+    "payload": {},
+    "ip": "192.168.1.101",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "login",
+    "timestamp": "2026-04-11T11:44:16.124000",
+    "paciente_id": null,
+    "trabajador_id": 8,
+    "clinica_id": 5,
+    "payload": {},
+    "ip": "192.168.1.164",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "vacuna_aplicada",
+    "timestamp": "2026-03-24T11:06:06.124000",
+    "paciente_id": 4,
+    "trabajador_id": 6,
+    "clinica_id": 6,
+    "payload": {
+      "vacuna_id": 8,
+      "vacuna": "SRP"
+    },
+    "ip": "192.168.1.60",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "vacuna_aplicada",
+    "timestamp": "2026-03-17T15:58:52.124000",
+    "paciente_id": 11,
+    "trabajador_id": 10,
+    "clinica_id": 10,
+    "payload": {
+      "vacuna_id": 6,
+      "vacuna": "Neumococo conjugada"
+    },
+    "ip": "192.168.1.214",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "alerta_generada",
+    "timestamp": "2026-04-05T15:56:56.124000",
+    "paciente_id": 3,
+    "trabajador_id": 7,
+    "clinica_id": 2,
+    "payload": {
+      "tipo_alerta": "Atraso"
+    },
+    "ip": "192.168.1.212",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "login",
+    "timestamp": "2026-04-24T09:46:00.124000",
+    "paciente_id": null,
+    "trabajador_id": 8,
+    "clinica_id": 7,
+    "payload": {},
+    "ip": "192.168.1.50",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "logout",
+    "timestamp": "2026-05-13T15:51:36.125000",
+    "paciente_id": null,
+    "trabajador_id": 3,
+    "clinica_id": 1,
+    "payload": {},
+    "ip": "192.168.1.177",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "alerta_generada",
+    "timestamp": "2026-04-19T10:35:35.125000",
+    "paciente_id": 9,
+    "trabajador_id": 8,
+    "clinica_id": 10,
+    "payload": {
+      "tipo_alerta": "Proximidad"
+    },
+    "ip": "192.168.1.15",
+    "resultado": "error"
+  },
+  {
+    "tipo": "cita_cancelada",
+    "timestamp": "2026-03-30T14:55:43.125000",
+    "paciente_id": 4,
+    "trabajador_id": 9,
+    "clinica_id": 2,
+    "payload": {
+      "cita_id": 28
+    },
+    "ip": "192.168.1.17",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "nfc_scan",
+    "timestamp": "2026-05-12T13:16:55.125000",
+    "paciente_id": 9,
+    "trabajador_id": 4,
+    "clinica_id": 9,
+    "payload": {
+      "accion": "Abrir_Expediente"
+    },
+    "ip": "192.168.1.223",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "cita_cancelada",
+    "timestamp": "2026-05-12T16:26:08.125000",
+    "paciente_id": 14,
+    "trabajador_id": 8,
+    "clinica_id": 6,
+    "payload": {
+      "cita_id": 65
+    },
+    "ip": "192.168.1.43",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "cita_creada",
+    "timestamp": "2026-04-28T10:38:59.125000",
+    "paciente_id": 1,
+    "trabajador_id": 1,
+    "clinica_id": 9,
+    "payload": {
+      "cita_id": 100
+    },
+    "ip": "192.168.1.214",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "logout",
+    "timestamp": "2026-03-28T16:03:20.125000",
+    "paciente_id": null,
+    "trabajador_id": 10,
+    "clinica_id": 8,
+    "payload": {},
+    "ip": "192.168.1.93",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "cita_creada",
+    "timestamp": "2026-03-27T16:03:14.125000",
+    "paciente_id": 4,
+    "trabajador_id": 8,
+    "clinica_id": 9,
+    "payload": {
+      "cita_id": 25
+    },
+    "ip": "192.168.1.80",
+    "resultado": "error"
+  },
+  {
+    "tipo": "login",
+    "timestamp": "2026-05-10T08:48:31.125000",
+    "paciente_id": null,
+    "trabajador_id": 8,
+    "clinica_id": 9,
+    "payload": {},
+    "ip": "192.168.1.238",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "vacuna_aplicada",
+    "timestamp": "2026-05-05T17:32:31.125000",
+    "paciente_id": 4,
+    "trabajador_id": 10,
+    "clinica_id": 6,
+    "payload": {
+      "vacuna_id": 12,
+      "vacuna": "VPH"
+    },
+    "ip": "192.168.1.80",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "cita_creada",
+    "timestamp": "2026-04-09T16:56:51.125000",
+    "paciente_id": 15,
+    "trabajador_id": 9,
+    "clinica_id": 8,
+    "payload": {
+      "cita_id": 34
+    },
+    "ip": "192.168.1.246",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "logout",
+    "timestamp": "2026-04-26T09:25:08.125000",
+    "paciente_id": null,
+    "trabajador_id": 3,
+    "clinica_id": 8,
+    "payload": {},
+    "ip": "192.168.1.123",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "cita_cancelada",
+    "timestamp": "2026-03-24T11:42:05.125000",
+    "paciente_id": 5,
+    "trabajador_id": 7,
+    "clinica_id": 4,
+    "payload": {
+      "cita_id": 16
+    },
+    "ip": "192.168.1.239",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "cita_cancelada",
+    "timestamp": "2026-04-10T10:29:06.125000",
+    "paciente_id": 4,
+    "trabajador_id": 3,
+    "clinica_id": 6,
+    "payload": {
+      "cita_id": 96
+    },
+    "ip": "192.168.1.34",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "vacuna_aplicada",
+    "timestamp": "2026-04-01T14:32:39.125000",
+    "paciente_id": 7,
+    "trabajador_id": 4,
+    "clinica_id": 3,
+    "payload": {
+      "vacuna_id": 6,
+      "vacuna": "Neumococo conjugada"
+    },
+    "ip": "192.168.1.117",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "nfc_scan",
+    "timestamp": "2026-03-18T13:35:58.125000",
+    "paciente_id": 8,
+    "trabajador_id": 6,
+    "clinica_id": 2,
+    "payload": {
+      "accion": "Abrir_Expediente"
+    },
+    "ip": "192.168.1.190",
+    "resultado": "error"
+  },
+  {
+    "tipo": "nfc_scan",
+    "timestamp": "2026-04-14T16:04:32.125000",
+    "paciente_id": 2,
+    "trabajador_id": 10,
+    "clinica_id": 9,
+    "payload": {
+      "accion": "Registrar_Llegada"
+    },
+    "ip": "192.168.1.234",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "nfc_scan",
+    "timestamp": "2026-04-03T12:48:47.125000",
+    "paciente_id": 3,
+    "trabajador_id": 1,
+    "clinica_id": 5,
+    "payload": {
+      "accion": "Abrir_Expediente"
+    },
+    "ip": "192.168.1.227",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "alerta_generada",
+    "timestamp": "2026-03-31T16:58:13.125000",
+    "paciente_id": 9,
+    "trabajador_id": 7,
+    "clinica_id": 5,
+    "payload": {
+      "tipo_alerta": "Critico"
+    },
+    "ip": "192.168.1.136",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "login",
+    "timestamp": "2026-04-03T14:57:25.125000",
+    "paciente_id": null,
+    "trabajador_id": 1,
+    "clinica_id": 5,
+    "payload": {},
+    "ip": "192.168.1.28",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "login",
+    "timestamp": "2026-03-25T17:54:07.125000",
+    "paciente_id": null,
+    "trabajador_id": 5,
+    "clinica_id": 2,
+    "payload": {},
+    "ip": "192.168.1.66",
+    "resultado": "error"
+  },
+  {
+    "tipo": "alerta_generada",
+    "timestamp": "2026-03-18T13:35:21.125000",
+    "paciente_id": 7,
+    "trabajador_id": 8,
+    "clinica_id": 2,
+    "payload": {
+      "tipo_alerta": "Atraso"
+    },
+    "ip": "192.168.1.169",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "cita_creada",
+    "timestamp": "2026-04-01T12:03:17.125000",
+    "paciente_id": 3,
+    "trabajador_id": 2,
+    "clinica_id": 4,
+    "payload": {
+      "cita_id": 26
+    },
+    "ip": "192.168.1.248",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "nfc_scan",
+    "timestamp": "2026-04-14T15:32:31.125000",
+    "paciente_id": 11,
+    "trabajador_id": 4,
+    "clinica_id": 9,
+    "payload": {
+      "accion": "Registrar_Llegada"
+    },
+    "ip": "192.168.1.79",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "login",
+    "timestamp": "2026-03-18T08:46:36.125000",
+    "paciente_id": null,
+    "trabajador_id": 1,
+    "clinica_id": 5,
+    "payload": {},
+    "ip": "192.168.1.139",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "logout",
+    "timestamp": "2026-04-09T15:06:33.125000",
+    "paciente_id": null,
+    "trabajador_id": 8,
+    "clinica_id": 9,
+    "payload": {},
+    "ip": "192.168.1.178",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "vacuna_aplicada",
+    "timestamp": "2026-04-24T16:19:28.125000",
+    "paciente_id": 12,
+    "trabajador_id": 9,
+    "clinica_id": 8,
+    "payload": {
+      "vacuna_id": 4,
+      "vacuna": "Hepatitis B (serie)"
+    },
+    "ip": "192.168.1.68",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "alerta_generada",
+    "timestamp": "2026-04-19T08:53:22.125000",
+    "paciente_id": 3,
+    "trabajador_id": 7,
+    "clinica_id": 3,
+    "payload": {
+      "tipo_alerta": "Proximidad"
+    },
+    "ip": "192.168.1.28",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "nfc_scan",
+    "timestamp": "2026-03-22T09:42:42.125000",
+    "paciente_id": 14,
+    "trabajador_id": 3,
+    "clinica_id": 7,
+    "payload": {
+      "accion": "Abrir_Expediente"
+    },
+    "ip": "192.168.1.232",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "nfc_scan",
+    "timestamp": "2026-04-14T08:29:36.125000",
+    "paciente_id": 3,
+    "trabajador_id": 4,
+    "clinica_id": 10,
+    "payload": {
+      "accion": "Registrar_Llegada"
+    },
+    "ip": "192.168.1.78",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "nfc_scan",
+    "timestamp": "2026-05-09T13:15:28.125000",
+    "paciente_id": 1,
+    "trabajador_id": 6,
+    "clinica_id": 6,
+    "payload": {
+      "accion": "Abrir_Expediente"
+    },
+    "ip": "192.168.1.65",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "login",
+    "timestamp": "2026-03-25T15:17:49.125000",
+    "paciente_id": null,
+    "trabajador_id": 7,
+    "clinica_id": 6,
+    "payload": {},
+    "ip": "192.168.1.138",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "logout",
+    "timestamp": "2026-03-25T12:52:03.125000",
+    "paciente_id": null,
+    "trabajador_id": 1,
+    "clinica_id": 9,
+    "payload": {},
+    "ip": "192.168.1.32",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "cita_creada",
+    "timestamp": "2026-03-19T12:19:58.125000",
+    "paciente_id": 11,
+    "trabajador_id": 7,
+    "clinica_id": 1,
+    "payload": {
+      "cita_id": 30
+    },
+    "ip": "192.168.1.31",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "cita_creada",
+    "timestamp": "2026-04-23T13:46:24.125000",
+    "paciente_id": 8,
+    "trabajador_id": 10,
+    "clinica_id": 3,
+    "payload": {
+      "cita_id": 20
+    },
+    "ip": "192.168.1.82",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "cita_cancelada",
+    "timestamp": "2026-05-05T18:27:02.125000",
+    "paciente_id": 12,
+    "trabajador_id": 1,
+    "clinica_id": 3,
+    "payload": {
+      "cita_id": 90
+    },
+    "ip": "192.168.1.217",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "cita_creada",
+    "timestamp": "2026-03-18T18:37:10.125000",
+    "paciente_id": 13,
+    "trabajador_id": 10,
+    "clinica_id": 9,
+    "payload": {
+      "cita_id": 92
+    },
+    "ip": "192.168.1.184",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "cita_cancelada",
+    "timestamp": "2026-03-19T08:08:37.125000",
+    "paciente_id": 11,
+    "trabajador_id": 2,
+    "clinica_id": 4,
+    "payload": {
+      "cita_id": 47
+    },
+    "ip": "192.168.1.36",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "vacuna_aplicada",
+    "timestamp": "2026-03-18T18:34:11.125000",
+    "paciente_id": 11,
+    "trabajador_id": 1,
+    "clinica_id": 9,
+    "payload": {
+      "vacuna_id": 4,
+      "vacuna": "Hepatitis B (serie)"
+    },
+    "ip": "192.168.1.135",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "vacuna_aplicada",
+    "timestamp": "2026-05-07T09:42:25.125000",
+    "paciente_id": 9,
+    "trabajador_id": 9,
+    "clinica_id": 2,
+    "payload": {
+      "vacuna_id": 2,
+      "vacuna": "Hepatitis B"
+    },
+    "ip": "192.168.1.200",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "nfc_scan",
+    "timestamp": "2026-04-08T11:14:28.125000",
+    "paciente_id": 12,
+    "trabajador_id": 5,
+    "clinica_id": 2,
+    "payload": {
+      "accion": "Abrir_Expediente"
+    },
+    "ip": "192.168.1.136",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "login",
+    "timestamp": "2026-03-21T17:40:50.125000",
+    "paciente_id": null,
+    "trabajador_id": 5,
+    "clinica_id": 8,
+    "payload": {},
+    "ip": "192.168.1.174",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "cita_creada",
+    "timestamp": "2026-04-10T18:47:29.125000",
+    "paciente_id": 12,
+    "trabajador_id": 6,
+    "clinica_id": 3,
+    "payload": {
+      "cita_id": 39
+    },
+    "ip": "192.168.1.169",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "login",
+    "timestamp": "2026-05-03T12:43:33.125000",
+    "paciente_id": null,
+    "trabajador_id": 1,
+    "clinica_id": 8,
+    "payload": {},
+    "ip": "192.168.1.35",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "cita_cancelada",
+    "timestamp": "2026-05-06T12:29:59.125000",
+    "paciente_id": 8,
+    "trabajador_id": 5,
+    "clinica_id": 8,
+    "payload": {
+      "cita_id": 60
+    },
+    "ip": "192.168.1.206",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "cita_creada",
+    "timestamp": "2026-03-25T15:01:21.125000",
+    "paciente_id": 5,
+    "trabajador_id": 5,
+    "clinica_id": 4,
+    "payload": {
+      "cita_id": 59
+    },
+    "ip": "192.168.1.29",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "vacuna_aplicada",
+    "timestamp": "2026-04-06T11:04:26.125000",
+    "paciente_id": 10,
+    "trabajador_id": 7,
+    "clinica_id": 5,
+    "payload": {
+      "vacuna_id": 2,
+      "vacuna": "Hepatitis B"
+    },
+    "ip": "192.168.1.46",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "nfc_scan",
+    "timestamp": "2026-05-14T18:32:42.125000",
+    "paciente_id": 5,
+    "trabajador_id": 3,
+    "clinica_id": 6,
+    "payload": {
+      "accion": "Registrar_Llegada"
+    },
+    "ip": "192.168.1.190",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "vacuna_aplicada",
+    "timestamp": "2026-03-19T10:00:10.125000",
+    "paciente_id": 8,
+    "trabajador_id": 7,
+    "clinica_id": 8,
+    "payload": {
+      "vacuna_id": 11,
+      "vacuna": "OPV"
+    },
+    "ip": "192.168.1.125",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "cita_cancelada",
+    "timestamp": "2026-04-19T14:20:10.125000",
+    "paciente_id": 2,
+    "trabajador_id": 7,
+    "clinica_id": 3,
+    "payload": {
+      "cita_id": 43
+    },
+    "ip": "192.168.1.10",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "nfc_scan",
+    "timestamp": "2026-04-04T08:57:39.125000",
+    "paciente_id": 12,
+    "trabajador_id": 2,
+    "clinica_id": 7,
+    "payload": {
+      "accion": "Abrir_Expediente"
+    },
+    "ip": "192.168.1.74",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "vacuna_aplicada",
+    "timestamp": "2026-03-24T13:59:39.125000",
+    "paciente_id": 7,
+    "trabajador_id": 10,
+    "clinica_id": 7,
+    "payload": {
+      "vacuna_id": 5,
+      "vacuna": "Rotavirus"
+    },
+    "ip": "192.168.1.228",
+    "resultado": "error"
+  },
+  {
+    "tipo": "login",
+    "timestamp": "2026-03-31T11:17:48.125000",
+    "paciente_id": null,
+    "trabajador_id": 5,
+    "clinica_id": 1,
+    "payload": {},
+    "ip": "192.168.1.121",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "logout",
+    "timestamp": "2026-03-19T18:25:08.125000",
+    "paciente_id": null,
+    "trabajador_id": 7,
+    "clinica_id": 6,
+    "payload": {},
+    "ip": "192.168.1.243",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "cita_creada",
+    "timestamp": "2026-03-24T08:59:32.125000",
+    "paciente_id": 12,
+    "trabajador_id": 4,
+    "clinica_id": 9,
+    "payload": {
+      "cita_id": 53
+    },
+    "ip": "192.168.1.125",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "logout",
+    "timestamp": "2026-03-21T16:08:32.125000",
+    "paciente_id": null,
+    "trabajador_id": 8,
+    "clinica_id": 5,
+    "payload": {},
+    "ip": "192.168.1.53",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "nfc_scan",
+    "timestamp": "2026-04-10T18:16:29.125000",
+    "paciente_id": 7,
+    "trabajador_id": 5,
+    "clinica_id": 5,
+    "payload": {
+      "accion": "Registrar_Llegada"
+    },
+    "ip": "192.168.1.87",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "cita_cancelada",
+    "timestamp": "2026-04-02T18:10:50.125000",
+    "paciente_id": 2,
+    "trabajador_id": 2,
+    "clinica_id": 7,
+    "payload": {
+      "cita_id": 27
+    },
+    "ip": "192.168.1.138",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "vacuna_aplicada",
+    "timestamp": "2026-04-29T13:48:06.125000",
+    "paciente_id": 8,
+    "trabajador_id": 4,
+    "clinica_id": 9,
+    "payload": {
+      "vacuna_id": 7,
+      "vacuna": "Influenza"
+    },
+    "ip": "192.168.1.45",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "logout",
+    "timestamp": "2026-04-19T16:05:52.125000",
+    "paciente_id": null,
+    "trabajador_id": 3,
+    "clinica_id": 2,
+    "payload": {},
+    "ip": "192.168.1.91",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "nfc_scan",
+    "timestamp": "2026-03-18T14:24:41.125000",
+    "paciente_id": 7,
+    "trabajador_id": 4,
+    "clinica_id": 10,
+    "payload": {
+      "accion": "Registrar_Llegada"
+    },
+    "ip": "192.168.1.106",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "alerta_generada",
+    "timestamp": "2026-04-12T17:23:39.125000",
+    "paciente_id": 3,
+    "trabajador_id": 8,
+    "clinica_id": 1,
+    "payload": {
+      "tipo_alerta": "Critico"
+    },
+    "ip": "192.168.1.138",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "alerta_generada",
+    "timestamp": "2026-04-12T11:24:31.125000",
+    "paciente_id": 7,
+    "trabajador_id": 2,
+    "clinica_id": 4,
+    "payload": {
+      "tipo_alerta": "Critico"
+    },
+    "ip": "192.168.1.124",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "nfc_scan",
+    "timestamp": "2026-03-20T14:45:02.125000",
+    "paciente_id": 13,
+    "trabajador_id": 3,
+    "clinica_id": 1,
+    "payload": {
+      "accion": "Abrir_Expediente"
+    },
+    "ip": "192.168.1.160",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "login",
+    "timestamp": "2026-05-01T15:15:22.125000",
+    "paciente_id": null,
+    "trabajador_id": 9,
+    "clinica_id": 7,
+    "payload": {},
+    "ip": "192.168.1.210",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "logout",
+    "timestamp": "2026-03-27T18:54:02.125000",
+    "paciente_id": null,
+    "trabajador_id": 9,
+    "clinica_id": 3,
+    "payload": {},
+    "ip": "192.168.1.205",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "login",
+    "timestamp": "2026-03-17T10:14:03.125000",
+    "paciente_id": null,
+    "trabajador_id": 1,
+    "clinica_id": 9,
+    "payload": {},
+    "ip": "192.168.1.155",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "cita_cancelada",
+    "timestamp": "2026-04-10T16:40:24.125000",
+    "paciente_id": 7,
+    "trabajador_id": 3,
+    "clinica_id": 5,
+    "payload": {
+      "cita_id": 90
+    },
+    "ip": "192.168.1.205",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "login",
+    "timestamp": "2026-05-12T11:24:07.125000",
+    "paciente_id": null,
+    "trabajador_id": 9,
+    "clinica_id": 5,
+    "payload": {},
+    "ip": "192.168.1.76",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "cita_creada",
+    "timestamp": "2026-05-08T12:29:42.125000",
+    "paciente_id": 5,
+    "trabajador_id": 1,
+    "clinica_id": 1,
+    "payload": {
+      "cita_id": 41
+    },
+    "ip": "192.168.1.175",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "logout",
+    "timestamp": "2026-04-08T16:15:01.125000",
+    "paciente_id": null,
+    "trabajador_id": 9,
+    "clinica_id": 8,
+    "payload": {},
+    "ip": "192.168.1.17",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "cita_cancelada",
+    "timestamp": "2026-03-19T11:31:09.125000",
+    "paciente_id": 15,
+    "trabajador_id": 1,
+    "clinica_id": 5,
+    "payload": {
+      "cita_id": 87
+    },
+    "ip": "192.168.1.175",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "nfc_scan",
+    "timestamp": "2026-04-21T11:31:17.125000",
+    "paciente_id": 1,
+    "trabajador_id": 7,
+    "clinica_id": 4,
+    "payload": {
+      "accion": "Abrir_Expediente"
+    },
+    "ip": "192.168.1.193",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "cita_cancelada",
+    "timestamp": "2026-03-17T12:47:16.125000",
+    "paciente_id": 14,
+    "trabajador_id": 4,
+    "clinica_id": 7,
+    "payload": {
+      "cita_id": 65
+    },
+    "ip": "192.168.1.27",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "logout",
+    "timestamp": "2026-04-08T15:14:28.125000",
+    "paciente_id": null,
+    "trabajador_id": 4,
+    "clinica_id": 5,
+    "payload": {},
+    "ip": "192.168.1.77",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "nfc_scan",
+    "timestamp": "2026-05-04T17:11:59.125000",
+    "paciente_id": 15,
+    "trabajador_id": 10,
+    "clinica_id": 2,
+    "payload": {
+      "accion": "Registrar_Llegada"
+    },
+    "ip": "192.168.1.134",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "cita_cancelada",
+    "timestamp": "2026-03-31T14:03:54.125000",
+    "paciente_id": 4,
+    "trabajador_id": 10,
+    "clinica_id": 1,
+    "payload": {
+      "cita_id": 4
+    },
+    "ip": "192.168.1.162",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "login",
+    "timestamp": "2026-04-24T15:57:25.125000",
+    "paciente_id": null,
+    "trabajador_id": 3,
+    "clinica_id": 1,
+    "payload": {},
+    "ip": "192.168.1.192",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "cita_cancelada",
+    "timestamp": "2026-04-02T13:12:20.125000",
+    "paciente_id": 3,
+    "trabajador_id": 2,
+    "clinica_id": 2,
+    "payload": {
+      "cita_id": 84
+    },
+    "ip": "192.168.1.249",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "vacuna_aplicada",
+    "timestamp": "2026-04-22T13:21:53.125000",
+    "paciente_id": 8,
+    "trabajador_id": 5,
+    "clinica_id": 1,
+    "payload": {
+      "vacuna_id": 3,
+      "vacuna": "Pentavalente acelular"
+    },
+    "ip": "192.168.1.37",
+    "resultado": "error"
+  },
+  {
+    "tipo": "nfc_scan",
+    "timestamp": "2026-04-26T09:35:55.125000",
+    "paciente_id": 13,
+    "trabajador_id": 6,
+    "clinica_id": 2,
+    "payload": {
+      "accion": "Registrar_Llegada"
+    },
+    "ip": "192.168.1.107",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "alerta_generada",
+    "timestamp": "2026-03-25T08:45:50.125000",
+    "paciente_id": 8,
+    "trabajador_id": 7,
+    "clinica_id": 5,
+    "payload": {
+      "tipo_alerta": "Proximidad"
+    },
+    "ip": "192.168.1.105",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "vacuna_aplicada",
+    "timestamp": "2026-04-21T15:01:44.125000",
+    "paciente_id": 11,
+    "trabajador_id": 6,
+    "clinica_id": 4,
+    "payload": {
+      "vacuna_id": 7,
+      "vacuna": "Influenza"
+    },
+    "ip": "192.168.1.73",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "alerta_generada",
+    "timestamp": "2026-04-22T08:29:13.125000",
+    "paciente_id": 2,
+    "trabajador_id": 1,
+    "clinica_id": 7,
+    "payload": {
+      "tipo_alerta": "Proximidad"
+    },
+    "ip": "192.168.1.75",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "login",
+    "timestamp": "2026-04-21T12:21:33.125000",
+    "paciente_id": null,
+    "trabajador_id": 6,
+    "clinica_id": 10,
+    "payload": {},
+    "ip": "192.168.1.167",
+    "resultado": "error"
+  },
+  {
+    "tipo": "cita_cancelada",
+    "timestamp": "2026-04-14T08:46:25.125000",
+    "paciente_id": 13,
+    "trabajador_id": 5,
+    "clinica_id": 6,
+    "payload": {
+      "cita_id": 77
+    },
+    "ip": "192.168.1.244",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "login",
+    "timestamp": "2026-03-27T15:45:17.125000",
+    "paciente_id": null,
+    "trabajador_id": 4,
+    "clinica_id": 1,
+    "payload": {},
+    "ip": "192.168.1.129",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "vacuna_aplicada",
+    "timestamp": "2026-05-03T10:59:42.125000",
+    "paciente_id": 8,
+    "trabajador_id": 7,
+    "clinica_id": 5,
+    "payload": {
+      "vacuna_id": 3,
+      "vacuna": "Pentavalente acelular"
+    },
+    "ip": "192.168.1.12",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "cita_cancelada",
+    "timestamp": "2026-05-14T11:20:21.125000",
+    "paciente_id": 14,
+    "trabajador_id": 3,
+    "clinica_id": 5,
+    "payload": {
+      "cita_id": 41
+    },
+    "ip": "192.168.1.127",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "alerta_generada",
+    "timestamp": "2026-05-05T11:25:44.125000",
+    "paciente_id": 13,
+    "trabajador_id": 2,
+    "clinica_id": 10,
+    "payload": {
+      "tipo_alerta": "Proximidad"
+    },
+    "ip": "192.168.1.73",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "cita_cancelada",
+    "timestamp": "2026-05-09T16:20:23.125000",
+    "paciente_id": 3,
+    "trabajador_id": 8,
+    "clinica_id": 1,
+    "payload": {
+      "cita_id": 55
+    },
+    "ip": "192.168.1.236",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "login",
+    "timestamp": "2026-03-25T11:06:39.125000",
+    "paciente_id": null,
+    "trabajador_id": 10,
+    "clinica_id": 5,
+    "payload": {},
+    "ip": "192.168.1.117",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "cita_cancelada",
+    "timestamp": "2026-04-08T10:26:04.125000",
+    "paciente_id": 8,
+    "trabajador_id": 3,
+    "clinica_id": 8,
+    "payload": {
+      "cita_id": 80
+    },
+    "ip": "192.168.1.238",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "cita_cancelada",
+    "timestamp": "2026-04-14T12:17:32.125000",
+    "paciente_id": 10,
+    "trabajador_id": 2,
+    "clinica_id": 9,
+    "payload": {
+      "cita_id": 35
+    },
+    "ip": "192.168.1.105",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "nfc_scan",
+    "timestamp": "2026-04-09T10:15:09.125000",
+    "paciente_id": 4,
+    "trabajador_id": 8,
+    "clinica_id": 4,
+    "payload": {
+      "accion": "Registrar_Llegada"
+    },
+    "ip": "192.168.1.82",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "cita_creada",
+    "timestamp": "2026-03-23T14:16:20.125000",
+    "paciente_id": 4,
+    "trabajador_id": 6,
+    "clinica_id": 4,
+    "payload": {
+      "cita_id": 65
+    },
+    "ip": "192.168.1.144",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "alerta_generada",
+    "timestamp": "2026-03-20T09:00:16.125000",
+    "paciente_id": 8,
+    "trabajador_id": 8,
+    "clinica_id": 2,
+    "payload": {
+      "tipo_alerta": "Proximidad"
+    },
+    "ip": "192.168.1.225",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "nfc_scan",
+    "timestamp": "2026-04-08T09:03:49.125000",
+    "paciente_id": 4,
+    "trabajador_id": 5,
+    "clinica_id": 1,
+    "payload": {
+      "accion": "Registrar_Llegada"
+    },
+    "ip": "192.168.1.248",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "cita_creada",
+    "timestamp": "2026-05-14T12:49:28.125000",
+    "paciente_id": 13,
+    "trabajador_id": 8,
+    "clinica_id": 3,
+    "payload": {
+      "cita_id": 86
+    },
+    "ip": "192.168.1.11",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "cita_creada",
+    "timestamp": "2026-04-07T08:23:06.125000",
+    "paciente_id": 6,
+    "trabajador_id": 6,
+    "clinica_id": 10,
+    "payload": {
+      "cita_id": 19
+    },
+    "ip": "192.168.1.21",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "nfc_scan",
+    "timestamp": "2026-04-05T08:52:17.125000",
+    "paciente_id": 6,
+    "trabajador_id": 10,
+    "clinica_id": 1,
+    "payload": {
+      "accion": "Abrir_Expediente"
+    },
+    "ip": "192.168.1.183",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "cita_creada",
+    "timestamp": "2026-04-05T08:50:32.125000",
+    "paciente_id": 8,
+    "trabajador_id": 2,
+    "clinica_id": 5,
+    "payload": {
+      "cita_id": 71
+    },
+    "ip": "192.168.1.133",
+    "resultado": "error"
+  },
+  {
+    "tipo": "login",
+    "timestamp": "2026-03-31T18:34:01.125000",
+    "paciente_id": null,
+    "trabajador_id": 9,
+    "clinica_id": 7,
+    "payload": {},
+    "ip": "192.168.1.33",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "vacuna_aplicada",
+    "timestamp": "2026-04-13T18:19:26.125000",
+    "paciente_id": 7,
+    "trabajador_id": 7,
+    "clinica_id": 5,
+    "payload": {
+      "vacuna_id": 1,
+      "vacuna": "BCG"
+    },
+    "ip": "192.168.1.89",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "nfc_scan",
+    "timestamp": "2026-03-18T13:41:27.125000",
+    "paciente_id": 4,
+    "trabajador_id": 7,
+    "clinica_id": 7,
+    "payload": {
+      "accion": "Abrir_Expediente"
+    },
+    "ip": "192.168.1.196",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "login",
+    "timestamp": "2026-04-27T09:52:16.125000",
+    "paciente_id": null,
+    "trabajador_id": 3,
+    "clinica_id": 7,
+    "payload": {},
+    "ip": "192.168.1.33",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "nfc_scan",
+    "timestamp": "2026-03-29T08:03:54.125000",
+    "paciente_id": 9,
+    "trabajador_id": 3,
+    "clinica_id": 8,
+    "payload": {
+      "accion": "Registrar_Llegada"
+    },
+    "ip": "192.168.1.174",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "vacuna_aplicada",
+    "timestamp": "2026-04-21T16:10:45.125000",
+    "paciente_id": 3,
+    "trabajador_id": 10,
+    "clinica_id": 2,
+    "payload": {
+      "vacuna_id": 6,
+      "vacuna": "Neumococo conjugada"
+    },
+    "ip": "192.168.1.82",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "logout",
+    "timestamp": "2026-04-23T15:48:04.125000",
+    "paciente_id": null,
+    "trabajador_id": 2,
+    "clinica_id": 2,
+    "payload": {},
+    "ip": "192.168.1.216",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "alerta_generada",
+    "timestamp": "2026-03-29T08:58:04.125000",
+    "paciente_id": 8,
+    "trabajador_id": 5,
+    "clinica_id": 4,
+    "payload": {
+      "tipo_alerta": "Atraso"
+    },
+    "ip": "192.168.1.23",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "cita_cancelada",
+    "timestamp": "2026-04-01T18:50:17.125000",
+    "paciente_id": 14,
+    "trabajador_id": 2,
+    "clinica_id": 7,
+    "payload": {
+      "cita_id": 29
+    },
+    "ip": "192.168.1.168",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "alerta_generada",
+    "timestamp": "2026-04-03T17:13:30.125000",
+    "paciente_id": 1,
+    "trabajador_id": 8,
+    "clinica_id": 4,
+    "payload": {
+      "tipo_alerta": "Atraso"
+    },
+    "ip": "192.168.1.250",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "vacuna_aplicada",
+    "timestamp": "2026-03-31T11:46:05.125000",
+    "paciente_id": 14,
+    "trabajador_id": 2,
+    "clinica_id": 6,
+    "payload": {
+      "vacuna_id": 4,
+      "vacuna": "Hepatitis B (serie)"
+    },
+    "ip": "192.168.1.20",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "alerta_generada",
+    "timestamp": "2026-03-28T14:38:03.125000",
+    "paciente_id": 8,
+    "trabajador_id": 6,
+    "clinica_id": 1,
+    "payload": {
+      "tipo_alerta": "Critico"
+    },
+    "ip": "192.168.1.227",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "nfc_scan",
+    "timestamp": "2026-05-12T11:27:53.125000",
+    "paciente_id": 7,
+    "trabajador_id": 5,
+    "clinica_id": 7,
+    "payload": {
+      "accion": "Abrir_Expediente"
+    },
+    "ip": "192.168.1.124",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "logout",
+    "timestamp": "2026-05-03T15:15:21.125000",
+    "paciente_id": null,
+    "trabajador_id": 1,
+    "clinica_id": 1,
+    "payload": {},
+    "ip": "192.168.1.124",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "alerta_generada",
+    "timestamp": "2026-05-01T14:06:51.125000",
+    "paciente_id": 2,
+    "trabajador_id": 3,
+    "clinica_id": 8,
+    "payload": {
+      "tipo_alerta": "Proximidad"
+    },
+    "ip": "192.168.1.101",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "login",
+    "timestamp": "2026-05-05T18:02:46.125000",
+    "paciente_id": null,
+    "trabajador_id": 9,
+    "clinica_id": 8,
+    "payload": {},
+    "ip": "192.168.1.20",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "login",
+    "timestamp": "2026-03-24T08:48:23.125000",
+    "paciente_id": null,
+    "trabajador_id": 9,
+    "clinica_id": 6,
+    "payload": {},
+    "ip": "192.168.1.139",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "cita_cancelada",
+    "timestamp": "2026-03-23T17:46:45.125000",
+    "paciente_id": 12,
+    "trabajador_id": 1,
+    "clinica_id": 3,
+    "payload": {
+      "cita_id": 15
+    },
+    "ip": "192.168.1.59",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "vacuna_aplicada",
+    "timestamp": "2026-04-07T09:53:49.125000",
+    "paciente_id": 6,
+    "trabajador_id": 3,
+    "clinica_id": 5,
+    "payload": {
+      "vacuna_id": 10,
+      "vacuna": "DPT (refuerzo)"
+    },
+    "ip": "192.168.1.203",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "nfc_scan",
+    "timestamp": "2026-04-30T10:16:48.125000",
+    "paciente_id": 9,
+    "trabajador_id": 5,
+    "clinica_id": 10,
+    "payload": {
+      "accion": "Abrir_Expediente"
+    },
+    "ip": "192.168.1.63",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "cita_creada",
+    "timestamp": "2026-04-16T13:02:20.125000",
+    "paciente_id": 4,
+    "trabajador_id": 4,
+    "clinica_id": 9,
+    "payload": {
+      "cita_id": 24
+    },
+    "ip": "192.168.1.113",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "nfc_scan",
+    "timestamp": "2026-04-02T12:07:54.125000",
+    "paciente_id": 13,
+    "trabajador_id": 7,
+    "clinica_id": 6,
+    "payload": {
+      "accion": "Registrar_Llegada"
+    },
+    "ip": "192.168.1.172",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "alerta_generada",
+    "timestamp": "2026-05-06T17:44:24.125000",
+    "paciente_id": 15,
+    "trabajador_id": 9,
+    "clinica_id": 8,
+    "payload": {
+      "tipo_alerta": "Proximidad"
+    },
+    "ip": "192.168.1.74",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "cita_cancelada",
+    "timestamp": "2026-04-11T14:23:22.125000",
+    "paciente_id": 10,
+    "trabajador_id": 6,
+    "clinica_id": 7,
+    "payload": {
+      "cita_id": 19
+    },
+    "ip": "192.168.1.102",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "login",
+    "timestamp": "2026-04-03T17:47:21.125000",
+    "paciente_id": null,
+    "trabajador_id": 4,
+    "clinica_id": 8,
+    "payload": {},
+    "ip": "192.168.1.22",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "cita_creada",
+    "timestamp": "2026-05-12T18:57:40.125000",
+    "paciente_id": 6,
+    "trabajador_id": 5,
+    "clinica_id": 5,
+    "payload": {
+      "cita_id": 94
+    },
+    "ip": "192.168.1.10",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "logout",
+    "timestamp": "2026-05-15T18:27:23.125000",
+    "paciente_id": null,
+    "trabajador_id": 5,
+    "clinica_id": 3,
+    "payload": {},
+    "ip": "192.168.1.116",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "login",
+    "timestamp": "2026-04-07T17:41:16.125000",
+    "paciente_id": null,
+    "trabajador_id": 8,
+    "clinica_id": 3,
+    "payload": {},
+    "ip": "192.168.1.21",
+    "resultado": "error"
+  },
+  {
+    "tipo": "login",
+    "timestamp": "2026-04-15T09:33:49.125000",
+    "paciente_id": null,
+    "trabajador_id": 6,
+    "clinica_id": 10,
+    "payload": {},
+    "ip": "192.168.1.101",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "vacuna_aplicada",
+    "timestamp": "2026-05-13T10:13:02.125000",
+    "paciente_id": 6,
+    "trabajador_id": 5,
+    "clinica_id": 10,
+    "payload": {
+      "vacuna_id": 10,
+      "vacuna": "DPT (refuerzo)"
+    },
+    "ip": "192.168.1.222",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "logout",
+    "timestamp": "2026-03-31T15:06:32.125000",
+    "paciente_id": null,
+    "trabajador_id": 4,
+    "clinica_id": 1,
+    "payload": {},
+    "ip": "192.168.1.26",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "alerta_generada",
+    "timestamp": "2026-04-11T08:03:28.125000",
+    "paciente_id": 11,
+    "trabajador_id": 7,
+    "clinica_id": 5,
+    "payload": {
+      "tipo_alerta": "Critico"
+    },
+    "ip": "192.168.1.238",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "cita_cancelada",
+    "timestamp": "2026-05-14T16:46:11.125000",
+    "paciente_id": 8,
+    "trabajador_id": 8,
+    "clinica_id": 10,
+    "payload": {
+      "cita_id": 32
+    },
+    "ip": "192.168.1.52",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "login",
+    "timestamp": "2026-03-19T14:11:48.125000",
+    "paciente_id": null,
+    "trabajador_id": 9,
+    "clinica_id": 1,
+    "payload": {},
+    "ip": "192.168.1.70",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "alerta_generada",
+    "timestamp": "2026-05-15T16:42:17.125000",
+    "paciente_id": 4,
+    "trabajador_id": 1,
+    "clinica_id": 2,
+    "payload": {
+      "tipo_alerta": "Proximidad"
+    },
+    "ip": "192.168.1.115",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "cita_creada",
+    "timestamp": "2026-05-15T10:32:21.126000",
+    "paciente_id": 5,
+    "trabajador_id": 7,
+    "clinica_id": 9,
+    "payload": {
+      "cita_id": 9
+    },
+    "ip": "192.168.1.86",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "cita_cancelada",
+    "timestamp": "2026-03-17T14:54:46.126000",
+    "paciente_id": 7,
+    "trabajador_id": 9,
+    "clinica_id": 8,
+    "payload": {
+      "cita_id": 96
+    },
+    "ip": "192.168.1.243",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "cita_cancelada",
+    "timestamp": "2026-04-07T09:16:56.126000",
+    "paciente_id": 4,
+    "trabajador_id": 3,
+    "clinica_id": 8,
+    "payload": {
+      "cita_id": 83
+    },
+    "ip": "192.168.1.19",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "cita_cancelada",
+    "timestamp": "2026-04-11T18:35:50.126000",
+    "paciente_id": 11,
+    "trabajador_id": 1,
+    "clinica_id": 5,
+    "payload": {
+      "cita_id": 56
+    },
+    "ip": "192.168.1.185",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "cita_creada",
+    "timestamp": "2026-04-06T09:56:14.126000",
+    "paciente_id": 9,
+    "trabajador_id": 5,
+    "clinica_id": 5,
+    "payload": {
+      "cita_id": 2
+    },
+    "ip": "192.168.1.53",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "logout",
+    "timestamp": "2026-04-17T11:56:00.126000",
+    "paciente_id": null,
+    "trabajador_id": 3,
+    "clinica_id": 4,
+    "payload": {},
+    "ip": "192.168.1.109",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "logout",
+    "timestamp": "2026-05-01T15:53:56.126000",
+    "paciente_id": null,
+    "trabajador_id": 9,
+    "clinica_id": 7,
+    "payload": {},
+    "ip": "192.168.1.145",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "alerta_generada",
+    "timestamp": "2026-04-08T17:56:39.126000",
+    "paciente_id": 5,
+    "trabajador_id": 7,
+    "clinica_id": 1,
+    "payload": {
+      "tipo_alerta": "Proximidad"
+    },
+    "ip": "192.168.1.110",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "login",
+    "timestamp": "2026-03-30T08:01:54.126000",
+    "paciente_id": null,
+    "trabajador_id": 3,
+    "clinica_id": 10,
+    "payload": {},
+    "ip": "192.168.1.38",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "logout",
+    "timestamp": "2026-03-19T08:02:10.126000",
+    "paciente_id": null,
+    "trabajador_id": 3,
+    "clinica_id": 6,
+    "payload": {},
+    "ip": "192.168.1.45",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "cita_cancelada",
+    "timestamp": "2026-03-21T09:54:40.126000",
+    "paciente_id": 10,
+    "trabajador_id": 2,
+    "clinica_id": 1,
+    "payload": {
+      "cita_id": 98
+    },
+    "ip": "192.168.1.103",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "alerta_generada",
+    "timestamp": "2026-04-23T09:15:09.126000",
+    "paciente_id": 4,
+    "trabajador_id": 2,
+    "clinica_id": 9,
+    "payload": {
+      "tipo_alerta": "Proximidad"
+    },
+    "ip": "192.168.1.38",
+    "resultado": "error"
+  },
+  {
+    "tipo": "alerta_generada",
+    "timestamp": "2026-05-02T09:08:37.126000",
+    "paciente_id": 2,
+    "trabajador_id": 5,
+    "clinica_id": 2,
+    "payload": {
+      "tipo_alerta": "Critico"
+    },
+    "ip": "192.168.1.62",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "nfc_scan",
+    "timestamp": "2026-03-18T13:16:40.126000",
+    "paciente_id": 15,
+    "trabajador_id": 5,
+    "clinica_id": 7,
+    "payload": {
+      "accion": "Abrir_Expediente"
+    },
+    "ip": "192.168.1.22",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "nfc_scan",
+    "timestamp": "2026-05-04T15:54:38.126000",
+    "paciente_id": 5,
+    "trabajador_id": 10,
+    "clinica_id": 6,
+    "payload": {
+      "accion": "Registrar_Llegada"
+    },
+    "ip": "192.168.1.211",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "vacuna_aplicada",
+    "timestamp": "2026-04-19T15:45:39.126000",
+    "paciente_id": 1,
+    "trabajador_id": 2,
+    "clinica_id": 9,
+    "payload": {
+      "vacuna_id": 9,
+      "vacuna": "Pentavalente refuerzo"
+    },
+    "ip": "192.168.1.154",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "alerta_generada",
+    "timestamp": "2026-04-13T10:27:54.126000",
+    "paciente_id": 1,
+    "trabajador_id": 10,
+    "clinica_id": 2,
+    "payload": {
+      "tipo_alerta": "Critico"
+    },
+    "ip": "192.168.1.61",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "alerta_generada",
+    "timestamp": "2026-04-19T15:06:32.126000",
+    "paciente_id": 8,
+    "trabajador_id": 1,
+    "clinica_id": 1,
+    "payload": {
+      "tipo_alerta": "Critico"
+    },
+    "ip": "192.168.1.213",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "vacuna_aplicada",
+    "timestamp": "2026-05-05T12:36:53.126000",
+    "paciente_id": 3,
+    "trabajador_id": 6,
+    "clinica_id": 10,
+    "payload": {
+      "vacuna_id": 5,
+      "vacuna": "Rotavirus"
+    },
+    "ip": "192.168.1.218",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "cita_cancelada",
+    "timestamp": "2026-04-02T09:40:19.126000",
+    "paciente_id": 13,
+    "trabajador_id": 8,
+    "clinica_id": 4,
+    "payload": {
+      "cita_id": 11
+    },
+    "ip": "192.168.1.135",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "cita_cancelada",
+    "timestamp": "2026-04-17T13:06:14.126000",
+    "paciente_id": 7,
+    "trabajador_id": 2,
+    "clinica_id": 9,
+    "payload": {
+      "cita_id": 51
+    },
+    "ip": "192.168.1.238",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "login",
+    "timestamp": "2026-04-22T11:19:26.126000",
+    "paciente_id": null,
+    "trabajador_id": 1,
+    "clinica_id": 7,
+    "payload": {},
+    "ip": "192.168.1.77",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "cita_creada",
+    "timestamp": "2026-04-22T18:14:46.126000",
+    "paciente_id": 8,
+    "trabajador_id": 3,
+    "clinica_id": 9,
+    "payload": {
+      "cita_id": 17
+    },
+    "ip": "192.168.1.146",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "cita_cancelada",
+    "timestamp": "2026-04-19T17:20:51.126000",
+    "paciente_id": 9,
+    "trabajador_id": 1,
+    "clinica_id": 10,
+    "payload": {
+      "cita_id": 20
+    },
+    "ip": "192.168.1.232",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "cita_cancelada",
+    "timestamp": "2026-04-02T15:28:56.126000",
+    "paciente_id": 12,
+    "trabajador_id": 6,
+    "clinica_id": 9,
+    "payload": {
+      "cita_id": 99
+    },
+    "ip": "192.168.1.75",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "logout",
+    "timestamp": "2026-04-09T16:12:32.126000",
+    "paciente_id": null,
+    "trabajador_id": 8,
+    "clinica_id": 6,
+    "payload": {},
+    "ip": "192.168.1.78",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "cita_cancelada",
+    "timestamp": "2026-04-01T11:46:27.126000",
+    "paciente_id": 6,
+    "trabajador_id": 3,
+    "clinica_id": 10,
+    "payload": {
+      "cita_id": 78
+    },
+    "ip": "192.168.1.143",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "logout",
+    "timestamp": "2026-04-11T09:10:17.126000",
+    "paciente_id": null,
+    "trabajador_id": 4,
+    "clinica_id": 6,
+    "payload": {},
+    "ip": "192.168.1.178",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "vacuna_aplicada",
+    "timestamp": "2026-04-15T12:27:26.126000",
+    "paciente_id": 5,
+    "trabajador_id": 3,
+    "clinica_id": 3,
+    "payload": {
+      "vacuna_id": 4,
+      "vacuna": "Hepatitis B (serie)"
+    },
+    "ip": "192.168.1.37",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "login",
+    "timestamp": "2026-04-23T15:02:06.126000",
+    "paciente_id": null,
+    "trabajador_id": 4,
+    "clinica_id": 5,
+    "payload": {},
+    "ip": "192.168.1.13",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "alerta_generada",
+    "timestamp": "2026-05-04T18:18:09.126000",
+    "paciente_id": 8,
+    "trabajador_id": 4,
+    "clinica_id": 7,
+    "payload": {
+      "tipo_alerta": "Proximidad"
+    },
+    "ip": "192.168.1.46",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "cita_cancelada",
+    "timestamp": "2026-04-09T14:44:51.126000",
+    "paciente_id": 10,
+    "trabajador_id": 1,
+    "clinica_id": 7,
+    "payload": {
+      "cita_id": 76
+    },
+    "ip": "192.168.1.201",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "alerta_generada",
+    "timestamp": "2026-04-08T18:11:31.126000",
+    "paciente_id": 11,
+    "trabajador_id": 10,
+    "clinica_id": 4,
+    "payload": {
+      "tipo_alerta": "Proximidad"
+    },
+    "ip": "192.168.1.126",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "nfc_scan",
+    "timestamp": "2026-04-09T14:45:30.126000",
+    "paciente_id": 12,
+    "trabajador_id": 7,
+    "clinica_id": 2,
+    "payload": {
+      "accion": "Registrar_Llegada"
+    },
+    "ip": "192.168.1.74",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "vacuna_aplicada",
+    "timestamp": "2026-04-25T16:43:35.126000",
+    "paciente_id": 11,
+    "trabajador_id": 1,
+    "clinica_id": 8,
+    "payload": {
+      "vacuna_id": 3,
+      "vacuna": "Pentavalente acelular"
+    },
+    "ip": "192.168.1.238",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "alerta_generada",
+    "timestamp": "2026-05-03T09:02:41.126000",
+    "paciente_id": 5,
+    "trabajador_id": 7,
+    "clinica_id": 1,
+    "payload": {
+      "tipo_alerta": "Critico"
+    },
+    "ip": "192.168.1.65",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "alerta_generada",
+    "timestamp": "2026-04-19T09:54:00.126000",
+    "paciente_id": 10,
+    "trabajador_id": 9,
+    "clinica_id": 4,
+    "payload": {
+      "tipo_alerta": "Atraso"
+    },
+    "ip": "192.168.1.148",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "vacuna_aplicada",
+    "timestamp": "2026-04-21T16:21:46.126000",
+    "paciente_id": 7,
+    "trabajador_id": 1,
+    "clinica_id": 9,
+    "payload": {
+      "vacuna_id": 12,
+      "vacuna": "VPH"
+    },
+    "ip": "192.168.1.126",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "cita_cancelada",
+    "timestamp": "2026-05-05T09:46:24.126000",
+    "paciente_id": 10,
+    "trabajador_id": 7,
+    "clinica_id": 3,
+    "payload": {
+      "cita_id": 46
+    },
+    "ip": "192.168.1.173",
+    "resultado": "error"
+  },
+  {
+    "tipo": "nfc_scan",
+    "timestamp": "2026-03-22T08:04:55.126000",
+    "paciente_id": 7,
+    "trabajador_id": 7,
+    "clinica_id": 7,
+    "payload": {
+      "accion": "Abrir_Expediente"
+    },
+    "ip": "192.168.1.170",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "nfc_scan",
+    "timestamp": "2026-03-27T11:19:30.126000",
+    "paciente_id": 12,
+    "trabajador_id": 5,
+    "clinica_id": 10,
+    "payload": {
+      "accion": "Abrir_Expediente"
+    },
+    "ip": "192.168.1.250",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "logout",
+    "timestamp": "2026-04-06T10:08:36.126000",
+    "paciente_id": null,
+    "trabajador_id": 8,
+    "clinica_id": 7,
+    "payload": {},
+    "ip": "192.168.1.247",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "alerta_generada",
+    "timestamp": "2026-05-10T11:52:53.126000",
+    "paciente_id": 3,
+    "trabajador_id": 8,
+    "clinica_id": 4,
+    "payload": {
+      "tipo_alerta": "Atraso"
+    },
+    "ip": "192.168.1.180",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "alerta_generada",
+    "timestamp": "2026-04-14T16:41:06.126000",
+    "paciente_id": 3,
+    "trabajador_id": 8,
+    "clinica_id": 7,
+    "payload": {
+      "tipo_alerta": "Atraso"
+    },
+    "ip": "192.168.1.100",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "logout",
+    "timestamp": "2026-04-10T14:43:48.126000",
+    "paciente_id": null,
+    "trabajador_id": 7,
+    "clinica_id": 5,
+    "payload": {},
+    "ip": "192.168.1.57",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "alerta_generada",
+    "timestamp": "2026-04-09T18:19:58.126000",
+    "paciente_id": 6,
+    "trabajador_id": 6,
+    "clinica_id": 5,
+    "payload": {
+      "tipo_alerta": "Atraso"
+    },
+    "ip": "192.168.1.134",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "cita_cancelada",
+    "timestamp": "2026-03-31T12:54:30.126000",
+    "paciente_id": 7,
+    "trabajador_id": 6,
+    "clinica_id": 2,
+    "payload": {
+      "cita_id": 8
+    },
+    "ip": "192.168.1.31",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "nfc_scan",
+    "timestamp": "2026-04-19T18:37:33.126000",
+    "paciente_id": 1,
+    "trabajador_id": 9,
+    "clinica_id": 3,
+    "payload": {
+      "accion": "Registrar_Llegada"
+    },
+    "ip": "192.168.1.63",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "cita_cancelada",
+    "timestamp": "2026-05-14T09:37:40.126000",
+    "paciente_id": 3,
+    "trabajador_id": 5,
+    "clinica_id": 5,
+    "payload": {
+      "cita_id": 30
+    },
+    "ip": "192.168.1.57",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "nfc_scan",
+    "timestamp": "2026-04-25T16:10:27.126000",
+    "paciente_id": 10,
+    "trabajador_id": 4,
+    "clinica_id": 3,
+    "payload": {
+      "accion": "Registrar_Llegada"
+    },
+    "ip": "192.168.1.181",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "cita_creada",
+    "timestamp": "2026-05-03T11:33:48.126000",
+    "paciente_id": 2,
+    "trabajador_id": 4,
+    "clinica_id": 5,
+    "payload": {
+      "cita_id": 95
+    },
+    "ip": "192.168.1.224",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "login",
+    "timestamp": "2026-04-11T14:14:03.126000",
+    "paciente_id": null,
+    "trabajador_id": 2,
+    "clinica_id": 9,
+    "payload": {},
+    "ip": "192.168.1.221",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "vacuna_aplicada",
+    "timestamp": "2026-05-02T15:57:59.126000",
+    "paciente_id": 3,
+    "trabajador_id": 1,
+    "clinica_id": 9,
+    "payload": {
+      "vacuna_id": 12,
+      "vacuna": "VPH"
+    },
+    "ip": "192.168.1.135",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "logout",
+    "timestamp": "2026-03-17T10:53:45.126000",
+    "paciente_id": null,
+    "trabajador_id": 10,
+    "clinica_id": 9,
+    "payload": {},
+    "ip": "192.168.1.92",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "cita_creada",
+    "timestamp": "2026-05-01T13:27:17.126000",
+    "paciente_id": 7,
+    "trabajador_id": 5,
+    "clinica_id": 8,
+    "payload": {
+      "cita_id": 87
+    },
+    "ip": "192.168.1.29",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "nfc_scan",
+    "timestamp": "2026-05-15T08:43:51.126000",
+    "paciente_id": 12,
+    "trabajador_id": 1,
+    "clinica_id": 1,
+    "payload": {
+      "accion": "Abrir_Expediente"
+    },
+    "ip": "192.168.1.217",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "cita_creada",
+    "timestamp": "2026-03-30T08:13:08.126000",
+    "paciente_id": 12,
+    "trabajador_id": 8,
+    "clinica_id": 8,
+    "payload": {
+      "cita_id": 54
+    },
+    "ip": "192.168.1.170",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "login",
+    "timestamp": "2026-05-01T16:35:39.126000",
+    "paciente_id": null,
+    "trabajador_id": 6,
+    "clinica_id": 6,
+    "payload": {},
+    "ip": "192.168.1.207",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "nfc_scan",
+    "timestamp": "2026-04-26T12:35:16.126000",
+    "paciente_id": 1,
+    "trabajador_id": 6,
+    "clinica_id": 7,
+    "payload": {
+      "accion": "Abrir_Expediente"
+    },
+    "ip": "192.168.1.84",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "vacuna_aplicada",
+    "timestamp": "2026-05-04T12:55:18.126000",
+    "paciente_id": 9,
+    "trabajador_id": 6,
+    "clinica_id": 7,
+    "payload": {
+      "vacuna_id": 6,
+      "vacuna": "Neumococo conjugada"
+    },
+    "ip": "192.168.1.62",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "alerta_generada",
+    "timestamp": "2026-04-04T13:45:46.126000",
+    "paciente_id": 5,
+    "trabajador_id": 6,
+    "clinica_id": 2,
+    "payload": {
+      "tipo_alerta": "Proximidad"
+    },
+    "ip": "192.168.1.160",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "login",
+    "timestamp": "2026-05-09T14:34:59.126000",
+    "paciente_id": null,
+    "trabajador_id": 7,
+    "clinica_id": 1,
+    "payload": {},
+    "ip": "192.168.1.156",
+    "resultado": "error"
+  },
+  {
+    "tipo": "nfc_scan",
+    "timestamp": "2026-03-21T11:52:47.126000",
+    "paciente_id": 15,
+    "trabajador_id": 1,
+    "clinica_id": 2,
+    "payload": {
+      "accion": "Abrir_Expediente"
+    },
+    "ip": "192.168.1.165",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "login",
+    "timestamp": "2026-05-15T14:39:31.126000",
+    "paciente_id": null,
+    "trabajador_id": 9,
+    "clinica_id": 9,
+    "payload": {},
+    "ip": "192.168.1.47",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "cita_cancelada",
+    "timestamp": "2026-04-06T08:42:54.126000",
+    "paciente_id": 11,
+    "trabajador_id": 2,
+    "clinica_id": 10,
+    "payload": {
+      "cita_id": 59
+    },
+    "ip": "192.168.1.170",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "login",
+    "timestamp": "2026-04-26T09:58:01.126000",
+    "paciente_id": null,
+    "trabajador_id": 1,
+    "clinica_id": 3,
+    "payload": {},
+    "ip": "192.168.1.248",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "nfc_scan",
+    "timestamp": "2026-05-10T12:55:32.126000",
+    "paciente_id": 5,
+    "trabajador_id": 5,
+    "clinica_id": 3,
+    "payload": {
+      "accion": "Registrar_Llegada"
+    },
+    "ip": "192.168.1.117",
+    "resultado": "error"
+  },
+  {
+    "tipo": "login",
+    "timestamp": "2026-05-12T08:31:19.126000",
+    "paciente_id": null,
+    "trabajador_id": 10,
+    "clinica_id": 7,
+    "payload": {},
+    "ip": "192.168.1.155",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "alerta_generada",
+    "timestamp": "2026-05-11T14:28:49.126000",
+    "paciente_id": 2,
+    "trabajador_id": 7,
+    "clinica_id": 2,
+    "payload": {
+      "tipo_alerta": "Proximidad"
+    },
+    "ip": "192.168.1.184",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "cita_creada",
+    "timestamp": "2026-04-25T16:06:09.126000",
+    "paciente_id": 2,
+    "trabajador_id": 8,
+    "clinica_id": 3,
+    "payload": {
+      "cita_id": 83
+    },
+    "ip": "192.168.1.130",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "logout",
+    "timestamp": "2026-03-17T08:43:49.126000",
+    "paciente_id": null,
+    "trabajador_id": 7,
+    "clinica_id": 1,
+    "payload": {},
+    "ip": "192.168.1.181",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "alerta_generada",
+    "timestamp": "2026-03-28T10:30:40.126000",
+    "paciente_id": 1,
+    "trabajador_id": 4,
+    "clinica_id": 2,
+    "payload": {
+      "tipo_alerta": "Atraso"
+    },
+    "ip": "192.168.1.194",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "vacuna_aplicada",
+    "timestamp": "2026-04-21T10:46:54.126000",
+    "paciente_id": 13,
+    "trabajador_id": 1,
+    "clinica_id": 3,
+    "payload": {
+      "vacuna_id": 2,
+      "vacuna": "Hepatitis B"
+    },
+    "ip": "192.168.1.85",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "cita_cancelada",
+    "timestamp": "2026-04-10T08:45:54.126000",
+    "paciente_id": 1,
+    "trabajador_id": 8,
+    "clinica_id": 8,
+    "payload": {
+      "cita_id": 2
+    },
+    "ip": "192.168.1.25",
+    "resultado": "error"
+  },
+  {
+    "tipo": "cita_cancelada",
+    "timestamp": "2026-04-23T12:19:02.126000",
+    "paciente_id": 12,
+    "trabajador_id": 2,
+    "clinica_id": 10,
+    "payload": {
+      "cita_id": 77
+    },
+    "ip": "192.168.1.52",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "alerta_generada",
+    "timestamp": "2026-03-22T13:23:46.126000",
+    "paciente_id": 10,
+    "trabajador_id": 10,
+    "clinica_id": 8,
+    "payload": {
+      "tipo_alerta": "Critico"
+    },
+    "ip": "192.168.1.122",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "logout",
+    "timestamp": "2026-04-21T18:10:16.126000",
+    "paciente_id": null,
+    "trabajador_id": 2,
+    "clinica_id": 3,
+    "payload": {},
+    "ip": "192.168.1.171",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "vacuna_aplicada",
+    "timestamp": "2026-04-12T17:21:43.126000",
+    "paciente_id": 5,
+    "trabajador_id": 8,
+    "clinica_id": 7,
+    "payload": {
+      "vacuna_id": 5,
+      "vacuna": "Rotavirus"
+    },
+    "ip": "192.168.1.25",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "cita_cancelada",
+    "timestamp": "2026-05-14T08:53:15.126000",
+    "paciente_id": 3,
+    "trabajador_id": 6,
+    "clinica_id": 10,
+    "payload": {
+      "cita_id": 77
+    },
+    "ip": "192.168.1.223",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "vacuna_aplicada",
+    "timestamp": "2026-04-23T18:24:27.126000",
+    "paciente_id": 10,
+    "trabajador_id": 7,
+    "clinica_id": 4,
+    "payload": {
+      "vacuna_id": 4,
+      "vacuna": "Hepatitis B (serie)"
+    },
+    "ip": "192.168.1.216",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "cita_cancelada",
+    "timestamp": "2026-04-11T12:27:21.126000",
+    "paciente_id": 3,
+    "trabajador_id": 6,
+    "clinica_id": 1,
+    "payload": {
+      "cita_id": 76
+    },
+    "ip": "192.168.1.245",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "alerta_generada",
+    "timestamp": "2026-03-30T17:09:07.126000",
+    "paciente_id": 5,
+    "trabajador_id": 5,
+    "clinica_id": 1,
+    "payload": {
+      "tipo_alerta": "Critico"
+    },
+    "ip": "192.168.1.185",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "vacuna_aplicada",
+    "timestamp": "2026-03-25T16:35:48.126000",
+    "paciente_id": 8,
+    "trabajador_id": 9,
+    "clinica_id": 6,
+    "payload": {
+      "vacuna_id": 7,
+      "vacuna": "Influenza"
+    },
+    "ip": "192.168.1.61",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "cita_cancelada",
+    "timestamp": "2026-05-14T08:43:35.126000",
+    "paciente_id": 7,
+    "trabajador_id": 5,
+    "clinica_id": 4,
+    "payload": {
+      "cita_id": 60
+    },
+    "ip": "192.168.1.191",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "nfc_scan",
+    "timestamp": "2026-04-23T15:34:20.126000",
+    "paciente_id": 2,
+    "trabajador_id": 1,
+    "clinica_id": 10,
+    "payload": {
+      "accion": "Abrir_Expediente"
+    },
+    "ip": "192.168.1.207",
+    "resultado": "error"
+  },
+  {
+    "tipo": "vacuna_aplicada",
+    "timestamp": "2026-04-11T16:20:36.126000",
+    "paciente_id": 8,
+    "trabajador_id": 9,
+    "clinica_id": 10,
+    "payload": {
+      "vacuna_id": 9,
+      "vacuna": "Pentavalente refuerzo"
+    },
+    "ip": "192.168.1.160",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "logout",
+    "timestamp": "2026-04-03T12:23:49.126000",
+    "paciente_id": null,
+    "trabajador_id": 2,
+    "clinica_id": 4,
+    "payload": {},
+    "ip": "192.168.1.157",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "vacuna_aplicada",
+    "timestamp": "2026-04-09T08:59:58.126000",
+    "paciente_id": 8,
+    "trabajador_id": 3,
+    "clinica_id": 9,
+    "payload": {
+      "vacuna_id": 6,
+      "vacuna": "Neumococo conjugada"
+    },
+    "ip": "192.168.1.231",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "cita_cancelada",
+    "timestamp": "2026-04-01T13:38:06.126000",
+    "paciente_id": 1,
+    "trabajador_id": 2,
+    "clinica_id": 8,
+    "payload": {
+      "cita_id": 45
+    },
+    "ip": "192.168.1.81",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "login",
+    "timestamp": "2026-04-05T17:31:20.126000",
+    "paciente_id": null,
+    "trabajador_id": 1,
+    "clinica_id": 2,
+    "payload": {},
+    "ip": "192.168.1.160",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "nfc_scan",
+    "timestamp": "2026-03-26T15:49:42.126000",
+    "paciente_id": 10,
+    "trabajador_id": 7,
+    "clinica_id": 5,
+    "payload": {
+      "accion": "Registrar_Llegada"
+    },
+    "ip": "192.168.1.75",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "nfc_scan",
+    "timestamp": "2026-04-22T09:01:32.126000",
+    "paciente_id": 1,
+    "trabajador_id": 3,
+    "clinica_id": 4,
+    "payload": {
+      "accion": "Registrar_Llegada"
+    },
+    "ip": "192.168.1.152",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "cita_cancelada",
+    "timestamp": "2026-03-23T17:40:53.126000",
+    "paciente_id": 7,
+    "trabajador_id": 8,
+    "clinica_id": 8,
+    "payload": {
+      "cita_id": 16
+    },
+    "ip": "192.168.1.190",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "nfc_scan",
+    "timestamp": "2026-04-08T18:05:53.126000",
+    "paciente_id": 15,
+    "trabajador_id": 10,
+    "clinica_id": 6,
+    "payload": {
+      "accion": "Abrir_Expediente"
+    },
+    "ip": "192.168.1.56",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "logout",
+    "timestamp": "2026-04-07T10:02:01.126000",
+    "paciente_id": null,
+    "trabajador_id": 4,
+    "clinica_id": 6,
+    "payload": {},
+    "ip": "192.168.1.75",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "login",
+    "timestamp": "2026-03-21T12:50:03.126000",
+    "paciente_id": null,
+    "trabajador_id": 1,
+    "clinica_id": 9,
+    "payload": {},
+    "ip": "192.168.1.141",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "cita_cancelada",
+    "timestamp": "2026-03-26T10:20:49.126000",
+    "paciente_id": 13,
+    "trabajador_id": 1,
+    "clinica_id": 8,
+    "payload": {
+      "cita_id": 1
+    },
+    "ip": "192.168.1.250",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "cita_cancelada",
+    "timestamp": "2026-05-13T15:48:54.126000",
+    "paciente_id": 11,
+    "trabajador_id": 10,
+    "clinica_id": 5,
+    "payload": {
+      "cita_id": 14
+    },
+    "ip": "192.168.1.130",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "nfc_scan",
+    "timestamp": "2026-04-22T15:24:30.126000",
+    "paciente_id": 3,
+    "trabajador_id": 2,
+    "clinica_id": 7,
+    "payload": {
+      "accion": "Abrir_Expediente"
+    },
+    "ip": "192.168.1.71",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "cita_cancelada",
+    "timestamp": "2026-04-04T08:10:32.126000",
+    "paciente_id": 15,
+    "trabajador_id": 8,
+    "clinica_id": 1,
+    "payload": {
+      "cita_id": 29
+    },
+    "ip": "192.168.1.29",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "alerta_generada",
+    "timestamp": "2026-04-29T09:59:28.126000",
+    "paciente_id": 15,
+    "trabajador_id": 3,
+    "clinica_id": 6,
+    "payload": {
+      "tipo_alerta": "Atraso"
+    },
+    "ip": "192.168.1.225",
+    "resultado": "error"
+  },
+  {
+    "tipo": "login",
+    "timestamp": "2026-04-17T11:30:00.126000",
+    "paciente_id": null,
+    "trabajador_id": 6,
+    "clinica_id": 8,
+    "payload": {},
+    "ip": "192.168.1.39",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "logout",
+    "timestamp": "2026-03-22T10:45:59.126000",
+    "paciente_id": null,
+    "trabajador_id": 4,
+    "clinica_id": 6,
+    "payload": {},
+    "ip": "192.168.1.125",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "logout",
+    "timestamp": "2026-04-11T14:26:02.126000",
+    "paciente_id": null,
+    "trabajador_id": 3,
+    "clinica_id": 8,
+    "payload": {},
+    "ip": "192.168.1.73",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "nfc_scan",
+    "timestamp": "2026-04-18T10:16:47.126000",
+    "paciente_id": 8,
+    "trabajador_id": 5,
+    "clinica_id": 10,
+    "payload": {
+      "accion": "Registrar_Llegada"
+    },
+    "ip": "192.168.1.91",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "vacuna_aplicada",
+    "timestamp": "2026-05-05T08:40:38.126000",
+    "paciente_id": 15,
+    "trabajador_id": 3,
+    "clinica_id": 2,
+    "payload": {
+      "vacuna_id": 11,
+      "vacuna": "OPV"
+    },
+    "ip": "192.168.1.246",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "vacuna_aplicada",
+    "timestamp": "2026-04-10T11:23:09.126000",
+    "paciente_id": 7,
+    "trabajador_id": 2,
+    "clinica_id": 5,
+    "payload": {
+      "vacuna_id": 5,
+      "vacuna": "Rotavirus"
+    },
+    "ip": "192.168.1.71",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "login",
+    "timestamp": "2026-04-26T10:03:11.126000",
+    "paciente_id": null,
+    "trabajador_id": 5,
+    "clinica_id": 7,
+    "payload": {},
+    "ip": "192.168.1.223",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "nfc_scan",
+    "timestamp": "2026-04-28T16:21:27.126000",
+    "paciente_id": 9,
+    "trabajador_id": 1,
+    "clinica_id": 3,
+    "payload": {
+      "accion": "Registrar_Llegada"
+    },
+    "ip": "192.168.1.123",
+    "resultado": "error"
+  },
+  {
+    "tipo": "alerta_generada",
+    "timestamp": "2026-04-03T13:27:40.126000",
+    "paciente_id": 1,
+    "trabajador_id": 5,
+    "clinica_id": 9,
+    "payload": {
+      "tipo_alerta": "Atraso"
+    },
+    "ip": "192.168.1.65",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "logout",
+    "timestamp": "2026-05-06T11:45:24.126000",
+    "paciente_id": null,
+    "trabajador_id": 3,
+    "clinica_id": 3,
+    "payload": {},
+    "ip": "192.168.1.54",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "login",
+    "timestamp": "2026-05-04T12:11:14.126000",
+    "paciente_id": null,
+    "trabajador_id": 10,
+    "clinica_id": 2,
+    "payload": {},
+    "ip": "192.168.1.62",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "cita_cancelada",
+    "timestamp": "2026-04-15T11:00:47.126000",
+    "paciente_id": 2,
+    "trabajador_id": 10,
+    "clinica_id": 4,
+    "payload": {
+      "cita_id": 89
+    },
+    "ip": "192.168.1.197",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "alerta_generada",
+    "timestamp": "2026-04-19T13:18:51.126000",
+    "paciente_id": 14,
+    "trabajador_id": 9,
+    "clinica_id": 1,
+    "payload": {
+      "tipo_alerta": "Critico"
+    },
+    "ip": "192.168.1.231",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "login",
+    "timestamp": "2026-05-02T10:55:34.126000",
+    "paciente_id": null,
+    "trabajador_id": 7,
+    "clinica_id": 1,
+    "payload": {},
+    "ip": "192.168.1.180",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "logout",
+    "timestamp": "2026-03-20T10:44:01.126000",
+    "paciente_id": null,
+    "trabajador_id": 6,
+    "clinica_id": 10,
+    "payload": {},
+    "ip": "192.168.1.105",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "alerta_generada",
+    "timestamp": "2026-05-06T15:33:35.126000",
+    "paciente_id": 2,
+    "trabajador_id": 6,
+    "clinica_id": 1,
+    "payload": {
+      "tipo_alerta": "Proximidad"
+    },
+    "ip": "192.168.1.101",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "alerta_generada",
+    "timestamp": "2026-05-11T08:18:17.126000",
+    "paciente_id": 14,
+    "trabajador_id": 7,
+    "clinica_id": 6,
+    "payload": {
+      "tipo_alerta": "Proximidad"
+    },
+    "ip": "192.168.1.197",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "cita_creada",
+    "timestamp": "2026-05-08T10:01:26.126000",
+    "paciente_id": 4,
+    "trabajador_id": 9,
+    "clinica_id": 1,
+    "payload": {
+      "cita_id": 12
+    },
+    "ip": "192.168.1.67",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "logout",
+    "timestamp": "2026-04-10T16:52:38.126000",
+    "paciente_id": null,
+    "trabajador_id": 5,
+    "clinica_id": 2,
+    "payload": {},
+    "ip": "192.168.1.17",
+    "resultado": "error"
+  },
+  {
+    "tipo": "cita_cancelada",
+    "timestamp": "2026-03-18T17:40:56.126000",
+    "paciente_id": 10,
+    "trabajador_id": 5,
+    "clinica_id": 4,
+    "payload": {
+      "cita_id": 60
+    },
+    "ip": "192.168.1.143",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "vacuna_aplicada",
+    "timestamp": "2026-03-26T10:02:06.126000",
+    "paciente_id": 5,
+    "trabajador_id": 6,
+    "clinica_id": 2,
+    "payload": {
+      "vacuna_id": 2,
+      "vacuna": "Hepatitis B"
+    },
+    "ip": "192.168.1.129",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "cita_creada",
+    "timestamp": "2026-03-28T09:25:07.126000",
+    "paciente_id": 15,
+    "trabajador_id": 2,
+    "clinica_id": 5,
+    "payload": {
+      "cita_id": 18
+    },
+    "ip": "192.168.1.148",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "alerta_generada",
+    "timestamp": "2026-05-11T15:47:06.126000",
+    "paciente_id": 7,
+    "trabajador_id": 3,
+    "clinica_id": 4,
+    "payload": {
+      "tipo_alerta": "Proximidad"
+    },
+    "ip": "192.168.1.221",
+    "resultado": "error"
+  },
+  {
+    "tipo": "cita_cancelada",
+    "timestamp": "2026-05-13T17:33:20.126000",
+    "paciente_id": 1,
+    "trabajador_id": 7,
+    "clinica_id": 7,
+    "payload": {
+      "cita_id": 51
+    },
+    "ip": "192.168.1.250",
+    "resultado": "error"
+  },
+  {
+    "tipo": "nfc_scan",
+    "timestamp": "2026-04-09T13:45:13.126000",
+    "paciente_id": 7,
+    "trabajador_id": 7,
+    "clinica_id": 6,
+    "payload": {
+      "accion": "Abrir_Expediente"
+    },
+    "ip": "192.168.1.218",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "cita_creada",
+    "timestamp": "2026-05-06T10:43:15.126000",
+    "paciente_id": 15,
+    "trabajador_id": 6,
+    "clinica_id": 1,
+    "payload": {
+      "cita_id": 46
+    },
+    "ip": "192.168.1.73",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "cita_cancelada",
+    "timestamp": "2026-03-27T16:11:55.126000",
+    "paciente_id": 2,
+    "trabajador_id": 6,
+    "clinica_id": 1,
+    "payload": {
+      "cita_id": 42
+    },
+    "ip": "192.168.1.120",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "cita_cancelada",
+    "timestamp": "2026-03-30T14:25:32.126000",
+    "paciente_id": 13,
+    "trabajador_id": 4,
+    "clinica_id": 1,
+    "payload": {
+      "cita_id": 59
+    },
+    "ip": "192.168.1.172",
+    "resultado": "error"
+  },
+  {
+    "tipo": "login",
+    "timestamp": "2026-04-11T18:39:41.126000",
+    "paciente_id": null,
+    "trabajador_id": 10,
+    "clinica_id": 1,
+    "payload": {},
+    "ip": "192.168.1.79",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "alerta_generada",
+    "timestamp": "2026-03-26T12:07:34.126000",
+    "paciente_id": 9,
+    "trabajador_id": 10,
+    "clinica_id": 1,
+    "payload": {
+      "tipo_alerta": "Proximidad"
+    },
+    "ip": "192.168.1.121",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "login",
+    "timestamp": "2026-04-15T13:41:43.126000",
+    "paciente_id": null,
+    "trabajador_id": 2,
+    "clinica_id": 5,
+    "payload": {},
+    "ip": "192.168.1.52",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "cita_creada",
+    "timestamp": "2026-03-25T15:37:23.126000",
+    "paciente_id": 9,
+    "trabajador_id": 5,
+    "clinica_id": 9,
+    "payload": {
+      "cita_id": 19
+    },
+    "ip": "192.168.1.122",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "logout",
+    "timestamp": "2026-05-11T12:17:44.126000",
+    "paciente_id": null,
+    "trabajador_id": 7,
+    "clinica_id": 5,
+    "payload": {},
+    "ip": "192.168.1.72",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "cita_cancelada",
+    "timestamp": "2026-04-30T17:44:37.126000",
+    "paciente_id": 10,
+    "trabajador_id": 5,
+    "clinica_id": 9,
+    "payload": {
+      "cita_id": 29
+    },
+    "ip": "192.168.1.176",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "cita_creada",
+    "timestamp": "2026-05-09T12:39:10.126000",
+    "paciente_id": 8,
+    "trabajador_id": 8,
+    "clinica_id": 6,
+    "payload": {
+      "cita_id": 61
+    },
+    "ip": "192.168.1.219",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "logout",
+    "timestamp": "2026-04-04T16:34:47.126000",
+    "paciente_id": null,
+    "trabajador_id": 4,
+    "clinica_id": 6,
+    "payload": {},
+    "ip": "192.168.1.108",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "vacuna_aplicada",
+    "timestamp": "2026-04-01T11:20:28.126000",
+    "paciente_id": 9,
+    "trabajador_id": 6,
+    "clinica_id": 1,
+    "payload": {
+      "vacuna_id": 6,
+      "vacuna": "Neumococo conjugada"
+    },
+    "ip": "192.168.1.135",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "logout",
+    "timestamp": "2026-03-19T10:35:56.127000",
+    "paciente_id": null,
+    "trabajador_id": 1,
+    "clinica_id": 5,
+    "payload": {},
+    "ip": "192.168.1.27",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "nfc_scan",
+    "timestamp": "2026-05-06T14:53:17.127000",
+    "paciente_id": 8,
+    "trabajador_id": 1,
+    "clinica_id": 8,
+    "payload": {
+      "accion": "Abrir_Expediente"
+    },
+    "ip": "192.168.1.198",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "cita_creada",
+    "timestamp": "2026-04-26T13:42:11.127000",
+    "paciente_id": 6,
+    "trabajador_id": 3,
+    "clinica_id": 4,
+    "payload": {
+      "cita_id": 18
+    },
+    "ip": "192.168.1.182",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "cita_creada",
+    "timestamp": "2026-03-26T15:17:15.127000",
+    "paciente_id": 13,
+    "trabajador_id": 9,
+    "clinica_id": 5,
+    "payload": {
+      "cita_id": 81
+    },
+    "ip": "192.168.1.191",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "cita_cancelada",
+    "timestamp": "2026-03-26T08:26:21.127000",
+    "paciente_id": 13,
+    "trabajador_id": 7,
+    "clinica_id": 3,
+    "payload": {
+      "cita_id": 71
+    },
+    "ip": "192.168.1.159",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "vacuna_aplicada",
+    "timestamp": "2026-04-26T12:55:08.127000",
+    "paciente_id": 10,
+    "trabajador_id": 3,
+    "clinica_id": 10,
+    "payload": {
+      "vacuna_id": 10,
+      "vacuna": "DPT (refuerzo)"
+    },
+    "ip": "192.168.1.38",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "vacuna_aplicada",
+    "timestamp": "2026-04-20T12:22:44.127000",
+    "paciente_id": 7,
+    "trabajador_id": 5,
+    "clinica_id": 8,
+    "payload": {
+      "vacuna_id": 9,
+      "vacuna": "Pentavalente refuerzo"
+    },
+    "ip": "192.168.1.152",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "cita_cancelada",
+    "timestamp": "2026-05-04T14:28:11.127000",
+    "paciente_id": 5,
+    "trabajador_id": 1,
+    "clinica_id": 6,
+    "payload": {
+      "cita_id": 24
+    },
+    "ip": "192.168.1.147",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "logout",
+    "timestamp": "2026-04-22T17:14:21.127000",
+    "paciente_id": null,
+    "trabajador_id": 10,
+    "clinica_id": 7,
+    "payload": {},
+    "ip": "192.168.1.32",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "nfc_scan",
+    "timestamp": "2026-04-09T13:13:23.127000",
+    "paciente_id": 7,
+    "trabajador_id": 10,
+    "clinica_id": 6,
+    "payload": {
+      "accion": "Registrar_Llegada"
+    },
+    "ip": "192.168.1.16",
+    "resultado": "error"
+  },
+  {
+    "tipo": "cita_creada",
+    "timestamp": "2026-05-08T12:34:30.127000",
+    "paciente_id": 10,
+    "trabajador_id": 5,
+    "clinica_id": 8,
+    "payload": {
+      "cita_id": 56
+    },
+    "ip": "192.168.1.142",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "cita_cancelada",
+    "timestamp": "2026-04-30T13:02:42.127000",
+    "paciente_id": 10,
+    "trabajador_id": 7,
+    "clinica_id": 7,
+    "payload": {
+      "cita_id": 87
+    },
+    "ip": "192.168.1.99",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "login",
+    "timestamp": "2026-04-08T09:26:34.127000",
+    "paciente_id": null,
+    "trabajador_id": 9,
+    "clinica_id": 2,
+    "payload": {},
+    "ip": "192.168.1.105",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "cita_cancelada",
+    "timestamp": "2026-03-31T11:26:38.127000",
+    "paciente_id": 8,
+    "trabajador_id": 10,
+    "clinica_id": 9,
+    "payload": {
+      "cita_id": 52
+    },
+    "ip": "192.168.1.122",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "cita_creada",
+    "timestamp": "2026-03-25T10:23:32.127000",
+    "paciente_id": 6,
+    "trabajador_id": 9,
+    "clinica_id": 6,
+    "payload": {
+      "cita_id": 47
+    },
+    "ip": "192.168.1.29",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "cita_creada",
+    "timestamp": "2026-04-14T13:52:56.127000",
+    "paciente_id": 15,
+    "trabajador_id": 2,
+    "clinica_id": 3,
+    "payload": {
+      "cita_id": 66
+    },
+    "ip": "192.168.1.237",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "cita_cancelada",
+    "timestamp": "2026-04-14T16:13:42.127000",
+    "paciente_id": 9,
+    "trabajador_id": 9,
+    "clinica_id": 3,
+    "payload": {
+      "cita_id": 25
+    },
+    "ip": "192.168.1.115",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "cita_cancelada",
+    "timestamp": "2026-03-27T13:36:39.127000",
+    "paciente_id": 11,
+    "trabajador_id": 10,
+    "clinica_id": 10,
+    "payload": {
+      "cita_id": 82
+    },
+    "ip": "192.168.1.195",
+    "resultado": "error"
+  },
+  {
+    "tipo": "vacuna_aplicada",
+    "timestamp": "2026-04-15T16:00:29.127000",
+    "paciente_id": 15,
+    "trabajador_id": 1,
+    "clinica_id": 1,
+    "payload": {
+      "vacuna_id": 5,
+      "vacuna": "Rotavirus"
+    },
+    "ip": "192.168.1.111",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "cita_creada",
+    "timestamp": "2026-04-05T10:31:47.127000",
+    "paciente_id": 13,
+    "trabajador_id": 1,
+    "clinica_id": 1,
+    "payload": {
+      "cita_id": 71
+    },
+    "ip": "192.168.1.155",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "cita_cancelada",
+    "timestamp": "2026-03-30T17:12:13.127000",
+    "paciente_id": 7,
+    "trabajador_id": 9,
+    "clinica_id": 9,
+    "payload": {
+      "cita_id": 78
+    },
+    "ip": "192.168.1.41",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "cita_creada",
+    "timestamp": "2026-03-19T09:04:20.127000",
+    "paciente_id": 3,
+    "trabajador_id": 2,
+    "clinica_id": 9,
+    "payload": {
+      "cita_id": 67
+    },
+    "ip": "192.168.1.135",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "cita_creada",
+    "timestamp": "2026-03-18T18:49:28.127000",
+    "paciente_id": 10,
+    "trabajador_id": 1,
+    "clinica_id": 7,
+    "payload": {
+      "cita_id": 42
+    },
+    "ip": "192.168.1.46",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "nfc_scan",
+    "timestamp": "2026-03-20T12:40:28.127000",
+    "paciente_id": 2,
+    "trabajador_id": 3,
+    "clinica_id": 5,
+    "payload": {
+      "accion": "Registrar_Llegada"
+    },
+    "ip": "192.168.1.99",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "cita_creada",
+    "timestamp": "2026-03-22T11:56:43.127000",
+    "paciente_id": 7,
+    "trabajador_id": 1,
+    "clinica_id": 7,
+    "payload": {
+      "cita_id": 75
+    },
+    "ip": "192.168.1.205",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "vacuna_aplicada",
+    "timestamp": "2026-04-09T11:14:46.127000",
+    "paciente_id": 1,
+    "trabajador_id": 10,
+    "clinica_id": 1,
+    "payload": {
+      "vacuna_id": 3,
+      "vacuna": "Pentavalente acelular"
+    },
+    "ip": "192.168.1.248",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "logout",
+    "timestamp": "2026-04-30T12:26:39.127000",
+    "paciente_id": null,
+    "trabajador_id": 1,
+    "clinica_id": 6,
+    "payload": {},
+    "ip": "192.168.1.164",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "vacuna_aplicada",
+    "timestamp": "2026-04-23T18:45:24.127000",
+    "paciente_id": 10,
+    "trabajador_id": 4,
+    "clinica_id": 2,
+    "payload": {
+      "vacuna_id": 4,
+      "vacuna": "Hepatitis B (serie)"
+    },
+    "ip": "192.168.1.115",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "cita_cancelada",
+    "timestamp": "2026-04-09T09:11:35.127000",
+    "paciente_id": 3,
+    "trabajador_id": 1,
+    "clinica_id": 8,
+    "payload": {
+      "cita_id": 46
+    },
+    "ip": "192.168.1.107",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "nfc_scan",
+    "timestamp": "2026-04-21T09:21:14.127000",
+    "paciente_id": 9,
+    "trabajador_id": 9,
+    "clinica_id": 7,
+    "payload": {
+      "accion": "Abrir_Expediente"
+    },
+    "ip": "192.168.1.95",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "login",
+    "timestamp": "2026-04-20T16:15:02.127000",
+    "paciente_id": null,
+    "trabajador_id": 7,
+    "clinica_id": 2,
+    "payload": {},
+    "ip": "192.168.1.109",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "nfc_scan",
+    "timestamp": "2026-04-28T08:17:04.127000",
+    "paciente_id": 11,
+    "trabajador_id": 4,
+    "clinica_id": 6,
+    "payload": {
+      "accion": "Registrar_Llegada"
+    },
+    "ip": "192.168.1.97",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "logout",
+    "timestamp": "2026-04-04T12:34:16.127000",
+    "paciente_id": null,
+    "trabajador_id": 2,
+    "clinica_id": 3,
+    "payload": {},
+    "ip": "192.168.1.223",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "cita_creada",
+    "timestamp": "2026-04-09T10:23:16.127000",
+    "paciente_id": 6,
+    "trabajador_id": 8,
+    "clinica_id": 8,
+    "payload": {
+      "cita_id": 28
+    },
+    "ip": "192.168.1.194",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "cita_cancelada",
+    "timestamp": "2026-04-14T15:32:08.127000",
+    "paciente_id": 4,
+    "trabajador_id": 4,
+    "clinica_id": 10,
+    "payload": {
+      "cita_id": 30
+    },
+    "ip": "192.168.1.229",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "logout",
+    "timestamp": "2026-04-28T17:23:00.127000",
+    "paciente_id": null,
+    "trabajador_id": 10,
+    "clinica_id": 5,
+    "payload": {},
+    "ip": "192.168.1.146",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "cita_creada",
+    "timestamp": "2026-03-29T09:43:34.127000",
+    "paciente_id": 9,
+    "trabajador_id": 4,
+    "clinica_id": 9,
+    "payload": {
+      "cita_id": 12
+    },
+    "ip": "192.168.1.148",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "cita_cancelada",
+    "timestamp": "2026-05-11T10:19:37.127000",
+    "paciente_id": 1,
+    "trabajador_id": 1,
+    "clinica_id": 7,
+    "payload": {
+      "cita_id": 50
+    },
+    "ip": "192.168.1.191",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "logout",
+    "timestamp": "2026-04-04T18:57:19.127000",
+    "paciente_id": null,
+    "trabajador_id": 6,
+    "clinica_id": 4,
+    "payload": {},
+    "ip": "192.168.1.37",
+    "resultado": "error"
+  },
+  {
+    "tipo": "nfc_scan",
+    "timestamp": "2026-04-04T09:45:51.127000",
+    "paciente_id": 5,
+    "trabajador_id": 5,
+    "clinica_id": 9,
+    "payload": {
+      "accion": "Registrar_Llegada"
+    },
+    "ip": "192.168.1.67",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "alerta_generada",
+    "timestamp": "2026-04-20T14:54:15.127000",
+    "paciente_id": 15,
+    "trabajador_id": 5,
+    "clinica_id": 7,
+    "payload": {
+      "tipo_alerta": "Atraso"
+    },
+    "ip": "192.168.1.208",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "cita_cancelada",
+    "timestamp": "2026-04-03T08:23:39.127000",
+    "paciente_id": 11,
+    "trabajador_id": 5,
+    "clinica_id": 3,
+    "payload": {
+      "cita_id": 85
+    },
+    "ip": "192.168.1.186",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "vacuna_aplicada",
+    "timestamp": "2026-04-10T14:22:50.127000",
+    "paciente_id": 15,
+    "trabajador_id": 8,
+    "clinica_id": 1,
+    "payload": {
+      "vacuna_id": 11,
+      "vacuna": "OPV"
+    },
+    "ip": "192.168.1.35",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "login",
+    "timestamp": "2026-04-07T18:02:18.127000",
+    "paciente_id": null,
+    "trabajador_id": 10,
+    "clinica_id": 5,
+    "payload": {},
+    "ip": "192.168.1.113",
+    "resultado": "error"
+  },
+  {
+    "tipo": "logout",
+    "timestamp": "2026-04-15T10:24:10.127000",
+    "paciente_id": null,
+    "trabajador_id": 4,
+    "clinica_id": 7,
+    "payload": {},
+    "ip": "192.168.1.199",
+    "resultado": "error"
+  },
+  {
+    "tipo": "nfc_scan",
+    "timestamp": "2026-04-08T17:31:32.127000",
+    "paciente_id": 12,
+    "trabajador_id": 10,
+    "clinica_id": 3,
+    "payload": {
+      "accion": "Abrir_Expediente"
+    },
+    "ip": "192.168.1.246",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "cita_cancelada",
+    "timestamp": "2026-03-17T09:53:55.127000",
+    "paciente_id": 13,
+    "trabajador_id": 6,
+    "clinica_id": 10,
+    "payload": {
+      "cita_id": 100
+    },
+    "ip": "192.168.1.177",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "login",
+    "timestamp": "2026-03-21T11:43:37.127000",
+    "paciente_id": null,
+    "trabajador_id": 10,
+    "clinica_id": 10,
+    "payload": {},
+    "ip": "192.168.1.38",
+    "resultado": "error"
+  },
+  {
+    "tipo": "nfc_scan",
+    "timestamp": "2026-03-25T14:44:52.127000",
+    "paciente_id": 12,
+    "trabajador_id": 6,
+    "clinica_id": 4,
+    "payload": {
+      "accion": "Abrir_Expediente"
+    },
+    "ip": "192.168.1.201",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "logout",
+    "timestamp": "2026-03-25T13:27:41.127000",
+    "paciente_id": null,
+    "trabajador_id": 9,
+    "clinica_id": 5,
+    "payload": {},
+    "ip": "192.168.1.123",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "cita_cancelada",
+    "timestamp": "2026-05-05T08:43:39.127000",
+    "paciente_id": 12,
+    "trabajador_id": 8,
+    "clinica_id": 9,
+    "payload": {
+      "cita_id": 27
+    },
+    "ip": "192.168.1.119",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "alerta_generada",
+    "timestamp": "2026-04-04T08:44:34.127000",
+    "paciente_id": 14,
+    "trabajador_id": 8,
+    "clinica_id": 3,
+    "payload": {
+      "tipo_alerta": "Critico"
+    },
+    "ip": "192.168.1.76",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "logout",
+    "timestamp": "2026-04-11T11:03:24.127000",
+    "paciente_id": null,
+    "trabajador_id": 9,
+    "clinica_id": 4,
+    "payload": {},
+    "ip": "192.168.1.53",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "vacuna_aplicada",
+    "timestamp": "2026-04-16T10:08:29.127000",
+    "paciente_id": 11,
+    "trabajador_id": 4,
+    "clinica_id": 2,
+    "payload": {
+      "vacuna_id": 12,
+      "vacuna": "VPH"
+    },
+    "ip": "192.168.1.134",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "logout",
+    "timestamp": "2026-05-05T15:08:37.127000",
+    "paciente_id": null,
+    "trabajador_id": 1,
+    "clinica_id": 4,
+    "payload": {},
+    "ip": "192.168.1.249",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "cita_cancelada",
+    "timestamp": "2026-03-30T17:36:27.127000",
+    "paciente_id": 4,
+    "trabajador_id": 3,
+    "clinica_id": 5,
+    "payload": {
+      "cita_id": 43
+    },
+    "ip": "192.168.1.171",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "cita_creada",
+    "timestamp": "2026-03-31T17:29:25.127000",
+    "paciente_id": 14,
+    "trabajador_id": 3,
+    "clinica_id": 7,
+    "payload": {
+      "cita_id": 99
+    },
+    "ip": "192.168.1.113",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "login",
+    "timestamp": "2026-04-20T15:13:56.127000",
+    "paciente_id": null,
+    "trabajador_id": 1,
+    "clinica_id": 5,
+    "payload": {},
+    "ip": "192.168.1.21",
+    "resultado": "error"
+  },
+  {
+    "tipo": "nfc_scan",
+    "timestamp": "2026-03-27T12:28:24.127000",
+    "paciente_id": 2,
+    "trabajador_id": 4,
+    "clinica_id": 5,
+    "payload": {
+      "accion": "Registrar_Llegada"
+    },
+    "ip": "192.168.1.93",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "cita_creada",
+    "timestamp": "2026-04-02T16:04:29.127000",
+    "paciente_id": 1,
+    "trabajador_id": 5,
+    "clinica_id": 6,
+    "payload": {
+      "cita_id": 2
+    },
+    "ip": "192.168.1.129",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "alerta_generada",
+    "timestamp": "2026-04-18T17:16:35.127000",
+    "paciente_id": 2,
+    "trabajador_id": 2,
+    "clinica_id": 8,
+    "payload": {
+      "tipo_alerta": "Critico"
+    },
+    "ip": "192.168.1.135",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "vacuna_aplicada",
+    "timestamp": "2026-04-17T08:22:47.127000",
+    "paciente_id": 15,
+    "trabajador_id": 9,
+    "clinica_id": 4,
+    "payload": {
+      "vacuna_id": 2,
+      "vacuna": "Hepatitis B"
+    },
+    "ip": "192.168.1.174",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "cita_creada",
+    "timestamp": "2026-03-24T10:47:30.127000",
+    "paciente_id": 1,
+    "trabajador_id": 4,
+    "clinica_id": 5,
+    "payload": {
+      "cita_id": 4
+    },
+    "ip": "192.168.1.208",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "logout",
+    "timestamp": "2026-04-03T18:33:39.127000",
+    "paciente_id": null,
+    "trabajador_id": 6,
+    "clinica_id": 5,
+    "payload": {},
+    "ip": "192.168.1.226",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "cita_cancelada",
+    "timestamp": "2026-04-16T17:20:00.127000",
+    "paciente_id": 7,
+    "trabajador_id": 2,
+    "clinica_id": 3,
+    "payload": {
+      "cita_id": 24
+    },
+    "ip": "192.168.1.175",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "nfc_scan",
+    "timestamp": "2026-03-30T16:58:10.127000",
+    "paciente_id": 6,
+    "trabajador_id": 6,
+    "clinica_id": 4,
+    "payload": {
+      "accion": "Abrir_Expediente"
+    },
+    "ip": "192.168.1.71",
+    "resultado": "error"
+  },
+  {
+    "tipo": "login",
+    "timestamp": "2026-03-21T11:31:02.127000",
+    "paciente_id": null,
+    "trabajador_id": 7,
+    "clinica_id": 10,
+    "payload": {},
+    "ip": "192.168.1.118",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "logout",
+    "timestamp": "2026-05-12T18:05:59.127000",
+    "paciente_id": null,
+    "trabajador_id": 10,
+    "clinica_id": 5,
+    "payload": {},
+    "ip": "192.168.1.46",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "logout",
+    "timestamp": "2026-04-24T09:02:50.127000",
+    "paciente_id": null,
+    "trabajador_id": 8,
+    "clinica_id": 3,
+    "payload": {},
+    "ip": "192.168.1.227",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "logout",
+    "timestamp": "2026-03-17T08:53:51.127000",
+    "paciente_id": null,
+    "trabajador_id": 6,
+    "clinica_id": 4,
+    "payload": {},
+    "ip": "192.168.1.166",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "alerta_generada",
+    "timestamp": "2026-03-30T12:04:35.127000",
+    "paciente_id": 11,
+    "trabajador_id": 7,
+    "clinica_id": 9,
+    "payload": {
+      "tipo_alerta": "Proximidad"
+    },
+    "ip": "192.168.1.141",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "nfc_scan",
+    "timestamp": "2026-03-17T18:52:06.127000",
+    "paciente_id": 3,
+    "trabajador_id": 8,
+    "clinica_id": 2,
+    "payload": {
+      "accion": "Registrar_Llegada"
+    },
+    "ip": "192.168.1.106",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "vacuna_aplicada",
+    "timestamp": "2026-05-11T11:30:26.127000",
+    "paciente_id": 2,
+    "trabajador_id": 6,
+    "clinica_id": 10,
+    "payload": {
+      "vacuna_id": 9,
+      "vacuna": "Pentavalente refuerzo"
+    },
+    "ip": "192.168.1.92",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "vacuna_aplicada",
+    "timestamp": "2026-04-24T17:39:14.127000",
+    "paciente_id": 2,
+    "trabajador_id": 3,
+    "clinica_id": 9,
+    "payload": {
+      "vacuna_id": 1,
+      "vacuna": "BCG"
+    },
+    "ip": "192.168.1.195",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "cita_creada",
+    "timestamp": "2026-05-11T14:23:11.127000",
+    "paciente_id": 8,
+    "trabajador_id": 10,
+    "clinica_id": 5,
+    "payload": {
+      "cita_id": 85
+    },
+    "ip": "192.168.1.175",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "alerta_generada",
+    "timestamp": "2026-03-19T11:14:36.127000",
+    "paciente_id": 11,
+    "trabajador_id": 9,
+    "clinica_id": 6,
+    "payload": {
+      "tipo_alerta": "Critico"
+    },
+    "ip": "192.168.1.124",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "logout",
+    "timestamp": "2026-05-09T17:26:31.127000",
+    "paciente_id": null,
+    "trabajador_id": 6,
+    "clinica_id": 10,
+    "payload": {},
+    "ip": "192.168.1.102",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "cita_creada",
+    "timestamp": "2026-04-11T09:14:52.127000",
+    "paciente_id": 3,
+    "trabajador_id": 7,
+    "clinica_id": 8,
+    "payload": {
+      "cita_id": 26
+    },
+    "ip": "192.168.1.150",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "logout",
+    "timestamp": "2026-04-04T16:42:04.127000",
+    "paciente_id": null,
+    "trabajador_id": 2,
+    "clinica_id": 5,
+    "payload": {},
+    "ip": "192.168.1.74",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "logout",
+    "timestamp": "2026-04-07T16:36:39.127000",
+    "paciente_id": null,
+    "trabajador_id": 8,
+    "clinica_id": 9,
+    "payload": {},
+    "ip": "192.168.1.188",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "cita_creada",
+    "timestamp": "2026-03-24T14:43:50.127000",
+    "paciente_id": 2,
+    "trabajador_id": 10,
+    "clinica_id": 10,
+    "payload": {
+      "cita_id": 57
+    },
+    "ip": "192.168.1.44",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "cita_creada",
+    "timestamp": "2026-05-05T09:29:07.127000",
+    "paciente_id": 14,
+    "trabajador_id": 2,
+    "clinica_id": 9,
+    "payload": {
+      "cita_id": 88
+    },
+    "ip": "192.168.1.110",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "logout",
+    "timestamp": "2026-03-25T10:23:28.127000",
+    "paciente_id": null,
+    "trabajador_id": 8,
+    "clinica_id": 10,
+    "payload": {},
+    "ip": "192.168.1.208",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "vacuna_aplicada",
+    "timestamp": "2026-04-22T08:00:56.127000",
+    "paciente_id": 12,
+    "trabajador_id": 1,
+    "clinica_id": 4,
+    "payload": {
+      "vacuna_id": 10,
+      "vacuna": "DPT (refuerzo)"
+    },
+    "ip": "192.168.1.64",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "login",
+    "timestamp": "2026-03-25T17:55:09.127000",
+    "paciente_id": null,
+    "trabajador_id": 7,
+    "clinica_id": 3,
+    "payload": {},
+    "ip": "192.168.1.61",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "cita_cancelada",
+    "timestamp": "2026-04-21T13:51:55.127000",
+    "paciente_id": 13,
+    "trabajador_id": 3,
+    "clinica_id": 6,
+    "payload": {
+      "cita_id": 95
+    },
+    "ip": "192.168.1.184",
+    "resultado": "error"
+  },
+  {
+    "tipo": "nfc_scan",
+    "timestamp": "2026-04-22T16:47:16.127000",
+    "paciente_id": 9,
+    "trabajador_id": 4,
+    "clinica_id": 2,
+    "payload": {
+      "accion": "Abrir_Expediente"
+    },
+    "ip": "192.168.1.194",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "alerta_generada",
+    "timestamp": "2026-03-26T13:35:29.127000",
+    "paciente_id": 6,
+    "trabajador_id": 6,
+    "clinica_id": 10,
+    "payload": {
+      "tipo_alerta": "Critico"
+    },
+    "ip": "192.168.1.38",
+    "resultado": "error"
+  },
+  {
+    "tipo": "cita_cancelada",
+    "timestamp": "2026-04-20T11:44:22.127000",
+    "paciente_id": 8,
+    "trabajador_id": 5,
+    "clinica_id": 4,
+    "payload": {
+      "cita_id": 3
+    },
+    "ip": "192.168.1.224",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "vacuna_aplicada",
+    "timestamp": "2026-05-03T09:04:05.127000",
+    "paciente_id": 13,
+    "trabajador_id": 1,
+    "clinica_id": 2,
+    "payload": {
+      "vacuna_id": 5,
+      "vacuna": "Rotavirus"
+    },
+    "ip": "192.168.1.57",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "nfc_scan",
+    "timestamp": "2026-05-13T12:34:31.127000",
+    "paciente_id": 12,
+    "trabajador_id": 3,
+    "clinica_id": 7,
+    "payload": {
+      "accion": "Abrir_Expediente"
+    },
+    "ip": "192.168.1.123",
+    "resultado": "error"
+  },
+  {
+    "tipo": "nfc_scan",
+    "timestamp": "2026-05-04T15:55:16.127000",
+    "paciente_id": 1,
+    "trabajador_id": 8,
+    "clinica_id": 3,
+    "payload": {
+      "accion": "Registrar_Llegada"
+    },
+    "ip": "192.168.1.29",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "alerta_generada",
+    "timestamp": "2026-05-02T10:44:42.127000",
+    "paciente_id": 14,
+    "trabajador_id": 7,
+    "clinica_id": 10,
+    "payload": {
+      "tipo_alerta": "Atraso"
+    },
+    "ip": "192.168.1.110",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "cita_creada",
+    "timestamp": "2026-04-20T13:33:04.127000",
+    "paciente_id": 4,
+    "trabajador_id": 2,
+    "clinica_id": 9,
+    "payload": {
+      "cita_id": 40
+    },
+    "ip": "192.168.1.238",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "cita_creada",
+    "timestamp": "2026-04-02T13:46:44.127000",
+    "paciente_id": 8,
+    "trabajador_id": 4,
+    "clinica_id": 1,
+    "payload": {
+      "cita_id": 43
+    },
+    "ip": "192.168.1.157",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "nfc_scan",
+    "timestamp": "2026-04-18T17:30:05.127000",
+    "paciente_id": 6,
+    "trabajador_id": 1,
+    "clinica_id": 6,
+    "payload": {
+      "accion": "Registrar_Llegada"
+    },
+    "ip": "192.168.1.15",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "cita_creada",
+    "timestamp": "2026-03-30T12:24:55.127000",
+    "paciente_id": 5,
+    "trabajador_id": 3,
+    "clinica_id": 1,
+    "payload": {
+      "cita_id": 9
+    },
+    "ip": "192.168.1.138",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "nfc_scan",
+    "timestamp": "2026-05-07T17:08:34.127000",
+    "paciente_id": 12,
+    "trabajador_id": 10,
+    "clinica_id": 10,
+    "payload": {
+      "accion": "Registrar_Llegada"
+    },
+    "ip": "192.168.1.244",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "alerta_generada",
+    "timestamp": "2026-04-27T18:36:24.127000",
+    "paciente_id": 11,
+    "trabajador_id": 4,
+    "clinica_id": 2,
+    "payload": {
+      "tipo_alerta": "Proximidad"
+    },
+    "ip": "192.168.1.102",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "alerta_generada",
+    "timestamp": "2026-03-23T12:48:40.127000",
+    "paciente_id": 6,
+    "trabajador_id": 3,
+    "clinica_id": 4,
+    "payload": {
+      "tipo_alerta": "Critico"
+    },
+    "ip": "192.168.1.102",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "cita_cancelada",
+    "timestamp": "2026-05-09T14:21:07.127000",
+    "paciente_id": 1,
+    "trabajador_id": 6,
+    "clinica_id": 4,
+    "payload": {
+      "cita_id": 91
+    },
+    "ip": "192.168.1.96",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "alerta_generada",
+    "timestamp": "2026-04-21T11:51:17.127000",
+    "paciente_id": 4,
+    "trabajador_id": 9,
+    "clinica_id": 8,
+    "payload": {
+      "tipo_alerta": "Atraso"
+    },
+    "ip": "192.168.1.48",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "login",
+    "timestamp": "2026-04-29T14:36:02.127000",
+    "paciente_id": null,
+    "trabajador_id": 7,
+    "clinica_id": 8,
+    "payload": {},
+    "ip": "192.168.1.207",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "logout",
+    "timestamp": "2026-03-30T12:46:50.127000",
+    "paciente_id": null,
+    "trabajador_id": 2,
+    "clinica_id": 10,
+    "payload": {},
+    "ip": "192.168.1.88",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "cita_creada",
+    "timestamp": "2026-03-24T11:37:11.127000",
+    "paciente_id": 15,
+    "trabajador_id": 6,
+    "clinica_id": 9,
+    "payload": {
+      "cita_id": 11
+    },
+    "ip": "192.168.1.159",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "cita_creada",
+    "timestamp": "2026-04-20T14:46:01.127000",
+    "paciente_id": 14,
+    "trabajador_id": 8,
+    "clinica_id": 6,
+    "payload": {
+      "cita_id": 9
+    },
+    "ip": "192.168.1.224",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "logout",
+    "timestamp": "2026-05-08T08:48:11.127000",
+    "paciente_id": null,
+    "trabajador_id": 5,
+    "clinica_id": 5,
+    "payload": {},
+    "ip": "192.168.1.52",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "logout",
+    "timestamp": "2026-03-21T14:28:13.127000",
+    "paciente_id": null,
+    "trabajador_id": 4,
+    "clinica_id": 1,
+    "payload": {},
+    "ip": "192.168.1.61",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "nfc_scan",
+    "timestamp": "2026-04-05T11:46:14.127000",
+    "paciente_id": 1,
+    "trabajador_id": 2,
+    "clinica_id": 9,
+    "payload": {
+      "accion": "Registrar_Llegada"
+    },
+    "ip": "192.168.1.163",
+    "resultado": "error"
+  },
+  {
+    "tipo": "login",
+    "timestamp": "2026-03-30T08:12:16.127000",
+    "paciente_id": null,
+    "trabajador_id": 6,
+    "clinica_id": 10,
+    "payload": {},
+    "ip": "192.168.1.79",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "login",
+    "timestamp": "2026-04-06T13:20:27.127000",
+    "paciente_id": null,
+    "trabajador_id": 1,
+    "clinica_id": 6,
+    "payload": {},
+    "ip": "192.168.1.232",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "cita_cancelada",
+    "timestamp": "2026-05-15T18:51:25.127000",
+    "paciente_id": 6,
+    "trabajador_id": 7,
+    "clinica_id": 8,
+    "payload": {
+      "cita_id": 23
+    },
+    "ip": "192.168.1.24",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "alerta_generada",
+    "timestamp": "2026-05-15T13:49:34.127000",
+    "paciente_id": 8,
+    "trabajador_id": 2,
+    "clinica_id": 1,
+    "payload": {
+      "tipo_alerta": "Critico"
+    },
+    "ip": "192.168.1.112",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "vacuna_aplicada",
+    "timestamp": "2026-04-16T17:41:44.127000",
+    "paciente_id": 6,
+    "trabajador_id": 1,
+    "clinica_id": 1,
+    "payload": {
+      "vacuna_id": 1,
+      "vacuna": "BCG"
+    },
+    "ip": "192.168.1.116",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "cita_cancelada",
+    "timestamp": "2026-03-25T08:09:08.127000",
+    "paciente_id": 4,
+    "trabajador_id": 3,
+    "clinica_id": 6,
+    "payload": {
+      "cita_id": 19
+    },
+    "ip": "192.168.1.145",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "login",
+    "timestamp": "2026-04-27T13:34:06.127000",
+    "paciente_id": null,
+    "trabajador_id": 6,
+    "clinica_id": 6,
+    "payload": {},
+    "ip": "192.168.1.184",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "cita_creada",
+    "timestamp": "2026-05-11T13:14:15.127000",
+    "paciente_id": 12,
+    "trabajador_id": 10,
+    "clinica_id": 3,
+    "payload": {
+      "cita_id": 80
+    },
+    "ip": "192.168.1.76",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "vacuna_aplicada",
+    "timestamp": "2026-05-09T15:35:45.127000",
+    "paciente_id": 5,
+    "trabajador_id": 5,
+    "clinica_id": 1,
+    "payload": {
+      "vacuna_id": 6,
+      "vacuna": "Neumococo conjugada"
+    },
+    "ip": "192.168.1.143",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "nfc_scan",
+    "timestamp": "2026-03-17T16:30:59.127000",
+    "paciente_id": 2,
+    "trabajador_id": 5,
+    "clinica_id": 3,
+    "payload": {
+      "accion": "Abrir_Expediente"
+    },
+    "ip": "192.168.1.48",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "logout",
+    "timestamp": "2026-03-19T17:08:56.127000",
+    "paciente_id": null,
+    "trabajador_id": 2,
+    "clinica_id": 7,
+    "payload": {},
+    "ip": "192.168.1.41",
+    "resultado": "error"
+  },
+  {
+    "tipo": "cita_creada",
+    "timestamp": "2026-04-03T12:38:15.127000",
+    "paciente_id": 6,
+    "trabajador_id": 9,
+    "clinica_id": 4,
+    "payload": {
+      "cita_id": 95
+    },
+    "ip": "192.168.1.48",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "alerta_generada",
+    "timestamp": "2026-03-19T13:49:34.127000",
+    "paciente_id": 12,
+    "trabajador_id": 9,
+    "clinica_id": 3,
+    "payload": {
+      "tipo_alerta": "Proximidad"
+    },
+    "ip": "192.168.1.123",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "vacuna_aplicada",
+    "timestamp": "2026-04-23T15:13:06.127000",
+    "paciente_id": 6,
+    "trabajador_id": 6,
+    "clinica_id": 4,
+    "payload": {
+      "vacuna_id": 1,
+      "vacuna": "BCG"
+    },
+    "ip": "192.168.1.37",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "login",
+    "timestamp": "2026-04-19T08:14:16.127000",
+    "paciente_id": null,
+    "trabajador_id": 7,
+    "clinica_id": 2,
+    "payload": {},
+    "ip": "192.168.1.154",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "vacuna_aplicada",
+    "timestamp": "2026-04-10T08:16:15.127000",
+    "paciente_id": 12,
+    "trabajador_id": 1,
+    "clinica_id": 4,
+    "payload": {
+      "vacuna_id": 7,
+      "vacuna": "Influenza"
+    },
+    "ip": "192.168.1.71",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "logout",
+    "timestamp": "2026-04-12T12:56:36.127000",
+    "paciente_id": null,
+    "trabajador_id": 7,
+    "clinica_id": 6,
+    "payload": {},
+    "ip": "192.168.1.137",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "cita_creada",
+    "timestamp": "2026-04-11T10:52:59.127000",
+    "paciente_id": 5,
+    "trabajador_id": 8,
+    "clinica_id": 3,
+    "payload": {
+      "cita_id": 37
+    },
+    "ip": "192.168.1.32",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "vacuna_aplicada",
+    "timestamp": "2026-04-16T18:39:54.127000",
+    "paciente_id": 10,
+    "trabajador_id": 3,
+    "clinica_id": 4,
+    "payload": {
+      "vacuna_id": 8,
+      "vacuna": "SRP"
+    },
+    "ip": "192.168.1.64",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "alerta_generada",
+    "timestamp": "2026-03-21T15:11:47.127000",
+    "paciente_id": 7,
+    "trabajador_id": 6,
+    "clinica_id": 4,
+    "payload": {
+      "tipo_alerta": "Proximidad"
+    },
+    "ip": "192.168.1.249",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "login",
+    "timestamp": "2026-03-17T10:58:52.127000",
+    "paciente_id": null,
+    "trabajador_id": 3,
+    "clinica_id": 2,
+    "payload": {},
+    "ip": "192.168.1.87",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "cita_cancelada",
+    "timestamp": "2026-04-02T15:43:54.127000",
+    "paciente_id": 7,
+    "trabajador_id": 2,
+    "clinica_id": 6,
+    "payload": {
+      "cita_id": 12
+    },
+    "ip": "192.168.1.116",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "cita_cancelada",
+    "timestamp": "2026-03-20T17:15:55.127000",
+    "paciente_id": 4,
+    "trabajador_id": 6,
+    "clinica_id": 7,
+    "payload": {
+      "cita_id": 81
+    },
+    "ip": "192.168.1.186",
+    "resultado": "error"
+  },
+  {
+    "tipo": "logout",
+    "timestamp": "2026-04-08T17:27:06.127000",
+    "paciente_id": null,
+    "trabajador_id": 10,
+    "clinica_id": 9,
+    "payload": {},
+    "ip": "192.168.1.188",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "login",
+    "timestamp": "2026-03-23T09:07:45.127000",
+    "paciente_id": null,
+    "trabajador_id": 6,
+    "clinica_id": 1,
+    "payload": {},
+    "ip": "192.168.1.134",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "cita_creada",
+    "timestamp": "2026-04-03T11:43:27.127000",
+    "paciente_id": 9,
+    "trabajador_id": 1,
+    "clinica_id": 7,
+    "payload": {
+      "cita_id": 19
+    },
+    "ip": "192.168.1.172",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "cita_creada",
+    "timestamp": "2026-04-20T15:58:06.127000",
+    "paciente_id": 2,
+    "trabajador_id": 9,
+    "clinica_id": 2,
+    "payload": {
+      "cita_id": 45
+    },
+    "ip": "192.168.1.65",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "logout",
+    "timestamp": "2026-04-03T08:16:10.127000",
+    "paciente_id": null,
+    "trabajador_id": 5,
+    "clinica_id": 2,
+    "payload": {},
+    "ip": "192.168.1.78",
+    "resultado": "error"
+  },
+  {
+    "tipo": "login",
+    "timestamp": "2026-03-21T14:50:55.127000",
+    "paciente_id": null,
+    "trabajador_id": 9,
+    "clinica_id": 4,
+    "payload": {},
+    "ip": "192.168.1.152",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "nfc_scan",
+    "timestamp": "2026-03-20T18:29:17.127000",
+    "paciente_id": 9,
+    "trabajador_id": 6,
+    "clinica_id": 1,
+    "payload": {
+      "accion": "Abrir_Expediente"
+    },
+    "ip": "192.168.1.150",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "vacuna_aplicada",
+    "timestamp": "2026-04-26T13:34:35.128000",
+    "paciente_id": 7,
+    "trabajador_id": 7,
+    "clinica_id": 5,
+    "payload": {
+      "vacuna_id": 7,
+      "vacuna": "Influenza"
+    },
+    "ip": "192.168.1.48",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "vacuna_aplicada",
+    "timestamp": "2026-03-17T11:38:12.128000",
+    "paciente_id": 9,
+    "trabajador_id": 3,
+    "clinica_id": 7,
+    "payload": {
+      "vacuna_id": 5,
+      "vacuna": "Rotavirus"
+    },
+    "ip": "192.168.1.187",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "vacuna_aplicada",
+    "timestamp": "2026-03-28T09:53:09.128000",
+    "paciente_id": 10,
+    "trabajador_id": 4,
+    "clinica_id": 4,
+    "payload": {
+      "vacuna_id": 1,
+      "vacuna": "BCG"
+    },
+    "ip": "192.168.1.242",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "vacuna_aplicada",
+    "timestamp": "2026-04-28T16:42:45.128000",
+    "paciente_id": 6,
+    "trabajador_id": 6,
+    "clinica_id": 9,
+    "payload": {
+      "vacuna_id": 8,
+      "vacuna": "SRP"
+    },
+    "ip": "192.168.1.157",
+    "resultado": "error"
+  },
+  {
+    "tipo": "cita_cancelada",
+    "timestamp": "2026-04-19T17:34:11.128000",
+    "paciente_id": 7,
+    "trabajador_id": 9,
+    "clinica_id": 8,
+    "payload": {
+      "cita_id": 31
+    },
+    "ip": "192.168.1.221",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "cita_cancelada",
+    "timestamp": "2026-03-23T14:33:24.128000",
+    "paciente_id": 5,
+    "trabajador_id": 6,
+    "clinica_id": 7,
+    "payload": {
+      "cita_id": 79
+    },
+    "ip": "192.168.1.178",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "nfc_scan",
+    "timestamp": "2026-04-07T17:48:37.128000",
+    "paciente_id": 5,
+    "trabajador_id": 9,
+    "clinica_id": 2,
+    "payload": {
+      "accion": "Abrir_Expediente"
+    },
+    "ip": "192.168.1.242",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "alerta_generada",
+    "timestamp": "2026-05-13T15:36:53.128000",
+    "paciente_id": 4,
+    "trabajador_id": 9,
+    "clinica_id": 6,
+    "payload": {
+      "tipo_alerta": "Proximidad"
+    },
+    "ip": "192.168.1.26",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "cita_creada",
+    "timestamp": "2026-04-05T16:10:58.128000",
+    "paciente_id": 14,
+    "trabajador_id": 9,
+    "clinica_id": 6,
+    "payload": {
+      "cita_id": 47
+    },
+    "ip": "192.168.1.71",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "logout",
+    "timestamp": "2026-03-21T13:24:08.128000",
+    "paciente_id": null,
+    "trabajador_id": 3,
+    "clinica_id": 8,
+    "payload": {},
+    "ip": "192.168.1.102",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "alerta_generada",
+    "timestamp": "2026-04-25T10:44:52.128000",
+    "paciente_id": 5,
+    "trabajador_id": 2,
+    "clinica_id": 7,
+    "payload": {
+      "tipo_alerta": "Atraso"
+    },
+    "ip": "192.168.1.36",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "cita_cancelada",
+    "timestamp": "2026-04-15T15:42:44.128000",
+    "paciente_id": 2,
+    "trabajador_id": 9,
+    "clinica_id": 9,
+    "payload": {
+      "cita_id": 36
+    },
+    "ip": "192.168.1.111",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "vacuna_aplicada",
+    "timestamp": "2026-05-02T10:48:50.128000",
+    "paciente_id": 9,
+    "trabajador_id": 8,
+    "clinica_id": 2,
+    "payload": {
+      "vacuna_id": 3,
+      "vacuna": "Pentavalente acelular"
+    },
+    "ip": "192.168.1.11",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "nfc_scan",
+    "timestamp": "2026-04-08T17:23:02.128000",
+    "paciente_id": 9,
+    "trabajador_id": 9,
+    "clinica_id": 8,
+    "payload": {
+      "accion": "Abrir_Expediente"
+    },
+    "ip": "192.168.1.215",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "login",
+    "timestamp": "2026-03-17T17:16:01.128000",
+    "paciente_id": null,
+    "trabajador_id": 4,
+    "clinica_id": 9,
+    "payload": {},
+    "ip": "192.168.1.24",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "nfc_scan",
+    "timestamp": "2026-04-17T12:15:29.128000",
+    "paciente_id": 5,
+    "trabajador_id": 5,
+    "clinica_id": 9,
+    "payload": {
+      "accion": "Abrir_Expediente"
+    },
+    "ip": "192.168.1.33",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "vacuna_aplicada",
+    "timestamp": "2026-03-29T14:50:46.128000",
+    "paciente_id": 5,
+    "trabajador_id": 4,
+    "clinica_id": 2,
+    "payload": {
+      "vacuna_id": 10,
+      "vacuna": "DPT (refuerzo)"
+    },
+    "ip": "192.168.1.209",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "login",
+    "timestamp": "2026-04-21T08:45:46.128000",
+    "paciente_id": null,
+    "trabajador_id": 7,
+    "clinica_id": 8,
+    "payload": {},
+    "ip": "192.168.1.202",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "vacuna_aplicada",
+    "timestamp": "2026-04-10T13:15:08.128000",
+    "paciente_id": 7,
+    "trabajador_id": 10,
+    "clinica_id": 7,
+    "payload": {
+      "vacuna_id": 10,
+      "vacuna": "DPT (refuerzo)"
+    },
+    "ip": "192.168.1.43",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "logout",
+    "timestamp": "2026-03-23T18:13:54.128000",
+    "paciente_id": null,
+    "trabajador_id": 6,
+    "clinica_id": 10,
+    "payload": {},
+    "ip": "192.168.1.94",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "login",
+    "timestamp": "2026-04-24T16:26:45.128000",
+    "paciente_id": null,
+    "trabajador_id": 7,
+    "clinica_id": 8,
+    "payload": {},
+    "ip": "192.168.1.137",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "cita_cancelada",
+    "timestamp": "2026-05-13T17:29:14.128000",
+    "paciente_id": 15,
+    "trabajador_id": 2,
+    "clinica_id": 1,
+    "payload": {
+      "cita_id": 60
+    },
+    "ip": "192.168.1.189",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "vacuna_aplicada",
+    "timestamp": "2026-03-23T15:25:02.128000",
+    "paciente_id": 8,
+    "trabajador_id": 3,
+    "clinica_id": 8,
+    "payload": {
+      "vacuna_id": 3,
+      "vacuna": "Pentavalente acelular"
+    },
+    "ip": "192.168.1.141",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "login",
+    "timestamp": "2026-04-24T16:02:39.128000",
+    "paciente_id": null,
+    "trabajador_id": 4,
+    "clinica_id": 4,
+    "payload": {},
+    "ip": "192.168.1.246",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "cita_creada",
+    "timestamp": "2026-04-30T09:05:58.128000",
+    "paciente_id": 4,
+    "trabajador_id": 7,
+    "clinica_id": 6,
+    "payload": {
+      "cita_id": 10
+    },
+    "ip": "192.168.1.156",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "login",
+    "timestamp": "2026-04-06T17:29:11.128000",
+    "paciente_id": null,
+    "trabajador_id": 2,
+    "clinica_id": 8,
+    "payload": {},
+    "ip": "192.168.1.24",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "logout",
+    "timestamp": "2026-03-22T16:44:37.128000",
+    "paciente_id": null,
+    "trabajador_id": 8,
+    "clinica_id": 6,
+    "payload": {},
+    "ip": "192.168.1.201",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "cita_creada",
+    "timestamp": "2026-03-21T18:09:54.128000",
+    "paciente_id": 6,
+    "trabajador_id": 7,
+    "clinica_id": 3,
+    "payload": {
+      "cita_id": 43
+    },
+    "ip": "192.168.1.58",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "login",
+    "timestamp": "2026-04-12T16:16:21.128000",
+    "paciente_id": null,
+    "trabajador_id": 9,
+    "clinica_id": 3,
+    "payload": {},
+    "ip": "192.168.1.32",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "nfc_scan",
+    "timestamp": "2026-04-24T16:56:40.128000",
+    "paciente_id": 7,
+    "trabajador_id": 9,
+    "clinica_id": 5,
+    "payload": {
+      "accion": "Registrar_Llegada"
+    },
+    "ip": "192.168.1.88",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "alerta_generada",
+    "timestamp": "2026-05-08T12:19:17.128000",
+    "paciente_id": 4,
+    "trabajador_id": 7,
+    "clinica_id": 7,
+    "payload": {
+      "tipo_alerta": "Proximidad"
+    },
+    "ip": "192.168.1.23",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "cita_cancelada",
+    "timestamp": "2026-05-03T17:09:24.128000",
+    "paciente_id": 6,
+    "trabajador_id": 8,
+    "clinica_id": 6,
+    "payload": {
+      "cita_id": 44
+    },
+    "ip": "192.168.1.61",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "cita_cancelada",
+    "timestamp": "2026-04-16T08:34:43.128000",
+    "paciente_id": 2,
+    "trabajador_id": 1,
+    "clinica_id": 9,
+    "payload": {
+      "cita_id": 53
+    },
+    "ip": "192.168.1.154",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "login",
+    "timestamp": "2026-04-28T12:12:44.128000",
+    "paciente_id": null,
+    "trabajador_id": 4,
+    "clinica_id": 5,
+    "payload": {},
+    "ip": "192.168.1.191",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "cita_creada",
+    "timestamp": "2026-04-25T15:13:38.128000",
+    "paciente_id": 15,
+    "trabajador_id": 8,
+    "clinica_id": 10,
+    "payload": {
+      "cita_id": 27
+    },
+    "ip": "192.168.1.24",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "alerta_generada",
+    "timestamp": "2026-03-30T09:52:43.128000",
+    "paciente_id": 10,
+    "trabajador_id": 1,
+    "clinica_id": 2,
+    "payload": {
+      "tipo_alerta": "Atraso"
+    },
+    "ip": "192.168.1.56",
+    "resultado": "error"
+  },
+  {
+    "tipo": "cita_cancelada",
+    "timestamp": "2026-05-04T11:43:50.128000",
+    "paciente_id": 12,
+    "trabajador_id": 3,
+    "clinica_id": 9,
+    "payload": {
+      "cita_id": 87
+    },
+    "ip": "192.168.1.201",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "logout",
+    "timestamp": "2026-03-31T11:33:57.128000",
+    "paciente_id": null,
+    "trabajador_id": 3,
+    "clinica_id": 9,
+    "payload": {},
+    "ip": "192.168.1.35",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "logout",
+    "timestamp": "2026-04-26T11:42:05.128000",
+    "paciente_id": null,
+    "trabajador_id": 1,
+    "clinica_id": 2,
+    "payload": {},
+    "ip": "192.168.1.223",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "vacuna_aplicada",
+    "timestamp": "2026-03-22T10:02:21.128000",
+    "paciente_id": 3,
+    "trabajador_id": 3,
+    "clinica_id": 7,
+    "payload": {
+      "vacuna_id": 8,
+      "vacuna": "SRP"
+    },
+    "ip": "192.168.1.85",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "alerta_generada",
+    "timestamp": "2026-05-10T10:19:06.128000",
+    "paciente_id": 15,
+    "trabajador_id": 6,
+    "clinica_id": 10,
+    "payload": {
+      "tipo_alerta": "Atraso"
+    },
+    "ip": "192.168.1.93",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "logout",
+    "timestamp": "2026-04-23T08:20:53.128000",
+    "paciente_id": null,
+    "trabajador_id": 4,
+    "clinica_id": 3,
+    "payload": {},
+    "ip": "192.168.1.107",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "nfc_scan",
+    "timestamp": "2026-03-26T11:29:56.128000",
+    "paciente_id": 3,
+    "trabajador_id": 9,
+    "clinica_id": 4,
+    "payload": {
+      "accion": "Registrar_Llegada"
+    },
+    "ip": "192.168.1.120",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "vacuna_aplicada",
+    "timestamp": "2026-04-20T09:42:36.128000",
+    "paciente_id": 15,
+    "trabajador_id": 1,
+    "clinica_id": 2,
+    "payload": {
+      "vacuna_id": 4,
+      "vacuna": "Hepatitis B (serie)"
+    },
+    "ip": "192.168.1.177",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "cita_creada",
+    "timestamp": "2026-05-03T13:01:16.128000",
+    "paciente_id": 13,
+    "trabajador_id": 5,
+    "clinica_id": 2,
+    "payload": {
+      "cita_id": 64
+    },
+    "ip": "192.168.1.237",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "login",
+    "timestamp": "2026-04-13T12:38:44.128000",
+    "paciente_id": null,
+    "trabajador_id": 8,
+    "clinica_id": 4,
+    "payload": {},
+    "ip": "192.168.1.159",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "login",
+    "timestamp": "2026-05-01T12:49:32.128000",
+    "paciente_id": null,
+    "trabajador_id": 3,
+    "clinica_id": 4,
+    "payload": {},
+    "ip": "192.168.1.238",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "logout",
+    "timestamp": "2026-03-20T17:38:27.128000",
+    "paciente_id": null,
+    "trabajador_id": 5,
+    "clinica_id": 10,
+    "payload": {},
+    "ip": "192.168.1.35",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "nfc_scan",
+    "timestamp": "2026-04-15T08:11:29.128000",
+    "paciente_id": 6,
+    "trabajador_id": 3,
+    "clinica_id": 4,
+    "payload": {
+      "accion": "Abrir_Expediente"
+    },
+    "ip": "192.168.1.125",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "nfc_scan",
+    "timestamp": "2026-03-27T12:51:59.128000",
+    "paciente_id": 2,
+    "trabajador_id": 3,
+    "clinica_id": 6,
+    "payload": {
+      "accion": "Abrir_Expediente"
+    },
+    "ip": "192.168.1.34",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "login",
+    "timestamp": "2026-04-24T15:02:15.128000",
+    "paciente_id": null,
+    "trabajador_id": 10,
+    "clinica_id": 3,
+    "payload": {},
+    "ip": "192.168.1.18",
+    "resultado": "error"
+  },
+  {
+    "tipo": "cita_creada",
+    "timestamp": "2026-03-29T14:36:43.128000",
+    "paciente_id": 14,
+    "trabajador_id": 7,
+    "clinica_id": 2,
+    "payload": {
+      "cita_id": 46
+    },
+    "ip": "192.168.1.29",
+    "resultado": "ok"
+  },
+  {
+    "tipo": "cita_cancelada",
+    "timestamp": "2026-04-02T18:05:29.128000",
+    "paciente_id": 6,
+    "trabajador_id": 6,
+    "clinica_id": 3,
+    "payload": {
+      "cita_id": 1
+    },
+    "ip": "192.168.1.225",
+    "resultado": "ok"
+  }
+]
