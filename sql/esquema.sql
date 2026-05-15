@@ -2,7 +2,7 @@
 --  Base de datos: sistemavacunacion
 -- ============================================================
 CREATE DATABASE sistemavacunacion;
-CREATE USER vaccine_user WITH PASSWORD '222444';
+CREATE USER vaccine_user WITH PASSWORD '666-999';
 
 GRANT CONNECT ON DATABASE sistemavacunacion TO vaccine_user;
 GRANT USAGE ON SCHEMA public TO vaccine_user;
@@ -566,63 +566,3 @@ DROP TABLE IF EXISTS scan_logs;
 DROP TABLE IF EXISTS beacons;
 
 -- nfc_id ya definido en CREATE TABLE patients (migración: renombrado de nfc_token)
-
--- ============================================================
---  MÓDULO ALMACÉN v2 — Trazabilidad y movimientos
--- ============================================================
-
--- Estado real del lote (reemplaza is_active boolean)
-ALTER TABLE vaccine_lots
-ADD COLUMN IF NOT EXISTS lot_status VARCHAR(30) NOT NULL DEFAULT 'Disponible'
-CHECK (lot_status IN ('Disponible', 'Agotado', 'Caducado', 'Bloqueado', 'Retirado'));
-
--- Migración de datos: sincronizar lot_status con estado actual
-UPDATE vaccine_lots SET lot_status = 'Caducado'
-WHERE expiration_date < CURRENT_DATE AND lot_status = 'Disponible';
-
-UPDATE vaccine_lots SET lot_status = 'Agotado'
-WHERE quantity_available = 0 AND expiration_date >= CURRENT_DATE AND lot_status = 'Disponible';
-
--- Trazabilidad completa de movimientos de inventario
-CREATE TABLE IF NOT EXISTS inventory_movements (
-    movement_id     SERIAL       PRIMARY KEY,
-    lot_id          INT          NOT NULL REFERENCES vaccine_lots(lot_id),
-    vaccine_id      INT          NOT NULL REFERENCES vaccines(vaccine_id),
-    clinic_id       INT          NOT NULL REFERENCES clinics(clinic_id),
-    worker_id       INT          REFERENCES workers(worker_id),
-    movement_type   VARCHAR(30)  NOT NULL
-                    CHECK (movement_type IN (
-                        'Entrada',
-                        'Salida_Aplicacion',
-                        'Salida_Merma',
-                        'Salida_Caducidad',
-                        'Ajuste_Positivo',
-                        'Ajuste_Negativo',
-                        'Transferencia_Salida',
-                        'Transferencia_Entrada'
-                    )),
-    quantity        INT          NOT NULL CHECK (quantity > 0),
-    quantity_before INT          NOT NULL,
-    quantity_after  INT          NOT NULL,
-    reference_id    INT,
-    reference_type  VARCHAR(30)  CHECK (reference_type IN ('vaccination_record', 'transfer', 'manual')),
-    reason          TEXT,
-    created_at      TIMESTAMP    NOT NULL DEFAULT NOW()
-);
-
--- Índices de rendimiento para inventory_movements
-CREATE INDEX IF NOT EXISTS idx_movements_lot      ON inventory_movements(lot_id);
-CREATE INDEX IF NOT EXISTS idx_movements_clinic   ON inventory_movements(clinic_id);
-CREATE INDEX IF NOT EXISTS idx_movements_type     ON inventory_movements(movement_type);
-CREATE INDEX IF NOT EXISTS idx_movements_date     ON inventory_movements(created_at DESC);
-CREATE INDEX IF NOT EXISTS idx_movements_worker   ON inventory_movements(worker_id);
-CREATE INDEX IF NOT EXISTS idx_movements_ref      ON inventory_movements(reference_id, reference_type);
-
--- Índices parciales para alertas de almacén (queries frecuentes)
-CREATE INDEX IF NOT EXISTS idx_lots_expiry_alert
-ON vaccine_lots(expiration_date, clinic_id)
-WHERE lot_status = 'Disponible';
-
-CREATE INDEX IF NOT EXISTS idx_lots_low_stock
-ON vaccine_lots(quantity_available, clinic_id)
-WHERE lot_status = 'Disponible';
