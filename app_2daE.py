@@ -29,6 +29,19 @@ except Exception as e:
     print(e)
 
 
+# ── Integración MongoDB ──────────────────────────────────────
+try:
+    from mongo.rutas import mongo_bp
+    app.register_blueprint(mongo_bp)
+    from mongo.conexion import ping as mongo_ping
+    if mongo_ping():
+        print("[OK] MongoDB conectado")
+    else:
+        print("[WARN] MongoDB no disponible - los reportes NoSQL estarán deshabilitados")
+except Exception as _e:
+    print(f"[WARN] No se pudo cargar el módulo MongoDB: {_e}")
+# ─────────────────────────────────────────────────────────────
+
 @app.errorhandler(OperationalError)
 def handle_database_operational_error(error):
     return (
