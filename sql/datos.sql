@@ -285,9 +285,11 @@ INSERT INTO patient_guardian_relations (patient_id, guardian_id, relation_type, 
 INSERT INTO roles (name, description) VALUES
 ('Administrador','Gestiona el sistema'),
 ('Enfermero','Aplica vacunas'),
-('Médico','Supervisa pacientes'),
+('Medico','Supervisa pacientes'),
 ('Recepcionista','Agenda citas'),
-('Almacén','Controla inventario');
+('Almacen','Controla inventario'),
+('Tutor','Cuida pacientes');
+
 
 -- SPECIALTIES
 INSERT INTO specialties (name) VALUES

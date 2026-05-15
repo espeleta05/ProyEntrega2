@@ -3989,3 +3989,108 @@ EXCEPTION WHEN OTHERS THEN
                NULL::INT AS appointment_id;
 END;
 $$;
+
+-- =============================================================================
+-- sp_dashboard_charts — datos para las 3 gráficas del dashboard principal
+-- Devuelve filas con (chart TEXT, label TEXT, value NUMERIC):
+--   chart = 'coverage'  → Cobertura por grupo de edad
+--   chart = 'monthly'   → Dosis aplicadas por mes (últimos 12 meses)
+--   chart = 'delay'     → % retraso por vacuna (top 5)
+-- =============================================================================
+CREATE OR REPLACE PROCEDURE sp_dashboard_charts(
+    INOUT p_results REFCURSOR
+)
+LANGUAGE plpgsql AS $$
+BEGIN
+    OPEN p_results FOR
+    WITH age_groups AS (
+        SELECT
+            p.patient_id,
+            CASE
+                WHEN DATE_PART('year', AGE(p.birth_date)) < 1  THEN U&'< 1 a\00F1o'
+                WHEN DATE_PART('year', AGE(p.birth_date)) < 3  THEN U&'1-2 a\00F1os'
+                WHEN DATE_PART('year', AGE(p.birth_date)) < 6  THEN U&'3-5 a\00F1os'
+                WHEN DATE_PART('year', AGE(p.birth_date)) < 12 THEN U&'6-11 a\00F1os'
+                ELSE U&'12+ a\00F1os'
+            END AS age_group,
+            DATE_PART('year', AGE(p.birth_date)) AS age_years
+        FROM patients p
+        WHERE p.is_active = TRUE
+    ),
+    complete_patients AS (
+        SELECT p.patient_id
+        FROM patients p
+        WHERE p.is_active = TRUE
+          AND NOT EXISTS (
+              SELECT 1 FROM scheme_doses sd
+              WHERE NOT EXISTS (
+                  SELECT 1 FROM vaccination_records vr
+                  WHERE vr.patient_id    = p.patient_id
+                    AND vr.scheme_dose_id = sd.dose_id
+              )
+          )
+    ),
+    coverage_by_age AS (
+        SELECT
+            ag.age_group AS label,
+            ROUND(
+                COUNT(DISTINCT cp.patient_id)::NUMERIC /
+                NULLIF(COUNT(DISTINCT ag.patient_id)::NUMERIC, 0) * 100
+            , 1) AS value,
+            MIN(ag.age_years) AS row_order,
+            1 AS chart_order
+        FROM age_groups ag
+        LEFT JOIN complete_patients cp ON ag.patient_id = cp.patient_id
+        GROUP BY ag.age_group
+    ),
+    monthly_doses AS (
+        SELECT
+            TO_CHAR(DATE_TRUNC('month', applied_date), 'Mon YY') AS label,
+            COUNT(*)::NUMERIC AS value,
+            EXTRACT(EPOCH FROM DATE_TRUNC('month', applied_date)) AS row_order,
+            2 AS chart_order
+        FROM vaccination_records
+        WHERE applied_date >= DATE_TRUNC('month', CURRENT_DATE) - INTERVAL '11 months'
+        GROUP BY DATE_TRUNC('month', applied_date)
+    ),
+    delay_all AS (
+        SELECT
+            v.name AS label,
+            ROUND(
+                COUNT(DISTINCT CASE
+                    WHEN (p.birth_date + (sd.ideal_age_months || ' months')::INTERVAL)::DATE < CURRENT_DATE
+                         AND NOT EXISTS (
+                             SELECT 1 FROM vaccination_records vr2
+                             WHERE vr2.patient_id    = p.patient_id
+                               AND vr2.scheme_dose_id = sd.dose_id
+                         )
+                    THEN p.patient_id
+                END)::NUMERIC /
+                NULLIF(COUNT(DISTINCT p.patient_id)::NUMERIC, 0) * 100
+            , 1) AS value
+        FROM patients p
+        CROSS JOIN scheme_doses sd
+        JOIN vaccines v ON sd.vaccine_id = v.vaccine_id
+        WHERE p.is_active = TRUE
+        GROUP BY v.name
+    ),
+    delay_top5 AS (
+        SELECT label, value,
+               ROW_NUMBER() OVER (ORDER BY value DESC) AS row_order,
+               3 AS chart_order
+        FROM delay_all
+        ORDER BY value DESC
+        LIMIT 5
+    )
+    SELECT chart_order, row_order, 'coverage'::TEXT AS chart, label, value
+    FROM coverage_by_age
+    UNION ALL
+    SELECT chart_order, row_order, 'monthly'::TEXT, label, value
+    FROM monthly_doses
+    UNION ALL
+    SELECT chart_order, row_order, 'delay'::TEXT, label, value
+    FROM delay_top5
+    ORDER BY chart_order, row_order;
+
+END;
+$$;

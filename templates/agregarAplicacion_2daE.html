@@ -77,40 +77,18 @@
             </div>
         </div>
 
-        {# Mapa worker_name → worker_id para sincronizar el campo oculto #}
-        <script>
-        const _workerMap = {
-            {% for w in medical_workers %}
-            "{{ w.first_name }} {{ w.last_name }} ({{ w.role_name }})": {{ w.worker_id }}{% if not loop.last %},{% endif %}
-            {% endfor %}
-        };
-        function _syncWorker(input) {
-            const id = _workerMap[input.value.trim()] || '';
-            document.getElementById('ap_worker_id').value = id;
-        }
-        </script>
-
-        <datalist id="medical-workers-list">
-            {% for w in medical_workers %}
-            <option value="{{ w.first_name }} {{ w.last_name }} ({{ w.role_name }})"></option>
-            {% endfor %}
-        </datalist>
-
         <div class="md3-form__row md3-form__row--2">
             <div class="md3-field">
-                <label class="md3-field__label" for="ap_worker">Aplicado por * <span style="font-weight:400;opacity:.65;font-size:.8em">(solo médicos y enfermeros)</span></label>
-                {# Campo de texto con autocompletado — el hidden envía el worker_id real #}
-                <input class="md3-input"
-                       type="text"
-                       id="ap_worker"
-                       list="medical-workers-list"
-                       autocomplete="off"
-                       placeholder="Escribe el nombre del médico o enfermero…"
-                       value="{{ form.worker_name or '' }}"
-                       oninput="_syncWorker(this)"
-                       onchange="_syncWorker(this)"
-                       required>
-                <input type="hidden" id="ap_worker_id" name="worker_id" value="{{ form.worker_id or '' }}">
+                <label class="md3-field__label" for="ap_worker_id">Aplicado por * <span style="font-weight:400;opacity:.65;font-size:.8em">(solo médicos y enfermeros)</span></label>
+                <select class="md3-select" id="ap_worker_id" name="worker_id" required>
+                    <option value="">Selecciona un médico o enfermero…</option>
+                    {% for w in medical_workers %}
+                    <option value="{{ w.worker_id }}"
+                        {% if form.worker_id | string == w.worker_id | string %}selected{% endif %}>
+                        {{ w.first_name }} {{ w.last_name }} ({{ w.role_name }})
+                    </option>
+                    {% endfor %}
+                </select>
             </div>
             <div class="md3-field">
                 <label class="md3-field__label" for="ap_scheme_dose">Dosis del esquema</label>

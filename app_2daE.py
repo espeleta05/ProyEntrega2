@@ -1317,9 +1317,9 @@ def dashboard():
 
                 # 3. Datos para las 3 gráficas
 
-                #cur.execute("CALL sp_dashboard_charts(%s)", ("cur_charts",))
-                #cur.execute('FETCH ALL FROM "cur_charts"')
-                #chart_rows = cur.fetchall()
+                cur.execute("CALL sp_dashboard_charts(%s)", ("cur_charts",))
+                cur.execute('FETCH ALL FROM "cur_charts"')
+                chart_rows = cur.fetchall()
 
             conn.commit()
         except Exception:
