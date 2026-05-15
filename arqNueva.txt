@@ -1,0 +1,295 @@
+================================================================
+IMMUNICARE — REFACTORIZACIÓN DE FLUJO CLÍNICO NFC
+Fecha: 2026-05-14
+================================================================
+
+PROBLEMA QUE SE RESOLVIÓ
+--------------------------
+El sistema anterior mezclaba tres dominios en uno solo:
+- appointments  → modelaba tanto agenda como presencia física
+- nfc_scan_events → era solo un log pasivo sin lógica clínica
+- No existía ninguna tabla que representara que un paciente
+  estaba físicamente dentro de la clínica en este momento.
+
+La solución separa correctamente los tres dominios:
+  Dominio 1 (Planificación): appointments — sin cambios de fondo
+  Dominio 2 (Presencia física): patient_clinic_visits — NUEVA
+  Dominio 3 (Acto médico): vaccination_records — columna visit_id agregada
+
+
+================================================================
+FASE A — BASE DE DATOS
+Archivo: sql/migrations/add_clinical_flow.sql
+================================================================
+
+PASO 1: ENUM visit_status
+  Tipo PostgreSQL con los 7 estados clínicos válidos:
+  - En recepcion
+  - En espera
+  - En consulta
+  - En vacunacion
+  - Finalizado
+  - Abandono
+  - Cancelado
+
+PASO 2: TABLA patient_clinic_visits (NUEVA)
+  Modela la presencia física del paciente dentro de la clínica.
+  Columnas principales:
+  - visit_id, patient_id, clinic_id (identidad)
+  - appointment_id (NULL si visita espontánea)
+  - visit_status (estado clínico actual, tipo ENUM)
+  - current_area_id (dónde está el paciente ahora)
+  - assigned_worker_id (quién lo atiende)
+  - checked_in_at, waiting_since, consultation_start,
+    vaccination_start, checked_out_at (timestamps por fase)
+  - checkin_by_worker_id, checkout_by_worker_id (trazabilidad)
+  - checkin_nfc_scan_id, checkout_nfc_scan_id (qué scan lo generó)
+  - visit_type: Programada / Espontanea / Urgencia
+  Restricción:
+  - UNIQUE INDEX parcial sobre patient_id WHERE status activo
+    → Un paciente no puede tener dos visitas activas simultáneas
+
+PASO 3: TABLA visit_area_movements (NUEVA)
+  Registra cada cambio de área o estado durante la visita.
+  Permite reconstruir el recorrido completo del paciente.
+  Columnas: visit_id, from_area_id, to_area_id, from_status,
+  to_status, moved_at, moved_by, nfc_scan_id, movement_notes
+
+PASO 4: ALTER TABLE nfc_scan_events
+  Columnas agregadas:
+  - visit_id → vincula el scan a la visita que generó
+  - scan_context → checkin / medical_open / checkout / area_change / info_only
+  - resolved_action → qué acción ejecutó el sistema (texto)
+  - error_reason → por qué falló si aplica
+
+PASO 5: ALTER TABLE vaccination_records
+  Columna agregada:
+  - visit_id → vincula la vacuna aplicada a la visita clínica
+
+PASO 6: ÍNDICES (7 nuevos)
+  - idx_visits_active_clinic → dashboard tiempo real por clínica
+  - idx_visits_active_patient → búsqueda al escanear NFC
+  - idx_visits_patient_date → historial de visitas por paciente
+  - idx_visits_waiting_since → alertas de espera > 30 min
+  - idx_movements_visit → recorrido por visita
+  - idx_nfc_scans_clinic_today → actividad reciente en dashboard
+  - idx_vr_visit → vacunas por visita
+
+
+================================================================
+FASE B — STORED PROCEDURES
+Archivo: sql/SP.sql (agregados al final)
+================================================================
+
+SP 1: sp_nfc_checkin(nfc_uid, worker_id, device_id, clinic_id)
+  Llamado cuando recepción escanea NFC al llegar el paciente.
+  Pasos internos:
+  1. Valida que la tarjeta NFC existe y está Activa
+  2. Verifica que no hay visita activa previa para el paciente
+  3. Obtiene el área de recepción de la clínica
+  4. Registra el evento en nfc_scan_events con scan_context=checkin
+  5. Busca si hay cita activa del paciente para hoy
+  6. Crea la fila en patient_clinic_visits con status=En recepcion
+  7. Registra el primer movimiento en visit_area_movements
+  8. Actualiza nfc_scan_events con el visit_id creado
+  9. Actualiza last_scanned_at en nfc_cards
+  10. Escribe en audit_log
+  Retorna: success, mensaje, visit_id, datos completos del paciente,
+           alergias, pending_doses, overdue_doses, visit_status
+  Manejo de errores: unique_violation (doble check-in) y OTHERS
+
+SP 2: sp_visit_transition(visit_id, new_status, new_area_id, worker_id, scan_id, notes)
+  Cambia el estado clínico de una visita activa.
+  Valida que la transición sea parte de la máquina de estados:
+    En recepcion → En espera
+    En espera    → En consulta
+    En consulta  → En vacunacion
+    En vacunacion → Finalizado
+    Cualquier activo → Abandono o Cancelado
+  Pasos: SELECT FOR UPDATE, validar transición, INSERT en
+  visit_area_movements, UPDATE patient_clinic_visits con
+  timestamps específicos por estado, INSERT en audit_log.
+  Retorna: success, mensaje, visit_id, patient_id, new_status
+
+SP 3: sp_nfc_medical_scan(nfc_uid, worker_id, device_id, clinic_id)
+  Llamado cuando médico o enfermero escanea NFC en consultorio.
+  Abre automáticamente el expediente completo del paciente.
+  Retorna en una sola consulta: datos del paciente, alergias
+  con severidad, visit_status actual, datos de cita vinculada,
+  pending_doses, overdue_doses, last_vaccine_date.
+
+SP 4: sp_nfc_checkout(nfc_uid, worker_id, device_id, clinic_id)
+  Llamado al escanear NFC para cerrar la visita.
+  Pasos: SELECT FOR UPDATE de visita activa, calcular duración,
+  registrar scan con scan_context=checkout, INSERT en
+  visit_area_movements con to_status=Finalizado, UPDATE
+  patient_clinic_visits cerrando la visita, audit_log.
+  Retorna: success, visit_id, patient_id, duration_minutes,
+           checkin_at, checkout_at.
+
+SP 5: sp_reception_realtime(clinic_id)
+  Devuelve todos los pacientes con visita activa en la clínica.
+  Consumido cada 10 segundos por el dashboard de recepción.
+  Por cada paciente incluye: minutes_in_clinic, minutes_waiting,
+  current_area, assigned_worker, alertas booleanas
+  (has_overdue_vaccines, has_allergies, wait_time_alert > 30 min),
+  status_color (código hex para la UI), datos de cita vinculada.
+  Ordenado por prioridad de estado: vacunacion > consulta >
+  espera > recepcion, luego por tiempo de espera.
+
+SP 6: sp_visit_patient_summary(visit_id)
+  Resumen clínico completo de una visita para el médico.
+  Incluye datos demográficos, alergias con descripción de reacción,
+  conteos de esquema (pending/overdue/applied), última vacuna,
+  datos de la cita vinculada, tutor principal con teléfono.
+
+SP 7: sp_patient_pending_doses(patient_id)
+  Lista dosis pendientes y atrasadas con:
+  - días de atraso calculados
+  - lote recomendado (FEFO: primero en vencer primero en usar)
+  - stock disponible del lote recomendado
+  - fecha de vencimiento del lote
+  Ordenado: Atrasadas primero, luego por due_date.
+
+
+================================================================
+FASE C — TRIGGERS
+Archivo: sql/triggers.sql (agregados antes de la sección DEPRECATED)
+================================================================
+
+Trigger 17: trg_close_appointment_on_checkout
+  Función: fn_close_appointment_on_checkout
+  Evento: AFTER UPDATE ON patient_clinic_visits
+  Qué hace: Cuando visit_status cambia a Finalizado y hay
+  appointment_id vinculado, marca la cita como Completada
+  automáticamente. No actúa si la cita ya está Cancelada o
+  No Show.
+
+Trigger 18: trg_audit_visit_status
+  Función: fn_audit_visit_status
+  Evento: AFTER UPDATE ON patient_clinic_visits
+  Qué hace: Cada vez que visit_status cambia, escribe en
+  audit_log con from_status, to_status, patient_id y timestamp.
+  Proporciona trazabilidad completa del recorrido clínico.
+
+Trigger 19: trg_prevent_inactive_patient_checkin
+  Función: fn_prevent_inactive_patient_checkin
+  Evento: BEFORE INSERT ON patient_clinic_visits
+  Qué hace: Bloquea con RAISE EXCEPTION si se intenta hacer
+  check-in de un paciente con is_active = FALSE.
+
+Trigger 20: trg_set_visit_updated_at
+  Función: fn_set_visit_updated_at
+  Evento: BEFORE UPDATE ON patient_clinic_visits
+  Qué hace: Actualiza automáticamente el campo updated_at
+  en cada modificación de la visita.
+
+
+================================================================
+FASE D — BACKEND FLASK
+Archivo: app_2daE.py (rutas agregadas antes del bloque CLI)
+================================================================
+
+RUTA 1: POST /api/nfc/scan
+  Roles: Recepcionista, Medico, Enfermero, Administrador
+  Body JSON: { uid, context, device_id }
+  Parámetro context:
+    "checkin"  → llama sp_nfc_checkin
+    "medical"  → llama sp_nfc_medical_scan
+    "checkout" → llama sp_nfc_checkout
+  Devuelve el resultado del SP correspondiente.
+  Maneja conversión de datetime a string para JSON.
+
+RUTA 2: GET /api/visits/realtime
+  Roles: Recepcionista, Medico, Enfermero, Administrador
+  Sin parámetros — usa clinic_id de la sesión del usuario.
+  Devuelve: { visits: [...], ts: "ISO timestamp" }
+  Lista de todos los pacientes activos en la clínica.
+  Diseñado para polling cada 10 segundos desde el dashboard.
+
+RUTA 3: POST /api/visits/<visit_id>/transition
+  Roles: Recepcionista, Medico, Enfermero, Administrador
+  Body JSON: { status, area_id, notes }
+  Cambio manual de estado sin escaneo NFC (botones de UI).
+  Valida que el status sea uno de los 7 estados válidos antes
+  de llamar sp_visit_transition.
+
+RUTA 4: GET /api/visits/<visit_id>/patient-summary
+  Roles: Medico, Enfermero, Administrador
+  Devuelve objeto con tres secciones:
+    patient → resultado de sp_visit_patient_summary
+    pending_doses → resultado de sp_patient_pending_doses
+    recent_vaccinations → últimas 5 vacunas aplicadas (query directa)
+
+RUTA 5: POST /api/visits/<visit_id>/link-vaccination
+  Roles: Medico, Enfermero, Administrador
+  Body JSON: { record_id }
+  Vincula un vaccination_record recién creado a la visita activa.
+  Actualiza vaccination_records.visit_id con UPDATE directo.
+
+
+================================================================
+MÁQUINA DE ESTADOS — REFERENCIA RÁPIDA
+================================================================
+
+Estado           Color UI    Transición válida hacia
+-----------      --------    -----------------------
+En recepcion     #3B82F6     En espera
+En espera        #F59E0B     En consulta
+En consulta      #8B5CF6     En vacunacion
+En vacunacion    #10B981     Finalizado
+Finalizado       #6B7280     (ninguna — visita cerrada)
+Abandono         #6B7280     (ninguna — visita cerrada)
+Cancelado        #6B7280     (ninguna — visita cerrada)
+
+Desde cualquier estado activo → Abandono o Cancelado (salida de emergencia)
+
+
+================================================================
+SEGURIDAD E INTEGRIDAD — RESUMEN
+================================================================
+
+Riesgo                          Solución implementada
+-----                           --------------------
+Doble check-in mismo paciente   UNIQUE INDEX parcial en patient_clinic_visits
+Tarjeta NFC inactiva/perdida    Validación en sp_nfc_checkin antes de crear visita
+Check-out sin visita activa     SELECT FOR UPDATE en sp_nfc_checkout
+Transición inválida de estado   Validación explícita en sp_visit_transition
+Escaneo concurrente mismo NFC   FOR UPDATE en SELECT de visita activa
+Paciente inactivo en check-in   Trigger trg_prevent_inactive_patient_checkin
+Cita no se cierra al salir      Trigger trg_close_appointment_on_checkout
+Sin trazabilidad de cambios     Trigger trg_audit_visit_status → audit_log
+
+
+================================================================
+ARCHIVOS MODIFICADOS / CREADOS
+================================================================
+
+CREADO:
+  sql/migrations/add_clinical_flow.sql  ← ejecutar en BD una vez
+
+MODIFICADOS:
+  sql/SP.sql      ← 7 nuevos SPs agregados al final
+  sql/triggers.sql ← 4 nuevos triggers (17-20) agregados
+  app_2daE.py     ← 5 nuevas rutas antes del bloque CLI
+
+
+================================================================
+ORDEN DE EJECUCIÓN EN BASE DE DATOS
+================================================================
+
+1. Ejecutar: sql/migrations/add_clinical_flow.sql
+   (crea tablas, altera columnas, crea índices)
+
+2. Ejecutar: sección nueva de sql/SP.sql
+   (los 7 SPs al final del archivo)
+
+3. Ejecutar: sección nueva de sql/triggers.sql
+   (los 4 triggers 17-20)
+
+4. Reiniciar Flask — las nuevas rutas se cargan automáticamente.
+
+
+================================================================
+FIN DEL DOCUMENTO
+================================================================

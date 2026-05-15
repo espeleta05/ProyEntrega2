@@ -1,0 +1,179 @@
+{% extends 'base_2daE.html' %}
+
+{% from 'components/badge.html' import badge %}
+
+{% block title %}Monitor de Sala — Recepción{% endblock %}
+
+{% block head_extra %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/sala_espera.css') }}">
+{% endblock %}
+
+{% block content %}
+
+<!-- Encabezado -->
+<div class="sala-header">
+  <div class="sala-header__left">
+    <h2 class="sala-title">Monitor de Sala</h2>
+    <p class="sala-date">{{ today }}</p>
+  </div>
+  <div class="sala-header__right">
+    <span class="live-badge" id="liveBadge">
+      <span class="live-dot"></span> EN VIVO
+    </span>
+    <span class="sala-clock" id="salaClock">--:--</span>
+    <button class="md3-btn md3-btn--tonal md3-btn--sm" id="btnRefresh" title="Actualizar ahora">
+      <i class="fa-solid fa-arrows-rotate"></i>
+    </button>
+  </div>
+</div>
+
+<!-- Panel de escaneo NFC manual -->
+<div class="nfc-scan-panel" id="nfcScanPanel">
+  <div class="nfc-scan-panel__icon">
+    <i class="fa-solid fa-tachograph-digital"></i>
+  </div>
+  <div class="nfc-scan-panel__body">
+    <p class="nfc-scan-panel__label">Escanear tarjeta NFC</p>
+    <div class="nfc-input-row">
+      <input type="text" id="nfcUidInput"
+             class="nfc-uid-input"
+             placeholder="Acercar tarjeta o escribir UID..."
+             autocomplete="off" spellcheck="false">
+      <select id="nfcContextSelect" class="nfc-ctx-select">
+        <option value="checkin">Check-in (llegada)</option>
+        <option value="medical">Consulta (médico)</option>
+        <option value="checkout">Check-out (salida)</option>
+      </select>
+      <button class="md3-btn md3-btn--filled" id="btnNfcScan">
+        <i class="fa-solid fa-bolt"></i> Procesar
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Resultado del scan -->
+<div id="scanResult" class="scan-result scan-result--hidden"></div>
+
+<!-- Contadores -->
+<div class="sala-counters">
+  <div class="counter-chip counter-chip--espera">
+    <i class="fa-solid fa-hourglass-half"></i>
+    <span id="cntEspera">0</span> en espera
+  </div>
+  <div class="counter-chip counter-chip--consulta">
+    <i class="fa-solid fa-stethoscope"></i>
+    <span id="cntConsulta">0</span> en consulta
+  </div>
+  <div class="counter-chip counter-chip--fin">
+    <i class="fa-solid fa-circle-check"></i>
+    <span id="cntFin">{{ finalizados_hoy }}</span> finalizados hoy
+  </div>
+</div>
+
+<!-- Tablero Kanban -->
+<div class="sala-board">
+
+  <!-- Columna En espera -->
+  <div class="sala-col sala-col--espera">
+    <div class="sala-col__header">
+      <span class="sala-col__dot sala-col__dot--espera"></span>
+      <h3>En espera</h3>
+    </div>
+    <div class="sala-col__cards" id="colEspera">
+      <div class="patient-card patient-card--empty" id="emptyEspera">
+        <i class="fa-solid fa-couch"></i>
+        <p>Sin pacientes en espera</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Columna En consulta -->
+  <div class="sala-col sala-col--consulta">
+    <div class="sala-col__header">
+      <span class="sala-col__dot sala-col__dot--consulta"></span>
+      <h3>En consulta</h3>
+    </div>
+    <div class="sala-col__cards" id="colConsulta">
+      <div class="patient-card patient-card--empty" id="emptyConsulta">
+        <i class="fa-solid fa-stethoscope"></i>
+        <p>Sin pacientes en consulta</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Panel resumen del día -->
+  <div class="sala-col sala-col--resumen">
+    <div class="sala-col__header">
+      <span class="sala-col__dot sala-col__dot--fin"></span>
+      <h3>Resumen del día</h3>
+    </div>
+    <div class="resumen-body">
+      <div class="resumen-stat">
+        <span class="resumen-stat__num" id="statFin">{{ finalizados_hoy }}</span>
+        <span class="resumen-stat__label">Finalizados</span>
+      </div>
+      <div class="resumen-last" id="resumenLast">
+        <i class="fa-solid fa-clock"></i>
+        <span>Última actualización: —</span>
+      </div>
+      <div class="resumen-flow">
+        <p class="resumen-flow__title">Flujo NFC activo</p>
+        <div class="flow-steps">
+          <div class="flow-step">
+            <div class="flow-step__icon flow-step__icon--checkin">
+              <i class="fa-solid fa-wifi"></i>
+            </div>
+            <span>Check-in</span>
+            <i class="fa-solid fa-arrow-right flow-arrow"></i>
+          </div>
+          <div class="flow-step">
+            <div class="flow-step__icon flow-step__icon--espera">
+              <i class="fa-solid fa-hourglass-half"></i>
+            </div>
+            <span>En espera</span>
+            <i class="fa-solid fa-arrow-right flow-arrow"></i>
+          </div>
+          <div class="flow-step">
+            <div class="flow-step__icon flow-step__icon--consulta">
+              <i class="fa-solid fa-stethoscope"></i>
+            </div>
+            <span>Consulta</span>
+            <i class="fa-solid fa-arrow-right flow-arrow"></i>
+          </div>
+          <div class="flow-step">
+            <div class="flow-step__icon flow-step__icon--fin">
+              <i class="fa-solid fa-circle-check"></i>
+            </div>
+            <span>Salida</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Modal: confirmación de checkout manual -->
+<div class="sala-modal-overlay" id="checkoutModal" hidden>
+  <div class="sala-modal">
+    <div class="sala-modal__icon"><i class="fa-solid fa-right-from-bracket"></i></div>
+    <h3 class="sala-modal__title">Confirmar salida</h3>
+    <p class="sala-modal__body" id="checkoutModalBody">¿Dar de alta a este paciente?</p>
+    <div class="sala-modal__actions">
+      <button class="md3-btn md3-btn--outlined" id="checkoutCancel">Cancelar</button>
+      <button class="md3-btn md3-btn--filled" id="checkoutConfirm">Dar de alta</button>
+    </div>
+  </div>
+</div>
+
+<!-- Datos para el JS -->
+<div id="sala-config" hidden
+     data-worker-id="{{ worker_id }}"
+     data-clinic-id="{{ clinic_id if clinic_id is defined else '' }}">
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/pages/sala_espera.js') }}" defer></script>
+{% endblock %}

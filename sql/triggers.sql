@@ -462,6 +462,97 @@ EXECUTE FUNCTION fn_set_initial_schedule_status();
 
 
 -- ============================================================
+-- MÓDULO: TRIGGERS FLUJO CLÍNICO NFC
+-- ============================================================
+
+-- Trigger 17: Al cerrar visita, marcar la cita vinculada como Completada
+CREATE OR REPLACE FUNCTION fn_close_appointment_on_checkout()
+RETURNS TRIGGER LANGUAGE plpgsql AS $$
+BEGIN
+    IF NEW.visit_status = 'Finalizado'
+       AND OLD.visit_status <> 'Finalizado'
+       AND NEW.appointment_id IS NOT NULL
+    THEN
+        UPDATE appointments
+        SET    appointment_status = 'Completada'
+        WHERE  appointment_id    = NEW.appointment_id
+          AND  appointment_status NOT IN ('Cancelada','No Show','Completada');
+    END IF;
+    RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS trg_close_appointment_on_checkout ON patient_clinic_visits;
+CREATE TRIGGER trg_close_appointment_on_checkout
+AFTER UPDATE ON patient_clinic_visits
+FOR EACH ROW EXECUTE FUNCTION fn_close_appointment_on_checkout();
+
+
+-- Trigger 18: Auditar cada cambio de estado clínico en visitas
+CREATE OR REPLACE FUNCTION fn_audit_visit_status()
+RETURNS TRIGGER LANGUAGE plpgsql AS $$
+BEGIN
+    IF NEW.visit_status <> OLD.visit_status THEN
+        INSERT INTO audit_log (table_name, record_id, action, changed_data, worker_id, changed_at)
+        VALUES (
+            'patient_clinic_visits', NEW.visit_id, 'UPDATE',
+            jsonb_build_object(
+                'from_status', OLD.visit_status,
+                'to_status',   NEW.visit_status,
+                'patient_id',  NEW.patient_id,
+                'ts',          NOW()
+            ),
+            NEW.assigned_worker_id, NOW()
+        );
+    END IF;
+    RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS trg_audit_visit_status ON patient_clinic_visits;
+CREATE TRIGGER trg_audit_visit_status
+AFTER UPDATE ON patient_clinic_visits
+FOR EACH ROW EXECUTE FUNCTION fn_audit_visit_status();
+
+
+-- Trigger 19: Bloquear check-in de pacientes inactivos
+CREATE OR REPLACE FUNCTION fn_prevent_inactive_patient_checkin()
+RETURNS TRIGGER LANGUAGE plpgsql AS $$
+DECLARE
+    v_active BOOLEAN;
+BEGIN
+    SELECT is_active INTO v_active FROM patients WHERE patient_id = NEW.patient_id;
+    IF NOT COALESCE(v_active, FALSE) THEN
+        RAISE EXCEPTION
+            'No se puede hacer check-in del paciente id=% porque está inactivo',
+            NEW.patient_id;
+    END IF;
+    RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS trg_prevent_inactive_patient_checkin ON patient_clinic_visits;
+CREATE TRIGGER trg_prevent_inactive_patient_checkin
+BEFORE INSERT ON patient_clinic_visits
+FOR EACH ROW EXECUTE FUNCTION fn_prevent_inactive_patient_checkin();
+
+
+-- Trigger 20: Actualizar updated_at en patient_clinic_visits automáticamente
+CREATE OR REPLACE FUNCTION fn_set_visit_updated_at()
+RETURNS TRIGGER LANGUAGE plpgsql AS $$
+BEGIN
+    NEW.updated_at := NOW();
+    RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS trg_set_visit_updated_at ON patient_clinic_visits;
+CREATE TRIGGER trg_set_visit_updated_at
+BEFORE UPDATE ON patient_clinic_visits
+FOR EACH ROW EXECUTE FUNCTION fn_set_visit_updated_at();
+
+
+-- ============================================================
 -- DEPRECATED — trigger 11 original (auto-generación de citas)
 -- Guardado aquí como referencia histórica. NO ejecutar.
 -- ============================================================

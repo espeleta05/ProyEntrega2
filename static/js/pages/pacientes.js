@@ -268,10 +268,10 @@ document.getElementById('formNewPatient')?.addEventListener('submit', async e =>
 
   if (wantsNfc && nfcId && patientId) {
     try {
-      await fetch('/api/assign-nfc-id', {
+      await fetch('/assign_nfc_card', {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({ patient_id: patientId, nfc_id: nfcId }),
+        body:    JSON.stringify({ patient_id: patientId, uid: nfcId, card_type: 'Pulsera' }),
       });
     } catch { /* ignorar — el paciente ya quedó registrado */ }
   }
@@ -570,15 +570,15 @@ document.getElementById('ep-nfc-cancel-btn')?.addEventListener('click', () => {
 
 document.getElementById('ep-nfc-save-btn')?.addEventListener('click', async () => {
   const nfcId = document.getElementById('ep_nfc_id')?.value.trim();
-  if (!nfcId || !/^\d+$/.test(nfcId)) {
-    alert('El número NFC debe contener solo dígitos.');
+  if (!nfcId) {
+    alert('Ingresa el UID de la tarjeta NFC.');
     return;
   }
   try {
-    const res    = await fetch('/api/assign-nfc-id', {
+    const res    = await fetch('/assign_nfc_card', {
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify({ patient_id: _epNfcPatientId, nfc_id: nfcId }),
+      body:    JSON.stringify({ patient_id: _epNfcPatientId, uid: nfcId, card_type: 'Pulsera' }),
     });
     const result = await res.json();
     if (!res.ok) { alert(result.error || 'Error al guardar NFC'); return; }
