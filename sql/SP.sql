@@ -989,41 +989,22 @@ CREATE OR REPLACE PROCEDURE sp_create_vaccine_lot(
     IN    p_lot_number           VARCHAR,
     IN    p_quantity_received    INT,
     IN    p_expiration_date      DATE,
-    INOUT p_results              REFCURSOR,
-    IN    p_worker_id            INT DEFAULT NULL
+    INOUT p_results              REFCURSOR
 )
 LANGUAGE plpgsql AS $$
 DECLARE
-    v_lot_id       INT;
-    v_lot_status   VARCHAR(30);
+    v_lot_id INT;
 BEGIN
-    v_lot_status := CASE
-        WHEN p_expiration_date < CURRENT_DATE THEN 'Caducado'
-        ELSE 'Disponible'
-    END;
-
     INSERT INTO vaccine_lots (
         vaccine_id, clinic_id, lot_number,
-        quantity_received, quantity_available, expiration_date, received_date,
-        is_active, lot_status
+        quantity_received, quantity_available, expiration_date, received_date, is_active
     )
     VALUES (
         p_vaccine_id, p_clinic_id, p_lot_number,
         p_quantity_received, p_quantity_received, p_expiration_date, NOW()::DATE,
-        (p_expiration_date >= CURRENT_DATE), v_lot_status
+        (p_expiration_date >= NOW()::DATE)
     )
     RETURNING vaccine_lots.lot_id INTO v_lot_id;
-
-    -- Registrar movimiento de entrada
-    INSERT INTO inventory_movements (
-        lot_id, vaccine_id, clinic_id, worker_id,
-        movement_type, quantity, quantity_before, quantity_after,
-        reference_type, reason
-    ) VALUES (
-        v_lot_id, p_vaccine_id, p_clinic_id, p_worker_id,
-        'Entrada', p_quantity_received, 0, p_quantity_received,
-        'manual', 'Recepción inicial de lote'
-    );
 
     OPEN p_results FOR
         SELECT v_lot_id AS lot_id;
@@ -2335,6 +2316,9 @@ BEGIN
             COALESCE(TRIM(wi.first_name || ' ' || wi.last_name), '-')
                                                                AS issued_by_name,
 
+            -- Estado clinico actual (visita activa hoy)
+            pcv.visit_status                                   AS current_visit_status,
+
             -- Estadisticas de uso
             (SELECT COUNT(*) FROM nfc_scan_events se
              WHERE se.nfc_card_id = nc.nfc_card_id)            AS total_scans,
@@ -2363,6 +2347,14 @@ BEGIN
         FROM nfc_cards nc
         JOIN  patients p  ON p.patient_id  = nc.patient_id
         LEFT JOIN workers wi ON wi.worker_id = nc.issued_by
+        LEFT JOIN LATERAL (
+            SELECT visit_status
+            FROM   patient_clinic_visits
+            WHERE  patient_id  = p.patient_id
+              AND  visit_status NOT IN ('Finalizado','Abandono','Cancelado')
+            ORDER BY checked_in_at DESC
+            LIMIT 1
+        ) pcv ON TRUE
         ORDER BY
             CASE nc.status
                 WHEN 'Activa'   THEN 1
@@ -2387,47 +2379,52 @@ BEGIN
             se.nfc_card_id,
             se.scanned_at,
             se.action_triggered,
-            se.nfc_scan_result                                 AS result,
+            -- Contexto clínico (sistema nuevo) o resultado legacy
+            COALESCE(se.scan_context, se.action_triggered, '-')    AS scan_context,
+            COALESCE(se.resolved_action, se.nfc_scan_result, '-')  AS resolved_action,
+            se.error_reason,
             se.nfc_scan_result,
 
             -- Tarjeta
-            nc.uid                                             AS card_uid,
-            nc.status                                          AS card_status,
+            nc.uid                                                 AS card_uid,
+            nc.status                                              AS card_status,
 
             -- Paciente (a traves de la tarjeta)
             nc.patient_id,
-            TRIM(p.first_name || ' ' || p.last_name)          AS patient_name,
+            TRIM(p.first_name || ' ' || p.last_name)              AS patient_name,
             DATE_PART('year', AGE(CURRENT_DATE, p.birth_date))::INT
-                                                               AS patient_age,
+                                                                   AS patient_age,
 
             -- Trabajador que escaneo
             COALESCE(TRIM(w.first_name || ' ' || w.last_name), '-')
-                                                               AS worker_name,
+                                                                   AS worker_name,
             COALESCE(TRIM(w.first_name || ' ' || w.last_name), '-')
-                                                               AS scanned_by_name,
+                                                                   AS scanned_by_name,
 
             -- Ubicacion
-            c.name                                             AS clinic_name,
-            COALESCE(ca.name, '-')                             AS area_name,
+            c.name                                                 AS clinic_name,
+            COALESCE(ca.name, '-')                                 AS area_name,
 
-            -- Dispositivo
-            COALESCE(nd.device_name, '-')                     AS device_name,
-            nd.model                                           AS device_model,
-
-            -- Clasificacion del resultado
+            -- Resultado unificado para la UI
             CASE
+                -- Sistema nuevo: resolved_action indica éxito
+                WHEN se.resolved_action IN ('visit_created','consulta_started',
+                                            'expedient_opened','checkout_done')
+                THEN 'Éxito'
+                -- Sistema nuevo: error
+                WHEN se.error_reason IS NOT NULL
+                THEN 'Error'
+                -- Legacy
                 WHEN se.nfc_scan_result ILIKE '%exito%'
-                  OR se.nfc_scan_result ILIKE '%exitoso%'
                   OR se.nfc_scan_result ILIKE '%ok%'
                   OR se.nfc_scan_result ILIKE '%acceso%'
-                THEN 'Exitoso'
+                THEN 'Éxito'
                 WHEN se.nfc_scan_result ILIKE '%error%'
                   OR se.nfc_scan_result ILIKE '%fallo%'
                   OR se.nfc_scan_result ILIKE '%rechaz%'
-                  OR se.nfc_scan_result ILIKE '%denegado%'
                 THEN 'Error'
-                ELSE COALESCE(se.nfc_scan_result, '-')
-            END                                                AS resultado_display
+                ELSE 'Éxito'
+            END                                                    AS result
 
         FROM nfc_scan_events se
         JOIN  nfc_cards  nc ON nc.nfc_card_id = se.nfc_card_id
@@ -2496,8 +2493,8 @@ BEGIN
         RAISE EXCEPTION 'El UID de la tarjeta es obligatorio';
     END IF;
 
-    IF EXISTS (SELECT 1 FROM nfc_cards WHERE uid = TRIM(p_uid)) THEN
-        RAISE EXCEPTION 'Ya existe una tarjeta con el UID %', p_uid;
+    IF EXISTS (SELECT 1 FROM nfc_cards WHERE uid = TRIM(p_uid) AND status = 'Activa') THEN
+        RAISE EXCEPTION 'Ya existe una tarjeta activa con el UID %', p_uid;
     END IF;
 
     IF EXISTS (
@@ -4026,11 +4023,11 @@ BEGIN
         SELECT
             p.patient_id,
             CASE
-                WHEN DATE_PART('year', AGE(p.birth_date)) < 1  THEN U&'< 1 a\00F1o'
-                WHEN DATE_PART('year', AGE(p.birth_date)) < 3  THEN U&'1-2 a\00F1os'
-                WHEN DATE_PART('year', AGE(p.birth_date)) < 6  THEN U&'3-5 a\00F1os'
-                WHEN DATE_PART('year', AGE(p.birth_date)) < 12 THEN U&'6-11 a\00F1os'
-                ELSE U&'12+ a\00F1os'
+                WHEN DATE_PART('year', AGE(p.birth_date)) < 1  THEN U&'< 1 año'
+                WHEN DATE_PART('year', AGE(p.birth_date)) < 3  THEN U&'1-2 años'
+                WHEN DATE_PART('year', AGE(p.birth_date)) < 6  THEN U&'3-5 años'
+                WHEN DATE_PART('year', AGE(p.birth_date)) < 12 THEN U&'6-11 años'
+                ELSE U&'12+ años'
             END AS age_group,
             DATE_PART('year', AGE(p.birth_date)) AS age_years
         FROM patients p
@@ -4114,299 +4111,796 @@ BEGIN
 END;
 $$;
 
+
 -- ============================================================
--- FASE 2 — SPs de Transferencias entre clínicas
+-- MÓDULO: FLUJO CLÍNICO NFC
+-- Estos SPs manejan la presencia física del paciente dentro
+-- de la clínica a través de escaneos de tarjeta NFC.
 -- ============================================================
 
--- ─────────────────────────────────────────────────────────────
--- sp_get_transfers
--- Lista transferencias con filtros opcionales de clínica y estado.
--- Devuelve: todas las columnas de inventory_transfers enriquecidas
---           con nombres de vacuna, clínicas, solicitante y aprobador.
--- ─────────────────────────────────────────────────────────────
-CREATE OR REPLACE PROCEDURE sp_get_transfers(
-    IN    p_clinic_id      INT,       -- NULL = todas las clínicas (origen o destino)
-    IN    p_status_filter  VARCHAR,   -- NULL = todos los estados
-    INOUT p_results        REFCURSOR
-)
-LANGUAGE plpgsql AS $$
-BEGIN
-    OPEN p_results FOR
-        SELECT
-            t.transfer_id,
-            t.lot_id,
-            t.quantity,
-            t.transfer_status,
-            t.reason,
-            t.notes,
-            t.requested_at,
-            t.resolved_at,
-            vl.lot_number,
-            v.vaccine_name,
-            cf.clinic_name  AS from_clinic_name,
-            ct.clinic_name  AS to_clinic_name,
-            t.from_clinic_id,
-            t.to_clinic_id,
-            (wr.first_name || ' ' || wr.last_name) AS requested_by_name,
-            (wa.first_name || ' ' || wa.last_name) AS approved_by_name,
-            vl.quantity_available
-        FROM inventory_transfers t
-        JOIN vaccine_lots  vl ON vl.lot_id      = t.lot_id
-        JOIN vaccines       v ON v.vaccine_id   = t.vaccine_id
-        JOIN clinics        cf ON cf.clinic_id  = t.from_clinic_id
-        JOIN clinics        ct ON ct.clinic_id  = t.to_clinic_id
-        JOIN workers        wr ON wr.worker_id  = t.requested_by
-        LEFT JOIN workers   wa ON wa.worker_id  = t.approved_by
-        WHERE
-            (p_clinic_id     IS NULL OR t.from_clinic_id = p_clinic_id OR t.to_clinic_id = p_clinic_id)
-            AND (p_status_filter IS NULL OR t.transfer_status = p_status_filter)
-        ORDER BY t.requested_at DESC;
-END;
-$$;
 
--- ─────────────────────────────────────────────────────────────
--- sp_create_transfer
--- Crea una transferencia nueva en estado 'Pendiente'.
--- Valida stock suficiente en el lote origen.
--- ─────────────────────────────────────────────────────────────
-CREATE OR REPLACE PROCEDURE sp_create_transfer(
-    IN    p_lot_id        INT,
-    IN    p_to_clinic_id  INT,
-    IN    p_quantity      INT,
-    IN    p_worker_id     INT,
-    IN    p_reason        TEXT,
-    INOUT p_results       REFCURSOR
+-- ============================================================
+-- SP: sp_nfc_checkin
+-- Llamado cuando recepción escanea el NFC al llegar el paciente.
+-- Valida la tarjeta, crea la visita clínica, vincula cita si existe.
+-- ============================================================
+CREATE OR REPLACE PROCEDURE sp_nfc_checkin(
+    IN    p_nfc_uid    VARCHAR(30),
+    IN    p_worker_id  INT,
+    IN    p_device_id  VARCHAR(30),
+    IN    p_clinic_id  INT,
+    INOUT p_result     REFCURSOR
 )
 LANGUAGE plpgsql AS $$
 DECLARE
-    v_lot           RECORD;
-    v_transfer_id   INT;
+    v_card_id         INT;
+    v_patient_id      INT;
+    v_card_status     VARCHAR(20);
+    v_existing_visit  INT;
+    v_visit_id        INT;
+    v_scan_id         INT;
+    v_area_id         INT;
+    v_appointment_id  INT;
 BEGIN
-    -- Obtener datos del lote
-    SELECT vl.lot_id, vl.vaccine_id, vl.clinic_id, vl.quantity_available, vl.lot_status,
-           v.vaccine_name, c.clinic_name
-    INTO v_lot
-    FROM vaccine_lots vl
-    JOIN vaccines  v ON v.vaccine_id = vl.vaccine_id
-    JOIN clinics   c ON c.clinic_id  = vl.clinic_id
-    WHERE vl.lot_id = p_lot_id;
+    -- 1. Validar que el NFC existe y está activo
+    SELECT nc.nfc_card_id, nc.patient_id, nc.status
+    INTO   v_card_id, v_patient_id, v_card_status
+    FROM   nfc_cards nc
+    WHERE  nc.uid = p_nfc_uid;
 
     IF NOT FOUND THEN
-        OPEN p_results FOR SELECT FALSE AS success, 'Lote no encontrado.' AS message, NULL::INT AS transfer_id;
+        OPEN p_result FOR
+            SELECT FALSE AS success, 'NFC no registrado en el sistema' AS message,
+                   NULL::INT AS visit_id, NULL::INT AS patient_id,
+                   NULL::TEXT AS full_name, NULL::TEXT AS visit_status;
         RETURN;
     END IF;
 
-    IF v_lot.lot_status NOT IN ('Disponible') THEN
-        OPEN p_results FOR SELECT FALSE AS success,
-            'El lote está en estado ' || v_lot.lot_status || ' y no puede transferirse.' AS message,
-            NULL::INT AS transfer_id;
+    IF v_card_status <> 'Activa' THEN
+        OPEN p_result FOR
+            SELECT FALSE AS success,
+                   FORMAT('Tarjeta con estado "%s" — no se puede usar', v_card_status) AS message,
+                   NULL::INT AS visit_id, v_patient_id,
+                   NULL::TEXT AS full_name, NULL::TEXT AS visit_status;
         RETURN;
     END IF;
 
-    IF v_lot.quantity_available < p_quantity THEN
-        OPEN p_results FOR SELECT FALSE AS success,
-            'Stock insuficiente. Disponible: ' || v_lot.quantity_available || ', solicitado: ' || p_quantity AS message,
-            NULL::INT AS transfer_id;
+    -- 2. Verificar que no hay visita activa previa para este paciente
+    SELECT visit_id INTO v_existing_visit
+    FROM   patient_clinic_visits
+    WHERE  patient_id   = v_patient_id
+      AND  visit_status NOT IN ('Finalizado','Abandono','Cancelado')
+    LIMIT 1;
+
+    IF FOUND THEN
+        OPEN p_result FOR
+            SELECT FALSE AS success,
+                   'El paciente ya tiene una visita activa en curso' AS message,
+                   v_existing_visit AS visit_id, v_patient_id,
+                   NULL::TEXT AS full_name, NULL::TEXT AS visit_status;
         RETURN;
     END IF;
 
-    IF v_lot.clinic_id = p_to_clinic_id THEN
-        OPEN p_results FOR SELECT FALSE AS success,
-            'La clínica destino debe ser diferente a la clínica origen.' AS message,
-            NULL::INT AS transfer_id;
-        RETURN;
-    END IF;
+    -- 3. Obtener área de recepción de la clínica
+    SELECT ca.area_id INTO v_area_id
+    FROM   clinic_areas ca
+    JOIN   clinic_area_types cat ON cat.area_type_id = ca.area_type_id
+    WHERE  ca.clinic_id = p_clinic_id
+      AND  UPPER(cat.code) = 'RECEPTION'
+    LIMIT 1;
 
-    -- Insertar transferencia
-    INSERT INTO inventory_transfers (
-        lot_id, vaccine_id, from_clinic_id, to_clinic_id,
-        quantity, transfer_status, requested_by, reason
-    ) VALUES (
-        p_lot_id, v_lot.vaccine_id, v_lot.clinic_id, p_to_clinic_id,
-        p_quantity, 'Pendiente', p_worker_id, p_reason
+    -- 4. Registrar el evento de escaneo NFC
+    INSERT INTO nfc_scan_events (
+        nfc_card_id, scanned_by, clinic_id, area_id,
+        scanned_at, action_triggered, device_id,
+        scan_context, resolved_action
     )
-    RETURNING transfer_id INTO v_transfer_id;
+    VALUES (
+        v_card_id, p_worker_id, p_clinic_id, v_area_id,
+        NOW(), 'CHECKIN', p_device_id,
+        'checkin', 'pending'
+    )
+    RETURNING scan_event_id INTO v_scan_id;
 
-    OPEN p_results FOR SELECT TRUE AS success,
-        'Transferencia #' || v_transfer_id || ' creada correctamente.' AS message,
-        v_transfer_id AS transfer_id;
-END;
-$$;
+    -- 5. Buscar cita activa del paciente para hoy en esta clínica
+    SELECT appointment_id INTO v_appointment_id
+    FROM   appointments
+    WHERE  patient_id          = v_patient_id
+      AND  clinic_id           = p_clinic_id
+      AND  DATE(scheduled_at)  = CURRENT_DATE
+      AND  appointment_status  IN ('Programada','Confirmada')
+    ORDER  BY scheduled_at
+    LIMIT  1;
 
--- ─────────────────────────────────────────────────────────────
--- sp_accept_transfer
--- Acepta (recibe) una transferencia Pendiente o En_Transito.
--- Descuenta stock del lote origen e inserta movimientos
--- Transferencia_Salida en origen y Transferencia_Entrada en destino.
--- ─────────────────────────────────────────────────────────────
-CREATE OR REPLACE PROCEDURE sp_accept_transfer(
-    IN    p_transfer_id  INT,
-    IN    p_worker_id    INT,
-    IN    p_notes        TEXT,
-    INOUT p_results      REFCURSOR
-)
-LANGUAGE plpgsql AS $$
-DECLARE
-    v_t             RECORD;
-    v_qty_before    INT;
-    v_qty_after     INT;
-BEGIN
-    -- Bloquear fila de transferencia
-    SELECT t.transfer_id, t.lot_id, t.vaccine_id, t.from_clinic_id, t.to_clinic_id,
-           t.quantity, t.transfer_status
-    INTO v_t
-    FROM inventory_transfers t
-    WHERE t.transfer_id = p_transfer_id
-    FOR UPDATE;
+    -- 6. Crear la visita clínica (directamente en sala de espera)
+    INSERT INTO patient_clinic_visits (
+        patient_id, clinic_id, appointment_id,
+        visit_status, current_area_id,
+        waiting_since,
+        checkin_by_worker_id, checkin_nfc_scan_id,
+        visit_type, checked_in_at, created_at, updated_at
+    )
+    VALUES (
+        v_patient_id, p_clinic_id, v_appointment_id,
+        'En espera', v_area_id,
+        NOW(),
+        p_worker_id, v_scan_id,
+        CASE WHEN v_appointment_id IS NOT NULL THEN 'Programada' ELSE 'Espontanea' END,
+        NOW(), NOW(), NOW()
+    )
+    RETURNING visit_id INTO v_visit_id;
 
-    IF NOT FOUND THEN
-        OPEN p_results FOR SELECT FALSE AS success, 'Transferencia no encontrada.' AS message;
-        RETURN;
-    END IF;
-
-    IF v_t.transfer_status NOT IN ('Pendiente', 'En_Transito') THEN
-        OPEN p_results FOR SELECT FALSE AS success,
-            'Solo se pueden aceptar transferencias en estado Pendiente o En_Tránsito. Estado actual: ' || v_t.transfer_status AS message;
-        RETURN;
-    END IF;
-
-    -- Verificar stock actual del lote
-    SELECT quantity_available INTO v_qty_before
-    FROM vaccine_lots WHERE lot_id = v_t.lot_id FOR UPDATE;
-
-    IF v_qty_before < v_t.quantity THEN
-        OPEN p_results FOR SELECT FALSE AS success,
-            'Stock insuficiente en lote origen. Disponible: ' || v_qty_before AS message;
-        RETURN;
-    END IF;
-
-    v_qty_after := v_qty_before - v_t.quantity;
-
-    -- Descontar stock del lote origen
-    UPDATE vaccine_lots
-    SET quantity_available = v_qty_after,
-        lot_status = CASE WHEN v_qty_after = 0 THEN 'Agotado' ELSE lot_status END
-    WHERE lot_id = v_t.lot_id;
-
-    -- Movimiento Transferencia_Salida en clínica origen
-    INSERT INTO inventory_movements (
-        lot_id, vaccine_id, clinic_id, worker_id,
-        movement_type, quantity, quantity_before, quantity_after,
-        reference_id, reference_type, reason
-    ) VALUES (
-        v_t.lot_id, v_t.vaccine_id, v_t.from_clinic_id, p_worker_id,
-        'Transferencia_Salida', v_t.quantity, v_qty_before, v_qty_after,
-        p_transfer_id, 'transfer',
-        'Transferencia #' || p_transfer_id || ' aceptada'
+    -- 7. Registrar el primer movimiento (entrada directa a sala de espera)
+    INSERT INTO visit_area_movements (
+        visit_id, from_area_id, to_area_id,
+        from_status, to_status,
+        moved_at, moved_by, nfc_scan_id, movement_notes
+    )
+    VALUES (
+        v_visit_id, NULL, v_area_id,
+        NULL, 'En espera',
+        NOW(), p_worker_id, v_scan_id, 'Check-in — ingresa a sala de espera'
     );
 
-    -- Movimiento Transferencia_Entrada en clínica destino (mismo lote lógico)
-    INSERT INTO inventory_movements (
-        lot_id, vaccine_id, clinic_id, worker_id,
-        movement_type, quantity, quantity_before, quantity_after,
-        reference_id, reference_type, reason
-    ) VALUES (
-        v_t.lot_id, v_t.vaccine_id, v_t.to_clinic_id, p_worker_id,
-        'Transferencia_Entrada', v_t.quantity, 0, v_t.quantity,
-        p_transfer_id, 'transfer',
-        'Transferencia #' || p_transfer_id || ' recibida'
+    -- 8. Actualizar scan event con el visit_id creado
+    UPDATE nfc_scan_events
+    SET    visit_id        = v_visit_id,
+           resolved_action = 'visit_created'
+    WHERE  scan_event_id   = v_scan_id;
+
+    -- 9. Actualizar last_scanned_at de la tarjeta
+    UPDATE nfc_cards
+    SET    last_scanned_at = NOW()
+    WHERE  nfc_card_id     = v_card_id;
+
+    -- 10. Auditoría
+    INSERT INTO audit_log (table_name, record_id, action, changed_data, worker_id, changed_at)
+    VALUES (
+        'patient_clinic_visits', v_visit_id, 'INSERT',
+        jsonb_build_object(
+            'action',     'checkin',
+            'patient_id', v_patient_id,
+            'worker_id',  p_worker_id,
+            'clinic_id',  p_clinic_id,
+            'visit_type', CASE WHEN v_appointment_id IS NOT NULL THEN 'Programada' ELSE 'Espontanea' END
+        ),
+        p_worker_id, NOW()
     );
 
-    -- Actualizar transferencia a Recibido
-    UPDATE inventory_transfers
-    SET transfer_status = 'Recibido',
-        approved_by     = p_worker_id,
-        notes           = COALESCE(p_notes, notes),
-        resolved_at     = NOW()
-    WHERE transfer_id = p_transfer_id;
+    -- 11. Resultado con datos completos del paciente para la UI
+    OPEN p_result FOR
+        SELECT
+            TRUE  AS success,
+            'Check-in realizado correctamente' AS message,
+            v_visit_id          AS visit_id,
+            v_scan_id           AS scan_id,
+            p.patient_id,
+            TRIM(p.first_name || ' ' || p.last_name)                    AS full_name,
+            p.birth_date,
+            DATE_PART('year', AGE(CURRENT_DATE, p.birth_date))::INT     AS age,
+            p.gender,
+            p.photo,
+            COALESCE(bt.blood_type, '—')                                AS blood_type,
+            p.premature,
+            v_appointment_id                                             AS appointment_id,
+            COALESCE(
+                (SELECT STRING_AGG(al.name || ' (' || COALESCE(pa.severity,'?') || ')', ' | ')
+                 FROM   patient_allergies pa
+                 JOIN   allergies al ON al.allergy_id = pa.allergy_id
+                 WHERE  pa.patient_id = p.patient_id),
+                'Sin alergias'
+            )                                                            AS allergies,
+            (SELECT COUNT(*) FROM patient_vaccine_schedule pvs
+             WHERE pvs.patient_id = p.patient_id AND pvs.status = 'Pendiente')::INT AS pending_doses,
+            (SELECT COUNT(*) FROM patient_vaccine_schedule pvs
+             WHERE pvs.patient_id = p.patient_id AND pvs.status = 'Atrasada')::INT  AS overdue_doses,
+            'En espera'::TEXT                                            AS visit_status
+        FROM   patients p
+        LEFT JOIN blood_types bt ON bt.blood_type_id = p.blood_type_id
+        WHERE  p.patient_id = v_patient_id;
 
-    OPEN p_results FOR SELECT TRUE AS success,
-        'Transferencia #' || p_transfer_id || ' recibida correctamente.' AS message;
+EXCEPTION WHEN unique_violation THEN
+    OPEN p_result FOR
+        SELECT FALSE AS success,
+               'El paciente ya tiene una visita activa (violación de unicidad)' AS message,
+               NULL::INT AS visit_id, v_patient_id,
+               NULL::TEXT AS full_name, NULL::TEXT AS visit_status;
+WHEN OTHERS THEN
+    OPEN p_result FOR
+        SELECT FALSE AS success, SQLERRM AS message,
+               NULL::INT AS visit_id, NULL::INT AS patient_id,
+               NULL::TEXT AS full_name, NULL::TEXT AS visit_status;
 END;
 $$;
 
--- ─────────────────────────────────────────────────────────────
--- sp_reject_transfer
--- Rechaza una transferencia en estado Pendiente.
--- No modifica el stock (no se había movido aún).
--- ─────────────────────────────────────────────────────────────
-CREATE OR REPLACE PROCEDURE sp_reject_transfer(
-    IN    p_transfer_id  INT,
-    IN    p_worker_id    INT,
-    IN    p_reason       TEXT,
-    INOUT p_results      REFCURSOR
+
+-- ============================================================
+-- SP: sp_visit_transition
+-- Cambia el estado clínico de una visita activa.
+-- Valida que la transición sea permitida por la máquina de estados.
+-- Puede ser invocado por NFC o manualmente desde la UI.
+-- ============================================================
+CREATE OR REPLACE PROCEDURE sp_visit_transition(
+    IN    p_visit_id    INT,
+    IN    p_new_status  visit_status,
+    IN    p_new_area_id INT,
+    IN    p_worker_id   INT,
+    IN    p_scan_id     INT,
+    IN    p_notes       TEXT,
+    INOUT p_result      REFCURSOR
 )
 LANGUAGE plpgsql AS $$
 DECLARE
-    v_status VARCHAR(20);
+    v_current_status  visit_status;
+    v_current_area    INT;
+    v_patient_id      INT;
+    v_allowed         BOOLEAN := FALSE;
 BEGIN
-    SELECT transfer_status INTO v_status
-    FROM inventory_transfers
-    WHERE transfer_id = p_transfer_id
+    -- Obtener estado actual con lock para evitar concurrencia
+    SELECT visit_status, current_area_id, patient_id
+    INTO   v_current_status, v_current_area, v_patient_id
+    FROM   patient_clinic_visits
+    WHERE  visit_id = p_visit_id
     FOR UPDATE;
 
     IF NOT FOUND THEN
-        OPEN p_results FOR SELECT FALSE AS success, 'Transferencia no encontrada.' AS message;
+        OPEN p_result FOR
+            SELECT FALSE AS success, 'Visita no encontrada' AS message,
+                   NULL::INT AS visit_id, NULL::INT AS patient_id;
         RETURN;
     END IF;
 
-    IF v_status <> 'Pendiente' THEN
-        OPEN p_results FOR SELECT FALSE AS success,
-            'Solo se pueden rechazar transferencias en estado Pendiente. Estado actual: ' || v_status AS message;
+    -- Validar que la visita no esté ya cerrada
+    IF v_current_status IN ('Finalizado','Abandono','Cancelado') THEN
+        OPEN p_result FOR
+            SELECT FALSE AS success,
+                   FORMAT('La visita ya está cerrada con estado: %s', v_current_status) AS message,
+                   p_visit_id AS visit_id, v_patient_id;
         RETURN;
     END IF;
 
-    UPDATE inventory_transfers
-    SET transfer_status = 'Rechazado',
-        approved_by     = p_worker_id,
-        notes           = p_reason,
-        resolved_at     = NOW()
-    WHERE transfer_id = p_transfer_id;
+    -- Validar transición permitida
+    v_allowed := (
+        (v_current_status = 'En recepcion'   AND p_new_status = 'En espera')     OR
+        (v_current_status = 'En espera'      AND p_new_status = 'En consulta')   OR
+        (v_current_status = 'En espera'      AND p_new_status = 'Finalizado')    OR
+        (v_current_status = 'En consulta'    AND p_new_status = 'En vacunacion') OR
+        (v_current_status = 'En consulta'    AND p_new_status = 'Finalizado')    OR
+        (v_current_status = 'En vacunacion'  AND p_new_status = 'Finalizado')    OR
+        -- Salidas de emergencia desde cualquier estado activo
+        (v_current_status NOT IN ('Finalizado','Abandono','Cancelado')
+                                             AND p_new_status IN ('Abandono','Cancelado'))
+    );
 
-    OPEN p_results FOR SELECT TRUE AS success,
-        'Transferencia #' || p_transfer_id || ' rechazada.' AS message;
+    IF NOT v_allowed THEN
+        OPEN p_result FOR
+            SELECT FALSE AS success,
+                   FORMAT('Transición no permitida: %s → %s', v_current_status, p_new_status) AS message,
+                   p_visit_id AS visit_id, v_patient_id;
+        RETURN;
+    END IF;
+
+    -- Registrar el movimiento en el historial
+    INSERT INTO visit_area_movements (
+        visit_id, from_area_id, to_area_id,
+        from_status, to_status,
+        moved_at, moved_by, nfc_scan_id, movement_notes
+    )
+    VALUES (
+        p_visit_id, v_current_area, COALESCE(p_new_area_id, v_current_area),
+        v_current_status, p_new_status,
+        NOW(), p_worker_id, p_scan_id, p_notes
+    );
+
+    -- Actualizar la visita con timestamps específicos por estado
+    UPDATE patient_clinic_visits SET
+        visit_status        = p_new_status,
+        current_area_id     = COALESCE(p_new_area_id, current_area_id),
+        assigned_worker_id  = p_worker_id,
+        updated_at          = NOW(),
+        waiting_since       = CASE WHEN p_new_status = 'En espera'
+                                   THEN NOW() ELSE waiting_since END,
+        consultation_start  = CASE WHEN p_new_status = 'En consulta'
+                                   THEN NOW() ELSE consultation_start END,
+        vaccination_start   = CASE WHEN p_new_status = 'En vacunacion'
+                                   THEN NOW() ELSE vaccination_start END
+    WHERE visit_id = p_visit_id;
+
+    -- Auditoría del cambio de estado
+    INSERT INTO audit_log (table_name, record_id, action, changed_data, worker_id, changed_at)
+    VALUES (
+        'patient_clinic_visits', p_visit_id, 'UPDATE',
+        jsonb_build_object(
+            'from_status', v_current_status,
+            'to_status',   p_new_status,
+            'worker_id',   p_worker_id
+        ),
+        p_worker_id, NOW()
+    );
+
+    OPEN p_result FOR
+        SELECT TRUE AS success,
+               FORMAT('Estado actualizado: %s → %s', v_current_status, p_new_status) AS message,
+               p_visit_id   AS visit_id,
+               v_patient_id AS patient_id,
+               p_new_status::TEXT AS new_status;
+
+EXCEPTION WHEN OTHERS THEN
+    OPEN p_result FOR
+        SELECT FALSE AS success, SQLERRM AS message,
+               p_visit_id AS visit_id, NULL::INT AS patient_id,
+               NULL::TEXT AS new_status;
 END;
 $$;
 
--- ─────────────────────────────────────────────────────────────
--- sp_cancel_transfer
--- Cancela una transferencia en estado Pendiente.
--- Solo el solicitante o un admin puede cancelar.
--- ─────────────────────────────────────────────────────────────
-CREATE OR REPLACE PROCEDURE sp_cancel_transfer(
-    IN    p_transfer_id  INT,
-    IN    p_worker_id    INT,
-    IN    p_reason       TEXT,
-    INOUT p_results      REFCURSOR
+
+-- ============================================================
+-- SP: sp_nfc_medical_scan
+-- Llamado cuando el médico o enfermero escanea el NFC en consultorio.
+-- Si el paciente está En espera, lo transiciona automáticamente a En consulta.
+-- ============================================================
+CREATE OR REPLACE PROCEDURE sp_nfc_medical_scan(
+    IN    p_nfc_uid    VARCHAR(30),
+    IN    p_worker_id  INT,
+    IN    p_device_id  VARCHAR(30),
+    IN    p_clinic_id  INT,
+    INOUT p_result     REFCURSOR
 )
 LANGUAGE plpgsql AS $$
 DECLARE
-    v_t RECORD;
+    v_card_id        INT;
+    v_patient_id     INT;
+    v_visit_id       INT;
+    v_visit_status   visit_status;
+    v_scan_id        INT;
+    v_action         TEXT;
 BEGIN
-    SELECT transfer_id, transfer_status, requested_by
-    INTO v_t
-    FROM inventory_transfers
-    WHERE transfer_id = p_transfer_id
-    FOR UPDATE;
+    -- Validar tarjeta activa
+    SELECT nfc_card_id, patient_id
+    INTO   v_card_id, v_patient_id
+    FROM   nfc_cards
+    WHERE  uid = p_nfc_uid AND status = 'Activa';
 
     IF NOT FOUND THEN
-        OPEN p_results FOR SELECT FALSE AS success, 'Transferencia no encontrada.' AS message;
+        OPEN p_result FOR
+            SELECT FALSE AS success, 'NFC no válido o inactivo' AS message,
+                   NULL::INT AS visit_id, NULL::INT AS patient_id, NULL::TEXT AS full_name;
         RETURN;
     END IF;
 
-    IF v_t.transfer_status <> 'Pendiente' THEN
-        OPEN p_results FOR SELECT FALSE AS success,
-            'Solo se pueden cancelar transferencias en estado Pendiente. Estado actual: ' || v_t.transfer_status AS message;
+    -- Buscar visita activa del paciente (con lock si hay visita)
+    SELECT visit_id, visit_status
+    INTO   v_visit_id, v_visit_status
+    FROM   patient_clinic_visits
+    WHERE  patient_id   = v_patient_id
+      AND  visit_status NOT IN ('Finalizado','Abandono','Cancelado')
+    LIMIT 1;
+
+    -- Si el paciente está En espera, transicionar a En consulta automáticamente
+    IF v_visit_id IS NOT NULL AND v_visit_status = 'En espera' THEN
+        UPDATE patient_clinic_visits SET
+            visit_status       = 'En consulta',
+            consultation_start = NOW(),
+            assigned_worker_id = p_worker_id,
+            updated_at         = NOW()
+        WHERE visit_id = v_visit_id;
+
+        INSERT INTO visit_area_movements (
+            visit_id, from_status, to_status,
+            moved_at, moved_by, movement_notes
+        )
+        VALUES (
+            v_visit_id, 'En espera', 'En consulta',
+            NOW(), p_worker_id, 'NFC médico — inicia consulta'
+        );
+
+        INSERT INTO audit_log (table_name, record_id, action, changed_data, worker_id, changed_at)
+        VALUES (
+            'patient_clinic_visits', v_visit_id, 'UPDATE',
+            jsonb_build_object('from_status','En espera','to_status','En consulta','worker_id',p_worker_id),
+            p_worker_id, NOW()
+        );
+
+        v_action := 'consulta_started';
+    ELSE
+        v_action := CASE WHEN v_visit_id IS NOT NULL THEN 'expedient_opened' ELSE 'no_active_visit' END;
+    END IF;
+
+    -- Registrar el scan
+    INSERT INTO nfc_scan_events (
+        nfc_card_id, scanned_by, clinic_id,
+        scanned_at, action_triggered, device_id,
+        scan_context, visit_id, resolved_action
+    )
+    VALUES (
+        v_card_id, p_worker_id, p_clinic_id,
+        NOW(), 'MEDICAL_OPEN', p_device_id,
+        'medical_open', v_visit_id, v_action
+    )
+    RETURNING scan_event_id INTO v_scan_id;
+
+    UPDATE nfc_cards SET last_scanned_at = NOW() WHERE nfc_card_id = v_card_id;
+
+    -- Devolver expediente completo del paciente
+    OPEN p_result FOR
+        SELECT
+            TRUE AS success,
+            'Expediente abierto' AS message,
+            v_visit_id AS visit_id,
+            v_scan_id  AS scan_id,
+            p.patient_id,
+            TRIM(p.first_name || ' ' || p.last_name)                    AS full_name,
+            p.birth_date,
+            DATE_PART('year', AGE(CURRENT_DATE, p.birth_date))::INT     AS age,
+            p.gender,
+            p.weight_kg,
+            p.photo,
+            COALESCE(bt.blood_type, '—')                                AS blood_type,
+            p.premature,
+            pcv.visit_status::TEXT,
+            pcv.checked_in_at,
+            pcv.waiting_since,
+            pcv.appointment_id,
+            a.scheduled_at,
+            a.reason AS appointment_reason,
+            -- Alergias con severidad
+            COALESCE(
+                (SELECT STRING_AGG(al.name || ' (' || COALESCE(pa.severity,'?') || ')', ' | ')
+                 FROM   patient_allergies pa
+                 JOIN   allergies al ON al.allergy_id = pa.allergy_id
+                 WHERE  pa.patient_id = p.patient_id),
+                'Sin alergias registradas'
+            ) AS allergies,
+            -- Conteos de esquema
+            (SELECT COUNT(*) FROM patient_vaccine_schedule pvs
+             WHERE pvs.patient_id = p.patient_id AND pvs.status = 'Pendiente')::INT AS pending_doses,
+            (SELECT COUNT(*) FROM patient_vaccine_schedule pvs
+             WHERE pvs.patient_id = p.patient_id AND pvs.status = 'Atrasada')::INT  AS overdue_doses,
+            -- Última vacuna aplicada
+            (SELECT MAX(vr.applied_date) FROM vaccination_records vr
+             WHERE vr.patient_id = p.patient_id)                        AS last_vaccine_date
+        FROM   patients p
+        LEFT   JOIN blood_types bt ON bt.blood_type_id = p.blood_type_id
+        LEFT   JOIN patient_clinic_visits pcv ON pcv.visit_id = v_visit_id
+        LEFT   JOIN appointments a ON a.appointment_id = pcv.appointment_id
+        WHERE  p.patient_id = v_patient_id;
+
+EXCEPTION WHEN OTHERS THEN
+    OPEN p_result FOR
+        SELECT FALSE AS success, SQLERRM AS message,
+               NULL::INT AS visit_id, NULL::INT AS patient_id, NULL::TEXT AS full_name;
+END;
+$$;
+
+
+-- ============================================================
+-- SP: sp_nfc_checkout
+-- Llamado al escanear NFC para cerrar la visita.
+-- Calcula duración total y registra la salida.
+-- ============================================================
+CREATE OR REPLACE PROCEDURE sp_nfc_checkout(
+    IN    p_nfc_uid    VARCHAR(30),
+    IN    p_worker_id  INT,
+    IN    p_device_id  VARCHAR(30),
+    IN    p_clinic_id  INT,
+    INOUT p_result     REFCURSOR
+)
+LANGUAGE plpgsql AS $$
+DECLARE
+    v_card_id      INT;
+    v_patient_id   INT;
+    v_visit_id     INT;
+    v_scan_id      INT;
+    v_checkin_at   TIMESTAMP;
+    v_duration_min INT;
+    v_cur_status   visit_status;
+BEGIN
+    -- Validar tarjeta
+    SELECT nfc_card_id, patient_id
+    INTO   v_card_id, v_patient_id
+    FROM   nfc_cards
+    WHERE  uid = p_nfc_uid AND status = 'Activa';
+
+    IF NOT FOUND THEN
+        OPEN p_result FOR
+            SELECT FALSE AS success, 'NFC no válido o inactivo' AS message,
+                   NULL::INT AS visit_id, NULL::INT AS duration_minutes;
         RETURN;
     END IF;
 
-    UPDATE inventory_transfers
-    SET transfer_status = 'Cancelado',
-        notes           = p_reason,
-        resolved_at     = NOW()
-    WHERE transfer_id = p_transfer_id;
+    -- Buscar visita activa con lock
+    SELECT visit_id, checked_in_at, visit_status
+    INTO   v_visit_id, v_checkin_at, v_cur_status
+    FROM   patient_clinic_visits
+    WHERE  patient_id   = v_patient_id
+      AND  visit_status NOT IN ('Finalizado','Abandono','Cancelado')
+    FOR UPDATE
+    LIMIT 1;
 
-    OPEN p_results FOR SELECT TRUE AS success,
-        'Transferencia #' || p_transfer_id || ' cancelada.' AS message;
+    IF NOT FOUND THEN
+        OPEN p_result FOR
+            SELECT FALSE AS success,
+                   'No hay visita activa para este paciente' AS message,
+                   NULL::INT AS visit_id, NULL::INT AS duration_minutes;
+        RETURN;
+    END IF;
+
+    v_duration_min := ROUND(EXTRACT(EPOCH FROM (NOW() - v_checkin_at)) / 60)::INT;
+
+    -- Registrar scan de salida
+    INSERT INTO nfc_scan_events (
+        nfc_card_id, scanned_by, clinic_id,
+        scanned_at, action_triggered, device_id,
+        scan_context, visit_id, resolved_action
+    )
+    VALUES (
+        v_card_id, p_worker_id, p_clinic_id,
+        NOW(), 'CHECKOUT', p_device_id,
+        'checkout', v_visit_id, 'visit_closed'
+    )
+    RETURNING scan_event_id INTO v_scan_id;
+
+    -- Registrar movimiento de salida
+    INSERT INTO visit_area_movements (
+        visit_id, from_status, to_status,
+        moved_at, moved_by, nfc_scan_id, movement_notes
+    )
+    SELECT visit_id, visit_status, 'Finalizado',
+           NOW(), p_worker_id, v_scan_id, 'Check-out NFC'
+    FROM   patient_clinic_visits
+    WHERE  visit_id = v_visit_id;
+
+    -- Cerrar la visita
+    UPDATE patient_clinic_visits SET
+        visit_status          = 'Finalizado',
+        checked_out_at        = NOW(),
+        checkout_by_worker_id = p_worker_id,
+        checkout_nfc_scan_id  = v_scan_id,
+        updated_at            = NOW()
+    WHERE visit_id = v_visit_id;
+
+    UPDATE nfc_cards SET last_scanned_at = NOW() WHERE nfc_card_id = v_card_id;
+
+    -- Auditoría
+    INSERT INTO audit_log (table_name, record_id, action, changed_data, worker_id, changed_at)
+    VALUES (
+        'patient_clinic_visits', v_visit_id, 'UPDATE',
+        jsonb_build_object(
+            'action',           'checkout',
+            'duration_minutes', v_duration_min,
+            'patient_id',       v_patient_id,
+            'from_status',      v_cur_status
+        ),
+        p_worker_id, NOW()
+    );
+
+    OPEN p_result FOR
+        SELECT
+            TRUE            AS success,
+            'Check-out registrado correctamente' AS message,
+            v_visit_id      AS visit_id,
+            v_patient_id    AS patient_id,
+            v_duration_min  AS duration_minutes,
+            v_checkin_at    AS checkin_at,
+            NOW()           AS checkout_at;
+
+EXCEPTION WHEN OTHERS THEN
+    OPEN p_result FOR
+        SELECT FALSE AS success, SQLERRM AS message,
+               NULL::INT AS visit_id, NULL::INT AS duration_minutes;
+END;
+$$;
+
+
+-- ============================================================
+-- SP: sp_reception_realtime
+-- Devuelve todos los pacientes con visita activa en la clínica.
+-- Consumido por el dashboard de recepción cada 10 segundos.
+-- ============================================================
+CREATE OR REPLACE PROCEDURE sp_reception_realtime(
+    IN    p_clinic_id  INT,
+    INOUT p_result     REFCURSOR
+)
+LANGUAGE plpgsql AS $$
+BEGIN
+    OPEN p_result FOR
+        SELECT
+            pcv.visit_id,
+            pcv.visit_status::TEXT,
+            pcv.visit_type,
+            pcv.checked_in_at,
+            pcv.waiting_since,
+            pcv.consultation_start,
+            pcv.vaccination_start,
+            ROUND(EXTRACT(EPOCH FROM (NOW() - pcv.checked_in_at)) / 60)::INT AS minutes_in_clinic,
+            CASE
+                WHEN pcv.waiting_since IS NOT NULL
+                THEN ROUND(EXTRACT(EPOCH FROM (NOW() - pcv.waiting_since)) / 60)::INT
+                ELSE NULL
+            END                                                              AS minutes_waiting,
+            p.patient_id,
+            TRIM(p.first_name || ' ' || p.last_name)                        AS full_name,
+            DATE_PART('year', AGE(CURRENT_DATE, p.birth_date))::INT         AS age,
+            p.photo,
+            COALESCE(ca.name, 'Sin área')                                   AS current_area,
+            COALESCE(TRIM(w.first_name || ' ' || w.last_name), 'Sin asignar') AS assigned_worker,
+            pcv.appointment_id,
+            a.scheduled_at,
+            a.appointment_status,
+            -- Alertas clínicas
+            (SELECT COUNT(*) FROM patient_vaccine_schedule pvs
+             WHERE pvs.patient_id = p.patient_id AND pvs.status = 'Atrasada') > 0 AS has_overdue_vaccines,
+            EXISTS(SELECT 1 FROM patient_allergies WHERE patient_id = p.patient_id) AS has_allergies,
+            -- Color de estado para la UI
+            CASE pcv.visit_status
+                WHEN 'En recepcion'  THEN '#3B82F6'
+                WHEN 'En espera'     THEN '#F59E0B'
+                WHEN 'En consulta'   THEN '#8B5CF6'
+                WHEN 'En vacunacion' THEN '#10B981'
+                ELSE                      '#6B7280'
+            END                                                              AS status_color,
+            -- Alerta si lleva más de 30 minutos esperando
+            CASE
+                WHEN pcv.waiting_since IS NOT NULL
+                 AND EXTRACT(EPOCH FROM (NOW() - pcv.waiting_since)) / 60 > 30
+                THEN TRUE
+                ELSE FALSE
+            END                                                              AS wait_time_alert
+        FROM   patient_clinic_visits pcv
+        JOIN   patients p    ON p.patient_id    = pcv.patient_id
+        LEFT   JOIN clinic_areas ca ON ca.area_id = pcv.current_area_id
+        LEFT   JOIN workers w       ON w.worker_id = pcv.assigned_worker_id
+        LEFT   JOIN appointments a  ON a.appointment_id = pcv.appointment_id
+        WHERE  pcv.clinic_id    = p_clinic_id
+          AND  pcv.visit_status NOT IN ('Finalizado','Abandono','Cancelado')
+        ORDER  BY
+            CASE pcv.visit_status
+                WHEN 'En vacunacion' THEN 1
+                WHEN 'En consulta'   THEN 2
+                WHEN 'En espera'     THEN 3
+                WHEN 'En recepcion'  THEN 4
+            END,
+            pcv.waiting_since NULLS LAST,
+            pcv.checked_in_at;
+END;
+$$;
+
+
+-- ============================================================
+-- SP: sp_visit_patient_summary
+-- Devuelve el resumen clínico completo de una visita para el médico.
+-- ============================================================
+CREATE OR REPLACE PROCEDURE sp_visit_patient_summary(
+    IN    p_visit_id  INT,
+    INOUT p_result    REFCURSOR
+)
+LANGUAGE plpgsql AS $$
+BEGIN
+    OPEN p_result FOR
+        SELECT
+            pcv.visit_id,
+            pcv.visit_status::TEXT,
+            pcv.checked_in_at,
+            pcv.waiting_since,
+            pcv.consultation_start,
+            pcv.vaccination_start,
+            pcv.appointment_id,
+            p.patient_id,
+            TRIM(p.first_name || ' ' || p.last_name)                AS full_name,
+            p.birth_date,
+            DATE_PART('year', AGE(CURRENT_DATE, p.birth_date))::INT AS age,
+            p.gender,
+            p.weight_kg,
+            p.photo,
+            p.premature,
+            COALESCE(bt.blood_type, '—')                            AS blood_type,
+            -- Alergias detalladas
+            COALESCE(
+                (SELECT STRING_AGG(
+                    al.name || ' — ' || COALESCE(pa.severity,'?') ||
+                    COALESCE(' (' || pa.reaction_desc || ')',''), ' | '
+                )
+                 FROM   patient_allergies pa
+                 JOIN   allergies al ON al.allergy_id = pa.allergy_id
+                 WHERE  pa.patient_id = p.patient_id),
+                'Sin alergias registradas'
+            )                                                        AS allergies,
+            -- Conteos de esquema de vacunación
+            (SELECT COUNT(*) FROM patient_vaccine_schedule pvs
+             WHERE pvs.patient_id = p.patient_id AND pvs.status = 'Pendiente')::INT AS pending_doses,
+            (SELECT COUNT(*) FROM patient_vaccine_schedule pvs
+             WHERE pvs.patient_id = p.patient_id AND pvs.status = 'Atrasada')::INT  AS overdue_doses,
+            (SELECT COUNT(*) FROM patient_vaccine_schedule pvs
+             WHERE pvs.patient_id = p.patient_id AND pvs.status = 'Aplicada')::INT  AS applied_doses,
+            -- Última vacuna
+            (SELECT MAX(vr.applied_date) FROM vaccination_records vr
+             WHERE vr.patient_id = p.patient_id)                    AS last_vaccine_date,
+            -- Datos de la cita vinculada
+            a.scheduled_at,
+            a.reason AS appointment_reason,
+            a.appointment_notes,
+            -- Tutor principal
+            COALESCE(TRIM(g.first_name || ' ' || g.last_name), 'Sin tutor') AS guardian_name,
+            COALESCE(
+                (SELECT gp.phone FROM guardian_phones gp
+                 WHERE gp.guardian_id = g.guardian_id
+                 ORDER BY gp.is_primary DESC LIMIT 1),
+                '—'
+            )                                                        AS guardian_phone
+        FROM   patient_clinic_visits pcv
+        JOIN   patients p   ON p.patient_id    = pcv.patient_id
+        LEFT   JOIN blood_types bt ON bt.blood_type_id = p.blood_type_id
+        LEFT   JOIN appointments a ON a.appointment_id = pcv.appointment_id
+        LEFT   JOIN LATERAL (
+            SELECT pgr.guardian_id FROM patient_guardian_relations pgr
+            WHERE  pgr.patient_id = p.patient_id
+            ORDER  BY pgr.is_primary DESC LIMIT 1
+        ) rel ON TRUE
+        LEFT   JOIN guardians g ON g.guardian_id = rel.guardian_id
+        WHERE  pcv.visit_id = p_visit_id;
+END;
+$$;
+
+
+-- ============================================================
+-- SP: sp_patient_pending_doses
+-- Devuelve las dosis pendientes y atrasadas de un paciente
+-- con detalle de vacuna, lote disponible y días de atraso.
+-- ============================================================
+CREATE OR REPLACE PROCEDURE sp_patient_pending_doses(
+    IN    p_patient_id  INT,
+    INOUT p_result      REFCURSOR
+)
+LANGUAGE plpgsql AS $$
+BEGIN
+    OPEN p_result FOR
+        SELECT
+            pvs.schedule_id,
+            pvs.status,
+            pvs.due_date,
+            CASE
+                WHEN pvs.due_date < CURRENT_DATE
+                THEN (CURRENT_DATE - pvs.due_date)
+                ELSE 0
+            END                                    AS days_overdue,
+            v.vaccine_id,
+            v.name                                 AS vaccine_name,
+            v.commercial_name,
+            sd.dose_number,
+            sd.dose_label,
+            sd.ideal_age_months,
+            vv.via                                 AS application_via,
+            -- Lote disponible más cercano a vencer (FEFO)
+            (SELECT vl.lot_id FROM vaccine_lots vl
+             WHERE  vl.vaccine_id         = v.vaccine_id
+               AND  vl.quantity_available > 0
+               AND  vl.expiration_date    >= CURRENT_DATE
+               AND  vl.is_active          = TRUE
+             ORDER  BY vl.expiration_date LIMIT 1)  AS recommended_lot_id,
+            (SELECT vl.lot_number FROM vaccine_lots vl
+             WHERE  vl.vaccine_id         = v.vaccine_id
+               AND  vl.quantity_available > 0
+               AND  vl.expiration_date    >= CURRENT_DATE
+               AND  vl.is_active          = TRUE
+             ORDER  BY vl.expiration_date LIMIT 1)  AS recommended_lot_number,
+            (SELECT vl.quantity_available FROM vaccine_lots vl
+             WHERE  vl.vaccine_id         = v.vaccine_id
+               AND  vl.quantity_available > 0
+               AND  vl.expiration_date    >= CURRENT_DATE
+               AND  vl.is_active          = TRUE
+             ORDER  BY vl.expiration_date LIMIT 1)  AS lot_available_qty,
+            (SELECT vl.expiration_date FROM vaccine_lots vl
+             WHERE  vl.vaccine_id         = v.vaccine_id
+               AND  vl.quantity_available > 0
+               AND  vl.expiration_date    >= CURRENT_DATE
+               AND  vl.is_active          = TRUE
+             ORDER  BY vl.expiration_date LIMIT 1)  AS lot_expiration_date
+        FROM   patient_vaccine_schedule pvs
+        JOIN   scheme_doses sd ON sd.dose_id     = pvs.scheme_dose_id
+        JOIN   vaccines v      ON v.vaccine_id   = sd.vaccine_id
+        LEFT   JOIN vaccine_vias vv ON vv.via_id = v.via_id
+        WHERE  pvs.patient_id = p_patient_id
+          AND  pvs.status IN ('Pendiente','Atrasada')
+        ORDER  BY pvs.status DESC, pvs.due_date;
 END;
 $$;

@@ -199,7 +199,8 @@ CREATE TABLE patient_guardian_relations (
     guardian_id    INT          NOT NULL REFERENCES guardians(guardian_id),
     relation_type  VARCHAR(50),
     is_primary     BOOLEAN      NOT NULL DEFAULT FALSE,
-    has_custody    BOOLEAN      NOT NULL DEFAULT FALSE
+    has_custody    BOOLEAN      NOT NULL DEFAULT FALSE,
+    UNIQUE (patient_id, guardian_id)
 );
 
 

@@ -268,10 +268,10 @@ document.getElementById('formNewPatient')?.addEventListener('submit', async e =>
 
   if (wantsNfc && nfcId && patientId) {
     try {
-      await fetch('/api/assign-nfc-id', {
+      await fetch('/assign_nfc_card', {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({ patient_id: patientId, nfc_id: nfcId }),
+        body:    JSON.stringify({ patient_id: patientId, uid: nfcId, card_type: 'Pulsera' }),
       });
     } catch { /* ignorar — el paciente ya quedó registrado */ }
   }
@@ -568,17 +568,32 @@ document.getElementById('ep-nfc-cancel-btn')?.addEventListener('click', () => {
   if (inp) inp.value = '';
 });
 
+// Limpiar "/" y otros chars que agregan los lectores NFC físicos
+document.getElementById('ep_nfc_id')?.addEventListener('input', function() {
+  this.value = this.value.replace(/[^0-9]/g, '');
+});
+
+// Enter en el input NFC dispara "Guardar NFC", NO el submit del form
+document.getElementById('ep_nfc_id')?.addEventListener('keydown', function(e) {
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    e.stopPropagation();
+    document.getElementById('ep-nfc-save-btn')?.click();
+  }
+});
+
 document.getElementById('ep-nfc-save-btn')?.addEventListener('click', async () => {
-  const nfcId = document.getElementById('ep_nfc_id')?.value.trim();
-  if (!nfcId || !/^\d+$/.test(nfcId)) {
-    alert('El número NFC debe contener solo dígitos.');
+  const raw   = document.getElementById('ep_nfc_id')?.value || '';
+  const nfcId = raw.replace(/[^0-9]/g, '').trim();
+  if (!nfcId) {
+    alert('Ingresa el UID de la tarjeta NFC.');
     return;
   }
   try {
-    const res    = await fetch('/api/assign-nfc-id', {
+    const res    = await fetch('/assign_nfc_card', {
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify({ patient_id: _epNfcPatientId, nfc_id: nfcId }),
+      body:    JSON.stringify({ patient_id: _epNfcPatientId, uid: nfcId, card_type: 'Pulsera' }),
     });
     const result = await res.json();
     if (!res.ok) { alert(result.error || 'Error al guardar NFC'); return; }

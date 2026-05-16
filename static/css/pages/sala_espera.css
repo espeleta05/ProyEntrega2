@@ -1,0 +1,470 @@
+/* ============================================================
+   Monitor de Sala — Recepción en tiempo real
+   ============================================================ */
+
+/* ── Encabezado ── */
+.sala-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.sala-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--md-on-surface);
+  margin: 0 0 2px;
+}
+
+.sala-date {
+  font-size: 0.8rem;
+  color: var(--md-on-surface-variant);
+  margin: 0;
+}
+
+.sala-header__right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* Indicador VIVO */
+.live-badge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--md-error-container, #ffd8d8);
+  color: var(--md-on-error-container, #c0392b);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  padding: 4px 10px;
+  border-radius: 20px;
+}
+
+.live-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: currentColor;
+  animation: pulse-dot 1.4s ease infinite;
+}
+
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%       { opacity: 0.4; transform: scale(0.75); }
+}
+
+.sala-clock {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--md-on-surface);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+}
+
+/* ── Panel NFC ── */
+.nfc-scan-panel {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  background: var(--md-surface-container-low, #f5f5f5);
+  border: 1.5px solid var(--md-outline-variant, #ccc);
+  border-radius: 14px;
+  padding: 14px 20px;
+  margin-bottom: 20px;
+}
+
+.nfc-scan-panel__icon {
+  font-size: 2rem;
+  color: var(--md-primary, #1976d2);
+  flex-shrink: 0;
+}
+
+.nfc-scan-panel__body {
+  flex: 1;
+}
+
+.nfc-scan-panel__label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--md-on-surface-variant);
+  margin: 0 0 8px;
+}
+
+.nfc-input-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.nfc-uid-input {
+  flex: 1;
+  min-width: 180px;
+  height: 38px;
+  padding: 0 12px;
+  border: 1.5px solid var(--md-outline, #bbb);
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-family: monospace;
+  background: var(--md-surface, #fff);
+  color: var(--md-on-surface);
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.nfc-uid-input:focus {
+  border-color: var(--md-primary, #1976d2);
+}
+
+.nfc-ctx-select {
+  height: 38px;
+  padding: 0 10px;
+  border: 1.5px solid var(--md-outline, #bbb);
+  border-radius: 8px;
+  font-size: 0.875rem;
+  background: var(--md-surface, #fff);
+  color: var(--md-on-surface);
+  cursor: pointer;
+}
+
+/* ── Resultado del scan ── */
+.scan-result {
+  padding: 12px 16px;
+  border-radius: 10px;
+  font-size: 0.875rem;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  animation: slide-in 0.25s ease;
+}
+
+.scan-result--hidden { display: none; }
+
+.scan-result--ok {
+  background: #dcfce7;
+  color: #166534;
+  border: 1px solid #bbf7d0;
+}
+
+.scan-result--error {
+  background: #fee2e2;
+  color: #991b1b;
+  border: 1px solid #fecaca;
+}
+
+@keyframes slide-in {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Contadores ── */
+.sala-counters {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.counter-chip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.counter-chip--espera  { background: #fef3c7; color: #92400e; }
+.counter-chip--consulta { background: #ede9fe; color: #5b21b6; }
+.counter-chip--fin     { background: #f1f5f9; color: #475569; }
+
+/* ── Tablero Kanban ── */
+.sala-board {
+  display: grid;
+  grid-template-columns: 1fr 1fr 280px;
+  gap: 16px;
+  align-items: start;
+}
+
+@media (max-width: 900px) {
+  .sala-board { grid-template-columns: 1fr 1fr; }
+  .sala-col--resumen { grid-column: 1 / -1; }
+}
+
+@media (max-width: 600px) {
+  .sala-board { grid-template-columns: 1fr; }
+}
+
+.sala-col {
+  background: var(--md-surface-container-low, #f5f5f5);
+  border-radius: 16px;
+  padding: 14px;
+  min-height: 200px;
+}
+
+.sala-col--espera  { border-top: 3px solid #f59e0b; }
+.sala-col--consulta { border-top: 3px solid #8b5cf6; }
+.sala-col--resumen { border-top: 3px solid #10b981; }
+
+.sala-col__header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.sala-col__header h3 {
+  font-size: 0.875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--md-on-surface-variant);
+  margin: 0;
+}
+
+.sala-col__dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.sala-col__dot--espera  { background: #f59e0b; }
+.sala-col__dot--consulta { background: #8b5cf6; }
+.sala-col__dot--fin     { background: #10b981; }
+
+.sala-col__cards {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* ── Tarjeta de paciente ── */
+.patient-card {
+  background: var(--md-surface, #fff);
+  border-radius: 12px;
+  padding: 14px;
+  border: 1px solid var(--md-outline-variant, #e0e0e0);
+  transition: box-shadow 0.2s;
+}
+
+.patient-card:hover {
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.patient-card--empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 28px 14px;
+  color: var(--md-on-surface-variant);
+  font-size: 0.8rem;
+  border: 1.5px dashed var(--md-outline-variant, #ccc);
+  background: transparent;
+}
+
+.patient-card--empty i { font-size: 1.5rem; }
+
+.pc-top {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.pc-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 1rem;
+  flex-shrink: 0;
+  color: #fff;
+}
+
+.pc-avatar--espera  { background: #f59e0b; }
+.pc-avatar--consulta { background: #8b5cf6; }
+
+.pc-info { flex: 1; min-width: 0; }
+
+.pc-name {
+  font-weight: 700;
+  font-size: 0.9rem;
+  color: var(--md-on-surface);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pc-meta {
+  font-size: 0.75rem;
+  color: var(--md-on-surface-variant);
+}
+
+.pc-timer {
+  font-size: 0.8rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: 8px;
+}
+
+.pc-timer--warn { color: #d97706; }
+.pc-timer--alert { color: #dc2626; }
+.pc-timer--ok { color: #6b7280; }
+
+.pc-badges {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+
+.pc-actions {
+  display: flex;
+  gap: 6px;
+  justify-content: flex-end;
+  margin-top: 4px;
+}
+
+/* ── Resumen del día ── */
+.resumen-body {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.resumen-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 16px;
+  background: var(--md-surface, #fff);
+  border-radius: 10px;
+  border: 1px solid var(--md-outline-variant, #e0e0e0);
+}
+
+.resumen-stat__num {
+  font-size: 2.5rem;
+  font-weight: 800;
+  color: #10b981;
+  line-height: 1;
+}
+
+.resumen-stat__label {
+  font-size: 0.75rem;
+  color: var(--md-on-surface-variant);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-top: 4px;
+}
+
+.resumen-last {
+  font-size: 0.75rem;
+  color: var(--md-on-surface-variant);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* ── Diagrama de flujo ── */
+.resumen-flow__title {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--md-on-surface-variant);
+  margin: 0 0 10px;
+}
+
+.flow-steps {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.flow-step {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.7rem;
+  color: var(--md-on-surface-variant);
+}
+
+.flow-step__icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.7rem;
+  color: #fff;
+}
+
+.flow-step__icon--checkin  { background: #3b82f6; }
+.flow-step__icon--espera   { background: #f59e0b; }
+.flow-step__icon--consulta { background: #8b5cf6; }
+.flow-step__icon--fin      { background: #10b981; }
+
+.flow-arrow {
+  font-size: 0.6rem;
+  color: var(--md-on-surface-variant);
+}
+
+/* ── Modal de checkout ── */
+.sala-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+}
+
+.sala-modal {
+  background: var(--md-surface, #fff);
+  border-radius: 20px;
+  padding: 32px 28px;
+  max-width: 360px;
+  width: 90%;
+  text-align: center;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+}
+
+.sala-modal__icon {
+  font-size: 2.5rem;
+  color: #10b981;
+  margin-bottom: 12px;
+}
+
+.sala-modal__title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  margin: 0 0 8px;
+}
+
+.sala-modal__body {
+  font-size: 0.875rem;
+  color: var(--md-on-surface-variant);
+  margin: 0 0 24px;
+}
+
+.sala-modal__actions {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+}

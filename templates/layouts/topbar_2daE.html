@@ -16,7 +16,7 @@
     </a>
 
     <div class="profile-circle">
-        <span>RG</span>
+        <span>{{ initials }}</span>
     </div>
 </div>
 
@@ -98,6 +98,11 @@
                 return;
             }
             const payload = await res.json();
+            // Auto-navegar en match exacto de NFC (lector físico escribe números + Enter)
+            if (payload.nfc_redirect) {
+                window.location.href = payload.nfc_redirect;
+                return;
+            }
             renderResults(payload.results || []);
         } catch (err) {
             closeResults();

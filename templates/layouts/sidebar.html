@@ -93,6 +93,13 @@
             <span>Citas</span>
           </a>
 
+          <a href="{{ url_for('sala_espera') }}"
+             class="sidebar-nav-item {{ 'active' if request.endpoint == 'sala_espera' else '' }}"
+             {{ 'aria-current=page' if request.endpoint == 'sala_espera' else '' }}>
+            <i class="fa-solid fa-tachograph-digital"></i>
+            <span>Monitor de Sala</span>
+          </a>
+
           <a href="{{ url_for('historial') }}"
              class="sidebar-nav-item {{ 'active' if request.endpoint == 'historial' else '' }}"
              {{ 'aria-current=page' if request.endpoint == 'historial' else '' }}>
