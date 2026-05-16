@@ -10,6 +10,14 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO vaccine_u
 GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO vaccine_user;
 ALTER DATABASE sistemavacunacion OWNER TO vaccine_user;
 
+DO $$ DECLARE r RECORD;
+BEGIN
+    FOR r IN SELECT tablename FROM pg_tables WHERE schemaname = 'public'
+    LOOP
+        EXECUTE 'ALTER TABLE public.' || quote_ident(r.tablename) || ' OWNER TO vaccine_user';
+    END LOOP;
+END $$;
+
 --  MÓDULO: ADDRESSES
 CREATE TABLE countries (
     country_id   SERIAL PRIMARY KEY,
@@ -565,5 +573,41 @@ CREATE INDEX idx_patients_active           ON patients(patient_id) WHERE is_acti
 -- ============================================================
 DROP TABLE IF EXISTS scan_logs;
 DROP TABLE IF EXISTS beacons;
+
+-- ============================================================
+-- FASE 2 — Transferencias entre clínicas
+-- ============================================================
+
+CREATE TABLE IF NOT EXISTS inventory_transfers (
+    transfer_id     SERIAL PRIMARY KEY,
+    lot_id          INT         NOT NULL REFERENCES vaccine_lots(lot_id),
+    vaccine_id      INT         NOT NULL REFERENCES vaccines(vaccine_id),
+    from_clinic_id  INT         NOT NULL REFERENCES clinics(clinic_id),
+    to_clinic_id    INT         NOT NULL REFERENCES clinics(clinic_id),
+    quantity        INT         NOT NULL CHECK (quantity > 0),
+    transfer_status VARCHAR(20) NOT NULL DEFAULT 'Pendiente'
+                    CHECK (transfer_status IN (
+                        'Pendiente',
+                        'En_Transito',
+                        'Recibido',
+                        'Cancelado',
+                        'Rechazado'
+                    )),
+    requested_by    INT         NOT NULL REFERENCES workers(worker_id),
+    approved_by     INT                  REFERENCES workers(worker_id),
+    reason          TEXT,
+    notes           TEXT,
+    requested_at    TIMESTAMP   NOT NULL DEFAULT NOW(),
+    resolved_at     TIMESTAMP,
+    CONSTRAINT chk_transfer_different_clinics CHECK (from_clinic_id <> to_clinic_id)
+);
+
+-- Índices de rendimiento para inventory_transfers
+CREATE INDEX IF NOT EXISTS idx_transfers_lot        ON inventory_transfers(lot_id);
+CREATE INDEX IF NOT EXISTS idx_transfers_from       ON inventory_transfers(from_clinic_id);
+CREATE INDEX IF NOT EXISTS idx_transfers_to         ON inventory_transfers(to_clinic_id);
+CREATE INDEX IF NOT EXISTS idx_transfers_status     ON inventory_transfers(transfer_status);
+CREATE INDEX IF NOT EXISTS idx_transfers_requested  ON inventory_transfers(requested_at DESC);
+CREATE INDEX IF NOT EXISTS idx_transfers_requester  ON inventory_transfers(requested_by);
 
 -- nfc_id ya definido en CREATE TABLE patients (migración: renombrado de nfc_token)

@@ -7,12 +7,10 @@
 
   if (typeof Highcharts === 'undefined') return;
 
-  var dataEl = document.getElementById('dash-chart-data');
-  if (!dataEl) return;
-
-  var coverageData = JSON.parse(dataEl.dataset.coverage || '[]');
-  var dosesData    = JSON.parse(dataEl.dataset.monthly  || '[]');
-  var delayData    = JSON.parse(dataEl.dataset.delays   || '[]');
+  var _d        = window._dashCharts || {};
+  var coverageData = _d.coverage || [];
+  var dosesData    = _d.monthly  || [];
+  var delayData    = _d.delays   || [];
 
   var sharedOptions = {
     chart:    { backgroundColor: 'transparent', style: { fontFamily: 'inherit' } },

@@ -1,0 +1,199 @@
+{% extends 'base_2daE.html' %}
+
+{% from 'components/kpi_card.html' import kpi_card %}
+{% from 'components/alert.html'    import alert    %}
+{% from 'components/badge.html'    import badge    %}
+{% from 'components/table.html'    import table    %}
+
+{% block head_extra %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/dashboard.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/almacen.css') }}">
+{% endblock %}
+
+{% block title %}Dashboard — Almacén{% endblock %}
+
+{% block content %}
+
+<!-- Encabezado -->
+<div class="dash-header">
+  <div>
+    <p class="dash-date">{{ today }}</p>
+    <h2 class="dash-title">Panel de Almacén</h2>
+    <p class="dash-welcome">{{ name }} {{ lastname }}</p>
+  </div>
+  <div style="display:flex;gap:8px;align-self:flex-end;">
+    <a href="{{ url_for('almacen_lotes') }}" class="md3-btn md3-btn--filled">
+      <i class="fa-solid fa-boxes-stacked"></i> Ver lotes
+    </a>
+    <a href="{{ url_for('almacen_movimientos') }}" class="md3-btn md3-btn--tonal">
+      <i class="fa-solid fa-arrow-right-arrow-left"></i> Movimientos
+    </a>
+  </div>
+</div>
+
+{% if alertas_criticas > 0 %}
+  {{ alert(
+      alertas_criticas ~ ' lote(s) en estado crítico: stock ≤5 dosis o vence en menos de 7 días.',
+      type='error',
+      title='Alertas críticas de inventario',
+      icon='fa-circle-exclamation',
+      dismissible=True
+  ) }}
+{% endif %}
+
+<!-- KPIs fila 1 -->
+<div class="kpi-grid-3">
+  {{ kpi_card(
+      value=kpis.get('lotes_activos', 0),
+      label='Lotes activos',
+      icon='fa-boxes-stacked',
+      color='primary',
+      href=url_for('almacen_lotes')
+  ) }}
+  {{ kpi_card(
+      value=kpis.get('dosis_disponibles', 0),
+      label='Dosis disponibles',
+      icon='fa-syringe',
+      color='secondary'
+  ) }}
+  {{ kpi_card(
+      value=kpis.get('lotes_por_vencer', 0),
+      label='Lotes vencen en ≤30 días',
+      icon='fa-calendar-xmark',
+      color='primary'
+  ) }}
+</div>
+
+<!-- KPIs fila 2 -->
+<div class="kpi-grid-3">
+  {{ kpi_card(
+      value=kpis.get('lotes_agotados', 0),
+      label='Lotes agotados',
+      icon='fa-box-open',
+      color='secondary'
+  ) }}
+  {{ kpi_card(
+      value=kpis.get('lotes_caducados', 0),
+      label='Lotes caducados',
+      icon='fa-skull-crossbones',
+      color='primary'
+  ) }}
+  {{ kpi_card(
+      value=kpis.get('alertas_criticas', 0),
+      label='Alertas críticas',
+      icon='fa-triangle-exclamation',
+      color='secondary'
+  ) }}
+</div>
+
+<!-- Fila inferior: gráfica + alertas -->
+<div class="almacen-bottom-row">
+
+  <!-- Gráfica: consumo semanal -->
+  <div class="chart-card">
+    <div class="chart-card-header">
+      <h3>Consumo esta semana</h3>
+      <span class="chart-badge">Dosis aplicadas</span>
+    </div>
+    <div class="chart-wrap">
+      <div id="chartConsumoSemana"></div>
+    </div>
+  </div>
+
+  <!-- Panel de alertas -->
+  <div class="alerts-card">
+    <div class="chart-card-header">
+      <h3><i class="fa-solid fa-triangle-exclamation"></i> Lotes con alerta</h3>
+      {% if alertas %}
+        <span class="chart-badge" style="background:var(--md-error-container);color:var(--md-on-error-container);">
+          {{ alertas|length }}
+        </span>
+      {% endif %}
+    </div>
+    <div class="almacen-alerts-list">
+      {% for a in alertas[:10] %}
+        {{ alert(
+            a.vaccine_name ~ ' · ' ~ a.lot_number ~ ' — ' ~ a.alert_reason,
+            type='error'   if a.alert_type == 'Critico' else 'warning',
+            icon='fa-circle-exclamation' if a.alert_type == 'Critico' else 'fa-clock',
+            compact=True
+        ) }}
+      {% else %}
+        {{ alert('Sin alertas de inventario activas.', type='success', icon='fa-circle-check', compact=True) }}
+      {% endfor %}
+    </div>
+  </div>
+
+</div>
+
+<!-- Tabla: movimientos recientes -->
+<div class="section-card mt-20">
+  <div class="section-header-row">
+    <h3><i class="fa-solid fa-arrow-right-arrow-left"></i> Movimientos recientes</h3>
+    <a href="{{ url_for('almacen_movimientos') }}" class="chart-badge">Ver todos</a>
+  </div>
+
+  {% set _row = namespace(i=0) %}
+  {% call(m) table(
+      headers=[
+        {'label': 'Fecha / hora'},
+        {'label': 'Tipo'},
+        {'label': 'Vacuna'},
+        {'label': 'Lote'},
+        {'label': 'Cant.', 'align': 'center'},
+        {'label': 'Stock resultante', 'align': 'center'},
+        {'label': 'Responsable'},
+      ],
+      rows=movimientos,
+      empty_icon='fa-arrow-right-arrow-left',
+      empty_title='Sin movimientos registrados',
+      footer_text='Últimos ' ~ movimientos|length ~ ' movimiento(s)'
+  ) %}
+    <tr class="inv-row bar-{{ _row.i % 9 }}">
+      <td class="muted-td" style="font-size:13px;">
+        {{ m.created_at.strftime('%d/%m/%Y %H:%M') if m.created_at else '—' }}
+      </td>
+      <td>
+        {% set mt = m.movement_type or '' %}
+        {% if mt == 'Entrada' %}
+          {{ badge('Entrada',       color='success',   icon='fa-arrow-down',           size='sm') }}
+        {% elif mt == 'Salida_Aplicacion' %}
+          {{ badge('Aplicación',    color='primary',   icon='fa-syringe',              size='sm') }}
+        {% elif mt == 'Salida_Merma' %}
+          {{ badge('Merma',         color='error',     icon='fa-biohazard',            size='sm') }}
+        {% elif mt == 'Salida_Caducidad' %}
+          {{ badge('Caducidad',     color='error',     icon='fa-skull-crossbones',     size='sm') }}
+        {% elif mt == 'Ajuste_Positivo' %}
+          {{ badge('Ajuste +',      color='success',   icon='fa-circle-plus',          size='sm') }}
+        {% elif mt == 'Ajuste_Negativo' %}
+          {{ badge('Ajuste –',      color='secondary', icon='fa-circle-minus',         size='sm') }}
+        {% else %}
+          {{ badge(mt or '—',       color='neutral',   size='sm') }}
+        {% endif %}
+      </td>
+      <td>{{ m.vaccine_name or '—' }}</td>
+      <td class="muted-td" style="font-size:13px;">{{ m.lot_number or '—' }}</td>
+      <td class="col-center" style="font-weight:600;">{{ m.quantity }}</td>
+      <td class="col-center">
+        <div class="qty-arrow">
+          <span class="qty-arrow__before">{{ m.quantity_before }}</span>
+          <span class="qty-arrow__icon"><i class="fa-solid fa-arrow-right"></i></span>
+          <span class="qty-arrow__after">{{ m.quantity_after }}</span>
+        </div>
+      </td>
+      <td class="muted-td" style="font-size:13px;">{{ m.worker_name or '—' }}</td>
+    </tr>
+    {% set _row.i = _row.i + 1 %}
+  {% endcall %}
+</div>
+
+<!-- Datos para gráfica Highcharts -->
+<div id="almacen-chart-data" hidden
+     data-lotes-criticos="{{ lotes_criticos | tojson | e }}"></div>
+
+{% endblock %}
+
+{% block scripts %}
+<script src="https://code.highcharts.com/highcharts.js"></script>
+<script src="{{ url_for('static', filename='js/pages/almacen_dashboard.js') }}" defer></script>
+{% endblock %}

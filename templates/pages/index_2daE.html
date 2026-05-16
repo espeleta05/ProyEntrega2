@@ -189,15 +189,17 @@
 {% include 'nuevoPaciente_2daE.html' %}
 {% include 'nuevaVacuna_2daE.html' %}
 
-<div id="dash-chart-data" hidden
-     data-coverage="{{ coverage_by_age  | tojson | e }}"
-     data-monthly="{{ doses_by_month   | tojson | e }}"
-     data-delays="{{ delay_by_vaccine  | tojson | e }}"></div>
-
 {% endblock %}
 
 {% block scripts %}
 <script src="https://code.highcharts.com/highcharts.js"></script>
+<script>
+  window._dashCharts = {
+    coverage: {{ coverage_by_age | tojson }},
+    monthly:  {{ doses_by_month  | tojson }},
+    delays:   {{ delay_by_vaccine | tojson }}
+  };
+</script>
 <script src="{{ url_for('static', filename='js/pages/dashboard.js') }}"></script>
 <script src="{{ url_for('static', filename='js/pages/nuevoPaciente.js') }}"></script>
 {% endblock %}

@@ -29,6 +29,19 @@ except Exception as e:
     print(e)
 
 
+# ── Integración MongoDB ──────────────────────────────────────
+try:
+    from mongo.rutas import mongo_bp
+    app.register_blueprint(mongo_bp)
+    from mongo.conexion import ping as mongo_ping
+    if mongo_ping():
+        print("[OK] MongoDB conectado")
+    else:
+        print("[WARN] MongoDB no disponible - los reportes NoSQL estarán deshabilitados")
+except Exception as _e:
+    print(f"[WARN] No se pudo cargar el módulo MongoDB: {_e}")
+# ─────────────────────────────────────────────────────────────
+
 @app.errorhandler(OperationalError)
 def handle_database_operational_error(error):
     return (
@@ -188,8 +201,10 @@ def _home_url_for_role(role):
     """Retorna la URL del dashboard correspondiente al rol."""
     if role == "Recepcionista":
         return url_for("recepcionista_dashboard")
-    if role == "Medico":
+    if role in ("Medico", "Enfermero"):
         return url_for("medico_dashboard")
+    if role == "Almacen":
+        return url_for("almacen_dashboard")
     return url_for("dashboard")
 
 def _session_vars():
@@ -1292,7 +1307,7 @@ def tutor_qr_imagen(patient_id):
 
 @app.route("/dashboard")
 def dashboard():
-    locked = _require_role("Administrador", "Recepcionista", "Medico", "Almacen")
+    locked = _require_role("Administrador")
     if locked:
         return locked
 
@@ -1317,9 +1332,9 @@ def dashboard():
 
                 # 3. Datos para las 3 gráficas
 
-                #cur.execute("CALL sp_dashboard_charts(%s)", ("cur_charts",))
-                #cur.execute('FETCH ALL FROM "cur_charts"')
-                #chart_rows = cur.fetchall()
+                cur.execute("CALL sp_dashboard_charts(%s)", ("cur_charts",))
+                cur.execute('FETCH ALL FROM "cur_charts"')
+                chart_rows = cur.fetchall()
 
             conn.commit()
         except Exception:
@@ -3630,7 +3645,7 @@ def recepcionista_dashboard():
 @app.route("/medico")
 @app.route("/medico/dashboard")
 def medico_dashboard():
-    locked = _require_role("Medico", "Administrador")
+    locked = _require_role("Medico", "Enfermero", "Administrador")
     if locked:
         return locked
 
@@ -3763,6 +3778,324 @@ def medico_citas_hoy():
         history=history,
         today_label=today.strftime("%d/%m/%Y"),
     )
+
+
+# =============================================================================
+# RUTAS — almacén
+# =============================================================================
+
+_ALMACEN_RW   = ("Administrador", "Almacen")
+_ALMACEN_READ = ("Administrador", "Almacen", "Medico", "Enfermero")
+
+
+@app.route("/almacen")
+@app.route("/almacen/dashboard")
+def almacen_dashboard():
+    locked = _require_role(*_ALMACEN_RW)
+    if locked:
+        return locked
+
+    clinic_id = session.get("clinic_id")
+
+    kpis            = {}
+    alertas         = []
+    movimientos     = []
+    lotes_criticos  = []
+
+    conn, should_close = _get_conn()
+    _safe_rollback(conn)
+    try:
+        with conn.cursor() as cur:
+            cur.execute("CALL sp_almacen_dashboard(%s, %s, %s, %s, %s)",
+                        (clinic_id,
+                         "cur_alm_kpis",
+                         "cur_alm_alertas",
+                         "cur_alm_movs",
+                         "cur_alm_lotes"))
+            cur.execute('FETCH ALL FROM "cur_alm_kpis"')
+            row = cur.fetchone()
+            if row:
+                kpis = dict(row)
+            cur.execute('FETCH ALL FROM "cur_alm_alertas"')
+            alertas = [dict(r) for r in cur.fetchall()]
+            cur.execute('FETCH ALL FROM "cur_alm_movs"')
+            movimientos = [dict(r) for r in cur.fetchall()]
+            cur.execute('FETCH ALL FROM "cur_alm_lotes"')
+            lotes_criticos = [dict(r) for r in cur.fetchall()]
+        conn.commit()
+    except Exception as e:
+        _safe_rollback(conn)
+        logger.error("Error en almacen_dashboard: %s", e)
+        flash("Error al cargar el dashboard de almacén.", "danger")
+    finally:
+        if should_close and not _conn_is_closed(conn):
+            conn.close()
+
+    return render_template(
+        "pages/almacen/dashboard_almacen.html",
+        **_session_vars(),
+        today=date.today().strftime("%d/%m/%Y"),
+        kpis=kpis,
+        alertas=alertas,
+        movimientos=movimientos,
+        lotes_criticos=lotes_criticos,
+        alertas_criticas=sum(1 for a in alertas if a.get("alert_type") == "Critico"),
+    )
+
+
+@app.route("/almacen/lotes")
+def almacen_lotes():
+    locked = _require_role(*_ALMACEN_READ)
+    if locked:
+        return locked
+
+    clinic_id = session.get("clinic_id")
+    today_dt  = date.today()
+    lotes_raw = _cur_fetchall("vaccine_lots")
+    vacunas   = _cur_fetchall("vaccines")
+    clinics   = _cur_fetchall("clinics")
+
+    vacuna_map = {v["vaccine_id"]: v["name"] for v in vacunas}
+    clinic_map = {c["clinic_id"]: c["name"] for c in clinics}
+
+    lotes = []
+    for lot in lotes_raw:
+        exp_date = lot.get("expiration_date")
+        lotes.append({
+            **lot,
+            "vaccine_name":   vacuna_map.get(lot.get("vaccine_id"), "—"),
+            "clinic_name":    clinic_map.get(lot.get("clinic_id"),  "—"),
+            "dosis_aplicadas": (lot.get("quantity_received", 0) or 0) - (lot.get("quantity_available", 0) or 0),
+            "is_expired":     bool(exp_date and exp_date < today_dt),
+            "lot_status":     lot.get("lot_status", "Disponible"),
+        })
+
+    return render_template(
+        "pages/almacen/lotes.html",
+        **_session_vars(),
+        lotes=lotes,
+        vacunas=vacunas,
+        clinics=clinics,
+        today=today_dt,
+        is_almacen=session.get("role") in _ALMACEN_RW,
+    )
+
+
+@app.route("/almacen/lotes/<int:lot_id>")
+def almacen_lote_detalle(lot_id):
+    locked = _require_role(*_ALMACEN_READ)
+    if locked:
+        return locked
+
+    lote      = {}
+    movs      = []
+    conn, should_close = _get_conn()
+    _safe_rollback(conn)
+    try:
+        with conn.cursor() as cur:
+            cur.execute("CALL sp_get_lot_detail(%s, %s, %s)",
+                        (lot_id, "cur_lot", "cur_lot_movs"))
+            cur.execute('FETCH ALL FROM "cur_lot"')
+            row = cur.fetchone()
+            if row:
+                lote = dict(row)
+            cur.execute('FETCH ALL FROM "cur_lot_movs"')
+            movs = [dict(r) for r in cur.fetchall()]
+        conn.commit()
+    except Exception as e:
+        _safe_rollback(conn)
+        logger.error("Error en almacen_lote_detalle: %s", e)
+        flash("Error al cargar el lote.", "danger")
+        return redirect(url_for("almacen_lotes"))
+    finally:
+        if should_close and not _conn_is_closed(conn):
+            conn.close()
+
+    if not lote:
+        flash("Lote no encontrado.", "warning")
+        return redirect(url_for("almacen_lotes"))
+
+    return render_template(
+        "pages/almacen/lote_detalle.html",
+        **_session_vars(),
+        lote=lote,
+        movimientos=movs,
+        is_almacen=session.get("role") in _ALMACEN_RW,
+    )
+
+
+@app.route("/almacen/lotes/<int:lot_id>/status", methods=["POST"])
+def almacen_cambiar_estado_lote(lot_id):
+    locked = _require_role(*_ALMACEN_RW)
+    if locked:
+        return locked
+
+    new_status = (request.form.get("lot_status") or "").strip()
+    reason     = (request.form.get("reason") or "").strip()
+    worker_id  = session.get("worker_id")
+
+    conn, should_close = _get_conn()
+    _safe_rollback(conn)
+    try:
+        with conn.cursor() as cur:
+            cur.execute("CALL sp_update_lot_status(%s, %s, %s, %s, %s)",
+                        (lot_id, new_status, worker_id, reason, "cur_lst"))
+            cur.execute('FETCH ALL FROM "cur_lst"')
+            result = dict(cur.fetchone() or {})
+        conn.commit()
+        if result.get("success"):
+            flash(f"Estado del lote actualizado a {new_status}.", "success")
+        else:
+            flash(f"No se pudo cambiar estado: {result.get('message')}", "danger")
+    except Exception as e:
+        _safe_rollback(conn)
+        logger.error("Error en almacen_cambiar_estado_lote: %s", e)
+        flash(f"Error: {e}", "danger")
+    finally:
+        if should_close and not _conn_is_closed(conn):
+            conn.close()
+
+    return redirect(url_for("almacen_lote_detalle", lot_id=lot_id))
+
+
+@app.route("/almacen/movimientos")
+def almacen_movimientos():
+    locked = _require_role(*_ALMACEN_RW)
+    if locked:
+        return locked
+
+    clinic_id   = session.get("clinic_id")
+    date_from   = request.args.get("date_from") or None
+    date_to     = request.args.get("date_to")   or None
+    type_filter = request.args.get("type")       or None
+
+    movimientos = []
+    conn, should_close = _get_conn()
+    _safe_rollback(conn)
+    try:
+        with conn.cursor() as cur:
+            cur.execute("CALL sp_get_movements_full(%s, %s, %s, %s, %s, %s)",
+                        (clinic_id, None, date_from, date_to, type_filter, "cur_movs"))
+            cur.execute('FETCH ALL FROM "cur_movs"')
+            movimientos = [dict(r) for r in cur.fetchall()]
+        conn.commit()
+    except Exception as e:
+        _safe_rollback(conn)
+        logger.error("Error en almacen_movimientos: %s", e)
+        flash("Error al cargar movimientos.", "danger")
+    finally:
+        if should_close and not _conn_is_closed(conn):
+            conn.close()
+
+    return render_template(
+        "pages/almacen/movimientos.html",
+        **_session_vars(),
+        movimientos=movimientos,
+        date_from=date_from or "",
+        date_to=date_to or "",
+        type_filter=type_filter or "",
+    )
+
+
+@app.route("/almacen/movimientos/registrar", methods=["POST"])
+def almacen_registrar_movimiento():
+    locked = _require_role(*_ALMACEN_RW)
+    if locked:
+        return locked
+
+    lot_id        = request.form.get("lot_id",        type=int)
+    movement_type = (request.form.get("movement_type") or "").strip()
+    quantity      = request.form.get("quantity",       type=int)
+    reason        = (request.form.get("reason") or "").strip()
+    worker_id     = session.get("worker_id")
+
+    if not lot_id or not movement_type or not quantity or quantity <= 0:
+        flash("Datos incompletos para registrar el movimiento.", "warning")
+        return redirect(url_for("almacen_lotes"))
+
+    conn, should_close = _get_conn()
+    _safe_rollback(conn)
+    try:
+        with conn.cursor() as cur:
+            cur.execute("CALL sp_register_manual_movement(%s, %s, %s, %s, %s, %s)",
+                        (lot_id, worker_id, movement_type, quantity, reason, "cur_mov_reg"))
+            cur.execute('FETCH ALL FROM "cur_mov_reg"')
+            result = dict(cur.fetchone() or {})
+        conn.commit()
+        if result.get("success"):
+            flash("Movimiento registrado correctamente.", "success")
+        else:
+            flash(f"No se pudo registrar: {result.get('message')}", "danger")
+    except Exception as e:
+        _safe_rollback(conn)
+        logger.error("Error en almacen_registrar_movimiento: %s", e)
+        flash(f"Error: {e}", "danger")
+    finally:
+        if should_close and not _conn_is_closed(conn):
+            conn.close()
+
+    next_url = request.form.get("next") or url_for("almacen_lotes")
+    return redirect(next_url)
+
+
+@app.route("/api/almacen/alertas")
+def api_almacen_alertas():
+    if not _check_role(*_ALMACEN_READ):
+        return jsonify({"error": "unauthorized"}), 403
+
+    clinic_id = session.get("clinic_id")
+    alertas   = []
+    conn, should_close = _get_conn()
+    _safe_rollback(conn)
+    try:
+        with conn.cursor() as cur:
+            cur.execute("CALL sp_get_almacen_alerts(%s, %s)", (clinic_id, "cur_alm_api"))
+            cur.execute('FETCH ALL FROM "cur_alm_api"')
+            alertas = [dict(r) for r in cur.fetchall()]
+        conn.commit()
+    except Exception as e:
+        _safe_rollback(conn)
+        logger.error("Error en api_almacen_alertas: %s", e)
+    finally:
+        if should_close and not _conn_is_closed(conn):
+            conn.close()
+
+    return jsonify({
+        "alertas": alertas,
+        "total":   len(alertas),
+        "criticas": sum(1 for a in alertas if a.get("alert_type") == "Critico"),
+    })
+
+
+@app.route("/api/almacen/movimientos")
+def api_almacen_movimientos():
+    if not _check_role(*_ALMACEN_RW):
+        return jsonify({"error": "unauthorized"}), 403
+
+    clinic_id   = session.get("clinic_id")
+    lot_id      = request.args.get("lot_id",    type=int)
+    date_from   = request.args.get("date_from") or None
+    date_to     = request.args.get("date_to")   or None
+    type_filter = request.args.get("type")       or None
+
+    movimientos = []
+    conn, should_close = _get_conn()
+    _safe_rollback(conn)
+    try:
+        with conn.cursor() as cur:
+            cur.execute("CALL sp_get_movements_full(%s, %s, %s, %s, %s, %s)",
+                        (clinic_id, lot_id, date_from, date_to, type_filter, "cur_api_movs"))
+            cur.execute('FETCH ALL FROM "cur_api_movs"')
+            movimientos = [dict(r) for r in cur.fetchall()]
+        conn.commit()
+    except Exception as e:
+        _safe_rollback(conn)
+        logger.error("Error en api_almacen_movimientos: %s", e)
+    finally:
+        if should_close and not _conn_is_closed(conn):
+            conn.close()
+
+    return jsonify({"movimientos": movimientos, "total": len(movimientos)})
 
 
 # =============================================================================

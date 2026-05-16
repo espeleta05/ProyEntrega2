@@ -1,0 +1,134 @@
+/* ============================================================
+   MÓDULO ALMACÉN — Estilos compartidos
+   Usa variables MD3 del design-system. Sin estilos inline.
+   ============================================================ */
+
+/* Grid de KPIs en 3 columnas (2 filas) */
+.kpi-grid-3 {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+/* Fila inferior: gráfica + alertas */
+.almacen-bottom-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-top: 16px;
+}
+
+/* Lista de alertas en panel lateral */
+.almacen-alerts-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 12px;
+  max-height: 320px;
+  overflow-y: auto;
+}
+
+/* Tabla de movimientos: colores por tipo */
+.mov-type-entrada         { color: var(--md-tertiary,    #386a20); font-weight: 600; }
+.mov-type-salida-aplica   { color: var(--md-primary,     #6B007C); }
+.mov-type-salida-merma    { color: var(--md-error,       #b3261e); font-weight: 600; }
+.mov-type-salida-caduci   { color: var(--md-error,       #b3261e); }
+.mov-type-ajuste-pos      { color: var(--md-tertiary,    #386a20); }
+.mov-type-ajuste-neg      { color: var(--md-secondary,   #6750a4); }
+.mov-type-transfer        { color: var(--md-secondary,   #6750a4); }
+
+/* Fila de lote: alerta de caducidad próxima */
+.lot-row-warning {
+  background: var(--md-warning-container, #fff8e1);
+}
+.lot-row-critical {
+  background: var(--md-error-container, #fce4e4);
+}
+
+/* Badge de estado de lote */
+.lot-status-disponible  { background: var(--md-tertiary-container, #d6f0c0);  color: var(--md-on-tertiary-container, #1a3800); }
+.lot-status-agotado     { background: var(--md-surface-variant,    #e7e0ec);  color: var(--md-on-surface-variant,    #49454f); }
+.lot-status-caducado    { background: var(--md-error-container,    #fce4e4);  color: var(--md-on-error-container,    #410e0b); }
+.lot-status-bloqueado   { background: var(--md-warning-container,  #fff3cd);  color: #7a5000; }
+.lot-status-retirado    { background: var(--md-surface-variant,    #e7e0ec);  color: var(--md-outline,               #79747e); text-decoration: line-through; }
+
+/* Detalle del lote: bloque info */
+.lot-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin-bottom: 24px;
+}
+.lot-detail-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.lot-detail-field__label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--md-on-surface-variant, #49454f);
+}
+.lot-detail-field__value {
+  font-size: 15px;
+  color: var(--md-on-surface, #1c1b1f);
+  font-weight: 500;
+}
+
+/* Barra de filtros de movimientos */
+.almacen-filters {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: center;
+  margin-bottom: 16px;
+  padding: 12px 16px;
+  background: var(--md-surface-container, #f3edf7);
+  border-radius: 12px;
+}
+.almacen-filters input[type="date"],
+.almacen-filters select {
+  padding: 6px 10px;
+  border: 1px solid var(--md-outline, #79747e);
+  border-radius: 8px;
+  background: var(--md-surface, #fffbfe);
+  color: var(--md-on-surface, #1c1b1f);
+  font-size: 13px;
+}
+
+/* Cantidad antes→después en tabla movimientos */
+.qty-arrow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+}
+.qty-arrow__before { color: var(--md-on-surface-variant, #49454f); }
+.qty-arrow__after  { font-weight: 600; color: var(--md-on-surface,  #1c1b1f); }
+.qty-arrow__icon   { color: var(--md-outline, #79747e); font-size: 11px; }
+
+/* Totales footer de movimientos */
+.mov-footer-totales {
+  display: flex;
+  gap: 24px;
+  padding: 12px 16px;
+  background: var(--md-surface-container, #f3edf7);
+  border-radius: 0 0 12px 12px;
+  font-size: 13px;
+}
+.mov-footer-totales__item { display: flex; flex-direction: column; gap: 2px; }
+.mov-footer-totales__val  { font-weight: 700; font-size: 18px; }
+.mov-footer-totales__lbl  { color: var(--md-on-surface-variant, #49454f); }
+
+@media (max-width: 900px) {
+  .kpi-grid-3            { grid-template-columns: 1fr 1fr; }
+  .almacen-bottom-row    { grid-template-columns: 1fr; }
+  .lot-detail-grid       { grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 600px) {
+  .kpi-grid-3            { grid-template-columns: 1fr; }
+  .lot-detail-grid       { grid-template-columns: 1fr; }
+}
