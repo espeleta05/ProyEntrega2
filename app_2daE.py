@@ -1280,7 +1280,7 @@ def tutor_qr_imagen(patient_id):
     from flask import send_file as _send_file
     return _send_file(
         qr_buf,
-        mimetype="image/png",
+        mimetype="image/png",   
         as_attachment=True,
         download_name=f"qr_paciente_{patient_id}.png",
     )
@@ -3776,6 +3776,10 @@ def api_global_search():
         return jsonify({"results": []})
 
     q = (request.args.get("q") or "").strip().lower()
+    # El lector NFC físico suele agregar "/" u otros chars al final — limpiar
+    q_clean = q.rstrip("/ \t")
+    if q_clean.isdigit():
+        q = q_clean
     if not q:
         return jsonify({"results": []})
 
@@ -3804,6 +3808,11 @@ def api_global_search():
 
     patient_results.sort(key=lambda x: x[0])
     results.extend(r for _, r in patient_results)
+
+    # Detectar match exacto de NFC para auto-navegación
+    nfc_redirect = None
+    if is_numeric and patient_results and patient_results[0][0] == 0:
+        nfc_redirect = patient_results[0][1]["url"]
 
     # Buscar vacunas
     for v in _cur_fetchall("vaccines"):
@@ -3846,7 +3855,7 @@ def api_global_search():
                 "url":      url_for("personal") + f"?q={name}",
             })
 
-    return jsonify({"results": results[:10]})
+    return jsonify({"results": results[:10], "nfc_redirect": nfc_redirect})
 
 
 @app.route("/api/assign-nfc-id", methods=["POST"])
@@ -3895,11 +3904,53 @@ def api_clear_nfc_id():
     _safe_rollback(conn)
     try:
         with conn.cursor() as cur:
-            # Desactivar tarjeta en nfc_cards (no se borra para conservar historial de escaneos)
-            cur.execute(
-                "UPDATE nfc_cards SET status = 'Inactiva', updated_at = NOW() WHERE patient_id = %s AND status = 'Activa'",
-                (patient_id,),
-            )
+            # Obtener todas las tarjetas del paciente
+            cur.execute("SELECT nfc_card_id FROM nfc_cards WHERE patient_id = %s", (patient_id,))
+            card_ids = [r["nfc_card_id"] for r in cur.fetchall()]
+
+            if card_ids:
+                # Usar DO block para manejar tablas opcionales (migración clínica puede no haberse corrido)
+                cur.execute("""
+                    DO $$
+                    DECLARE v_ids INT[] := %s;
+                    BEGIN
+                        -- nfc_scan_events.visit_id (columna del flujo clínico, opcional)
+                        IF EXISTS (
+                            SELECT 1 FROM information_schema.columns
+                            WHERE table_name='nfc_scan_events' AND column_name='visit_id'
+                        ) THEN
+                            UPDATE nfc_scan_events SET visit_id = NULL WHERE nfc_card_id = ANY(v_ids);
+                        END IF;
+
+                        -- patient_clinic_visits (tabla opcional)
+                        IF EXISTS (
+                            SELECT 1 FROM information_schema.tables WHERE table_name='patient_clinic_visits'
+                        ) THEN
+                            UPDATE patient_clinic_visits
+                               SET checkin_nfc_scan_id = NULL
+                             WHERE checkin_nfc_scan_id IN (
+                                   SELECT scan_event_id FROM nfc_scan_events WHERE nfc_card_id = ANY(v_ids));
+                            UPDATE patient_clinic_visits
+                               SET checkout_nfc_scan_id = NULL
+                             WHERE checkout_nfc_scan_id IN (
+                                   SELECT scan_event_id FROM nfc_scan_events WHERE nfc_card_id = ANY(v_ids));
+                        END IF;
+
+                        -- visit_area_movements (tabla opcional)
+                        IF EXISTS (
+                            SELECT 1 FROM information_schema.tables WHERE table_name='visit_area_movements'
+                        ) THEN
+                            UPDATE visit_area_movements
+                               SET nfc_scan_id = NULL
+                             WHERE nfc_scan_id IN (
+                                   SELECT scan_event_id FROM nfc_scan_events WHERE nfc_card_id = ANY(v_ids));
+                        END IF;
+                    END$$;
+                """, (card_ids,))
+                cur.execute("DELETE FROM nfc_scan_events WHERE nfc_card_id = ANY(%s)", (card_ids,))
+                cur.execute("DELETE FROM nfc_cards WHERE patient_id = %s", (patient_id,))
+
+            # Limpiar nfc_id del paciente
             cur.execute("CALL sp_clear_patient_nfc_id(%s)", (patient_id,))
         conn.commit()
     except Exception as e:

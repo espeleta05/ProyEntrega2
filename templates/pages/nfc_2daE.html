@@ -62,13 +62,11 @@
     {# Tabla de tarjetas #}
     {% call(card) table(
         headers=[
-            {'label': 'UID'},
+            {'label': 'NFC ID'},
             {'label': 'Paciente'},
-            {'label': 'Tipo de tarjeta'},
-            {'label': 'Estado'},
+            {'label': 'Estado clínico'},
             {'label': 'Fecha emisión'},
-            {'label': 'Último escaneo'},
-            {'label': 'Notas'}
+            {'label': 'Último escaneo'}
         ],
         rows=cards,
         empty_icon='fa-credit-card',
@@ -78,17 +76,22 @@
         <tr class="tbl-row" data-uid="{{ card.uid }}" data-patient="{{ card.patient_name }}">
             <td><code class="code-badge">{{ card.uid }}</code></td>
             <td><strong>{{ card.patient_name }}</strong></td>
-            <td>{{ card.card_type }}</td>
             <td>
-                {% if card.status == 'Activa' %}
-                    {{ badge('Activa',   color='success', icon='fa-check', size='sm') }}
+                {% set vs = card.current_visit_status %}
+                {% if vs == 'En recepcion' %}
+                    {{ badge('Check-in',   color='info',    icon='fa-right-to-bracket', size='sm') }}
+                {% elif vs == 'En espera' %}
+                    {{ badge('En espera',  color='warning', icon='fa-clock',             size='sm') }}
+                {% elif vs in ('En consulta', 'En vacunacion') %}
+                    {{ badge('En consulta', color='primary', icon='fa-stethoscope',      size='sm') }}
+                {% elif card.status == 'Activa' %}
+                    {{ badge('Activa',     color='success', icon='fa-check',             size='sm') }}
                 {% else %}
-                    {{ badge('Inactiva', color='error',   icon='fa-times', size='sm') }}
+                    {{ badge('Inactiva',   color='error',   icon='fa-times',             size='sm') }}
                 {% endif %}
             </td>
             <td>{{ card.issued_date }}</td>
             <td class="muted-td">{{ card.last_scanned_at.strftime('%Y-%m-%d') if card.last_scanned_at else '—' }}</td>
-            <td class="muted-td">{{ (card.nfc_card_notes or card.notes or '')[:30] or '—' }}</td>
         </tr>
     {% endcall %}
 

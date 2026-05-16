@@ -2316,6 +2316,9 @@ BEGIN
             COALESCE(TRIM(wi.first_name || ' ' || wi.last_name), '-')
                                                                AS issued_by_name,
 
+            -- Estado clinico actual (visita activa hoy)
+            pcv.visit_status                                   AS current_visit_status,
+
             -- Estadisticas de uso
             (SELECT COUNT(*) FROM nfc_scan_events se
              WHERE se.nfc_card_id = nc.nfc_card_id)            AS total_scans,
@@ -2344,6 +2347,14 @@ BEGIN
         FROM nfc_cards nc
         JOIN  patients p  ON p.patient_id  = nc.patient_id
         LEFT JOIN workers wi ON wi.worker_id = nc.issued_by
+        LEFT JOIN LATERAL (
+            SELECT visit_status
+            FROM   patient_clinic_visits
+            WHERE  patient_id  = p.patient_id
+              AND  visit_status NOT IN ('Finalizado','Abandono','Cancelado')
+            ORDER BY checked_in_at DESC
+            LIMIT 1
+        ) pcv ON TRUE
         ORDER BY
             CASE nc.status
                 WHEN 'Activa'   THEN 1
@@ -2482,8 +2493,8 @@ BEGIN
         RAISE EXCEPTION 'El UID de la tarjeta es obligatorio';
     END IF;
 
-    IF EXISTS (SELECT 1 FROM nfc_cards WHERE uid = TRIM(p_uid)) THEN
-        RAISE EXCEPTION 'Ya existe una tarjeta con el UID %', p_uid;
+    IF EXISTS (SELECT 1 FROM nfc_cards WHERE uid = TRIM(p_uid) AND status = 'Activa') THEN
+        RAISE EXCEPTION 'Ya existe una tarjeta activa con el UID %', p_uid;
     END IF;
 
     IF EXISTS (
