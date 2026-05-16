@@ -1,0 +1,4094 @@
+[
+  {
+    "tabla": "vaccine_lots",
+    "record_id": 253,
+    "accion": "UPDATE",
+    "cambios": {
+      "quantity": {
+        "antes": "valor_anterior",
+        "despues": "valor_nuevo"
+      }
+    },
+    "trabajador_id": 8,
+    "trabajador_nombre": "Diana Paz",
+    "fecha": "2026-05-01T17:08:29.131000",
+    "ip": "192.168.1.124"
+  },
+  {
+    "tabla": "patients",
+    "record_id": 304,
+    "accion": "UPDATE",
+    "cambios": {
+      "status": {
+        "antes": "valor_anterior",
+        "despues": "valor_nuevo"
+      }
+    },
+    "trabajador_id": 1,
+    "trabajador_nombre": "José Pérez",
+    "fecha": "2026-04-21T09:39:36.131000",
+    "ip": "192.168.1.249"
+  },
+  {
+    "tabla": "patients",
+    "record_id": 9,
+    "accion": "UPDATE",
+    "cambios": {
+      "status": {
+        "antes": "valor_anterior",
+        "despues": "valor_nuevo"
+      }
+    },
+    "trabajador_id": 5,
+    "trabajador_nombre": "Raúl Mora",
+    "fecha": "2026-04-19T10:57:16.131000",
+    "ip": "192.168.1.168"
+  },
+  {
+    "tabla": "clinic_inventory",
+    "record_id": 104,
+    "accion": "UPDATE",
+    "cambios": {
+      "phone": {
+        "antes": "valor_anterior",
+        "despues": "valor_nuevo"
+      }
+    },
+    "trabajador_id": 2,
+    "trabajador_nombre": "Lucía Santos",
+    "fecha": "2026-05-07T16:15:20.131000",
+    "ip": "192.168.1.90"
+  },
+  {
+    "tabla": "nfc_cards",
+    "record_id": 34,
+    "accion": "UPDATE",
+    "cambios": {
+      "quantity": {
+        "antes": "valor_anterior",
+        "despues": "valor_nuevo"
+      }
+    },
+    "trabajador_id": 10,
+    "trabajador_nombre": "Karen Vega",
+    "fecha": "2026-04-17T10:21:02.131000",
+    "ip": "192.168.1.242"
+  },
+  {
+    "tabla": "appointments",
+    "record_id": 344,
+    "accion": "INSERT",
+    "cambios": {
+      "creado": true
+    },
+    "trabajador_id": 1,
+    "trabajador_nombre": "José Pérez",
+    "fecha": "2026-04-23T19:18:39.131000",
+    "ip": "192.168.1.81"
+  },
+  {
+    "tabla": "appointments",
+    "record_id": 498,
+    "accion": "INSERT",
+    "cambios": {
+      "creado": true
+    },
+    "trabajador_id": 4,
+    "trabajador_nombre": "Elisa Campos",
+    "fecha": "2026-05-07T17:50:28.131000",
+    "ip": "192.168.1.81"
+  },
+  {
+    "tabla": "vaccination_records",
+    "record_id": 486,
+    "accion": "UPDATE",
+    "cambios": {
+      "status": {
+        "antes": "valor_anterior",
+        "despues": "valor_nuevo"
+      }
+    },
+    "trabajador_id": 1,
+    "trabajador_nombre": "José Pérez",
+    "fecha": "2026-04-29T11:19:47.131000",
+    "ip": "192.168.1.246"
+  },
+  {
+    "tabla": "clinic_inventory",
+    "record_id": 193,
+    "accion": "UPDATE",
+    "cambios": {
+      "is_active": {
+        "antes": "valor_anterior",
+        "despues": "valor_nuevo"
+      }
+    },
+    "trabajador_id": 10,
+    "trabajador_nombre": "Karen Vega",
+    "fecha": "2026-05-15T10:24:46.131000",
+    "ip": "192.168.1.211"
+  },
+  {
+    "tabla": "vaccine_lots",
+    "record_id": 69,
+    "accion": "UPDATE",
+    "cambios": {
+      "phone": {
+        "antes": "valor_anterior",
+        "despues": "valor_nuevo"
+      }
+    },
+    "trabajador_id": 4,
+    "trabajador_nombre": "Elisa Campos",
+    "fecha": "2026-04-29T12:47:56.131000",
+    "ip": "192.168.1.187"
+  },
+  {
+    "tabla": "vaccination_records",
+    "record_id": 489,
+    "accion": "INSERT",
+    "cambios": {
+      "creado": true
+    },
+    "trabajador_id": 4,
+    "trabajador_nombre": "Elisa Campos",
+    "fecha": "2026-04-20T11:28:13.131000",
+    "ip": "192.168.1.212"
+  },
+  {
+    "tabla": "nfc_cards",
+    "record_id": 206,
+    "accion": "UPDATE",
+    "cambios": {
+      "quantity": {
+        "antes": "valor_anterior",
+        "despues": "valor_nuevo"
+      }
+    },
+    "trabajador_id": 9,
+    "trabajador_nombre": "Iván Silva",
+    "fecha": "2026-05-09T08:39:17.131000",
+    "ip": "192.168.1.63"
+  },
+  {
+    "tabla": "clinic_inventory",
+    "record_id": 79,
+    "accion": "INSERT",
+    "cambios": {
+      "creado": true
+    },
+    "trabajador_id": 7,
+    "trabajador_nombre": "Andrés León",
+    "fecha": "2026-04-23T16:48:38.131000",
+    "ip": "192.168.1.118"
+  },
+  {
+    "tabla": "clinic_inventory",
+    "record_id": 370,
+    "accion": "DELETE",
+    "cambios": {
+      "motivo": "solicitud del usuario"
+    },
+    "trabajador_id": 9,
+    "trabajador_nombre": "Iván Silva",
+    "fecha": "2026-04-26T11:41:21.131000",
+    "ip": "192.168.1.73"
+  },
+  {
+    "tabla": "appointments",
+    "record_id": 247,
+    "accion": "UPDATE",
+    "cambios": {
+      "status": {
+        "antes": "valor_anterior",
+        "despues": "valor_nuevo"
+      }
+    },
+    "trabajador_id": 5,
+    "trabajador_nombre": "Raúl Mora",
+    "fecha": "2026-04-29T13:40:22.131000",
+    "ip": "192.168.1.82"
+  },
+  {
+    "tabla": "vaccine_lots",
+    "record_id": 131,
+    "accion": "UPDATE",
+    "cambios": {
+      "quantity": {
+        "antes": "valor_anterior",
+        "despues": "valor_nuevo"
+      }
+    },
+    "trabajador_id": 6,
+    "trabajador_nombre": "Paty Ríos",
+    "fecha": "2026-05-07T08:55:42.131000",
+    "ip": "192.168.1.213"
+  },
+  {
+    "tabla": "patients",
+    "record_id": 403,
+    "accion": "UPDATE",
+    "cambios": {
+      "status": {
+        "antes": "valor_anterior",
+        "despues": "valor_nuevo"
+      }
+    },
+    "trabajador_id": 3,
+    "trabajador_nombre": "Mario Luna",
+    "fecha": "2026-04-30T18:55:27.131000",
+    "ip": "192.168.1.183"
+  },
+  {
+    "tabla": "clinic_inventory",
+    "record_id": 80,
+    "accion": "UPDATE",
+    "cambios": {
+      "status": {
+        "antes": "valor_anterior",
+        "despues": "valor_nuevo"
+      }
+    },
+    "trabajador_id": 7,
+    "trabajador_nombre": "Andrés León",
+    "fecha": "2026-05-07T11:54:56.131000",
+    "ip": "192.168.1.115"
+  },
+  {
+    "tabla": "patients",
+    "record_id": 223,
+    "accion": "INSERT",
+    "cambios": {
+      "creado": true
+    },
+    "trabajador_id": 6,
+    "trabajador_nombre": "Paty Ríos",
+    "fecha": "2026-04-26T18:55:21.131000",
+    "ip": "192.168.1.109"
+  },
+  {
+    "tabla": "appointments",
+    "record_id": 244,
+    "accion": "INSERT",
+    "cambios": {
+      "creado": true
+    },
+    "trabajador_id": 3,
+    "trabajador_nombre": "Mario Luna",
+    "fecha": "2026-05-13T11:10:52.131000",
+    "ip": "192.168.1.160"
+  },
+  {
+    "tabla": "clinic_inventory",
+    "record_id": 228,
+    "accion": "UPDATE",
+    "cambios": {
+      "phone": {
+        "antes": "valor_anterior",
+        "despues": "valor_nuevo"
+      }
+    },
+    "trabajador_id": 9,
+    "trabajador_nombre": "Iván Silva",
+    "fecha": "2026-05-09T09:01:53.131000",
+    "ip": "192.168.1.19"
+  },
+  {
+    "tabla": "appointments",
+    "record_id": 323,
+    "accion": "UPDATE",
+    "cambios": {
+      "quantity": {
+        "antes": "valor_anterior",
+        "despues": "valor_nuevo"
+      }
+    },
+    "trabajador_id": 9,
+    "trabajador_nombre": "Iván Silva",
+    "fecha": "2026-05-07T11:54:48.131000",
+    "ip": "192.168.1.196"
+  },
+  {
+    "tabla": "patients",
+    "record_id": 330,
+    "accion": "UPDATE",
+    "cambios": {
+      "status": {
+        "antes": "valor_anterior",
+        "despues": "valor_nuevo"
+      }
+    },
+    "trabajador_id": 6,
+    "trabajador_nombre": "Paty Ríos",
+    "fecha": "2026-05-03T09:30:11.131000",
+    "ip": "192.168.1.50"
+  },
+  {
+    "tabla": "patients",
+    "record_id": 31,
+    "accion": "UPDATE",
+    "cambios": {
+      "status": {
+        "antes": "valor_anterior",
+        "despues": "valor_nuevo"
+      }
+    },
+    "trabajador_id": 5,
+    "trabajador_nombre": "Raúl Mora",
+    "fecha": "2026-05-12T19:51:37.131000",
+    "ip": "192.168.1.224"
+  },
+  {
+    "tabla": "vaccination_records",
+    "record_id": 130,
+    "accion": "UPDATE",
+    "cambios": {
+      "quantity": {
+        "antes": "valor_anterior",
+        "despues": "valor_nuevo"
+      }
+    },
+    "trabajador_id": 4,
+    "trabajador_nombre": "Elisa Campos",
+    "fecha": "2026-04-27T11:05:14.131000",
+    "ip": "192.168.1.223"
+  },
+  {
+    "tabla": "clinic_inventory",
+    "record_id": 470,
+    "accion": "INSERT",
+    "cambios": {
+      "creado": true
+    },
+    "trabajador_id": 3,
+    "trabajador_nombre": "Mario Luna",
+    "fecha": "2026-04-28T08:19:03.131000",
+    "ip": "192.168.1.128"
+  },
+  {
+    "tabla": "vaccine_lots",
+    "record_id": 5,
+    "accion": "INSERT",
+    "cambios": {
+      "creado": true
+    },
+    "trabajador_id": 7,
+    "trabajador_nombre": "Andrés León",
+    "fecha": "2026-04-21T11:55:52.131000",
+    "ip": "192.168.1.39"
+  },
+  {
+    "tabla": "appointments",
+    "record_id": 108,
+    "accion": "INSERT",
+    "cambios": {
+      "creado": true
+    },
+    "trabajador_id": 8,
+    "trabajador_nombre": "Diana Paz",
+    "fecha": "2026-05-09T08:14:50.131000",
+    "ip": "192.168.1.99"
+  },
+  {
+    "tabla": "guardians",
+    "record_id": 160,
+    "accion": "INSERT",
+    "cambios": {
+      "creado": true
+    },
+    "trabajador_id": 7,
+    "trabajador_nombre": "Andrés León",
+    "fecha": "2026-05-11T14:14:36.131000",
+    "ip": "192.168.1.116"
+  },
+  {
+    "tabla": "clinic_inventory",
+    "record_id": 388,
+    "accion": "INSERT",
+    "cambios": {
+      "creado": true
+    },
+    "trabajador_id": 7,
+    "trabajador_nombre": "Andrés León",
+    "fecha": "2026-05-14T16:53:51.131000",
+    "ip": "192.168.1.131"
+  },
+  {
+    "tabla": "guardians",
+    "record_id": 287,
+    "accion": "INSERT",
+    "cambios": {
+      "creado": true
+    },
+    "trabajador_id": 7,
+    "trabajador_nombre": "Andrés León",
+    "fecha": "2026-04-26T18:03:47.131000",
+    "ip": "192.168.1.65"
+  },
+  {
+    "tabla": "vaccine_lots",
+    "record_id": 461,
+    "accion": "UPDATE",
+    "cambios": {
+      "quantity": {
+        "antes": "valor_anterior",
+        "despues": "valor_nuevo"
+      }
+    },
+    "trabajador_id": 9,
+    "trabajador_nombre": "Iván Silva",
+    "fecha": "2026-05-10T09:05:39.131000",
+    "ip": "192.168.1.235"
+  },
+  {
+    "tabla": "vaccination_records",
+    "record_id": 432,
+    "accion": "UPDATE",
+    "cambios": {
+      "phone": {
+        "antes": "valor_anterior",
+        "despues": "valor_nuevo"
+      }
+    },
+    "trabajador_id": 1,
+    "trabajador_nombre": "José Pérez",
+    "fecha": "2026-04-28T18:31:57.131000",
+    "ip": "192.168.1.59"
+  },
+  {
+    "tabla": "patients",
+    "record_id": 74,
+    "accion": "UPDATE",
+    "cambios": {
+      "phone": {
+        "antes": "valor_anterior",
+        "despues": "valor_nuevo"
+      }
+    },
+    "trabajador_id": 5,
+    "trabajador_nombre": "Raúl Mora",
+    "fecha": "2026-05-06T19:40:07.131000",
+    "ip": "192.168.1.174"
+  },
+  {
+    "tabla": "vaccination_records",
+    "record_id": 267,
+    "accion": "UPDATE",
+    "cambios": {
+      "quantity": {
+        "antes": "valor_anterior",
+        "despues": "valor_nuevo"
+      }
+    },
+    "trabajador_id": 5,
+    "trabajador_nombre": "Raúl Mora",
+    "fecha": "2026-04-16T14:28:55.131000",
+    "ip": "192.168.1.162"
+  },
+  {
+    "tabla": "appointments",
+    "record_id": 147,
+    "accion": "INSERT",
+    "cambios": {
+      "creado": true
+    },
+    "trabajador_id": 3,
+    "trabajador_nombre": "Mario Luna",
+    "fecha": "2026-04-18T18:05:52.131000",
+    "ip": "192.168.1.21"
+  },
+  {
+    "tabla": "workers",
+    "record_id": 480,
+    "accion": "UPDATE",
+    "cambios": {
+      "status": {
+        "antes": "valor_anterior",
+        "despues": "valor_nuevo"
+      }
+    },
+    "trabajador_id": 9,
+    "trabajador_nombre": "Iván Silva",
+    "fecha": "2026-04-23T09:05:14.131000",
+    "ip": "192.168.1.86"
+  },
+  {
+    "tabla": "nfc_cards",
+    "record_id": 257,
+    "accion": "INSERT",
+    "cambios": {
+      "creado": true
+    },
+    "trabajador_id": 3,
+    "trabajador_nombre": "Mario Luna",
+    "fecha": "2026-05-15T14:40:23.131000",
+    "ip": "192.168.1.199"
+  },
+  {
+    "tabla": "appointments",
+    "record_id": 496,
+    "accion": "UPDATE",
+    "cambios": {
+      "is_active": {
+        "antes": "valor_anterior",
+        "despues": "valor_nuevo"
+      }
+    },
+    "trabajador_id": 2,
+    "trabajador_nombre": "Lucía Santos",
+    "fecha": "2026-05-11T15:19:41.131000",
+    "ip": "192.168.1.123"
+  },
+  {
+    "tabla": "guardians",
+    "record_id": 331,
+    "accion": "UPDATE",
+    "cambios": {
+      "is_active": {
+        "antes": "valor_anterior",
+        "despues": "valor_nuevo"
+      }
+    },
+    "trabajador_id": 4,
+    "trabajador_nombre": "Elisa Campos",
+    "fecha": "2026-05-04T11:20:54.131000",
+    "ip": "192.168.1.192"
+  },
+  {
+    "tabla": "guardians",
+    "record_id": 301,
+    "accion": "UPDATE",
+    "cambios": {
+      "status": {
+        "antes": "valor_anterior",
+        "despues": "valor_nuevo"
+      }
+    },
+    "trabajador_id": 9,
+    "trabajador_nombre": "Iván Silva",
+    "fecha": "2026-05-12T12:53:27.131000",
+    "ip": "192.168.1.20"
+  },
+  {
+    "tabla": "workers",
+    "record_id": 186,
+    "accion": "UPDATE",
+    "cambios": {
+      "quantity": {
+        "antes": "valor_anterior",
+        "despues": "valor_nuevo"
+      }
+    },
+    "trabajador_id": 4,
+    "trabajador_nombre": "Elisa Campos",
+    "fecha": "2026-04-23T15:24:06.131000",
+    "ip": "192.168.1.49"
+  },
+  {
+    "tabla": "patients",
+    "record_id": 63,
+    "accion": "UPDATE",
+    "cambios": {
+      "phone": {
+        "antes": "valor_anterior",
+        "despues": "valor_nuevo"
+      }
+    },
+    "trabajador_id": 7,
+    "trabajador_nombre": "Andrés León",
+    "fecha": "2026-04-23T12:57:20.131000",
+    "ip": "192.168.1.153"
+  },
+  {
+    "tabla": "appointments",
+    "record_id": 469,
+    "accion": "INSERT",
+    "cambios": {
+      "creado": true
+    },
+    "trabajador_id": 1,
+    "trabajador_nombre": "José Pérez",
+    "fecha": "2026-05-15T15:42:07.131000",
+    "ip": "192.168.1.212"
+  },
+  {
+    "tabla": "clinic_inventory",
+    "record_id": 155,
+    "accion": "INSERT",
+    "cambios": {
+      "creado": true
+    },
+    "trabajador_id": 2,
+    "trabajador_nombre": "Lucía Santos",
+    "fecha": "2026-04-20T09:25:49.131000",
+    "ip": "192.168.1.139"
+  },
+  {
+    "tabla": "vaccination_records",
+    "record_id": 46,
+    "accion": "UPDATE",
+    "cambios": {
+      "is_active": {
+        "antes": "valor_anterior",
+        "despues": "valor_nuevo"
+      }
+    },
+    "trabajador_id": 7,
+    "trabajador_nombre": "Andrés León",
+    "fecha": "2026-05-03T10:51:32.131000",
+    "ip": "192.168.1.14"
+  },
+  {
+    "tabla": "vaccine_lots",
+    "record_id": 310,
+    "accion": "INSERT",
+    "cambios": {
+      "creado": true
+    },
+    "trabajador_id": 2,
+    "trabajador_nombre": "Lucía Santos",
+    "fecha": "2026-04-20T16:12:44.131000",
+    "ip": "192.168.1.142"
+  },
+  {
+    "tabla": "workers",
+    "record_id": 124,
+    "accion": "INSERT",
+    "cambios": {
+      "creado": true
+    },
+    "trabajador_id": 7,
+    "trabajador_nombre": "Andrés León",
+    "fecha": "2026-05-07T12:37:05.131000",
+    "ip": "192.168.1.90"
+  },
+  {
+    "tabla": "vaccination_records",
+    "record_id": 157,
+    "accion": "UPDATE",
+    "cambios": {
+      "is_active": {
+        "antes": "valor_anterior",
+        "despues": "valor_nuevo"
+      }
+    },
+    "trabajador_id": 10,
+    "trabajador_nombre": "Karen Vega",
+    "fecha": "2026-04-20T16:42:49.131000",
+    "ip": "192.168.1.162"
+  },
+  {
+    "tabla": "appointments",
+    "record_id": 356,
+    "accion": "INSERT",
+    "cambios": {
+      "creado": true
+    },
+    "trabajador_id": 2,
+    "trabajador_nombre": "Lucía Santos",
+    "fecha": "2026-05-06T09:36:25.131000",
+    "ip": "192.168.1.65"
+  },
+  {
+    "tabla": "workers",
+    "record_id": 11,
+    "accion": "UPDATE",
+    "cambios": {
+      "is_active": {
+        "antes": "valor_anterior",
+        "despues": "valor_nuevo"
+      }
+    },
+    "trabajador_id": 8,
+    "trabajador_nombre": "Diana Paz",
+    "fecha": "2026-04-29T10:36:44.131000",
+    "ip": "192.168.1.82"
+  },
+  {
+    "tabla": "nfc_cards",
+    "record_id": 49,
+    "accion": "UPDATE",
+    "cambios": {
+      "status": {
+        "antes": "valor_anterior",
+        "despues": "valor_nuevo"
+      }
+    },
+    "trabajador_id": 5,
+    "trabajador_nombre": "Raúl Mora",
+    "fecha": "2026-05-12T12:40:10.131000",
+    "ip": "192.168.1.215"
+  },
+  {
+    "tabla": "nfc_cards",
+    "record_id": 369,
+    "accion": "UPDATE",
+    "cambios": {
+      "quantity": {
+        "antes": "valor_anterior",
+        "despues": "valor_nuevo"
+      }
+    },
+    "trabajador_id": 4,
+    "trabajador_nombre": "Elisa Campos",
+    "fecha": "2026-05-03T09:20:13.131000",
+    "ip": "192.168.1.88"
+  },
+  {
+    "tabla": "guardians",
+    "record_id": 223,
+    "accion": "UPDATE",
+    "cambios": {
+      "phone": {
+        "antes": "valor_anterior",
+        "despues": "valor_nuevo"
+      }
+    },
+    "trabajador_id": 9,
+    "trabajador_nombre": "Iván Silva",
+    "fecha": "2026-04-29T17:38:44.131000",
+    "ip": "192.168.1.129"
+  },
+  {
+    "tabla": "vaccine_lots",
+    "record_id": 415,
+    "accion": "INSERT",
+    "cambios": {
+      "creado": true
+    },
+    "trabajador_id": 3,
+    "trabajador_nombre": "Mario Luna",
+    "fecha": "2026-05-12T18:08:49.131000",
+    "ip": "192.168.1.217"
+  },
+  {
+    "tabla": "appointments",
+    "record_id": 205,
+    "accion": "UPDATE",
+    "cambios": {
+      "phone": {
+        "antes": "valor_anterior",
+        "despues": "valor_nuevo"
+      }
+    },
+    "trabajador_id": 5,
+    "trabajador_nombre": "Raúl Mora",
+    "fecha": "2026-04-24T13:16:14.131000",
+    "ip": "192.168.1.128"
+  },
+  {
+    "tabla": "appointments",
+    "record_id": 329,
+    "accion": "INSERT",
+    "cambios": {
+      "creado": true
+    },
+    "trabajador_id": 5,
+    "trabajador_nombre": "Raúl Mora",
+    "fecha": "2026-04-20T10:30:24.131000",
+    "ip": "192.168.1.176"
+  },
+  {
+    "tabla": "guardians",
+    "record_id": 101,
+    "accion": "UPDATE",
+    "cambios": {
+      "is_active": {
+        "antes": "valor_anterior",
+        "despues": "valor_nuevo"
+      }
+    },
+    "trabajador_id": 1,
+    "trabajador_nombre": "José Pérez",
+    "fecha": "2026-04-25T14:25:05.131000",
+    "ip": "192.168.1.105"
+  },
+  {
+    "tabla": "workers",
+    "record_id": 97,
+    "accion": "UPDATE",
+    "cambios": {
+      "is_active": {
+        "antes": "valor_anterior",
+        "despues": "valor_nuevo"
+      }
+    },
+    "trabajador_id": 7,
+    "trabajador_nombre": "Andrés León",
+    "fecha": "2026-05-13T14:32:24.131000",
+    "ip": "192.168.1.109"
+  },
+  {
+    "tabla": "nfc_cards",
+    "record_id": 42,
+    "accion": "DELETE",
+    "cambios": {
+      "motivo": "solicitud del usuario"
+    },
+    "trabajador_id": 9,
+    "trabajador_nombre": "Iván Silva",
+    "fecha": "2026-05-08T08:53:35.131000",
+    "ip": "192.168.1.71"
+  },
+  {
+    "tabla": "appointments",
+    "record_id": 457,
+    "accion": "UPDATE",
+    "cambios": {
+      "quantity": {
+        "antes": "valor_anterior",
+        "despues": "valor_nuevo"
+      }
+    },
+    "trabajador_id": 9,
+    "trabajador_nombre": "Iván Silva",
+    "fecha": "2026-04-24T13:56:42.131000",
+    "ip": "192.168.1.211"
+  },
+  {
+    "tabla": "nfc_cards",
+    "record_id": 433,
+    "accion": "UPDATE",
+    "cambios": {
+      "phone": {
+        "antes": "valor_anterior",
+        "despues": "valor_nuevo"
+      }
+    },
+    "trabajador_id": 5,
+    "trabajador_nombre": "Raúl Mora",
+    "fecha": "2026-05-15T13:51:42.131000",
+    "ip": "192.168.1.149"
+  },
+  {
+    "tabla": "patients",
+    "record_id": 245,
+    "accion": "UPDATE",
+    "cambios": {
+      "phone": {
+        "antes": "valor_anterior",
+        "despues": "valor_nuevo"
+      }
+    },
+    "trabajador_id": 2,
+    "trabajador_nombre": "Lucía Santos",
+    "fecha": "2026-04-23T17:33:15.131000",
+    "ip": "192.168.1.96"
+  },
+  {
+    "tabla": "patients",
+    "record_id": 497,
+    "accion": "UPDATE",
+    "cambios": {
+      "quantity": {
+        "antes": "valor_anterior",
+        "despues": "valor_nuevo"
+      }
+    },
+    "trabajador_id": 3,
+    "trabajador_nombre": "Mario Luna",
+    "fecha": "2026-05-12T11:54:34.131000",
+    "ip": "192.168.1.227"
+  },
+  {
+    "tabla": "appointments",
+    "record_id": 7,
+    "accion": "INSERT",
+    "cambios": {
+      "creado": true
+    },
+    "trabajador_id": 5,
+    "trabajador_nombre": "Raúl Mora",
+    "fecha": "2026-04-25T14:58:01.131000",
+    "ip": "192.168.1.121"
+  },
+  {
+    "tabla": "clinic_inventory",
+    "record_id": 403,
+    "accion": "INSERT",
+    "cambios": {
+      "creado": true
+    },
+    "trabajador_id": 1,
+    "trabajador_nombre": "José Pérez",
+    "fecha": "2026-05-07T18:24:23.131000",
+    "ip": "192.168.1.10"
+  },
+  {
+    "tabla": "vaccine_lots",
+    "record_id": 304,
+    "accion": "INSERT",
+    "cambios": {
+      "creado": true
+    },
+    "trabajador_id": 7,
+    "trabajador_nombre": "Andrés León",
+    "fecha": "2026-04-28T11:01:21.131000",
+    "ip": "192.168.1.35"
+  },
+  {
+    "tabla": "guardians",
+    "record_id": 147,
+    "accion": "UPDATE",
+    "cambios": {
+      "is_active": {
+        "antes": "valor_anterior",
+        "despues": "valor_nuevo"
+      }
+    },
+    "trabajador_id": 10,
+    "trabajador_nombre": "Karen Vega",
+    "fecha": "2026-05-10T09:15:11.131000",
+    "ip": "192.168.1.64"
+  },
+  {
+    "tabla": "nfc_cards",
+    "record_id": 435,
+    "accion": "DELETE",
+    "cambios": {
+      "motivo": "solicitud del usuario"
+    },
+    "trabajador_id": 10,
+    "trabajador_nombre": "Karen Vega",
+    "fecha": "2026-04-17T09:48:58.131000",
+    "ip": "192.168.1.161"
+  },
+  {
+    "tabla": "clinic_inventory",
+    "record_id": 459,
+    "accion": "INSERT",
+    "cambios": {
+      "creado": true
+    },
+    "trabajador_id": 9,
+    "trabajador_nombre": "Iván Silva",
+    "fecha": "2026-04-23T14:09:06.131000",
+    "ip": "192.168.1.148"
+  },
+  {
+    "tabla": "nfc_cards",
+    "record_id": 307,
+    "accion": "UPDATE",
+    "cambios": {
+      "quantity": {
+        "antes": "valor_anterior",
+        "despues": "valor_nuevo"
+      }
+    },
+    "trabajador_id": 7,
+    "trabajador_nombre": "Andrés León",
+    "fecha": "2026-04-23T11:05:42.131000",
+    "ip": "192.168.1.121"
+  },
+  {
+    "tabla": "workers",
+    "record_id": 257,
+    "accion": "DELETE",
+    "cambios": {
+      "motivo": "solicitud del usuario"
+    },
+    "trabajador_id": 10,
+    "trabajador_nombre": "Karen Vega",
+    "fecha": "2026-05-01T08:59:39.131000",
+    "ip": "192.168.1.105"
+  },
+  {
+    "tabla": "vaccination_records",
+    "record_id": 340,
+    "accion": "UPDATE",
+    "cambios": {
+      "quantity": {
+        "antes": "valor_anterior",
+        "despues": "valor_nuevo"
+      }
+    },
+    "trabajador_id": 6,
+    "trabajador_nombre": "Paty Ríos",
+    "fecha": "2026-04-28T19:47:34.131000",
+    "ip": "192.168.1.80"
+  },
+  {
+    "tabla": "clinic_inventory",
+    "record_id": 291,
+    "accion": "DELETE",
+    "cambios": {
+      "motivo": "solicitud del usuario"
+    },
+    "trabajador_id": 8,
+    "trabajador_nombre": "Diana Paz",
+    "fecha": "2026-05-08T15:48:33.131000",
+    "ip": "192.168.1.91"
+  },
+  {
+    "tabla": "patients",
+    "record_id": 347,
+    "accion": "DELETE",
+    "cambios": {
+      "motivo": "solicitud del usuario"
+    },
+    "trabajador_id": 2,
+    "trabajador_nombre": "Lucía Santos",
+    "fecha": "2026-04-27T19:43:26.131000",
+    "ip": "192.168.1.238"
+  },
+  {
+    "tabla": "vaccine_lots",
+    "record_id": 97,
+    "accion": "UPDATE",
+    "cambios": {
+      "quantity": {
+        "antes": "valor_anterior",
+        "despues": "valor_nuevo"
+      }
+    },
+    "trabajador_id": 3,
+    "trabajador_nombre": "Mario Luna",
+    "fecha": "2026-04-26T15:42:29.132000",
+    "ip": "192.168.1.95"
+  },
+  {
+    "tabla": "clinic_inventory",
+    "record_id": 89,
+    "accion": "DELETE",
+    "cambios": {
+      "motivo": "solicitud del usuario"
+    },
+    "trabajador_id": 8,
+    "trabajador_nombre": "Diana Paz",
+    "fecha": "2026-04-18T18:53:41.132000",
+    "ip": "192.168.1.218"
+  },
+  {
+    "tabla": "patients",
+    "record_id": 16,
+    "accion": "DELETE",
+    "cambios": {
+      "motivo": "solicitud del usuario"
+    },
+    "trabajador_id": 8,
+    "trabajador_nombre": "Diana Paz",
+    "fecha": "2026-04-19T09:28:26.132000",
+    "ip": "192.168.1.14"
+  },
+  {
+    "tabla": "guardians",
+    "record_id": 400,
+    "accion": "UPDATE",
+    "cambios": {
+      "phone": {
+        "antes": "valor_anterior",
+        "despues": "valor_nuevo"
+      }
+    },
+    "trabajador_id": 9,
+    "trabajador_nombre": "Iván Silva",
+    "fecha": "2026-04-20T14:14:03.132000",
+    "ip": "192.168.1.22"
+  },
+  {
+    "tabla": "vaccine_lots",
+    "record_id": 203,
+    "accion": "UPDATE",
+    "cambios": {
+      "is_active": {
+        "antes": "valor_anterior",
+        "despues": "valor_nuevo"
+      }
+    },
+    "trabajador_id": 6,
+    "trabajador_nombre": "Paty Ríos",
+    "fecha": "2026-04-30T18:31:53.132000",
+    "ip": "192.168.1.24"
+  },
+  {
+    "tabla": "vaccination_records",
+    "record_id": 104,
+    "accion": "UPDATE",
+    "cambios": {
+      "is_active": {
+        "antes": "valor_anterior",
+        "despues": "valor_nuevo"
+      }
+    },
+    "trabajador_id": 6,
+    "trabajador_nombre": "Paty Ríos",
+    "fecha": "2026-04-17T17:50:16.132000",
+    "ip": "192.168.1.66"
+  },
+  {
+    "tabla": "vaccination_records",
+    "record_id": 217,
+    "accion": "INSERT",
+    "cambios": {
+      "creado": true
+    },
+    "trabajador_id": 1,
+    "trabajador_nombre": "José Pérez",
+    "fecha": "2026-04-20T08:54:17.132000",
+    "ip": "192.168.1.229"
+  },
+  {
+    "tabla": "clinic_inventory",
+    "record_id": 7,
+    "accion": "UPDATE",
+    "cambios": {
+      "quantity": {
+        "antes": "valor_anterior",
+        "despues": "valor_nuevo"
+      }
+    },
+    "trabajador_id": 6,
+    "trabajador_nombre": "Paty Ríos",
+    "fecha": "2026-04-20T17:24:34.132000",
+    "ip": "192.168.1.108"
+  },
+  {
+    "tabla": "guardians",
+    "record_id": 54,
+    "accion": "UPDATE",
+    "cambios": {
+      "is_active": {
+        "antes": "valor_anterior",
+        "despues": "valor_nuevo"
+      }
+    },
+    "trabajador_id": 10,
+    "trabajador_nombre": "Karen Vega",
+    "fecha": "2026-04-19T15:34:24.132000",
+    "ip": "192.168.1.135"
+  },
+  {
+    "tabla": "appointments",
+    "record_id": 13,
+    "accion": "INSERT",
+    "cambios": {
+      "creado": true
+    },
+    "trabajador_id": 8,
+    "trabajador_nombre": "Diana Paz",
+    "fecha": "2026-05-06T16:38:18.132000",
+    "ip": "192.168.1.39"
+  },
+  {
+    "tabla": "clinic_inventory",
+    "record_id": 341,
+    "accion": "UPDATE",
+    "cambios": {
+      "is_active": {
+        "antes": "valor_anterior",
+        "despues": "valor_nuevo"
+      }
+    },
+    "trabajador_id": 5,
+    "trabajador_nombre": "Raúl Mora",
+    "fecha": "2026-04-18T17:56:17.132000",
+    "ip": "192.168.1.162"
+  },
+  {
+    "tabla": "vaccination_records",
+    "record_id": 240,
+    "accion": "INSERT",
+    "cambios": {
+      "creado": true
+    },
+    "trabajador_id": 8,
+    "trabajador_nombre": "Diana Paz",
+    "fecha": "2026-04-27T13:36:07.132000",
+    "ip": "192.168.1.106"
+  },
+  {
+    "tabla": "vaccination_records",
+    "record_id": 476,
+    "accion": "INSERT",
+    "cambios": {
+      "creado": true
+    },
+    "trabajador_id": 6,
+    "trabajador_nombre": "Paty Ríos",
+    "fecha": "2026-04-30T16:15:05.132000",
+    "ip": "192.168.1.221"
+  },
+  {
+    "tabla": "vaccination_records",
+    "record_id": 320,
+    "accion": "UPDATE",
+    "cambios": {
+      "phone": {
+        "antes": "valor_anterior",
+        "despues": "valor_nuevo"
+      }
+    },
+    "trabajador_id": 7,
+    "trabajador_nombre": "Andrés León",
+    "fecha": "2026-05-08T16:40:35.132000",
+    "ip": "192.168.1.197"
+  },
+  {
+    "tabla": "vaccination_records",
+    "record_id": 392,
+    "accion": "UPDATE",
+    "cambios": {
+      "status": {
+        "antes": "valor_anterior",
+        "despues": "valor_nuevo"
+      }
+    },
+    "trabajador_id": 5,
+    "trabajador_nombre": "Raúl Mora",
+    "fecha": "2026-04-16T10:20:14.132000",
+    "ip": "192.168.1.212"
+  },
+  {
+    "tabla": "patients",
+    "record_id": 429,
+    "accion": "INSERT",
+    "cambios": {
+      "creado": true
+    },
+    "trabajador_id": 5,
+    "trabajador_nombre": "Raúl Mora",
+    "fecha": "2026-04-27T19:24:48.132000",
+    "ip": "192.168.1.67"
+  },
+  {
+    "tabla": "nfc_cards",
+    "record_id": 127,
+    "accion": "UPDATE",
+    "cambios": {
+      "status": {
+        "antes": "valor_anterior",
+        "despues": "valor_nuevo"
+      }
+    },
+    "trabajador_id": 10,
+    "trabajador_nombre": "Karen Vega",
+    "fecha": "2026-05-14T10:51:59.132000",
+    "ip": "192.168.1.122"
+  },
+  {
+    "tabla": "guardians",
+    "record_id": 479,
+    "accion": "UPDATE",
+    "cambios": {
+      "quantity": {
+        "antes": "valor_anterior",
+        "despues": "valor_nuevo"
+      }
+    },
+    "trabajador_id": 6,
+    "trabajador_nombre": "Paty Ríos",
+    "fecha": "2026-04-23T15:11:36.132000",
+    "ip": "192.168.1.104"
+  },
+  {
+    "tabla": "workers",
+    "record_id": 430,
+    "accion": "INSERT",
+    "cambios": {
+      "creado": true
+    },
+    "trabajador_id": 8,
+    "trabajador_nombre": "Diana Paz",
+    "fecha": "2026-04-18T09:10:13.132000",
+    "ip": "192.168.1.225"
+  },
+  {
+    "tabla": "appointments",
+    "record_id": 195,
+    "accion": "INSERT",
+    "cambios": {
+      "creado": true
+    },
+    "trabajador_id": 6,
+    "trabajador_nombre": "Paty Ríos",
+    "fecha": "2026-05-01T09:09:42.132000",
+    "ip": "192.168.1.44"
+  },
+  {
+    "tabla": "vaccination_records",
+    "record_id": 385,
+    "accion": "DELETE",
+    "cambios": {
+      "motivo": "solicitud del usuario"
+    },
+    "trabajador_id": 10,
+    "trabajador_nombre": "Karen Vega",
+    "fecha": "2026-04-21T15:32:22.132000",
+    "ip": "192.168.1.46"
+  },
+  {
+    "tabla": "appointments",
+    "record_id": 28,
+    "accion": "UPDATE",
+    "cambios": {
+      "status": {
+        "antes": "valor_anterior",
+        "despues": "valor_nuevo"
+      }
+    },
+    "trabajador_id": 4,
+    "trabajador_nombre": "Elisa Campos",
+    "fecha": "2026-04-23T12:14:39.132000",
+    "ip": "192.168.1.232"
+  },
+  {
+    "tabla": "workers",
+    "record_id": 268,
+    "accion": "DELETE",
+    "cambios": {
+      "motivo": "solicitud del usuario"
+    },
+    "trabajador_id": 2,
+    "trabajador_nombre": "Lucía Santos",
+    "fecha": "2026-04-24T15:40:22.132000",
+    "ip": "192.168.1.223"
+  },
+  {
+    "tabla": "nfc_cards",
+    "record_id": 351,
+    "accion": "UPDATE",
+    "cambios": {
+      "is_active": {
+        "antes": "valor_anterior",
+        "despues": "valor_nuevo"
+      }
+    },
+    "trabajador_id": 3,
+    "trabajador_nombre": "Mario Luna",
+    "fecha": "2026-04-24T13:45:20.132000",
+    "ip": "192.168.1.47"
+  },
+  {
+    "tabla": "clinic_inventory",
+    "record_id": 70,
+    "accion": "UPDATE",
+    "cambios": {
+      "phone": {
+        "antes": "valor_anterior",
+        "despues": "valor_nuevo"
+      }
+    },
+    "trabajador_id": 5,
+    "trabajador_nombre": "Raúl Mora",
+    "fecha": "2026-04-28T17:34:30.132000",
+    "ip": "192.168.1.167"
+  },
+  {
+    "tabla": "patients",
+    "record_id": 104,
+    "accion": "UPDATE",
+    "cambios": {
+      "status": {
+        "antes": "valor_anterior",
+        "despues": "valor_nuevo"
+      }
+    },
+    "trabajador_id": 4,
+    "trabajador_nombre": "Elisa Campos",
+    "fecha": "2026-04-16T18:55:03.132000",
+    "ip": "192.168.1.209"
+  },
+  {
+    "tabla": "vaccination_records",
+    "record_id": 145,
+    "accion": "INSERT",
+    "cambios": {
+      "creado": true
+    },
+    "trabajador_id": 5,
+    "trabajador_nombre": "Raúl Mora",
+    "fecha": "2026-05-01T09:47:01.132000",
+    "ip": "192.168.1.245"
+  },
+  {
+    "tabla": "clinic_inventory",
+    "record_id": 179,
+    "accion": "UPDATE",
+    "cambios": {
+      "status": {
+        "antes": "valor_anterior",
+        "despues": "valor_nuevo"
+      }
+    },
+    "trabajador_id": 9,
+    "trabajador_nombre": "Iván Silva",
+    "fecha": "2026-04-23T15:06:13.132000",
+    "ip": "192.168.1.112"
+  },
+  {
+    "tabla": "patients",
+    "record_id": 43,
+    "accion": "UPDATE",
+    "cambios": {
+      "is_active": {
+        "antes": "valor_anterior",
+        "despues": "valor_nuevo"
+      }
+    },
+    "trabajador_id": 4,
+    "trabajador_nombre": "Elisa Campos",
+    "fecha": "2026-04-19T08:05:02.132000",
+    "ip": "192.168.1.42"
+  },
+  {
+    "tabla": "vaccination_records",
+    "record_id": 204,
+    "accion": "INSERT",
+    "cambios": {
+      "creado": true
+    },
+    "trabajador_id": 7,
+    "trabajador_nombre": "Andrés León",
+    "fecha": "2026-05-07T09:01:32.132000",
+    "ip": "192.168.1.97"
+  },
+  {
+    "tabla": "guardians",
+    "record_id": 359,
+    "accion": "INSERT",
+    "cambios": {
+      "creado": true
+    },
+    "trabajador_id": 6,
+    "trabajador_nombre": "Paty Ríos",
+    "fecha": "2026-05-07T16:23:58.132000",
+    "ip": "192.168.1.227"
+  },
+  {
+    "tabla": "guardians",
+    "record_id": 150,
+    "accion": "INSERT",
+    "cambios": {
+      "creado": true
+    },
+    "trabajador_id": 2,
+    "trabajador_nombre": "Lucía Santos",
+    "fecha": "2026-04-30T14:18:10.132000",
+    "ip": "192.168.1.199"
+  },
+  {
+    "tabla": "guardians",
+    "record_id": 443,
+    "accion": "INSERT",
+    "cambios": {
+      "creado": true
+    },
+    "trabajador_id": 6,
+    "trabajador_nombre": "Paty Ríos",
+    "fecha": "2026-05-07T12:12:39.132000",
+    "ip": "192.168.1.234"
+  },
+  {
+    "tabla": "clinic_inventory",
+    "record_id": 481,
+    "accion": "UPDATE",
+    "cambios": {
+      "status": {
+        "antes": "valor_anterior",
+        "despues": "valor_nuevo"
+      }
+    },
+    "trabajador_id": 5,
+    "trabajador_nombre": "Raúl Mora",
+    "fecha": "2026-05-04T17:58:21.132000",
+    "ip": "192.168.1.40"
+  },
+  {
+    "tabla": "clinic_inventory",
+    "record_id": 53,
+    "accion": "UPDATE",
+    "cambios": {
+      "is_active": {
+        "antes": "valor_anterior",
+        "despues": "valor_nuevo"
+      }
+    },
+    "trabajador_id": 7,
+    "trabajador_nombre": "Andrés León",
+    "fecha": "2026-04-28T15:16:55.132000",
+    "ip": "192.168.1.69"
+  },
+  {
+    "tabla": "patients",
+    "record_id": 451,
+    "accion": "UPDATE",
+    "cambios": {
+      "is_active": {
+        "antes": "valor_anterior",
+        "despues": "valor_nuevo"
+      }
+    },
+    "trabajador_id": 9,
+    "trabajador_nombre": "Iván Silva",
+    "fecha": "2026-05-06T11:00:59.132000",
+    "ip": "192.168.1.107"
+  },
+  {
+    "tabla": "nfc_cards",
+    "record_id": 473,
+    "accion": "UPDATE",
+    "cambios": {
+      "status": {
+        "antes": "valor_anterior",
+        "despues": "valor_nuevo"
+      }
+    },
+    "trabajador_id": 7,
+    "trabajador_nombre": "Andrés León",
+    "fecha": "2026-04-21T16:40:15.132000",
+    "ip": "192.168.1.110"
+  },
+  {
+    "tabla": "workers",
+    "record_id": 229,
+    "accion": "UPDATE",
+    "cambios": {
+      "quantity": {
+        "antes": "valor_anterior",
+        "despues": "valor_nuevo"
+      }
+    },
+    "trabajador_id": 7,
+    "trabajador_nombre": "Andrés León",
+    "fecha": "2026-05-10T10:18:32.132000",
+    "ip": "192.168.1.222"
+  },
+  {
+    "tabla": "clinic_inventory",
+    "record_id": 328,
+    "accion": "UPDATE",
+    "cambios": {
+      "quantity": {
+        "antes": "valor_anterior",
+        "despues": "valor_nuevo"
+      }
+    },
+    "trabajador_id": 10,
+    "trabajador_nombre": "Karen Vega",
+    "fecha": "2026-04-22T10:58:31.132000",
+    "ip": "192.168.1.138"
+  },
+  {
+    "tabla": "guardians",
+    "record_id": 192,
+    "accion": "UPDATE",
+    "cambios": {
+      "is_active": {
+        "antes": "valor_anterior",
+        "despues": "valor_nuevo"
+      }
+    },
+    "trabajador_id": 1,
+    "trabajador_nombre": "José Pérez",
+    "fecha": "2026-04-29T16:52:21.132000",
+    "ip": "192.168.1.234"
+  },
+  {
+    "tabla": "vaccine_lots",
+    "record_id": 358,
+    "accion": "UPDATE",
+    "cambios": {
+      "phone": {
+        "antes": "valor_anterior",
+        "despues": "valor_nuevo"
+      }
+    },
+    "trabajador_id": 7,
+    "trabajador_nombre": "Andrés León",
+    "fecha": "2026-04-16T15:26:44.132000",
+    "ip": "192.168.1.214"
+  },
+  {
+    "tabla": "appointments",
+    "record_id": 213,
+    "accion": "UPDATE",
+    "cambios": {
+      "phone": {
+        "antes": "valor_anterior",
+        "despues": "valor_nuevo"
+      }
+    },
+    "trabajador_id": 2,
+    "trabajador_nombre": "Lucía Santos",
+    "fecha": "2026-04-26T12:24:52.132000",
+    "ip": "192.168.1.105"
+  },
+  {
+    "tabla": "clinic_inventory",
+    "record_id": 36,
+    "accion": "UPDATE",
+    "cambios": {
+      "phone": {
+        "antes": "valor_anterior",
+        "despues": "valor_nuevo"
+      }
+    },
+    "trabajador_id": 7,
+    "trabajador_nombre": "Andrés León",
+    "fecha": "2026-05-03T14:06:16.132000",
+    "ip": "192.168.1.88"
+  },
+  {
+    "tabla": "clinic_inventory",
+    "record_id": 123,
+    "accion": "UPDATE",
+    "cambios": {
+      "phone": {
+        "antes": "valor_anterior",
+        "despues": "valor_nuevo"
+      }
+    },
+    "trabajador_id": 7,
+    "trabajador_nombre": "Andrés León",
+    "fecha": "2026-05-02T17:26:12.132000",
+    "ip": "192.168.1.250"
+  },
+  {
+    "tabla": "guardians",
+    "record_id": 375,
+    "accion": "UPDATE",
+    "cambios": {
+      "is_active": {
+        "antes": "valor_anterior",
+        "despues": "valor_nuevo"
+      }
+    },
+    "trabajador_id": 6,
+    "trabajador_nombre": "Paty Ríos",
+    "fecha": "2026-04-28T14:20:37.132000",
+    "ip": "192.168.1.124"
+  },
+  {
+    "tabla": "clinic_inventory",
+    "record_id": 28,
+    "accion": "INSERT",
+    "cambios": {
+      "creado": true
+    },
+    "trabajador_id": 10,
+    "trabajador_nombre": "Karen Vega",
+    "fecha": "2026-05-10T11:42:56.132000",
+    "ip": "192.168.1.218"
+  },
+  {
+    "tabla": "nfc_cards",
+    "record_id": 256,
+    "accion": "INSERT",
+    "cambios": {
+      "creado": true
+    },
+    "trabajador_id": 5,
+    "trabajador_nombre": "Raúl Mora",
+    "fecha": "2026-04-19T11:15:26.132000",
+    "ip": "192.168.1.209"
+  },
+  {
+    "tabla": "guardians",
+    "record_id": 34,
+    "accion": "INSERT",
+    "cambios": {
+      "creado": true
+    },
+    "trabajador_id": 9,
+    "trabajador_nombre": "Iván Silva",
+    "fecha": "2026-04-19T08:46:31.132000",
+    "ip": "192.168.1.54"
+  },
+  {
+    "tabla": "appointments",
+    "record_id": 186,
+    "accion": "UPDATE",
+    "cambios": {
+      "quantity": {
+        "antes": "valor_anterior",
+        "despues": "valor_nuevo"
+      }
+    },
+    "trabajador_id": 7,
+    "trabajador_nombre": "Andrés León",
+    "fecha": "2026-04-23T16:52:37.132000",
+    "ip": "192.168.1.27"
+  },
+  {
+    "tabla": "nfc_cards",
+    "record_id": 41,
+    "accion": "INSERT",
+    "cambios": {
+      "creado": true
+    },
+    "trabajador_id": 7,
+    "trabajador_nombre": "Andrés León",
+    "fecha": "2026-04-26T09:02:31.132000",
+    "ip": "192.168.1.134"
+  },
+  {
+    "tabla": "guardians",
+    "record_id": 137,
+    "accion": "INSERT",
+    "cambios": {
+      "creado": true
+    },
+    "trabajador_id": 5,
+    "trabajador_nombre": "Raúl Mora",
+    "fecha": "2026-05-03T15:14:42.132000",
+    "ip": "192.168.1.57"
+  },
+  {
+    "tabla": "patients",
+    "record_id": 391,
+    "accion": "UPDATE",
+    "cambios": {
+      "is_active": {
+        "antes": "valor_anterior",
+        "despues": "valor_nuevo"
+      }
+    },
+    "trabajador_id": 8,
+    "trabajador_nombre": "Diana Paz",
+    "fecha": "2026-05-02T10:38:44.132000",
+    "ip": "192.168.1.153"
+  },
+  {
+    "tabla": "workers",
+    "record_id": 328,
+    "accion": "INSERT",
+    "cambios": {
+      "creado": true
+    },
+    "trabajador_id": 6,
+    "trabajador_nombre": "Paty Ríos",
+    "fecha": "2026-04-29T16:15:02.132000",
+    "ip": "192.168.1.217"
+  },
+  {
+    "tabla": "nfc_cards",
+    "record_id": 164,
+    "accion": "INSERT",
+    "cambios": {
+      "creado": true
+    },
+    "trabajador_id": 7,
+    "trabajador_nombre": "Andrés León",
+    "fecha": "2026-04-27T17:53:11.132000",
+    "ip": "192.168.1.13"
+  },
+  {
+    "tabla": "guardians",
+    "record_id": 294,
+    "accion": "INSERT",
+    "cambios": {
+      "creado": true
+    },
+    "trabajador_id": 6,
+    "trabajador_nombre": "Paty Ríos",
+    "fecha": "2026-04-30T15:14:35.132000",
+    "ip": "192.168.1.190"
+  },
+  {
+    "tabla": "vaccine_lots",
+    "record_id": 183,
+    "accion": "INSERT",
+    "cambios": {
+      "creado": true
+    },
+    "trabajador_id": 6,
+    "trabajador_nombre": "Paty Ríos",
+    "fecha": "2026-05-13T15:36:20.132000",
+    "ip": "192.168.1.218"
+  },
+  {
+    "tabla": "guardians",
+    "record_id": 302,
+    "accion": "UPDATE",
+    "cambios": {
+      "status": {
+        "antes": "valor_anterior",
+        "despues": "valor_nuevo"
+      }
+    },
+    "trabajador_id": 2,
+    "trabajador_nombre": "Lucía Santos",
+    "fecha": "2026-04-16T17:56:25.132000",
+    "ip": "192.168.1.149"
+  },
+  {
+    "tabla": "nfc_cards",
+    "record_id": 251,
+    "accion": "UPDATE",
+    "cambios": {
+      "phone": {
+        "antes": "valor_anterior",
+        "despues": "valor_nuevo"
+      }
+    },
+    "trabajador_id": 8,
+    "trabajador_nombre": "Diana Paz",
+    "fecha": "2026-04-26T14:50:32.132000",
+    "ip": "192.168.1.19"
+  },
+  {
+    "tabla": "vaccine_lots",
+    "record_id": 150,
+    "accion": "UPDATE",
+    "cambios": {
+      "quantity": {
+        "antes": "valor_anterior",
+        "despues": "valor_nuevo"
+      }
+    },
+    "trabajador_id": 6,
+    "trabajador_nombre": "Paty Ríos",
+    "fecha": "2026-05-08T08:44:51.132000",
+    "ip": "192.168.1.180"
+  },
+  {
+    "tabla": "patients",
+    "record_id": 307,
+    "accion": "UPDATE",
+    "cambios": {
+      "is_active": {
+        "antes": "valor_anterior",
+        "despues": "valor_nuevo"
+      }
+    },
+    "trabajador_id": 8,
+    "trabajador_nombre": "Diana Paz",
+    "fecha": "2026-04-25T12:34:32.132000",
+    "ip": "192.168.1.57"
+  },
+  {
+    "tabla": "vaccine_lots",
+    "record_id": 152,
+    "accion": "UPDATE",
+    "cambios": {
+      "status": {
+        "antes": "valor_anterior",
+        "despues": "valor_nuevo"
+      }
+    },
+    "trabajador_id": 5,
+    "trabajador_nombre": "Raúl Mora",
+    "fecha": "2026-05-05T13:01:27.132000",
+    "ip": "192.168.1.99"
+  },
+  {
+    "tabla": "vaccine_lots",
+    "record_id": 375,
+    "accion": "DELETE",
+    "cambios": {
+      "motivo": "solicitud del usuario"
+    },
+    "trabajador_id": 10,
+    "trabajador_nombre": "Karen Vega",
+    "fecha": "2026-04-23T10:26:45.132000",
+    "ip": "192.168.1.83"
+  },
+  {
+    "tabla": "patients",
+    "record_id": 264,
+    "accion": "INSERT",
+    "cambios": {
+      "creado": true
+    },
+    "trabajador_id": 2,
+    "trabajador_nombre": "Lucía Santos",
+    "fecha": "2026-04-30T12:48:53.132000",
+    "ip": "192.168.1.115"
+  },
+  {
+    "tabla": "clinic_inventory",
+    "record_id": 338,
+    "accion": "INSERT",
+    "cambios": {
+      "creado": true
+    },
+    "trabajador_id": 5,
+    "trabajador_nombre": "Raúl Mora",
+    "fecha": "2026-05-13T13:16:12.132000",
+    "ip": "192.168.1.196"
+  },
+  {
+    "tabla": "nfc_cards",
+    "record_id": 221,
+    "accion": "INSERT",
+    "cambios": {
+      "creado": true
+    },
+    "trabajador_id": 4,
+    "trabajador_nombre": "Elisa Campos",
+    "fecha": "2026-05-01T11:51:24.132000",
+    "ip": "192.168.1.77"
+  },
+  {
+    "tabla": "vaccination_records",
+    "record_id": 71,
+    "accion": "UPDATE",
+    "cambios": {
+      "quantity": {
+        "antes": "valor_anterior",
+        "despues": "valor_nuevo"
+      }
+    },
+    "trabajador_id": 5,
+    "trabajador_nombre": "Raúl Mora",
+    "fecha": "2026-04-29T08:32:06.132000",
+    "ip": "192.168.1.64"
+  },
+  {
+    "tabla": "nfc_cards",
+    "record_id": 129,
+    "accion": "UPDATE",
+    "cambios": {
+      "is_active": {
+        "antes": "valor_anterior",
+        "despues": "valor_nuevo"
+      }
+    },
+    "trabajador_id": 6,
+    "trabajador_nombre": "Paty Ríos",
+    "fecha": "2026-04-21T16:11:41.132000",
+    "ip": "192.168.1.32"
+  },
+  {
+    "tabla": "clinic_inventory",
+    "record_id": 176,
+    "accion": "UPDATE",
+    "cambios": {
+      "status": {
+        "antes": "valor_anterior",
+        "despues": "valor_nuevo"
+      }
+    },
+    "trabajador_id": 8,
+    "trabajador_nombre": "Diana Paz",
+    "fecha": "2026-04-30T13:33:58.132000",
+    "ip": "192.168.1.117"
+  },
+  {
+    "tabla": "workers",
+    "record_id": 169,
+    "accion": "DELETE",
+    "cambios": {
+      "motivo": "solicitud del usuario"
+    },
+    "trabajador_id": 9,
+    "trabajador_nombre": "Iván Silva",
+    "fecha": "2026-04-24T15:31:09.132000",
+    "ip": "192.168.1.243"
+  },
+  {
+    "tabla": "workers",
+    "record_id": 127,
+    "accion": "INSERT",
+    "cambios": {
+      "creado": true
+    },
+    "trabajador_id": 10,
+    "trabajador_nombre": "Karen Vega",
+    "fecha": "2026-04-20T11:59:47.133000",
+    "ip": "192.168.1.237"
+  },
+  {
+    "tabla": "vaccine_lots",
+    "record_id": 349,
+    "accion": "INSERT",
+    "cambios": {
+      "creado": true
+    },
+    "trabajador_id": 9,
+    "trabajador_nombre": "Iván Silva",
+    "fecha": "2026-04-27T10:34:19.133000",
+    "ip": "192.168.1.223"
+  },
+  {
+    "tabla": "clinic_inventory",
+    "record_id": 218,
+    "accion": "UPDATE",
+    "cambios": {
+      "phone": {
+        "antes": "valor_anterior",
+        "despues": "valor_nuevo"
+      }
+    },
+    "trabajador_id": 6,
+    "trabajador_nombre": "Paty Ríos",
+    "fecha": "2026-04-18T11:42:12.133000",
+    "ip": "192.168.1.142"
+  },
+  {
+    "tabla": "vaccine_lots",
+    "record_id": 141,
+    "accion": "DELETE",
+    "cambios": {
+      "motivo": "solicitud del usuario"
+    },
+    "trabajador_id": 1,
+    "trabajador_nombre": "José Pérez",
+    "fecha": "2026-05-02T08:05:36.133000",
+    "ip": "192.168.1.99"
+  },
+  {
+    "tabla": "patients",
+    "record_id": 324,
+    "accion": "INSERT",
+    "cambios": {
+      "creado": true
+    },
+    "trabajador_id": 9,
+    "trabajador_nombre": "Iván Silva",
+    "fecha": "2026-05-11T10:50:07.133000",
+    "ip": "192.168.1.34"
+  },
+  {
+    "tabla": "patients",
+    "record_id": 241,
+    "accion": "UPDATE",
+    "cambios": {
+      "quantity": {
+        "antes": "valor_anterior",
+        "despues": "valor_nuevo"
+      }
+    },
+    "trabajador_id": 7,
+    "trabajador_nombre": "Andrés León",
+    "fecha": "2026-04-22T12:13:53.133000",
+    "ip": "192.168.1.30"
+  },
+  {
+    "tabla": "nfc_cards",
+    "record_id": 495,
+    "accion": "DELETE",
+    "cambios": {
+      "motivo": "solicitud del usuario"
+    },
+    "trabajador_id": 7,
+    "trabajador_nombre": "Andrés León",
+    "fecha": "2026-04-25T13:01:04.133000",
+    "ip": "192.168.1.135"
+  },
+  {
+    "tabla": "vaccine_lots",
+    "record_id": 397,
+    "accion": "UPDATE",
+    "cambios": {
+      "is_active": {
+        "antes": "valor_anterior",
+        "despues": "valor_nuevo"
+      }
+    },
+    "trabajador_id": 4,
+    "trabajador_nombre": "Elisa Campos",
+    "fecha": "2026-05-12T16:07:49.133000",
+    "ip": "192.168.1.201"
+  },
+  {
+    "tabla": "appointments",
+    "record_id": 402,
+    "accion": "INSERT",
+    "cambios": {
+      "creado": true
+    },
+    "trabajador_id": 6,
+    "trabajador_nombre": "Paty Ríos",
+    "fecha": "2026-04-23T09:12:44.133000",
+    "ip": "192.168.1.153"
+  },
+  {
+    "tabla": "nfc_cards",
+    "record_id": 153,
+    "accion": "UPDATE",
+    "cambios": {
+      "status": {
+        "antes": "valor_anterior",
+        "despues": "valor_nuevo"
+      }
+    },
+    "trabajador_id": 6,
+    "trabajador_nombre": "Paty Ríos",
+    "fecha": "2026-04-19T14:06:07.133000",
+    "ip": "192.168.1.248"
+  },
+  {
+    "tabla": "clinic_inventory",
+    "record_id": 97,
+    "accion": "UPDATE",
+    "cambios": {
+      "status": {
+        "antes": "valor_anterior",
+        "despues": "valor_nuevo"
+      }
+    },
+    "trabajador_id": 8,
+    "trabajador_nombre": "Diana Paz",
+    "fecha": "2026-04-29T13:19:29.133000",
+    "ip": "192.168.1.135"
+  },
+  {
+    "tabla": "vaccine_lots",
+    "record_id": 499,
+    "accion": "INSERT",
+    "cambios": {
+      "creado": true
+    },
+    "trabajador_id": 6,
+    "trabajador_nombre": "Paty Ríos",
+    "fecha": "2026-05-14T14:12:25.133000",
+    "ip": "192.168.1.196"
+  },
+  {
+    "tabla": "appointments",
+    "record_id": 9,
+    "accion": "DELETE",
+    "cambios": {
+      "motivo": "solicitud del usuario"
+    },
+    "trabajador_id": 9,
+    "trabajador_nombre": "Iván Silva",
+    "fecha": "2026-04-18T17:08:33.133000",
+    "ip": "192.168.1.144"
+  },
+  {
+    "tabla": "clinic_inventory",
+    "record_id": 15,
+    "accion": "DELETE",
+    "cambios": {
+      "motivo": "solicitud del usuario"
+    },
+    "trabajador_id": 10,
+    "trabajador_nombre": "Karen Vega",
+    "fecha": "2026-04-28T12:58:54.133000",
+    "ip": "192.168.1.115"
+  },
+  {
+    "tabla": "workers",
+    "record_id": 237,
+    "accion": "DELETE",
+    "cambios": {
+      "motivo": "solicitud del usuario"
+    },
+    "trabajador_id": 9,
+    "trabajador_nombre": "Iván Silva",
+    "fecha": "2026-04-17T12:08:04.133000",
+    "ip": "192.168.1.63"
+  },
+  {
+    "tabla": "vaccine_lots",
+    "record_id": 68,
+    "accion": "UPDATE",
+    "cambios": {
+      "quantity": {
+        "antes": "valor_anterior",
+        "despues": "valor_nuevo"
+      }
+    },
+    "trabajador_id": 4,
+    "trabajador_nombre": "Elisa Campos",
+    "fecha": "2026-04-23T08:57:54.133000",
+    "ip": "192.168.1.134"
+  },
+  {
+    "tabla": "vaccination_records",
+    "record_id": 256,
+    "accion": "UPDATE",
+    "cambios": {
+      "status": {
+        "antes": "valor_anterior",
+        "despues": "valor_nuevo"
+      }
+    },
+    "trabajador_id": 7,
+    "trabajador_nombre": "Andrés León",
+    "fecha": "2026-05-06T19:03:00.133000",
+    "ip": "192.168.1.159"
+  },
+  {
+    "tabla": "vaccination_records",
+    "record_id": 90,
+    "accion": "UPDATE",
+    "cambios": {
+      "is_active": {
+        "antes": "valor_anterior",
+        "despues": "valor_nuevo"
+      }
+    },
+    "trabajador_id": 7,
+    "trabajador_nombre": "Andrés León",
+    "fecha": "2026-04-22T15:49:24.133000",
+    "ip": "192.168.1.47"
+  },
+  {
+    "tabla": "guardians",
+    "record_id": 44,
+    "accion": "UPDATE",
+    "cambios": {
+      "quantity": {
+        "antes": "valor_anterior",
+        "despues": "valor_nuevo"
+      }
+    },
+    "trabajador_id": 3,
+    "trabajador_nombre": "Mario Luna",
+    "fecha": "2026-05-10T14:17:14.133000",
+    "ip": "192.168.1.71"
+  },
+  {
+    "tabla": "nfc_cards",
+    "record_id": 263,
+    "accion": "INSERT",
+    "cambios": {
+      "creado": true
+    },
+    "trabajador_id": 10,
+    "trabajador_nombre": "Karen Vega",
+    "fecha": "2026-04-20T16:34:42.133000",
+    "ip": "192.168.1.56"
+  },
+  {
+    "tabla": "vaccine_lots",
+    "record_id": 119,
+    "accion": "DELETE",
+    "cambios": {
+      "motivo": "solicitud del usuario"
+    },
+    "trabajador_id": 3,
+    "trabajador_nombre": "Mario Luna",
+    "fecha": "2026-04-16T09:21:47.133000",
+    "ip": "192.168.1.90"
+  },
+  {
+    "tabla": "vaccination_records",
+    "record_id": 472,
+    "accion": "INSERT",
+    "cambios": {
+      "creado": true
+    },
+    "trabajador_id": 7,
+    "trabajador_nombre": "Andrés León",
+    "fecha": "2026-04-24T08:05:06.133000",
+    "ip": "192.168.1.132"
+  },
+  {
+    "tabla": "vaccine_lots",
+    "record_id": 74,
+    "accion": "UPDATE",
+    "cambios": {
+      "phone": {
+        "antes": "valor_anterior",
+        "despues": "valor_nuevo"
+      }
+    },
+    "trabajador_id": 7,
+    "trabajador_nombre": "Andrés León",
+    "fecha": "2026-04-30T19:40:57.133000",
+    "ip": "192.168.1.152"
+  },
+  {
+    "tabla": "clinic_inventory",
+    "record_id": 412,
+    "accion": "UPDATE",
+    "cambios": {
+      "phone": {
+        "antes": "valor_anterior",
+        "despues": "valor_nuevo"
+      }
+    },
+    "trabajador_id": 8,
+    "trabajador_nombre": "Diana Paz",
+    "fecha": "2026-04-24T08:22:27.133000",
+    "ip": "192.168.1.95"
+  },
+  {
+    "tabla": "appointments",
+    "record_id": 371,
+    "accion": "DELETE",
+    "cambios": {
+      "motivo": "solicitud del usuario"
+    },
+    "trabajador_id": 4,
+    "trabajador_nombre": "Elisa Campos",
+    "fecha": "2026-05-07T09:07:32.133000",
+    "ip": "192.168.1.201"
+  },
+  {
+    "tabla": "patients",
+    "record_id": 296,
+    "accion": "UPDATE",
+    "cambios": {
+      "is_active": {
+        "antes": "valor_anterior",
+        "despues": "valor_nuevo"
+      }
+    },
+    "trabajador_id": 1,
+    "trabajador_nombre": "José Pérez",
+    "fecha": "2026-04-28T17:00:04.133000",
+    "ip": "192.168.1.203"
+  },
+  {
+    "tabla": "vaccination_records",
+    "record_id": 35,
+    "accion": "UPDATE",
+    "cambios": {
+      "is_active": {
+        "antes": "valor_anterior",
+        "despues": "valor_nuevo"
+      }
+    },
+    "trabajador_id": 3,
+    "trabajador_nombre": "Mario Luna",
+    "fecha": "2026-05-01T14:40:51.133000",
+    "ip": "192.168.1.120"
+  },
+  {
+    "tabla": "nfc_cards",
+    "record_id": 134,
+    "accion": "INSERT",
+    "cambios": {
+      "creado": true
+    },
+    "trabajador_id": 9,
+    "trabajador_nombre": "Iván Silva",
+    "fecha": "2026-05-04T10:27:11.133000",
+    "ip": "192.168.1.105"
+  },
+  {
+    "tabla": "appointments",
+    "record_id": 59,
+    "accion": "INSERT",
+    "cambios": {
+      "creado": true
+    },
+    "trabajador_id": 8,
+    "trabajador_nombre": "Diana Paz",
+    "fecha": "2026-04-16T13:46:32.133000",
+    "ip": "192.168.1.111"
+  },
+  {
+    "tabla": "patients",
+    "record_id": 290,
+    "accion": "UPDATE",
+    "cambios": {
+      "phone": {
+        "antes": "valor_anterior",
+        "despues": "valor_nuevo"
+      }
+    },
+    "trabajador_id": 10,
+    "trabajador_nombre": "Karen Vega",
+    "fecha": "2026-04-21T13:02:52.133000",
+    "ip": "192.168.1.13"
+  },
+  {
+    "tabla": "vaccination_records",
+    "record_id": 466,
+    "accion": "INSERT",
+    "cambios": {
+      "creado": true
+    },
+    "trabajador_id": 5,
+    "trabajador_nombre": "Raúl Mora",
+    "fecha": "2026-05-08T18:20:37.133000",
+    "ip": "192.168.1.24"
+  },
+  {
+    "tabla": "vaccine_lots",
+    "record_id": 358,
+    "accion": "DELETE",
+    "cambios": {
+      "motivo": "solicitud del usuario"
+    },
+    "trabajador_id": 4,
+    "trabajador_nombre": "Elisa Campos",
+    "fecha": "2026-05-07T12:52:20.133000",
+    "ip": "192.168.1.233"
+  },
+  {
+    "tabla": "clinic_inventory",
+    "record_id": 409,
+    "accion": "UPDATE",
+    "cambios": {
+      "phone": {
+        "antes": "valor_anterior",
+        "despues": "valor_nuevo"
+      }
+    },
+    "trabajador_id": 8,
+    "trabajador_nombre": "Diana Paz",
+    "fecha": "2026-05-04T09:14:06.133000",
+    "ip": "192.168.1.216"
+  },
+  {
+    "tabla": "nfc_cards",
+    "record_id": 469,
+    "accion": "UPDATE",
+    "cambios": {
+      "is_active": {
+        "antes": "valor_anterior",
+        "despues": "valor_nuevo"
+      }
+    },
+    "trabajador_id": 2,
+    "trabajador_nombre": "Lucía Santos",
+    "fecha": "2026-05-02T17:52:24.133000",
+    "ip": "192.168.1.47"
+  },
+  {
+    "tabla": "guardians",
+    "record_id": 228,
+    "accion": "DELETE",
+    "cambios": {
+      "motivo": "solicitud del usuario"
+    },
+    "trabajador_id": 4,
+    "trabajador_nombre": "Elisa Campos",
+    "fecha": "2026-04-19T19:51:36.133000",
+    "ip": "192.168.1.180"
+  },
+  {
+    "tabla": "patients",
+    "record_id": 128,
+    "accion": "UPDATE",
+    "cambios": {
+      "is_active": {
+        "antes": "valor_anterior",
+        "despues": "valor_nuevo"
+      }
+    },
+    "trabajador_id": 2,
+    "trabajador_nombre": "Lucía Santos",
+    "fecha": "2026-05-14T08:26:16.133000",
+    "ip": "192.168.1.138"
+  },
+  {
+    "tabla": "appointments",
+    "record_id": 112,
+    "accion": "DELETE",
+    "cambios": {
+      "motivo": "solicitud del usuario"
+    },
+    "trabajador_id": 10,
+    "trabajador_nombre": "Karen Vega",
+    "fecha": "2026-04-27T15:21:48.133000",
+    "ip": "192.168.1.156"
+  },
+  {
+    "tabla": "appointments",
+    "record_id": 496,
+    "accion": "UPDATE",
+    "cambios": {
+      "quantity": {
+        "antes": "valor_anterior",
+        "despues": "valor_nuevo"
+      }
+    },
+    "trabajador_id": 8,
+    "trabajador_nombre": "Diana Paz",
+    "fecha": "2026-05-15T10:46:50.133000",
+    "ip": "192.168.1.196"
+  },
+  {
+    "tabla": "nfc_cards",
+    "record_id": 211,
+    "accion": "DELETE",
+    "cambios": {
+      "motivo": "solicitud del usuario"
+    },
+    "trabajador_id": 10,
+    "trabajador_nombre": "Karen Vega",
+    "fecha": "2026-04-16T09:16:07.133000",
+    "ip": "192.168.1.249"
+  },
+  {
+    "tabla": "nfc_cards",
+    "record_id": 88,
+    "accion": "UPDATE",
+    "cambios": {
+      "phone": {
+        "antes": "valor_anterior",
+        "despues": "valor_nuevo"
+      }
+    },
+    "trabajador_id": 1,
+    "trabajador_nombre": "José Pérez",
+    "fecha": "2026-05-07T09:20:01.133000",
+    "ip": "192.168.1.231"
+  },
+  {
+    "tabla": "patients",
+    "record_id": 300,
+    "accion": "INSERT",
+    "cambios": {
+      "creado": true
+    },
+    "trabajador_id": 9,
+    "trabajador_nombre": "Iván Silva",
+    "fecha": "2026-04-28T12:58:55.133000",
+    "ip": "192.168.1.185"
+  },
+  {
+    "tabla": "patients",
+    "record_id": 109,
+    "accion": "INSERT",
+    "cambios": {
+      "creado": true
+    },
+    "trabajador_id": 5,
+    "trabajador_nombre": "Raúl Mora",
+    "fecha": "2026-04-28T19:28:10.133000",
+    "ip": "192.168.1.242"
+  },
+  {
+    "tabla": "vaccine_lots",
+    "record_id": 89,
+    "accion": "UPDATE",
+    "cambios": {
+      "quantity": {
+        "antes": "valor_anterior",
+        "despues": "valor_nuevo"
+      }
+    },
+    "trabajador_id": 8,
+    "trabajador_nombre": "Diana Paz",
+    "fecha": "2026-04-22T11:46:14.133000",
+    "ip": "192.168.1.111"
+  },
+  {
+    "tabla": "workers",
+    "record_id": 463,
+    "accion": "UPDATE",
+    "cambios": {
+      "quantity": {
+        "antes": "valor_anterior",
+        "despues": "valor_nuevo"
+      }
+    },
+    "trabajador_id": 7,
+    "trabajador_nombre": "Andrés León",
+    "fecha": "2026-05-08T14:09:11.133000",
+    "ip": "192.168.1.22"
+  },
+  {
+    "tabla": "workers",
+    "record_id": 196,
+    "accion": "UPDATE",
+    "cambios": {
+      "phone": {
+        "antes": "valor_anterior",
+        "despues": "valor_nuevo"
+      }
+    },
+    "trabajador_id": 3,
+    "trabajador_nombre": "Mario Luna",
+    "fecha": "2026-05-11T13:43:51.133000",
+    "ip": "192.168.1.79"
+  },
+  {
+    "tabla": "patients",
+    "record_id": 71,
+    "accion": "UPDATE",
+    "cambios": {
+      "phone": {
+        "antes": "valor_anterior",
+        "despues": "valor_nuevo"
+      }
+    },
+    "trabajador_id": 6,
+    "trabajador_nombre": "Paty Ríos",
+    "fecha": "2026-05-08T16:33:59.133000",
+    "ip": "192.168.1.55"
+  },
+  {
+    "tabla": "workers",
+    "record_id": 47,
+    "accion": "UPDATE",
+    "cambios": {
+      "quantity": {
+        "antes": "valor_anterior",
+        "despues": "valor_nuevo"
+      }
+    },
+    "trabajador_id": 1,
+    "trabajador_nombre": "José Pérez",
+    "fecha": "2026-05-06T10:04:16.133000",
+    "ip": "192.168.1.64"
+  },
+  {
+    "tabla": "workers",
+    "record_id": 128,
+    "accion": "INSERT",
+    "cambios": {
+      "creado": true
+    },
+    "trabajador_id": 9,
+    "trabajador_nombre": "Iván Silva",
+    "fecha": "2026-05-10T13:38:24.133000",
+    "ip": "192.168.1.84"
+  },
+  {
+    "tabla": "nfc_cards",
+    "record_id": 294,
+    "accion": "UPDATE",
+    "cambios": {
+      "status": {
+        "antes": "valor_anterior",
+        "despues": "valor_nuevo"
+      }
+    },
+    "trabajador_id": 1,
+    "trabajador_nombre": "José Pérez",
+    "fecha": "2026-05-13T18:42:30.133000",
+    "ip": "192.168.1.21"
+  },
+  {
+    "tabla": "workers",
+    "record_id": 444,
+    "accion": "INSERT",
+    "cambios": {
+      "creado": true
+    },
+    "trabajador_id": 9,
+    "trabajador_nombre": "Iván Silva",
+    "fecha": "2026-04-19T18:37:00.133000",
+    "ip": "192.168.1.120"
+  },
+  {
+    "tabla": "clinic_inventory",
+    "record_id": 435,
+    "accion": "INSERT",
+    "cambios": {
+      "creado": true
+    },
+    "trabajador_id": 9,
+    "trabajador_nombre": "Iván Silva",
+    "fecha": "2026-05-02T15:02:19.133000",
+    "ip": "192.168.1.88"
+  },
+  {
+    "tabla": "appointments",
+    "record_id": 364,
+    "accion": "INSERT",
+    "cambios": {
+      "creado": true
+    },
+    "trabajador_id": 7,
+    "trabajador_nombre": "Andrés León",
+    "fecha": "2026-05-03T16:19:25.133000",
+    "ip": "192.168.1.35"
+  },
+  {
+    "tabla": "nfc_cards",
+    "record_id": 120,
+    "accion": "UPDATE",
+    "cambios": {
+      "status": {
+        "antes": "valor_anterior",
+        "despues": "valor_nuevo"
+      }
+    },
+    "trabajador_id": 5,
+    "trabajador_nombre": "Raúl Mora",
+    "fecha": "2026-04-29T12:39:39.133000",
+    "ip": "192.168.1.209"
+  },
+  {
+    "tabla": "guardians",
+    "record_id": 224,
+    "accion": "INSERT",
+    "cambios": {
+      "creado": true
+    },
+    "trabajador_id": 6,
+    "trabajador_nombre": "Paty Ríos",
+    "fecha": "2026-05-13T10:41:10.133000",
+    "ip": "192.168.1.96"
+  },
+  {
+    "tabla": "vaccine_lots",
+    "record_id": 92,
+    "accion": "DELETE",
+    "cambios": {
+      "motivo": "solicitud del usuario"
+    },
+    "trabajador_id": 3,
+    "trabajador_nombre": "Mario Luna",
+    "fecha": "2026-05-10T16:18:49.133000",
+    "ip": "192.168.1.157"
+  },
+  {
+    "tabla": "appointments",
+    "record_id": 264,
+    "accion": "UPDATE",
+    "cambios": {
+      "quantity": {
+        "antes": "valor_anterior",
+        "despues": "valor_nuevo"
+      }
+    },
+    "trabajador_id": 9,
+    "trabajador_nombre": "Iván Silva",
+    "fecha": "2026-04-24T08:15:27.133000",
+    "ip": "192.168.1.141"
+  },
+  {
+    "tabla": "guardians",
+    "record_id": 426,
+    "accion": "UPDATE",
+    "cambios": {
+      "quantity": {
+        "antes": "valor_anterior",
+        "despues": "valor_nuevo"
+      }
+    },
+    "trabajador_id": 10,
+    "trabajador_nombre": "Karen Vega",
+    "fecha": "2026-05-08T10:02:01.133000",
+    "ip": "192.168.1.32"
+  },
+  {
+    "tabla": "nfc_cards",
+    "record_id": 401,
+    "accion": "INSERT",
+    "cambios": {
+      "creado": true
+    },
+    "trabajador_id": 3,
+    "trabajador_nombre": "Mario Luna",
+    "fecha": "2026-04-17T17:03:22.133000",
+    "ip": "192.168.1.57"
+  },
+  {
+    "tabla": "workers",
+    "record_id": 407,
+    "accion": "INSERT",
+    "cambios": {
+      "creado": true
+    },
+    "trabajador_id": 2,
+    "trabajador_nombre": "Lucía Santos",
+    "fecha": "2026-05-10T18:10:36.133000",
+    "ip": "192.168.1.238"
+  },
+  {
+    "tabla": "patients",
+    "record_id": 230,
+    "accion": "UPDATE",
+    "cambios": {
+      "phone": {
+        "antes": "valor_anterior",
+        "despues": "valor_nuevo"
+      }
+    },
+    "trabajador_id": 9,
+    "trabajador_nombre": "Iván Silva",
+    "fecha": "2026-04-30T13:11:03.133000",
+    "ip": "192.168.1.52"
+  },
+  {
+    "tabla": "patients",
+    "record_id": 283,
+    "accion": "UPDATE",
+    "cambios": {
+      "quantity": {
+        "antes": "valor_anterior",
+        "despues": "valor_nuevo"
+      }
+    },
+    "trabajador_id": 3,
+    "trabajador_nombre": "Mario Luna",
+    "fecha": "2026-04-30T14:08:26.133000",
+    "ip": "192.168.1.71"
+  },
+  {
+    "tabla": "appointments",
+    "record_id": 443,
+    "accion": "UPDATE",
+    "cambios": {
+      "is_active": {
+        "antes": "valor_anterior",
+        "despues": "valor_nuevo"
+      }
+    },
+    "trabajador_id": 9,
+    "trabajador_nombre": "Iván Silva",
+    "fecha": "2026-05-01T17:59:29.133000",
+    "ip": "192.168.1.201"
+  },
+  {
+    "tabla": "appointments",
+    "record_id": 78,
+    "accion": "DELETE",
+    "cambios": {
+      "motivo": "solicitud del usuario"
+    },
+    "trabajador_id": 10,
+    "trabajador_nombre": "Karen Vega",
+    "fecha": "2026-04-28T17:06:30.133000",
+    "ip": "192.168.1.234"
+  },
+  {
+    "tabla": "guardians",
+    "record_id": 93,
+    "accion": "INSERT",
+    "cambios": {
+      "creado": true
+    },
+    "trabajador_id": 1,
+    "trabajador_nombre": "José Pérez",
+    "fecha": "2026-05-12T09:06:52.133000",
+    "ip": "192.168.1.190"
+  },
+  {
+    "tabla": "guardians",
+    "record_id": 384,
+    "accion": "DELETE",
+    "cambios": {
+      "motivo": "solicitud del usuario"
+    },
+    "trabajador_id": 5,
+    "trabajador_nombre": "Raúl Mora",
+    "fecha": "2026-05-01T08:09:09.133000",
+    "ip": "192.168.1.204"
+  },
+  {
+    "tabla": "appointments",
+    "record_id": 79,
+    "accion": "INSERT",
+    "cambios": {
+      "creado": true
+    },
+    "trabajador_id": 6,
+    "trabajador_nombre": "Paty Ríos",
+    "fecha": "2026-05-02T13:41:13.133000",
+    "ip": "192.168.1.246"
+  },
+  {
+    "tabla": "clinic_inventory",
+    "record_id": 382,
+    "accion": "UPDATE",
+    "cambios": {
+      "status": {
+        "antes": "valor_anterior",
+        "despues": "valor_nuevo"
+      }
+    },
+    "trabajador_id": 1,
+    "trabajador_nombre": "José Pérez",
+    "fecha": "2026-05-02T12:20:24.133000",
+    "ip": "192.168.1.90"
+  },
+  {
+    "tabla": "nfc_cards",
+    "record_id": 390,
+    "accion": "UPDATE",
+    "cambios": {
+      "quantity": {
+        "antes": "valor_anterior",
+        "despues": "valor_nuevo"
+      }
+    },
+    "trabajador_id": 9,
+    "trabajador_nombre": "Iván Silva",
+    "fecha": "2026-05-05T18:55:13.133000",
+    "ip": "192.168.1.151"
+  },
+  {
+    "tabla": "nfc_cards",
+    "record_id": 411,
+    "accion": "UPDATE",
+    "cambios": {
+      "status": {
+        "antes": "valor_anterior",
+        "despues": "valor_nuevo"
+      }
+    },
+    "trabajador_id": 8,
+    "trabajador_nombre": "Diana Paz",
+    "fecha": "2026-04-29T10:56:59.133000",
+    "ip": "192.168.1.232"
+  },
+  {
+    "tabla": "appointments",
+    "record_id": 415,
+    "accion": "INSERT",
+    "cambios": {
+      "creado": true
+    },
+    "trabajador_id": 4,
+    "trabajador_nombre": "Elisa Campos",
+    "fecha": "2026-05-06T08:02:29.133000",
+    "ip": "192.168.1.247"
+  },
+  {
+    "tabla": "patients",
+    "record_id": 471,
+    "accion": "UPDATE",
+    "cambios": {
+      "phone": {
+        "antes": "valor_anterior",
+        "despues": "valor_nuevo"
+      }
+    },
+    "trabajador_id": 7,
+    "trabajador_nombre": "Andrés León",
+    "fecha": "2026-05-12T16:05:30.133000",
+    "ip": "192.168.1.73"
+  },
+  {
+    "tabla": "patients",
+    "record_id": 116,
+    "accion": "INSERT",
+    "cambios": {
+      "creado": true
+    },
+    "trabajador_id": 8,
+    "trabajador_nombre": "Diana Paz",
+    "fecha": "2026-04-15T11:03:10.133000",
+    "ip": "192.168.1.12"
+  },
+  {
+    "tabla": "patients",
+    "record_id": 496,
+    "accion": "UPDATE",
+    "cambios": {
+      "is_active": {
+        "antes": "valor_anterior",
+        "despues": "valor_nuevo"
+      }
+    },
+    "trabajador_id": 7,
+    "trabajador_nombre": "Andrés León",
+    "fecha": "2026-05-11T10:10:37.133000",
+    "ip": "192.168.1.132"
+  },
+  {
+    "tabla": "vaccination_records",
+    "record_id": 474,
+    "accion": "UPDATE",
+    "cambios": {
+      "is_active": {
+        "antes": "valor_anterior",
+        "despues": "valor_nuevo"
+      }
+    },
+    "trabajador_id": 4,
+    "trabajador_nombre": "Elisa Campos",
+    "fecha": "2026-05-01T12:35:47.133000",
+    "ip": "192.168.1.214"
+  },
+  {
+    "tabla": "guardians",
+    "record_id": 307,
+    "accion": "INSERT",
+    "cambios": {
+      "creado": true
+    },
+    "trabajador_id": 3,
+    "trabajador_nombre": "Mario Luna",
+    "fecha": "2026-05-07T10:36:19.133000",
+    "ip": "192.168.1.216"
+  },
+  {
+    "tabla": "nfc_cards",
+    "record_id": 5,
+    "accion": "UPDATE",
+    "cambios": {
+      "phone": {
+        "antes": "valor_anterior",
+        "despues": "valor_nuevo"
+      }
+    },
+    "trabajador_id": 1,
+    "trabajador_nombre": "José Pérez",
+    "fecha": "2026-05-09T16:54:33.133000",
+    "ip": "192.168.1.96"
+  },
+  {
+    "tabla": "guardians",
+    "record_id": 24,
+    "accion": "UPDATE",
+    "cambios": {
+      "is_active": {
+        "antes": "valor_anterior",
+        "despues": "valor_nuevo"
+      }
+    },
+    "trabajador_id": 6,
+    "trabajador_nombre": "Paty Ríos",
+    "fecha": "2026-05-13T08:41:41.133000",
+    "ip": "192.168.1.244"
+  },
+  {
+    "tabla": "appointments",
+    "record_id": 120,
+    "accion": "INSERT",
+    "cambios": {
+      "creado": true
+    },
+    "trabajador_id": 2,
+    "trabajador_nombre": "Lucía Santos",
+    "fecha": "2026-05-13T14:20:46.133000",
+    "ip": "192.168.1.76"
+  },
+  {
+    "tabla": "appointments",
+    "record_id": 297,
+    "accion": "UPDATE",
+    "cambios": {
+      "is_active": {
+        "antes": "valor_anterior",
+        "despues": "valor_nuevo"
+      }
+    },
+    "trabajador_id": 8,
+    "trabajador_nombre": "Diana Paz",
+    "fecha": "2026-05-12T16:59:17.133000",
+    "ip": "192.168.1.88"
+  },
+  {
+    "tabla": "nfc_cards",
+    "record_id": 64,
+    "accion": "UPDATE",
+    "cambios": {
+      "is_active": {
+        "antes": "valor_anterior",
+        "despues": "valor_nuevo"
+      }
+    },
+    "trabajador_id": 8,
+    "trabajador_nombre": "Diana Paz",
+    "fecha": "2026-04-26T14:04:30.133000",
+    "ip": "192.168.1.140"
+  },
+  {
+    "tabla": "patients",
+    "record_id": 107,
+    "accion": "INSERT",
+    "cambios": {
+      "creado": true
+    },
+    "trabajador_id": 9,
+    "trabajador_nombre": "Iván Silva",
+    "fecha": "2026-05-06T18:53:53.133000",
+    "ip": "192.168.1.71"
+  },
+  {
+    "tabla": "vaccine_lots",
+    "record_id": 147,
+    "accion": "INSERT",
+    "cambios": {
+      "creado": true
+    },
+    "trabajador_id": 6,
+    "trabajador_nombre": "Paty Ríos",
+    "fecha": "2026-04-17T14:17:43.133000",
+    "ip": "192.168.1.24"
+  },
+  {
+    "tabla": "guardians",
+    "record_id": 373,
+    "accion": "INSERT",
+    "cambios": {
+      "creado": true
+    },
+    "trabajador_id": 5,
+    "trabajador_nombre": "Raúl Mora",
+    "fecha": "2026-05-13T14:38:46.133000",
+    "ip": "192.168.1.86"
+  },
+  {
+    "tabla": "patients",
+    "record_id": 206,
+    "accion": "UPDATE",
+    "cambios": {
+      "quantity": {
+        "antes": "valor_anterior",
+        "despues": "valor_nuevo"
+      }
+    },
+    "trabajador_id": 8,
+    "trabajador_nombre": "Diana Paz",
+    "fecha": "2026-05-07T15:54:09.133000",
+    "ip": "192.168.1.20"
+  },
+  {
+    "tabla": "nfc_cards",
+    "record_id": 370,
+    "accion": "INSERT",
+    "cambios": {
+      "creado": true
+    },
+    "trabajador_id": 3,
+    "trabajador_nombre": "Mario Luna",
+    "fecha": "2026-05-10T08:54:39.133000",
+    "ip": "192.168.1.218"
+  },
+  {
+    "tabla": "patients",
+    "record_id": 313,
+    "accion": "DELETE",
+    "cambios": {
+      "motivo": "solicitud del usuario"
+    },
+    "trabajador_id": 4,
+    "trabajador_nombre": "Elisa Campos",
+    "fecha": "2026-04-29T13:47:07.133000",
+    "ip": "192.168.1.164"
+  },
+  {
+    "tabla": "vaccination_records",
+    "record_id": 307,
+    "accion": "INSERT",
+    "cambios": {
+      "creado": true
+    },
+    "trabajador_id": 10,
+    "trabajador_nombre": "Karen Vega",
+    "fecha": "2026-05-03T13:24:48.133000",
+    "ip": "192.168.1.202"
+  },
+  {
+    "tabla": "nfc_cards",
+    "record_id": 91,
+    "accion": "INSERT",
+    "cambios": {
+      "creado": true
+    },
+    "trabajador_id": 6,
+    "trabajador_nombre": "Paty Ríos",
+    "fecha": "2026-05-01T12:09:38.133000",
+    "ip": "192.168.1.212"
+  },
+  {
+    "tabla": "appointments",
+    "record_id": 113,
+    "accion": "DELETE",
+    "cambios": {
+      "motivo": "solicitud del usuario"
+    },
+    "trabajador_id": 8,
+    "trabajador_nombre": "Diana Paz",
+    "fecha": "2026-05-12T19:20:37.133000",
+    "ip": "192.168.1.249"
+  },
+  {
+    "tabla": "vaccination_records",
+    "record_id": 490,
+    "accion": "UPDATE",
+    "cambios": {
+      "quantity": {
+        "antes": "valor_anterior",
+        "despues": "valor_nuevo"
+      }
+    },
+    "trabajador_id": 6,
+    "trabajador_nombre": "Paty Ríos",
+    "fecha": "2026-04-26T14:34:17.133000",
+    "ip": "192.168.1.94"
+  },
+  {
+    "tabla": "vaccination_records",
+    "record_id": 288,
+    "accion": "INSERT",
+    "cambios": {
+      "creado": true
+    },
+    "trabajador_id": 2,
+    "trabajador_nombre": "Lucía Santos",
+    "fecha": "2026-05-11T12:44:23.133000",
+    "ip": "192.168.1.174"
+  },
+  {
+    "tabla": "guardians",
+    "record_id": 13,
+    "accion": "UPDATE",
+    "cambios": {
+      "is_active": {
+        "antes": "valor_anterior",
+        "despues": "valor_nuevo"
+      }
+    },
+    "trabajador_id": 10,
+    "trabajador_nombre": "Karen Vega",
+    "fecha": "2026-04-28T08:22:12.133000",
+    "ip": "192.168.1.85"
+  },
+  {
+    "tabla": "nfc_cards",
+    "record_id": 283,
+    "accion": "INSERT",
+    "cambios": {
+      "creado": true
+    },
+    "trabajador_id": 1,
+    "trabajador_nombre": "José Pérez",
+    "fecha": "2026-05-14T08:15:42.133000",
+    "ip": "192.168.1.191"
+  },
+  {
+    "tabla": "clinic_inventory",
+    "record_id": 179,
+    "accion": "UPDATE",
+    "cambios": {
+      "quantity": {
+        "antes": "valor_anterior",
+        "despues": "valor_nuevo"
+      }
+    },
+    "trabajador_id": 2,
+    "trabajador_nombre": "Lucía Santos",
+    "fecha": "2026-05-14T13:04:53.133000",
+    "ip": "192.168.1.35"
+  },
+  {
+    "tabla": "appointments",
+    "record_id": 475,
+    "accion": "INSERT",
+    "cambios": {
+      "creado": true
+    },
+    "trabajador_id": 8,
+    "trabajador_nombre": "Diana Paz",
+    "fecha": "2026-05-07T11:11:12.133000",
+    "ip": "192.168.1.193"
+  },
+  {
+    "tabla": "workers",
+    "record_id": 210,
+    "accion": "UPDATE",
+    "cambios": {
+      "quantity": {
+        "antes": "valor_anterior",
+        "despues": "valor_nuevo"
+      }
+    },
+    "trabajador_id": 9,
+    "trabajador_nombre": "Iván Silva",
+    "fecha": "2026-05-02T19:30:50.133000",
+    "ip": "192.168.1.168"
+  },
+  {
+    "tabla": "vaccine_lots",
+    "record_id": 75,
+    "accion": "UPDATE",
+    "cambios": {
+      "status": {
+        "antes": "valor_anterior",
+        "despues": "valor_nuevo"
+      }
+    },
+    "trabajador_id": 2,
+    "trabajador_nombre": "Lucía Santos",
+    "fecha": "2026-04-17T16:34:11.133000",
+    "ip": "192.168.1.214"
+  },
+  {
+    "tabla": "clinic_inventory",
+    "record_id": 434,
+    "accion": "DELETE",
+    "cambios": {
+      "motivo": "solicitud del usuario"
+    },
+    "trabajador_id": 6,
+    "trabajador_nombre": "Paty Ríos",
+    "fecha": "2026-04-24T14:26:08.133000",
+    "ip": "192.168.1.161"
+  },
+  {
+    "tabla": "vaccine_lots",
+    "record_id": 68,
+    "accion": "INSERT",
+    "cambios": {
+      "creado": true
+    },
+    "trabajador_id": 1,
+    "trabajador_nombre": "José Pérez",
+    "fecha": "2026-04-20T19:34:11.133000",
+    "ip": "192.168.1.42"
+  },
+  {
+    "tabla": "patients",
+    "record_id": 187,
+    "accion": "INSERT",
+    "cambios": {
+      "creado": true
+    },
+    "trabajador_id": 1,
+    "trabajador_nombre": "José Pérez",
+    "fecha": "2026-04-17T17:54:12.134000",
+    "ip": "192.168.1.91"
+  },
+  {
+    "tabla": "guardians",
+    "record_id": 55,
+    "accion": "INSERT",
+    "cambios": {
+      "creado": true
+    },
+    "trabajador_id": 5,
+    "trabajador_nombre": "Raúl Mora",
+    "fecha": "2026-04-27T11:37:49.134000",
+    "ip": "192.168.1.125"
+  },
+  {
+    "tabla": "appointments",
+    "record_id": 51,
+    "accion": "INSERT",
+    "cambios": {
+      "creado": true
+    },
+    "trabajador_id": 4,
+    "trabajador_nombre": "Elisa Campos",
+    "fecha": "2026-04-21T11:14:03.134000",
+    "ip": "192.168.1.122"
+  },
+  {
+    "tabla": "appointments",
+    "record_id": 408,
+    "accion": "UPDATE",
+    "cambios": {
+      "phone": {
+        "antes": "valor_anterior",
+        "despues": "valor_nuevo"
+      }
+    },
+    "trabajador_id": 6,
+    "trabajador_nombre": "Paty Ríos",
+    "fecha": "2026-05-07T13:30:38.134000",
+    "ip": "192.168.1.112"
+  },
+  {
+    "tabla": "patients",
+    "record_id": 348,
+    "accion": "UPDATE",
+    "cambios": {
+      "status": {
+        "antes": "valor_anterior",
+        "despues": "valor_nuevo"
+      }
+    },
+    "trabajador_id": 6,
+    "trabajador_nombre": "Paty Ríos",
+    "fecha": "2026-05-04T15:11:27.134000",
+    "ip": "192.168.1.170"
+  },
+  {
+    "tabla": "clinic_inventory",
+    "record_id": 343,
+    "accion": "INSERT",
+    "cambios": {
+      "creado": true
+    },
+    "trabajador_id": 2,
+    "trabajador_nombre": "Lucía Santos",
+    "fecha": "2026-04-19T19:15:29.134000",
+    "ip": "192.168.1.213"
+  },
+  {
+    "tabla": "patients",
+    "record_id": 242,
+    "accion": "UPDATE",
+    "cambios": {
+      "is_active": {
+        "antes": "valor_anterior",
+        "despues": "valor_nuevo"
+      }
+    },
+    "trabajador_id": 2,
+    "trabajador_nombre": "Lucía Santos",
+    "fecha": "2026-05-15T18:48:22.134000",
+    "ip": "192.168.1.130"
+  },
+  {
+    "tabla": "patients",
+    "record_id": 148,
+    "accion": "UPDATE",
+    "cambios": {
+      "is_active": {
+        "antes": "valor_anterior",
+        "despues": "valor_nuevo"
+      }
+    },
+    "trabajador_id": 10,
+    "trabajador_nombre": "Karen Vega",
+    "fecha": "2026-05-06T15:11:24.134000",
+    "ip": "192.168.1.150"
+  },
+  {
+    "tabla": "patients",
+    "record_id": 323,
+    "accion": "INSERT",
+    "cambios": {
+      "creado": true
+    },
+    "trabajador_id": 6,
+    "trabajador_nombre": "Paty Ríos",
+    "fecha": "2026-05-04T11:38:01.134000",
+    "ip": "192.168.1.218"
+  },
+  {
+    "tabla": "vaccine_lots",
+    "record_id": 276,
+    "accion": "UPDATE",
+    "cambios": {
+      "is_active": {
+        "antes": "valor_anterior",
+        "despues": "valor_nuevo"
+      }
+    },
+    "trabajador_id": 8,
+    "trabajador_nombre": "Diana Paz",
+    "fecha": "2026-05-04T16:31:13.134000",
+    "ip": "192.168.1.176"
+  },
+  {
+    "tabla": "patients",
+    "record_id": 34,
+    "accion": "UPDATE",
+    "cambios": {
+      "quantity": {
+        "antes": "valor_anterior",
+        "despues": "valor_nuevo"
+      }
+    },
+    "trabajador_id": 4,
+    "trabajador_nombre": "Elisa Campos",
+    "fecha": "2026-04-26T13:53:12.134000",
+    "ip": "192.168.1.28"
+  },
+  {
+    "tabla": "clinic_inventory",
+    "record_id": 451,
+    "accion": "INSERT",
+    "cambios": {
+      "creado": true
+    },
+    "trabajador_id": 3,
+    "trabajador_nombre": "Mario Luna",
+    "fecha": "2026-05-08T18:59:07.134000",
+    "ip": "192.168.1.181"
+  },
+  {
+    "tabla": "guardians",
+    "record_id": 97,
+    "accion": "UPDATE",
+    "cambios": {
+      "is_active": {
+        "antes": "valor_anterior",
+        "despues": "valor_nuevo"
+      }
+    },
+    "trabajador_id": 2,
+    "trabajador_nombre": "Lucía Santos",
+    "fecha": "2026-05-14T08:33:28.134000",
+    "ip": "192.168.1.16"
+  },
+  {
+    "tabla": "patients",
+    "record_id": 492,
+    "accion": "DELETE",
+    "cambios": {
+      "motivo": "solicitud del usuario"
+    },
+    "trabajador_id": 4,
+    "trabajador_nombre": "Elisa Campos",
+    "fecha": "2026-05-02T14:20:15.134000",
+    "ip": "192.168.1.63"
+  },
+  {
+    "tabla": "vaccine_lots",
+    "record_id": 483,
+    "accion": "UPDATE",
+    "cambios": {
+      "status": {
+        "antes": "valor_anterior",
+        "despues": "valor_nuevo"
+      }
+    },
+    "trabajador_id": 9,
+    "trabajador_nombre": "Iván Silva",
+    "fecha": "2026-04-28T11:49:35.134000",
+    "ip": "192.168.1.73"
+  },
+  {
+    "tabla": "vaccination_records",
+    "record_id": 363,
+    "accion": "DELETE",
+    "cambios": {
+      "motivo": "solicitud del usuario"
+    },
+    "trabajador_id": 1,
+    "trabajador_nombre": "José Pérez",
+    "fecha": "2026-04-30T08:39:44.134000",
+    "ip": "192.168.1.217"
+  },
+  {
+    "tabla": "vaccination_records",
+    "record_id": 225,
+    "accion": "DELETE",
+    "cambios": {
+      "motivo": "solicitud del usuario"
+    },
+    "trabajador_id": 7,
+    "trabajador_nombre": "Andrés León",
+    "fecha": "2026-05-11T14:47:00.134000",
+    "ip": "192.168.1.101"
+  },
+  {
+    "tabla": "vaccination_records",
+    "record_id": 19,
+    "accion": "DELETE",
+    "cambios": {
+      "motivo": "solicitud del usuario"
+    },
+    "trabajador_id": 10,
+    "trabajador_nombre": "Karen Vega",
+    "fecha": "2026-05-07T10:37:24.134000",
+    "ip": "192.168.1.50"
+  },
+  {
+    "tabla": "clinic_inventory",
+    "record_id": 11,
+    "accion": "UPDATE",
+    "cambios": {
+      "is_active": {
+        "antes": "valor_anterior",
+        "despues": "valor_nuevo"
+      }
+    },
+    "trabajador_id": 6,
+    "trabajador_nombre": "Paty Ríos",
+    "fecha": "2026-05-13T12:49:14.134000",
+    "ip": "192.168.1.83"
+  },
+  {
+    "tabla": "nfc_cards",
+    "record_id": 227,
+    "accion": "INSERT",
+    "cambios": {
+      "creado": true
+    },
+    "trabajador_id": 1,
+    "trabajador_nombre": "José Pérez",
+    "fecha": "2026-04-19T09:57:23.134000",
+    "ip": "192.168.1.218"
+  },
+  {
+    "tabla": "guardians",
+    "record_id": 138,
+    "accion": "UPDATE",
+    "cambios": {
+      "status": {
+        "antes": "valor_anterior",
+        "despues": "valor_nuevo"
+      }
+    },
+    "trabajador_id": 2,
+    "trabajador_nombre": "Lucía Santos",
+    "fecha": "2026-05-09T09:50:02.134000",
+    "ip": "192.168.1.13"
+  },
+  {
+    "tabla": "vaccine_lots",
+    "record_id": 312,
+    "accion": "UPDATE",
+    "cambios": {
+      "quantity": {
+        "antes": "valor_anterior",
+        "despues": "valor_nuevo"
+      }
+    },
+    "trabajador_id": 7,
+    "trabajador_nombre": "Andrés León",
+    "fecha": "2026-04-26T09:43:05.134000",
+    "ip": "192.168.1.10"
+  },
+  {
+    "tabla": "guardians",
+    "record_id": 43,
+    "accion": "UPDATE",
+    "cambios": {
+      "status": {
+        "antes": "valor_anterior",
+        "despues": "valor_nuevo"
+      }
+    },
+    "trabajador_id": 10,
+    "trabajador_nombre": "Karen Vega",
+    "fecha": "2026-05-14T10:33:02.134000",
+    "ip": "192.168.1.55"
+  },
+  {
+    "tabla": "vaccine_lots",
+    "record_id": 178,
+    "accion": "UPDATE",
+    "cambios": {
+      "status": {
+        "antes": "valor_anterior",
+        "despues": "valor_nuevo"
+      }
+    },
+    "trabajador_id": 3,
+    "trabajador_nombre": "Mario Luna",
+    "fecha": "2026-05-01T13:25:28.134000",
+    "ip": "192.168.1.121"
+  },
+  {
+    "tabla": "clinic_inventory",
+    "record_id": 173,
+    "accion": "UPDATE",
+    "cambios": {
+      "phone": {
+        "antes": "valor_anterior",
+        "despues": "valor_nuevo"
+      }
+    },
+    "trabajador_id": 4,
+    "trabajador_nombre": "Elisa Campos",
+    "fecha": "2026-04-30T16:00:15.134000",
+    "ip": "192.168.1.115"
+  },
+  {
+    "tabla": "clinic_inventory",
+    "record_id": 174,
+    "accion": "INSERT",
+    "cambios": {
+      "creado": true
+    },
+    "trabajador_id": 4,
+    "trabajador_nombre": "Elisa Campos",
+    "fecha": "2026-04-30T08:54:34.134000",
+    "ip": "192.168.1.198"
+  },
+  {
+    "tabla": "vaccine_lots",
+    "record_id": 50,
+    "accion": "UPDATE",
+    "cambios": {
+      "status": {
+        "antes": "valor_anterior",
+        "despues": "valor_nuevo"
+      }
+    },
+    "trabajador_id": 7,
+    "trabajador_nombre": "Andrés León",
+    "fecha": "2026-05-13T14:04:36.134000",
+    "ip": "192.168.1.37"
+  },
+  {
+    "tabla": "appointments",
+    "record_id": 375,
+    "accion": "INSERT",
+    "cambios": {
+      "creado": true
+    },
+    "trabajador_id": 8,
+    "trabajador_nombre": "Diana Paz",
+    "fecha": "2026-04-18T19:05:41.134000",
+    "ip": "192.168.1.187"
+  },
+  {
+    "tabla": "vaccine_lots",
+    "record_id": 318,
+    "accion": "UPDATE",
+    "cambios": {
+      "phone": {
+        "antes": "valor_anterior",
+        "despues": "valor_nuevo"
+      }
+    },
+    "trabajador_id": 1,
+    "trabajador_nombre": "José Pérez",
+    "fecha": "2026-04-22T17:33:56.134000",
+    "ip": "192.168.1.154"
+  },
+  {
+    "tabla": "vaccine_lots",
+    "record_id": 324,
+    "accion": "UPDATE",
+    "cambios": {
+      "quantity": {
+        "antes": "valor_anterior",
+        "despues": "valor_nuevo"
+      }
+    },
+    "trabajador_id": 5,
+    "trabajador_nombre": "Raúl Mora",
+    "fecha": "2026-05-02T10:41:57.134000",
+    "ip": "192.168.1.127"
+  },
+  {
+    "tabla": "patients",
+    "record_id": 31,
+    "accion": "DELETE",
+    "cambios": {
+      "motivo": "solicitud del usuario"
+    },
+    "trabajador_id": 8,
+    "trabajador_nombre": "Diana Paz",
+    "fecha": "2026-04-28T16:29:38.134000",
+    "ip": "192.168.1.229"
+  },
+  {
+    "tabla": "vaccine_lots",
+    "record_id": 327,
+    "accion": "INSERT",
+    "cambios": {
+      "creado": true
+    },
+    "trabajador_id": 8,
+    "trabajador_nombre": "Diana Paz",
+    "fecha": "2026-04-30T17:42:36.134000",
+    "ip": "192.168.1.158"
+  },
+  {
+    "tabla": "nfc_cards",
+    "record_id": 58,
+    "accion": "UPDATE",
+    "cambios": {
+      "status": {
+        "antes": "valor_anterior",
+        "despues": "valor_nuevo"
+      }
+    },
+    "trabajador_id": 1,
+    "trabajador_nombre": "José Pérez",
+    "fecha": "2026-05-12T19:08:00.134000",
+    "ip": "192.168.1.66"
+  },
+  {
+    "tabla": "patients",
+    "record_id": 278,
+    "accion": "UPDATE",
+    "cambios": {
+      "status": {
+        "antes": "valor_anterior",
+        "despues": "valor_nuevo"
+      }
+    },
+    "trabajador_id": 1,
+    "trabajador_nombre": "José Pérez",
+    "fecha": "2026-04-23T15:10:15.134000",
+    "ip": "192.168.1.76"
+  },
+  {
+    "tabla": "vaccine_lots",
+    "record_id": 439,
+    "accion": "UPDATE",
+    "cambios": {
+      "phone": {
+        "antes": "valor_anterior",
+        "despues": "valor_nuevo"
+      }
+    },
+    "trabajador_id": 8,
+    "trabajador_nombre": "Diana Paz",
+    "fecha": "2026-04-16T12:43:45.134000",
+    "ip": "192.168.1.93"
+  },
+  {
+    "tabla": "workers",
+    "record_id": 10,
+    "accion": "INSERT",
+    "cambios": {
+      "creado": true
+    },
+    "trabajador_id": 6,
+    "trabajador_nombre": "Paty Ríos",
+    "fecha": "2026-05-01T13:09:12.134000",
+    "ip": "192.168.1.139"
+  },
+  {
+    "tabla": "clinic_inventory",
+    "record_id": 235,
+    "accion": "UPDATE",
+    "cambios": {
+      "is_active": {
+        "antes": "valor_anterior",
+        "despues": "valor_nuevo"
+      }
+    },
+    "trabajador_id": 1,
+    "trabajador_nombre": "José Pérez",
+    "fecha": "2026-04-27T09:57:19.134000",
+    "ip": "192.168.1.178"
+  },
+  {
+    "tabla": "clinic_inventory",
+    "record_id": 288,
+    "accion": "INSERT",
+    "cambios": {
+      "creado": true
+    },
+    "trabajador_id": 3,
+    "trabajador_nombre": "Mario Luna",
+    "fecha": "2026-04-21T16:29:37.134000",
+    "ip": "192.168.1.40"
+  },
+  {
+    "tabla": "patients",
+    "record_id": 322,
+    "accion": "INSERT",
+    "cambios": {
+      "creado": true
+    },
+    "trabajador_id": 10,
+    "trabajador_nombre": "Karen Vega",
+    "fecha": "2026-05-12T18:12:11.134000",
+    "ip": "192.168.1.164"
+  },
+  {
+    "tabla": "guardians",
+    "record_id": 429,
+    "accion": "UPDATE",
+    "cambios": {
+      "phone": {
+        "antes": "valor_anterior",
+        "despues": "valor_nuevo"
+      }
+    },
+    "trabajador_id": 9,
+    "trabajador_nombre": "Iván Silva",
+    "fecha": "2026-04-19T18:01:28.134000",
+    "ip": "192.168.1.156"
+  },
+  {
+    "tabla": "workers",
+    "record_id": 60,
+    "accion": "UPDATE",
+    "cambios": {
+      "quantity": {
+        "antes": "valor_anterior",
+        "despues": "valor_nuevo"
+      }
+    },
+    "trabajador_id": 2,
+    "trabajador_nombre": "Lucía Santos",
+    "fecha": "2026-04-21T10:28:31.134000",
+    "ip": "192.168.1.61"
+  },
+  {
+    "tabla": "guardians",
+    "record_id": 345,
+    "accion": "UPDATE",
+    "cambios": {
+      "status": {
+        "antes": "valor_anterior",
+        "despues": "valor_nuevo"
+      }
+    },
+    "trabajador_id": 5,
+    "trabajador_nombre": "Raúl Mora",
+    "fecha": "2026-04-25T12:25:51.134000",
+    "ip": "192.168.1.116"
+  },
+  {
+    "tabla": "guardians",
+    "record_id": 272,
+    "accion": "INSERT",
+    "cambios": {
+      "creado": true
+    },
+    "trabajador_id": 7,
+    "trabajador_nombre": "Andrés León",
+    "fecha": "2026-04-20T14:50:43.134000",
+    "ip": "192.168.1.57"
+  },
+  {
+    "tabla": "workers",
+    "record_id": 438,
+    "accion": "INSERT",
+    "cambios": {
+      "creado": true
+    },
+    "trabajador_id": 3,
+    "trabajador_nombre": "Mario Luna",
+    "fecha": "2026-04-22T16:49:03.134000",
+    "ip": "192.168.1.188"
+  },
+  {
+    "tabla": "vaccine_lots",
+    "record_id": 95,
+    "accion": "UPDATE",
+    "cambios": {
+      "phone": {
+        "antes": "valor_anterior",
+        "despues": "valor_nuevo"
+      }
+    },
+    "trabajador_id": 8,
+    "trabajador_nombre": "Diana Paz",
+    "fecha": "2026-05-11T10:13:36.134000",
+    "ip": "192.168.1.47"
+  },
+  {
+    "tabla": "clinic_inventory",
+    "record_id": 113,
+    "accion": "UPDATE",
+    "cambios": {
+      "status": {
+        "antes": "valor_anterior",
+        "despues": "valor_nuevo"
+      }
+    },
+    "trabajador_id": 6,
+    "trabajador_nombre": "Paty Ríos",
+    "fecha": "2026-05-01T18:42:57.134000",
+    "ip": "192.168.1.26"
+  },
+  {
+    "tabla": "vaccination_records",
+    "record_id": 54,
+    "accion": "UPDATE",
+    "cambios": {
+      "status": {
+        "antes": "valor_anterior",
+        "despues": "valor_nuevo"
+      }
+    },
+    "trabajador_id": 1,
+    "trabajador_nombre": "José Pérez",
+    "fecha": "2026-04-20T17:36:49.134000",
+    "ip": "192.168.1.207"
+  },
+  {
+    "tabla": "guardians",
+    "record_id": 290,
+    "accion": "UPDATE",
+    "cambios": {
+      "is_active": {
+        "antes": "valor_anterior",
+        "despues": "valor_nuevo"
+      }
+    },
+    "trabajador_id": 9,
+    "trabajador_nombre": "Iván Silva",
+    "fecha": "2026-05-02T13:46:05.134000",
+    "ip": "192.168.1.118"
+  },
+  {
+    "tabla": "patients",
+    "record_id": 111,
+    "accion": "UPDATE",
+    "cambios": {
+      "phone": {
+        "antes": "valor_anterior",
+        "despues": "valor_nuevo"
+      }
+    },
+    "trabajador_id": 9,
+    "trabajador_nombre": "Iván Silva",
+    "fecha": "2026-04-18T12:48:58.134000",
+    "ip": "192.168.1.52"
+  },
+  {
+    "tabla": "clinic_inventory",
+    "record_id": 251,
+    "accion": "UPDATE",
+    "cambios": {
+      "status": {
+        "antes": "valor_anterior",
+        "despues": "valor_nuevo"
+      }
+    },
+    "trabajador_id": 4,
+    "trabajador_nombre": "Elisa Campos",
+    "fecha": "2026-05-06T15:14:36.134000",
+    "ip": "192.168.1.211"
+  },
+  {
+    "tabla": "workers",
+    "record_id": 357,
+    "accion": "UPDATE",
+    "cambios": {
+      "is_active": {
+        "antes": "valor_anterior",
+        "despues": "valor_nuevo"
+      }
+    },
+    "trabajador_id": 5,
+    "trabajador_nombre": "Raúl Mora",
+    "fecha": "2026-05-07T19:16:21.134000",
+    "ip": "192.168.1.250"
+  },
+  {
+    "tabla": "clinic_inventory",
+    "record_id": 241,
+    "accion": "INSERT",
+    "cambios": {
+      "creado": true
+    },
+    "trabajador_id": 6,
+    "trabajador_nombre": "Paty Ríos",
+    "fecha": "2026-05-10T08:41:01.134000",
+    "ip": "192.168.1.51"
+  },
+  {
+    "tabla": "workers",
+    "record_id": 37,
+    "accion": "UPDATE",
+    "cambios": {
+      "status": {
+        "antes": "valor_anterior",
+        "despues": "valor_nuevo"
+      }
+    },
+    "trabajador_id": 5,
+    "trabajador_nombre": "Raúl Mora",
+    "fecha": "2026-04-21T15:30:23.134000",
+    "ip": "192.168.1.235"
+  },
+  {
+    "tabla": "clinic_inventory",
+    "record_id": 272,
+    "accion": "INSERT",
+    "cambios": {
+      "creado": true
+    },
+    "trabajador_id": 6,
+    "trabajador_nombre": "Paty Ríos",
+    "fecha": "2026-05-09T16:17:36.134000",
+    "ip": "192.168.1.96"
+  },
+  {
+    "tabla": "patients",
+    "record_id": 497,
+    "accion": "UPDATE",
+    "cambios": {
+      "status": {
+        "antes": "valor_anterior",
+        "despues": "valor_nuevo"
+      }
+    },
+    "trabajador_id": 8,
+    "trabajador_nombre": "Diana Paz",
+    "fecha": "2026-04-16T18:35:51.134000",
+    "ip": "192.168.1.103"
+  },
+  {
+    "tabla": "nfc_cards",
+    "record_id": 253,
+    "accion": "INSERT",
+    "cambios": {
+      "creado": true
+    },
+    "trabajador_id": 6,
+    "trabajador_nombre": "Paty Ríos",
+    "fecha": "2026-05-01T19:26:52.134000",
+    "ip": "192.168.1.164"
+  },
+  {
+    "tabla": "vaccination_records",
+    "record_id": 116,
+    "accion": "UPDATE",
+    "cambios": {
+      "quantity": {
+        "antes": "valor_anterior",
+        "despues": "valor_nuevo"
+      }
+    },
+    "trabajador_id": 3,
+    "trabajador_nombre": "Mario Luna",
+    "fecha": "2026-04-22T11:57:33.134000",
+    "ip": "192.168.1.112"
+  }
+]
