@@ -1,0 +1,328 @@
+{% extends 'base_2daE.html' %}
+
+{% from 'components/toolbar.html' import toolbar %}
+{% from 'components/badge.html'   import badge   %}
+{% from 'components/table.html'   import table   %}
+{% from 'components/alert.html'   import alert   %}
+
+{% block head_extra %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/almacen.css') }}">
+{% endblock %}
+
+{% block title %}Transferencias — Almacén{% endblock %}
+
+{% block content %}
+
+{% call toolbar(
+    title='Transferencias entre clínicas',
+    subtitle='Total: ' ~ transferencias|length ~ ' transferencia(s)',
+    icon='fa-truck-fast'
+) %}
+  {% if is_almacen and lotes %}
+    <button class="md3-btn md3-btn--filled"
+            onclick="openNuevaTransModal()">
+      <i class="fa-solid fa-plus"></i> Nueva transferencia
+    </button>
+  {% endif %}
+{% endcall %}
+
+<!-- Filtros de estado -->
+<div class="almacen-filters">
+  <i class="fa-solid fa-filter" style="color:var(--md-on-surface-variant);"></i>
+  <select id="statusFilterBar" onchange="applyFilters()">
+    <option value="">Todos los estados</option>
+    <option value="Pendiente"   {{ 'selected' if status_filter == 'Pendiente'   }}>Pendiente</option>
+    <option value="En_Transito" {{ 'selected' if status_filter == 'En_Transito' }}>En tránsito</option>
+    <option value="Recibido"    {{ 'selected' if status_filter == 'Recibido'    }}>Recibido</option>
+    <option value="Cancelado"   {{ 'selected' if status_filter == 'Cancelado'   }}>Cancelado</option>
+    <option value="Rechazado"   {{ 'selected' if status_filter == 'Rechazado'   }}>Rechazado</option>
+  </select>
+  <input type="text" id="searchInput"
+         placeholder="Buscar vacuna, lote o clínica..."
+         style="min-width:220px;padding:6px 10px;border:1px solid var(--md-outline,#79747e);border-radius:8px;background:var(--md-surface,#fffbfe);color:var(--md-on-surface,#1c1b1f);font-size:13px;"
+         oninput="applyFilters()">
+</div>
+
+<!-- Tabla de transferencias -->
+{% set _row = namespace(i=0) %}
+{% call(t) table(
+    id='transTable',
+    headers=[
+      {'label': 'Fecha solicitud'},
+      {'label': 'Vacuna / Lote'},
+      {'label': 'Origen'},
+      {'label': 'Destino'},
+      {'label': 'Cant.', 'align': 'center'},
+      {'label': 'Estado', 'align': 'center'},
+      {'label': 'Solicitado por'},
+      {'label': 'Resuelto'},
+      {'label': 'Acciones', 'align': 'center'},
+    ],
+    rows=transferencias,
+    empty_icon='fa-truck-fast',
+    empty_title='Sin transferencias registradas',
+    footer_text='Total: ' ~ transferencias|length ~ ' transferencia(s)'
+) %}
+  <tr data-status="{{ (t.transfer_status or '')|lower }}"
+      data-vaccine="{{ (t.vaccine_name or '')|lower }}"
+      data-lot="{{ (t.lot_number or '')|lower }}"
+      data-from="{{ (t.from_clinic_name or '')|lower }}"
+      data-to="{{ (t.to_clinic_name or '')|lower }}">
+
+    <td class="muted-td" style="font-size:13px;">
+      {{ t.requested_at.strftime('%d/%m/%Y %H:%M') if t.requested_at else '—' }}
+    </td>
+
+    <td>
+      <span class="vax-name">{{ t.vaccine_name }}</span>
+      <span class="muted-td" style="font-size:12px;display:block;">{{ t.lot_number }}</span>
+    </td>
+
+    <td class="muted-td">{{ t.from_clinic_name }}</td>
+    <td class="muted-td">{{ t.to_clinic_name }}</td>
+
+    <td class="col-center" style="font-weight:600;">{{ t.quantity }}</td>
+
+    <td class="col-center">
+      {% set st = t.transfer_status or '' %}
+      {% if st == 'Pendiente' %}
+        {{ badge('Pendiente',   color='warning', icon='fa-clock',        size='sm') }}
+      {% elif st == 'En_Transito' %}
+        {{ badge('En tránsito', color='primary', icon='fa-truck-fast',   size='sm') }}
+      {% elif st == 'Recibido' %}
+        {{ badge('Recibido',    color='success', icon='fa-circle-check', size='sm') }}
+      {% elif st == 'Cancelado' %}
+        {{ badge('Cancelado',   color='neutral', icon='fa-ban',          size='sm') }}
+      {% elif st == 'Rechazado' %}
+        {{ badge('Rechazado',   color='error',   icon='fa-xmark',        size='sm') }}
+      {% else %}
+        {{ badge(st, color='neutral', size='sm') }}
+      {% endif %}
+    </td>
+
+    <td class="muted-td" style="font-size:13px;">{{ t.requested_by_name or '—' }}</td>
+
+    <td class="muted-td" style="font-size:13px;">
+      {{ t.resolved_at.strftime('%d/%m/%Y') if t.resolved_at else '—' }}
+    </td>
+
+    <td class="col-center">
+      {% if is_almacen and t.transfer_status == 'Pendiente' %}
+        <div style="display:flex;gap:4px;justify-content:center;flex-wrap:wrap;">
+          <!-- Aceptar -->
+          <button class="md3-btn md3-btn--tonal md3-btn--sm"
+                  title="Aceptar transferencia"
+                  onclick="openAceptarModal({{ t.transfer_id }}, '{{ t.vaccine_name|e }}', '{{ t.lot_number|e }}', {{ t.quantity }}, '{{ t.from_clinic_name|e }}', '{{ t.to_clinic_name|e }}')">
+            <i class="fa-solid fa-circle-check"></i>
+          </button>
+          <!-- Rechazar -->
+          <button class="md3-btn md3-btn--outlined md3-btn--sm"
+                  title="Rechazar transferencia"
+                  style="color:var(--md-error);border-color:var(--md-error);"
+                  onclick="openRechazarModal({{ t.transfer_id }}, '{{ t.vaccine_name|e }}', '{{ t.lot_number|e }}')">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+          <!-- Cancelar -->
+          <button class="md3-btn md3-btn--outlined md3-btn--sm"
+                  title="Cancelar transferencia"
+                  onclick="openCancelarModal({{ t.transfer_id }}, '{{ t.vaccine_name|e }}', '{{ t.lot_number|e }}')">
+            <i class="fa-solid fa-ban"></i>
+          </button>
+        </div>
+      {% else %}
+        <span style="font-size:12px;color:var(--md-outline);">—</span>
+      {% endif %}
+    </td>
+  </tr>
+  {% set _row.i = _row.i + 1 %}
+{% endcall %}
+
+<!-- ══════════════════════════════════════════════════════════
+     MODALES (solo visible para almacén)
+═══════════════════════════════════════════════════════════ -->
+{% if is_almacen %}
+
+<!-- Modal: Nueva transferencia -->
+<div class="md3-modal-overlay" id="nuevaTransModal"
+     role="dialog" aria-modal="true" aria-labelledby="nuevaTransModal-title" hidden>
+  <div class="md3-modal">
+    <div class="md3-modal__header">
+      <div class="md3-modal__header-content">
+        <i class="fa-solid fa-truck-fast"></i>
+        <h2 class="md3-modal__title" id="nuevaTransModal-title">Nueva transferencia</h2>
+      </div>
+      <button class="md3-modal__close" onclick="closeModal('nuevaTransModal')" aria-label="Cerrar">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+    </div>
+    <form method="POST" action="{{ url_for('almacen_crear_transferencia') }}">
+      <input type="hidden" name="next" value="{{ url_for('almacen_transferencias') }}">
+      <div class="md3-modal__body">
+        <div class="md3-form__section">
+
+          <div class="md3-field">
+            <label class="md3-field__label">Lote de origen *</label>
+            <select class="md3-input" name="lot_id" id="transLotSelect" required
+                    onchange="updateTransStock()">
+              <option value="">Seleccionar lote...</option>
+              {% for l in lotes %}
+                <option value="{{ l.lot_id }}"
+                        data-stock="{{ l.quantity_available }}"
+                        data-vaccine="{{ l.vaccine_name|e }}"
+                        data-lot="{{ l.lot_number|e }}">
+                  {{ l.vaccine_name }} — Lote {{ l.lot_number }} ({{ l.quantity_available }} dosis)
+                </option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <div class="md3-form__row md3-form__row--2" style="margin-top:12px;">
+            <div class="md3-field">
+              <label class="md3-field__label">Clínica destino *</label>
+              <select class="md3-input" name="to_clinic_id" required>
+                <option value="">Seleccionar clínica...</option>
+                {% for c in clinics %}
+                  <option value="{{ c.clinic_id }}">{{ c.clinic_name }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="md3-field">
+              <label class="md3-field__label">Cantidad *</label>
+              <input class="md3-input" type="number" name="quantity" id="transQtyInput"
+                     min="1" required placeholder="Dosis a transferir">
+              <small id="transStockHint" style="font-size:12px;color:var(--md-on-surface-variant);"></small>
+            </div>
+          </div>
+
+          <div class="md3-field" style="margin-top:12px;">
+            <label class="md3-field__label">Motivo</label>
+            <input class="md3-input" type="text" name="reason"
+                   placeholder="Ej: Redistribución por exceso de stock...">
+          </div>
+
+        </div>
+      </div>
+      <div class="md3-modal__footer">
+        <button type="button" class="md3-btn md3-btn--outlined" onclick="closeModal('nuevaTransModal')">
+          Cancelar
+        </button>
+        <button type="submit" class="md3-btn md3-btn--filled">
+          <i class="fa-solid fa-paper-plane"></i> Solicitar transferencia
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Modal: Aceptar transferencia -->
+<div class="md3-modal-overlay" id="aceptarModal"
+     role="dialog" aria-modal="true" aria-labelledby="aceptarModal-title" hidden>
+  <div class="md3-modal">
+    <div class="md3-modal__header">
+      <div class="md3-modal__header-content">
+        <i class="fa-solid fa-circle-check" style="color:var(--md-tertiary);"></i>
+        <h2 class="md3-modal__title" id="aceptarModal-title">Aceptar transferencia</h2>
+      </div>
+      <button class="md3-modal__close" onclick="closeModal('aceptarModal')" aria-label="Cerrar">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+    </div>
+    <form method="POST" id="formAceptar" action="">
+      <input type="hidden" name="next" value="{{ url_for('almacen_transferencias') }}">
+      <div class="md3-modal__body">
+        <p id="aceptarLabel" style="margin-bottom:16px;color:var(--md-on-surface-variant);font-size:14px;"></p>
+        <div class="md3-field">
+          <label class="md3-field__label">Notas de recepción (opcional)</label>
+          <input class="md3-input" type="text" name="notes"
+                 placeholder="Ej: Recibido en buen estado...">
+        </div>
+      </div>
+      <div class="md3-modal__footer">
+        <button type="button" class="md3-btn md3-btn--outlined" onclick="closeModal('aceptarModal')">
+          Cancelar
+        </button>
+        <button type="submit" class="md3-btn md3-btn--filled" style="background:var(--md-tertiary);">
+          <i class="fa-solid fa-circle-check"></i> Confirmar recepción
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Modal: Rechazar transferencia -->
+<div class="md3-modal-overlay" id="rechazarModal"
+     role="dialog" aria-modal="true" aria-labelledby="rechazarModal-title" hidden>
+  <div class="md3-modal">
+    <div class="md3-modal__header">
+      <div class="md3-modal__header-content">
+        <i class="fa-solid fa-xmark" style="color:var(--md-error);"></i>
+        <h2 class="md3-modal__title" id="rechazarModal-title">Rechazar transferencia</h2>
+      </div>
+      <button class="md3-modal__close" onclick="closeModal('rechazarModal')" aria-label="Cerrar">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+    </div>
+    <form method="POST" id="formRechazar" action="">
+      <input type="hidden" name="next" value="{{ url_for('almacen_transferencias') }}">
+      <div class="md3-modal__body">
+        <p id="rechazarLabel" style="margin-bottom:16px;color:var(--md-on-surface-variant);font-size:14px;"></p>
+        <div class="md3-field">
+          <label class="md3-field__label">Motivo del rechazo *</label>
+          <input class="md3-input" type="text" name="reason" required
+                 placeholder="Ej: Stock no disponible en clínica origen...">
+        </div>
+      </div>
+      <div class="md3-modal__footer">
+        <button type="button" class="md3-btn md3-btn--outlined" onclick="closeModal('rechazarModal')">
+          Cancelar
+        </button>
+        <button type="submit" class="md3-btn md3-btn--filled" style="background:var(--md-error);">
+          <i class="fa-solid fa-xmark"></i> Rechazar
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Modal: Cancelar transferencia -->
+<div class="md3-modal-overlay" id="cancelarModal"
+     role="dialog" aria-modal="true" aria-labelledby="cancelarModal-title" hidden>
+  <div class="md3-modal">
+    <div class="md3-modal__header">
+      <div class="md3-modal__header-content">
+        <i class="fa-solid fa-ban"></i>
+        <h2 class="md3-modal__title" id="cancelarModal-title">Cancelar transferencia</h2>
+      </div>
+      <button class="md3-modal__close" onclick="closeModal('cancelarModal')" aria-label="Cerrar">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+    </div>
+    <form method="POST" id="formCancelar" action="">
+      <input type="hidden" name="next" value="{{ url_for('almacen_transferencias') }}">
+      <div class="md3-modal__body">
+        <p id="cancelarLabel" style="margin-bottom:16px;color:var(--md-on-surface-variant);font-size:14px;"></p>
+        <div class="md3-field">
+          <label class="md3-field__label">Motivo de cancelación</label>
+          <input class="md3-input" type="text" name="reason"
+                 placeholder="Ej: Ya no se necesita el traslado...">
+        </div>
+      </div>
+      <div class="md3-modal__footer">
+        <button type="button" class="md3-btn md3-btn--outlined" onclick="closeModal('cancelarModal')">
+          Volver
+        </button>
+        <button type="submit" class="md3-btn md3-btn--tonal">
+          <i class="fa-solid fa-ban"></i> Cancelar transferencia
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+{% endif %}
+
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/pages/almacen_transferencias.js') }}" defer></script>
+{% endblock %}

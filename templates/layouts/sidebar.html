@@ -127,6 +127,12 @@
             <i class="fa-solid fa-arrow-right-arrow-left"></i>
             <span>Movimientos</span>
           </a>
+          <a href="{{ url_for('almacen_transferencias') }}"
+             class="sidebar-nav-item {{ 'active' if request.endpoint == 'almacen_transferencias' else '' }}"
+             {{ 'aria-current=page' if request.endpoint == 'almacen_transferencias' else '' }}>
+            <i class="fa-solid fa-truck-fast"></i>
+            <span>Transferencias</span>
+          </a>
         </nav>
       </div>
 

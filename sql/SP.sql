@@ -4113,3 +4113,300 @@ BEGIN
 
 END;
 $$;
+
+-- ============================================================
+-- FASE 2 — SPs de Transferencias entre clínicas
+-- ============================================================
+
+-- ─────────────────────────────────────────────────────────────
+-- sp_get_transfers
+-- Lista transferencias con filtros opcionales de clínica y estado.
+-- Devuelve: todas las columnas de inventory_transfers enriquecidas
+--           con nombres de vacuna, clínicas, solicitante y aprobador.
+-- ─────────────────────────────────────────────────────────────
+CREATE OR REPLACE PROCEDURE sp_get_transfers(
+    IN    p_clinic_id      INT,       -- NULL = todas las clínicas (origen o destino)
+    IN    p_status_filter  VARCHAR,   -- NULL = todos los estados
+    INOUT p_results        REFCURSOR
+)
+LANGUAGE plpgsql AS $$
+BEGIN
+    OPEN p_results FOR
+        SELECT
+            t.transfer_id,
+            t.lot_id,
+            t.quantity,
+            t.transfer_status,
+            t.reason,
+            t.notes,
+            t.requested_at,
+            t.resolved_at,
+            vl.lot_number,
+            v.vaccine_name,
+            cf.clinic_name  AS from_clinic_name,
+            ct.clinic_name  AS to_clinic_name,
+            t.from_clinic_id,
+            t.to_clinic_id,
+            (wr.first_name || ' ' || wr.last_name) AS requested_by_name,
+            (wa.first_name || ' ' || wa.last_name) AS approved_by_name,
+            vl.quantity_available
+        FROM inventory_transfers t
+        JOIN vaccine_lots  vl ON vl.lot_id      = t.lot_id
+        JOIN vaccines       v ON v.vaccine_id   = t.vaccine_id
+        JOIN clinics        cf ON cf.clinic_id  = t.from_clinic_id
+        JOIN clinics        ct ON ct.clinic_id  = t.to_clinic_id
+        JOIN workers        wr ON wr.worker_id  = t.requested_by
+        LEFT JOIN workers   wa ON wa.worker_id  = t.approved_by
+        WHERE
+            (p_clinic_id     IS NULL OR t.from_clinic_id = p_clinic_id OR t.to_clinic_id = p_clinic_id)
+            AND (p_status_filter IS NULL OR t.transfer_status = p_status_filter)
+        ORDER BY t.requested_at DESC;
+END;
+$$;
+
+-- ─────────────────────────────────────────────────────────────
+-- sp_create_transfer
+-- Crea una transferencia nueva en estado 'Pendiente'.
+-- Valida stock suficiente en el lote origen.
+-- ─────────────────────────────────────────────────────────────
+CREATE OR REPLACE PROCEDURE sp_create_transfer(
+    IN    p_lot_id        INT,
+    IN    p_to_clinic_id  INT,
+    IN    p_quantity      INT,
+    IN    p_worker_id     INT,
+    IN    p_reason        TEXT,
+    INOUT p_results       REFCURSOR
+)
+LANGUAGE plpgsql AS $$
+DECLARE
+    v_lot           RECORD;
+    v_transfer_id   INT;
+BEGIN
+    -- Obtener datos del lote
+    SELECT vl.lot_id, vl.vaccine_id, vl.clinic_id, vl.quantity_available, vl.lot_status,
+           v.vaccine_name, c.clinic_name
+    INTO v_lot
+    FROM vaccine_lots vl
+    JOIN vaccines  v ON v.vaccine_id = vl.vaccine_id
+    JOIN clinics   c ON c.clinic_id  = vl.clinic_id
+    WHERE vl.lot_id = p_lot_id;
+
+    IF NOT FOUND THEN
+        OPEN p_results FOR SELECT FALSE AS success, 'Lote no encontrado.' AS message, NULL::INT AS transfer_id;
+        RETURN;
+    END IF;
+
+    IF v_lot.lot_status NOT IN ('Disponible') THEN
+        OPEN p_results FOR SELECT FALSE AS success,
+            'El lote está en estado ' || v_lot.lot_status || ' y no puede transferirse.' AS message,
+            NULL::INT AS transfer_id;
+        RETURN;
+    END IF;
+
+    IF v_lot.quantity_available < p_quantity THEN
+        OPEN p_results FOR SELECT FALSE AS success,
+            'Stock insuficiente. Disponible: ' || v_lot.quantity_available || ', solicitado: ' || p_quantity AS message,
+            NULL::INT AS transfer_id;
+        RETURN;
+    END IF;
+
+    IF v_lot.clinic_id = p_to_clinic_id THEN
+        OPEN p_results FOR SELECT FALSE AS success,
+            'La clínica destino debe ser diferente a la clínica origen.' AS message,
+            NULL::INT AS transfer_id;
+        RETURN;
+    END IF;
+
+    -- Insertar transferencia
+    INSERT INTO inventory_transfers (
+        lot_id, vaccine_id, from_clinic_id, to_clinic_id,
+        quantity, transfer_status, requested_by, reason
+    ) VALUES (
+        p_lot_id, v_lot.vaccine_id, v_lot.clinic_id, p_to_clinic_id,
+        p_quantity, 'Pendiente', p_worker_id, p_reason
+    )
+    RETURNING transfer_id INTO v_transfer_id;
+
+    OPEN p_results FOR SELECT TRUE AS success,
+        'Transferencia #' || v_transfer_id || ' creada correctamente.' AS message,
+        v_transfer_id AS transfer_id;
+END;
+$$;
+
+-- ─────────────────────────────────────────────────────────────
+-- sp_accept_transfer
+-- Acepta (recibe) una transferencia Pendiente o En_Transito.
+-- Descuenta stock del lote origen e inserta movimientos
+-- Transferencia_Salida en origen y Transferencia_Entrada en destino.
+-- ─────────────────────────────────────────────────────────────
+CREATE OR REPLACE PROCEDURE sp_accept_transfer(
+    IN    p_transfer_id  INT,
+    IN    p_worker_id    INT,
+    IN    p_notes        TEXT,
+    INOUT p_results      REFCURSOR
+)
+LANGUAGE plpgsql AS $$
+DECLARE
+    v_t             RECORD;
+    v_qty_before    INT;
+    v_qty_after     INT;
+BEGIN
+    -- Bloquear fila de transferencia
+    SELECT t.transfer_id, t.lot_id, t.vaccine_id, t.from_clinic_id, t.to_clinic_id,
+           t.quantity, t.transfer_status
+    INTO v_t
+    FROM inventory_transfers t
+    WHERE t.transfer_id = p_transfer_id
+    FOR UPDATE;
+
+    IF NOT FOUND THEN
+        OPEN p_results FOR SELECT FALSE AS success, 'Transferencia no encontrada.' AS message;
+        RETURN;
+    END IF;
+
+    IF v_t.transfer_status NOT IN ('Pendiente', 'En_Transito') THEN
+        OPEN p_results FOR SELECT FALSE AS success,
+            'Solo se pueden aceptar transferencias en estado Pendiente o En_Tránsito. Estado actual: ' || v_t.transfer_status AS message;
+        RETURN;
+    END IF;
+
+    -- Verificar stock actual del lote
+    SELECT quantity_available INTO v_qty_before
+    FROM vaccine_lots WHERE lot_id = v_t.lot_id FOR UPDATE;
+
+    IF v_qty_before < v_t.quantity THEN
+        OPEN p_results FOR SELECT FALSE AS success,
+            'Stock insuficiente en lote origen. Disponible: ' || v_qty_before AS message;
+        RETURN;
+    END IF;
+
+    v_qty_after := v_qty_before - v_t.quantity;
+
+    -- Descontar stock del lote origen
+    UPDATE vaccine_lots
+    SET quantity_available = v_qty_after,
+        lot_status = CASE WHEN v_qty_after = 0 THEN 'Agotado' ELSE lot_status END
+    WHERE lot_id = v_t.lot_id;
+
+    -- Movimiento Transferencia_Salida en clínica origen
+    INSERT INTO inventory_movements (
+        lot_id, vaccine_id, clinic_id, worker_id,
+        movement_type, quantity, quantity_before, quantity_after,
+        reference_id, reference_type, reason
+    ) VALUES (
+        v_t.lot_id, v_t.vaccine_id, v_t.from_clinic_id, p_worker_id,
+        'Transferencia_Salida', v_t.quantity, v_qty_before, v_qty_after,
+        p_transfer_id, 'transfer',
+        'Transferencia #' || p_transfer_id || ' aceptada'
+    );
+
+    -- Movimiento Transferencia_Entrada en clínica destino (mismo lote lógico)
+    INSERT INTO inventory_movements (
+        lot_id, vaccine_id, clinic_id, worker_id,
+        movement_type, quantity, quantity_before, quantity_after,
+        reference_id, reference_type, reason
+    ) VALUES (
+        v_t.lot_id, v_t.vaccine_id, v_t.to_clinic_id, p_worker_id,
+        'Transferencia_Entrada', v_t.quantity, 0, v_t.quantity,
+        p_transfer_id, 'transfer',
+        'Transferencia #' || p_transfer_id || ' recibida'
+    );
+
+    -- Actualizar transferencia a Recibido
+    UPDATE inventory_transfers
+    SET transfer_status = 'Recibido',
+        approved_by     = p_worker_id,
+        notes           = COALESCE(p_notes, notes),
+        resolved_at     = NOW()
+    WHERE transfer_id = p_transfer_id;
+
+    OPEN p_results FOR SELECT TRUE AS success,
+        'Transferencia #' || p_transfer_id || ' recibida correctamente.' AS message;
+END;
+$$;
+
+-- ─────────────────────────────────────────────────────────────
+-- sp_reject_transfer
+-- Rechaza una transferencia en estado Pendiente.
+-- No modifica el stock (no se había movido aún).
+-- ─────────────────────────────────────────────────────────────
+CREATE OR REPLACE PROCEDURE sp_reject_transfer(
+    IN    p_transfer_id  INT,
+    IN    p_worker_id    INT,
+    IN    p_reason       TEXT,
+    INOUT p_results      REFCURSOR
+)
+LANGUAGE plpgsql AS $$
+DECLARE
+    v_status VARCHAR(20);
+BEGIN
+    SELECT transfer_status INTO v_status
+    FROM inventory_transfers
+    WHERE transfer_id = p_transfer_id
+    FOR UPDATE;
+
+    IF NOT FOUND THEN
+        OPEN p_results FOR SELECT FALSE AS success, 'Transferencia no encontrada.' AS message;
+        RETURN;
+    END IF;
+
+    IF v_status <> 'Pendiente' THEN
+        OPEN p_results FOR SELECT FALSE AS success,
+            'Solo se pueden rechazar transferencias en estado Pendiente. Estado actual: ' || v_status AS message;
+        RETURN;
+    END IF;
+
+    UPDATE inventory_transfers
+    SET transfer_status = 'Rechazado',
+        approved_by     = p_worker_id,
+        notes           = p_reason,
+        resolved_at     = NOW()
+    WHERE transfer_id = p_transfer_id;
+
+    OPEN p_results FOR SELECT TRUE AS success,
+        'Transferencia #' || p_transfer_id || ' rechazada.' AS message;
+END;
+$$;
+
+-- ─────────────────────────────────────────────────────────────
+-- sp_cancel_transfer
+-- Cancela una transferencia en estado Pendiente.
+-- Solo el solicitante o un admin puede cancelar.
+-- ─────────────────────────────────────────────────────────────
+CREATE OR REPLACE PROCEDURE sp_cancel_transfer(
+    IN    p_transfer_id  INT,
+    IN    p_worker_id    INT,
+    IN    p_reason       TEXT,
+    INOUT p_results      REFCURSOR
+)
+LANGUAGE plpgsql AS $$
+DECLARE
+    v_t RECORD;
+BEGIN
+    SELECT transfer_id, transfer_status, requested_by
+    INTO v_t
+    FROM inventory_transfers
+    WHERE transfer_id = p_transfer_id
+    FOR UPDATE;
+
+    IF NOT FOUND THEN
+        OPEN p_results FOR SELECT FALSE AS success, 'Transferencia no encontrada.' AS message;
+        RETURN;
+    END IF;
+
+    IF v_t.transfer_status <> 'Pendiente' THEN
+        OPEN p_results FOR SELECT FALSE AS success,
+            'Solo se pueden cancelar transferencias en estado Pendiente. Estado actual: ' || v_t.transfer_status AS message;
+        RETURN;
+    END IF;
+
+    UPDATE inventory_transfers
+    SET transfer_status = 'Cancelado',
+        notes           = p_reason,
+        resolved_at     = NOW()
+    WHERE transfer_id = p_transfer_id;
+
+    OPEN p_results FOR SELECT TRUE AS success,
+        'Transferencia #' || p_transfer_id || ' cancelada.' AS message;
+END;
+$$;

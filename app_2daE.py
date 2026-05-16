@@ -4098,6 +4098,188 @@ def api_almacen_movimientos():
     return jsonify({"movimientos": movimientos, "total": len(movimientos)})
 
 
+# ── Transferencias ────────────────────────────────────────────────────────────
+
+@app.route("/almacen/transferencias")
+def almacen_transferencias():
+    _require_role(*_ALMACEN_RW)
+    clinic_id     = session.get("clinic_id")
+    status_filter = request.args.get("status") or None
+
+    transferencias = []
+    clinics        = []
+    conn, should_close = _get_conn()
+    _safe_rollback(conn)
+    try:
+        with conn.cursor() as cur:
+            cur.execute("CALL sp_get_transfers(%s, %s, %s)",
+                        (clinic_id, status_filter, "cur_trans"))
+            cur.execute('FETCH ALL FROM "cur_trans"')
+            transferencias = cur.fetchall()
+
+            cur.execute("SELECT clinic_id, clinic_name FROM clinics WHERE is_active = TRUE ORDER BY clinic_name")
+            clinics = cur.fetchall()
+        conn.commit()
+    except Exception as e:
+        _safe_rollback(conn)
+        logger.error("Error en almacen_transferencias: %s", e)
+    finally:
+        if should_close and not _conn_is_closed(conn):
+            conn.close()
+
+    lotes = []
+    conn2, should_close2 = _get_conn()
+    _safe_rollback(conn2)
+    try:
+        with conn2.cursor() as cur:
+            cur.execute("CALL sp_get_vacunas_full(%s)", ("cur_lots_t",))
+            cur.execute('FETCH ALL FROM "cur_lots_t"')
+            lotes = [r for r in cur.fetchall() if r.get("quantity_available", 0) > 0
+                     and r.get("lot_status") == "Disponible"
+                     and r.get("clinic_id") == clinic_id]
+        conn2.commit()
+    except Exception as e:
+        _safe_rollback(conn2)
+        logger.error("Error cargando lotes para transferencias: %s", e)
+    finally:
+        if should_close2 and not _conn_is_closed(conn2):
+            conn2.close()
+
+    return render_template(
+        "pages/almacen/transferencias.html",
+        transferencias=transferencias,
+        clinics=clinics,
+        lotes=lotes,
+        status_filter=status_filter,
+        is_almacen=session.get("role") in _ALMACEN_RW,
+        name=session.get("name", ""),
+        lastname=session.get("lastname", ""),
+        role=session.get("role", ""),
+        initials=session.get("initials", ""),
+    )
+
+
+@app.route("/almacen/transferencias/nueva", methods=["POST"])
+def almacen_crear_transferencia():
+    _require_role(*_ALMACEN_RW)
+    lot_id       = request.form.get("lot_id",      type=int)
+    to_clinic_id = request.form.get("to_clinic_id", type=int)
+    quantity     = request.form.get("quantity",    type=int)
+    reason       = request.form.get("reason", "").strip() or None
+    worker_id    = session.get("worker_id")
+    next_url     = request.form.get("next") or url_for("almacen_transferencias")
+
+    conn, should_close = _get_conn()
+    _safe_rollback(conn)
+    try:
+        with conn.cursor() as cur:
+            cur.execute("CALL sp_create_transfer(%s, %s, %s, %s, %s, %s)",
+                        (lot_id, to_clinic_id, quantity, worker_id, reason, "cur_ct"))
+            cur.execute('FETCH ALL FROM "cur_ct"')
+            row = cur.fetchone()
+        conn.commit()
+        if row and row.get("success"):
+            flash(row.get("message", "Transferencia creada."), "success")
+        else:
+            flash(row.get("message", "No se pudo crear la transferencia."), "error")
+    except Exception as e:
+        _safe_rollback(conn)
+        logger.error("Error en almacen_crear_transferencia: %s", e)
+        flash("Error al crear la transferencia.", "error")
+    finally:
+        if should_close and not _conn_is_closed(conn):
+            conn.close()
+
+    return redirect(next_url)
+
+
+@app.route("/almacen/transferencias/<int:transfer_id>/aceptar", methods=["POST"])
+def almacen_aceptar_transferencia(transfer_id):
+    _require_role(*_ALMACEN_RW)
+    worker_id = session.get("worker_id")
+    notes     = request.form.get("notes", "").strip() or None
+    next_url  = request.form.get("next") or url_for("almacen_transferencias")
+
+    conn, should_close = _get_conn()
+    _safe_rollback(conn)
+    try:
+        with conn.cursor() as cur:
+            cur.execute("CALL sp_accept_transfer(%s, %s, %s, %s)",
+                        (transfer_id, worker_id, notes, "cur_at"))
+            cur.execute('FETCH ALL FROM "cur_at"')
+            row = cur.fetchone()
+        conn.commit()
+        msg_type = "success" if (row and row.get("success")) else "error"
+        flash(row.get("message", "Operación completada.") if row else "Error.", msg_type)
+    except Exception as e:
+        _safe_rollback(conn)
+        logger.error("Error en almacen_aceptar_transferencia: %s", e)
+        flash("Error al aceptar la transferencia.", "error")
+    finally:
+        if should_close and not _conn_is_closed(conn):
+            conn.close()
+
+    return redirect(next_url)
+
+
+@app.route("/almacen/transferencias/<int:transfer_id>/rechazar", methods=["POST"])
+def almacen_rechazar_transferencia(transfer_id):
+    _require_role(*_ALMACEN_RW)
+    worker_id = session.get("worker_id")
+    reason    = request.form.get("reason", "").strip() or None
+    next_url  = request.form.get("next") or url_for("almacen_transferencias")
+
+    conn, should_close = _get_conn()
+    _safe_rollback(conn)
+    try:
+        with conn.cursor() as cur:
+            cur.execute("CALL sp_reject_transfer(%s, %s, %s, %s)",
+                        (transfer_id, worker_id, reason, "cur_rt"))
+            cur.execute('FETCH ALL FROM "cur_rt"')
+            row = cur.fetchone()
+        conn.commit()
+        msg_type = "success" if (row and row.get("success")) else "error"
+        flash(row.get("message", "Operación completada.") if row else "Error.", msg_type)
+    except Exception as e:
+        _safe_rollback(conn)
+        logger.error("Error en almacen_rechazar_transferencia: %s", e)
+        flash("Error al rechazar la transferencia.", "error")
+    finally:
+        if should_close and not _conn_is_closed(conn):
+            conn.close()
+
+    return redirect(next_url)
+
+
+@app.route("/almacen/transferencias/<int:transfer_id>/cancelar", methods=["POST"])
+def almacen_cancelar_transferencia(transfer_id):
+    _require_role(*_ALMACEN_RW)
+    worker_id = session.get("worker_id")
+    reason    = request.form.get("reason", "").strip() or None
+    next_url  = request.form.get("next") or url_for("almacen_transferencias")
+
+    conn, should_close = _get_conn()
+    _safe_rollback(conn)
+    try:
+        with conn.cursor() as cur:
+            cur.execute("CALL sp_cancel_transfer(%s, %s, %s, %s)",
+                        (transfer_id, worker_id, reason, "cur_clt"))
+            cur.execute('FETCH ALL FROM "cur_clt"')
+            row = cur.fetchone()
+        conn.commit()
+        msg_type = "success" if (row and row.get("success")) else "error"
+        flash(row.get("message", "Operación completada.") if row else "Error.", msg_type)
+    except Exception as e:
+        _safe_rollback(conn)
+        logger.error("Error en almacen_cancelar_transferencia: %s", e)
+        flash("Error al cancelar la transferencia.", "error")
+    finally:
+        if should_close and not _conn_is_closed(conn):
+            conn.close()
+
+    return redirect(next_url)
+
+
 # =============================================================================
 # APIs JSON
 # =============================================================================
