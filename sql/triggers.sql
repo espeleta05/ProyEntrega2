@@ -35,34 +35,50 @@ FOR EACH ROW
 EXECUTE FUNCTION fn_validate_lot_clinic_consistency();
 
 
--- Trigger 4: Descontar inventario del lote al registrar una aplicacion
+-- Trigger 4 (v2): Descontar inventario + registrar movimiento en inventory_movements
 CREATE OR REPLACE FUNCTION fn_decrement_vaccine_lot_stock()
 RETURNS TRIGGER
 LANGUAGE plpgsql
 AS $$
 DECLARE
-    v_current_stock INT;
+    v_qty_before INT;
+    v_qty_after  INT;
 BEGIN
     IF NEW.lot_id IS NULL THEN
         RETURN NEW;
     END IF;
 
-    SELECT quantity_available INTO v_current_stock
+    SELECT quantity_available INTO v_qty_before
     FROM vaccine_lots
     WHERE lot_id = NEW.lot_id
     FOR UPDATE;
 
-    IF v_current_stock IS NULL THEN
-        RAISE EXCEPTION 'No se encontro el lote % para ajustar stock', NEW.lot_id;
+    IF v_qty_before IS NULL THEN
+        RAISE EXCEPTION 'No se encontró el lote % para ajustar stock', NEW.lot_id;
     END IF;
 
-    IF v_current_stock <= 0 THEN
+    IF v_qty_before <= 0 THEN
         RAISE EXCEPTION 'El lote % no tiene stock disponible', NEW.lot_id;
     END IF;
 
+    v_qty_after := v_qty_before - 1;
+
+    -- Descontar stock y actualizar estado si llega a 0
     UPDATE vaccine_lots
-    SET quantity_available = quantity_available - 1
+    SET quantity_available = v_qty_after,
+        lot_status = CASE WHEN v_qty_after = 0 THEN 'Agotado' ELSE lot_status END
     WHERE lot_id = NEW.lot_id;
+
+    -- Registrar movimiento de trazabilidad
+    INSERT INTO inventory_movements (
+        lot_id, vaccine_id, clinic_id, worker_id,
+        movement_type, quantity, quantity_before, quantity_after,
+        reference_id, reference_type
+    ) VALUES (
+        NEW.lot_id, NEW.vaccine_id, NEW.clinic_id, NEW.worker_id,
+        'Salida_Aplicacion', 1, v_qty_before, v_qty_after,
+        NEW.record_id, 'vaccination_record'
+    );
 
     RETURN NEW;
 END;
@@ -480,4 +496,38 @@ $$;
 CREATE TRIGGER trg_generate_appointment_for_schedule
 AFTER INSERT ON patient_vaccine_schedule
 FOR EACH ROW EXECUTE FUNCTION fn_generate_appointment_for_schedule();
+
+
+-- Trigger Almacén: Auto-gestionar lot_status en función de stock y caducidad
+CREATE OR REPLACE FUNCTION fn_auto_lot_status()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    -- No modificar lotes Bloqueados o Retirados por reglas de stock
+    IF NEW.lot_status IN ('Bloqueado', 'Retirado') THEN
+        RETURN NEW;
+    END IF;
+
+    -- Auto-expirar si la fecha ya pasó
+    IF NEW.expiration_date < CURRENT_DATE THEN
+        NEW.lot_status := 'Caducado';
+    -- Auto-agotar si llega a 0 dosis
+    ELSIF NEW.quantity_available = 0 THEN
+        NEW.lot_status := 'Agotado';
+    -- Reactivar si se ajustó al alza y no está vencido
+    ELSIF NEW.quantity_available > 0 AND OLD.lot_status = 'Agotado'
+          AND NEW.expiration_date >= CURRENT_DATE THEN
+        NEW.lot_status := 'Disponible';
+    END IF;
+
+    RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS trg_auto_lot_status ON vaccine_lots;
+CREATE TRIGGER trg_auto_lot_status
+BEFORE UPDATE ON vaccine_lots
+FOR EACH ROW
+EXECUTE FUNCTION fn_auto_lot_status();
 */

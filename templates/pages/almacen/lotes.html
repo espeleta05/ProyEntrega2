@@ -1,0 +1,193 @@
+{% extends 'base_2daE.html' %}
+
+{% from 'components/toolbar.html' import toolbar %}
+{% from 'components/table.html'   import table   %}
+{% from 'components/badge.html'   import badge   %}
+{% from 'components/card.html'    import card    %}
+{% from 'components/modal.html'   import modal   %}
+
+{% block head_extra %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/almacen.css') }}">
+{% endblock %}
+
+{% block title %}Lotes de Vacunas — Almacén{% endblock %}
+
+{% block content %}
+
+{% call toolbar(
+    title='Lotes de vacunas',
+    subtitle='Total: ' ~ lotes|length ~ ' lotes',
+    icon='fa-boxes-stacked'
+) %}
+  {% if is_almacen %}
+    <a href="{{ url_for('vacunas_page') }}#nuevo-lote" class="md3-btn md3-btn--filled">
+      <i class="fa-solid fa-plus"></i> Nuevo lote
+    </a>
+  {% endif %}
+{% endcall %}
+
+<!-- Filtros -->
+<div class="search-bar-container section">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="text" id="searchInput" placeholder="Buscar por vacuna o número de lote...">
+  <select id="statusFilter" class="sort-select" style="margin-left:10px;">
+    <option value="">Todos los estados</option>
+    <option value="disponible">Disponible</option>
+    <option value="agotado">Agotado</option>
+    <option value="caducado">Caducado</option>
+    <option value="bloqueado">Bloqueado</option>
+    <option value="retirado">Retirado</option>
+  </select>
+  <select id="sortSelect" class="sort-select" style="margin-left:10px;">
+    <option value="vacuna">Ordenar por vacuna</option>
+    <option value="lote">Número de lote</option>
+    <option value="stock">Stock disponible</option>
+    <option value="vencimiento">Fecha vencimiento</option>
+  </select>
+</div>
+
+<!-- Tabla de lotes -->
+{% call card() %}
+  {% set _row = namespace(i=0) %}
+  {% call(l) table(
+      id='lotesTable',
+      headers=[
+        {'label': 'Vacuna'},
+        {'label': 'Lote'},
+        {'label': 'Clínica'},
+        {'label': 'Recibidas', 'align': 'right'},
+        {'label': 'Aplicadas',  'align': 'right'},
+        {'label': 'Disponibles','align': 'right'},
+        {'label': 'Vence'},
+        {'label': 'Estado',   'align': 'center'},
+        {'label': 'Acciones', 'align': 'center'},
+      ],
+      rows=lotes,
+      empty_icon='fa-boxes-stacked',
+      empty_title='No hay lotes registrados',
+      footer_text='Total: ' ~ lotes|length ~ ' lote(s)'
+  ) %}
+    {% set exp = l.expiration_date %}
+    {% set days_left = (exp - today).days if exp else 999 %}
+    <tr data-vaccine="{{ l.vaccine_name|lower }}"
+        data-lot="{{ l.lot_number|lower }}"
+        data-status="{{ (l.lot_status or '')|lower }}"
+        data-stock="{{ l.quantity_available }}"
+        data-expiry="{{ exp.isoformat() if exp else '' }}"
+        class="{{ 'lot-row-critical' if days_left <= 7 else ('lot-row-warning' if days_left <= 30 else '') }}">
+
+      <td>
+        <span class="vax-name">{{ l.vaccine_name }}</span>
+      </td>
+      <td class="muted-td" style="font-size:13px;">{{ l.lot_number }}</td>
+      <td class="muted-td">{{ l.clinic_name }}</td>
+      <td class="col-right">{{ l.quantity_received }}</td>
+      <td class="col-right">{{ l.dosis_aplicadas }}</td>
+      <td class="col-right" style="font-weight:600;">{{ l.quantity_available }}</td>
+      <td>
+        {{ exp.strftime('%d/%m/%Y') if exp else '—' }}
+        {% if days_left <= 7 and days_left >= 0 %}
+          {{ badge(days_left ~ 'd', color='error',   icon='fa-clock', size='sm') }}
+        {% elif days_left <= 30 and days_left >= 0 %}
+          {{ badge(days_left ~ 'd', color='warning',  icon='fa-clock', size='sm') }}
+        {% elif days_left < 0 %}
+          {{ badge('Vencido', color='error', size='sm') }}
+        {% endif %}
+      </td>
+      <td class="col-center">
+        {% set st = l.lot_status or 'Disponible' %}
+        {% if st == 'Disponible' %}
+          {{ badge('Disponible', color='success',   icon='fa-circle-check',      size='sm') }}
+        {% elif st == 'Agotado' %}
+          {{ badge('Agotado',    color='neutral',   icon='fa-box-open',          size='sm') }}
+        {% elif st == 'Caducado' %}
+          {{ badge('Caducado',   color='error',     icon='fa-skull-crossbones',  size='sm') }}
+        {% elif st == 'Bloqueado' %}
+          {{ badge('Bloqueado',  color='warning',   icon='fa-lock',              size='sm') }}
+        {% elif st == 'Retirado' %}
+          {{ badge('Retirado',   color='neutral',   icon='fa-ban',               size='sm') }}
+        {% else %}
+          {{ badge(st,           color='neutral',   size='sm') }}
+        {% endif %}
+      </td>
+      <td class="col-center">
+        <div style="display:flex;gap:6px;justify-content:center;">
+          <a href="{{ url_for('almacen_lote_detalle', lot_id=l.lot_id) }}"
+             class="md3-btn md3-btn--outlined md3-btn--sm" title="Ver detalle">
+            <i class="fa-solid fa-eye"></i>
+          </a>
+          {% if is_almacen %}
+            <button class="md3-btn md3-btn--tonal md3-btn--sm"
+                    title="Registrar ajuste"
+                    onclick="openMovModal({{ l.lot_id }}, '{{ l.vaccine_name|e }}', '{{ l.lot_number|e }}', {{ l.quantity_available }})">
+              <i class="fa-solid fa-sliders"></i>
+            </button>
+          {% endif %}
+        </div>
+      </td>
+    </tr>
+    {% set _row.i = _row.i + 1 %}
+  {% endcall %}
+{% endcall %}
+
+<!-- Modal: Registrar movimiento manual -->
+{% if is_almacen %}
+<div class="md3-modal-overlay" id="movModal" role="dialog" aria-modal="true" aria-labelledby="movModal-title" hidden>
+  <div class="md3-modal">
+    <div class="md3-modal__header">
+      <div class="md3-modal__header-content">
+        <i class="fa-solid fa-sliders"></i>
+        <h2 class="md3-modal__title" id="movModal-title">Registrar movimiento</h2>
+      </div>
+      <button class="md3-modal__close" onclick="closeMovModal()" aria-label="Cerrar">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+    </div>
+    <form method="POST" action="{{ url_for('almacen_registrar_movimiento') }}">
+      <input type="hidden" name="lot_id"  id="movLotId">
+      <input type="hidden" name="next"    value="{{ url_for('almacen_lotes') }}">
+      <div class="md3-modal__body">
+        <p id="movLotLabel" style="margin-bottom:16px;color:var(--md-on-surface-variant);font-size:14px;"></p>
+        <div class="md3-form__section">
+          <div class="md3-form__row md3-form__row--2">
+            <div class="md3-field">
+              <label class="md3-field__label">Tipo de movimiento *</label>
+              <select class="md3-input" name="movement_type" required>
+                <option value="">Seleccionar...</option>
+                <option value="Ajuste_Positivo">Ajuste positivo (suma stock)</option>
+                <option value="Ajuste_Negativo">Ajuste negativo (resta stock)</option>
+                <option value="Salida_Merma">Merma (dosis dañada)</option>
+                <option value="Salida_Caducidad">Salida por caducidad</option>
+              </select>
+            </div>
+            <div class="md3-field">
+              <label class="md3-field__label">Cantidad *</label>
+              <input class="md3-input" type="number" name="quantity"
+                     min="1" required placeholder="Ej: 5">
+            </div>
+          </div>
+          <div class="md3-field" style="margin-top:12px;">
+            <label class="md3-field__label">Motivo / observación</label>
+            <input class="md3-input" type="text" name="reason"
+                   placeholder="Describe el motivo del ajuste...">
+          </div>
+        </div>
+      </div>
+      <div class="md3-modal__footer">
+        <button type="button" class="md3-btn md3-btn--outlined" onclick="closeMovModal()">
+          Cancelar
+        </button>
+        <button type="submit" class="md3-btn md3-btn--filled">
+          <i class="fa-solid fa-check"></i> Registrar
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endif %}
+
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/pages/almacen_lotes.js') }}" defer></script>
+{% endblock %}

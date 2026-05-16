@@ -10,6 +10,14 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO vaccine_u
 GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO vaccine_user;
 ALTER DATABASE sistemavacunacion OWNER TO vaccine_user;
 
+DO $$ DECLARE r RECORD;
+BEGIN
+    FOR r IN SELECT tablename FROM pg_tables WHERE schemaname = 'public'
+    LOOP
+        EXECUTE 'ALTER TABLE public.' || quote_ident(r.tablename) || ' OWNER TO vaccine_user';
+    END LOOP;
+END $$;
+
 --  MÓDULO: ADDRESSES
 CREATE TABLE countries (
     country_id   SERIAL PRIMARY KEY,

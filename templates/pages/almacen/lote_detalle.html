@@ -1,0 +1,298 @@
+{% extends 'base_2daE.html' %}
+
+{% from 'components/toolbar.html'   import toolbar   %}
+{% from 'components/badge.html'     import badge     %}
+{% from 'components/card.html'      import card      %}
+{% from 'components/table.html'     import table     %}
+{% from 'components/alert.html'     import alert     %}
+{% from 'components/breadcrumb.html' import breadcrumb %}
+
+{% block head_extra %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/almacen.css') }}">
+{% endblock %}
+
+{% block title %}Lote {{ lote.lot_number }} — Almacén{% endblock %}
+
+{% block content %}
+
+{{ breadcrumb(items=[
+    {'label': 'Almacén',       'href': url_for('almacen_dashboard'),  'icon': 'fa-warehouse'},
+    {'label': 'Lotes',         'href': url_for('almacen_lotes'),      'icon': 'fa-boxes-stacked'},
+    {'label': lote.lot_number},
+]) }}
+
+{% call toolbar(
+    title=lote.vaccine_name,
+    subtitle='Lote ' ~ lote.lot_number,
+    icon='fa-box',
+    back_href=url_for('almacen_lotes')
+) %}
+  {% if is_almacen %}
+    <button class="md3-btn md3-btn--tonal md3-btn--sm"
+            onclick="openMovModal({{ lote.lot_id }}, '{{ lote.vaccine_name|e }}', '{{ lote.lot_number|e }}', {{ lote.quantity_available }})">
+      <i class="fa-solid fa-sliders"></i> Registrar ajuste
+    </button>
+  {% endif %}
+{% endcall %}
+
+<!-- Estado del lote -->
+{% set exp = lote.expiration_date %}
+{% set days_left = (exp - today).days if exp else 999 %}
+
+{% if days_left < 0 %}
+  {{ alert('Este lote está vencido desde el ' ~ exp.strftime('%d/%m/%Y') ~ '.', type='error', icon='fa-skull-crossbones') }}
+{% elif days_left <= 7 %}
+  {{ alert('Este lote vence en ' ~ days_left ~ ' día(s). Revisa si procede el uso o retiro.', type='error', icon='fa-clock') }}
+{% elif days_left <= 30 %}
+  {{ alert('Este lote vence en ' ~ days_left ~ ' día(s).', type='warning', icon='fa-clock') }}
+{% endif %}
+
+<!-- Ficha del lote -->
+{% call card() %}
+  <div class="lot-detail-grid">
+
+    <div class="lot-detail-field">
+      <span class="lot-detail-field__label">Vacuna</span>
+      <span class="lot-detail-field__value">{{ lote.vaccine_name }}</span>
+    </div>
+
+    <div class="lot-detail-field">
+      <span class="lot-detail-field__label">Número de lote</span>
+      <span class="lot-detail-field__value">{{ lote.lot_number }}</span>
+    </div>
+
+    <div class="lot-detail-field">
+      <span class="lot-detail-field__label">Estado</span>
+      <span class="lot-detail-field__value">
+        {% set st = lote.lot_status or 'Disponible' %}
+        {% if st == 'Disponible' %}
+          {{ badge('Disponible', color='success',  icon='fa-circle-check') }}
+        {% elif st == 'Agotado' %}
+          {{ badge('Agotado',    color='neutral',  icon='fa-box-open') }}
+        {% elif st == 'Caducado' %}
+          {{ badge('Caducado',   color='error',    icon='fa-skull-crossbones') }}
+        {% elif st == 'Bloqueado' %}
+          {{ badge('Bloqueado',  color='warning',  icon='fa-lock') }}
+        {% elif st == 'Retirado' %}
+          {{ badge('Retirado',   color='neutral',  icon='fa-ban') }}
+        {% else %}
+          {{ badge(st, color='neutral') }}
+        {% endif %}
+      </span>
+    </div>
+
+    <div class="lot-detail-field">
+      <span class="lot-detail-field__label">Clínica</span>
+      <span class="lot-detail-field__value">{{ lote.clinic_name }}</span>
+    </div>
+
+    <div class="lot-detail-field">
+      <span class="lot-detail-field__label">Fabricante</span>
+      <span class="lot-detail-field__value">{{ lote.manufacturer or '—' }}</span>
+    </div>
+
+    <div class="lot-detail-field">
+      <span class="lot-detail-field__label">Fecha de vencimiento</span>
+      <span class="lot-detail-field__value">
+        {{ exp.strftime('%d/%m/%Y') if exp else '—' }}
+        {% if days_left <= 7 and days_left >= 0 %}
+          {{ badge(days_left ~ 'd', color='error',   icon='fa-clock', size='sm') }}
+        {% elif days_left <= 30 and days_left >= 0 %}
+          {{ badge(days_left ~ 'd', color='warning',  icon='fa-clock', size='sm') }}
+        {% elif days_left < 0 %}
+          {{ badge('Vencido', color='error', size='sm') }}
+        {% endif %}
+      </span>
+    </div>
+
+    <div class="lot-detail-field">
+      <span class="lot-detail-field__label">Dosis recibidas</span>
+      <span class="lot-detail-field__value">{{ lote.quantity_received }}</span>
+    </div>
+
+    <div class="lot-detail-field">
+      <span class="lot-detail-field__label">Dosis aplicadas</span>
+      <span class="lot-detail-field__value">{{ lote.dosis_aplicadas }}</span>
+    </div>
+
+    <div class="lot-detail-field">
+      <span class="lot-detail-field__label">Disponibles</span>
+      <span class="lot-detail-field__value" style="font-size:1.2rem;font-weight:700;color:var(--md-primary);">
+        {{ lote.quantity_available }}
+      </span>
+    </div>
+
+  </div>
+
+  {% if is_almacen %}
+    <!-- Cambiar estado del lote -->
+    <div style="border-top:1px solid var(--md-outline-variant,#cac4d0);padding-top:16px;margin-top:4px;">
+      <p style="font-size:13px;color:var(--md-on-surface-variant);margin-bottom:10px;">
+        <i class="fa-solid fa-sliders"></i> Cambiar estado del lote
+      </p>
+      <form method="POST" action="{{ url_for('almacen_cambiar_estado_lote', lot_id=lote.lot_id) }}"
+            style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;">
+        <input type="hidden" name="next" value="{{ url_for('almacen_lote_detalle', lot_id=lote.lot_id) }}">
+        <div class="md3-field" style="min-width:180px;">
+          <label class="md3-field__label">Nuevo estado</label>
+          <select class="md3-input" name="new_status" required>
+            <option value="">Seleccionar...</option>
+            {% set st = lote.lot_status or 'Disponible' %}
+            {% if st == 'Disponible' %}
+              <option value="Bloqueado">Bloqueado</option>
+              <option value="Retirado">Retirado</option>
+            {% elif st == 'Bloqueado' %}
+              <option value="Disponible">Disponible (desbloquear)</option>
+              <option value="Retirado">Retirado</option>
+            {% elif st == 'Caducado' %}
+              <option value="Retirado">Retirado</option>
+            {% elif st == 'Agotado' %}
+              <option value="Retirado">Retirado</option>
+            {% endif %}
+          </select>
+        </div>
+        <div class="md3-field" style="min-width:260px;">
+          <label class="md3-field__label">Motivo</label>
+          <input class="md3-input" type="text" name="reason"
+                 placeholder="Ej: Lote bloqueado por control de calidad...">
+        </div>
+        <button type="submit" class="md3-btn md3-btn--outlined md3-btn--sm">
+          <i class="fa-solid fa-check"></i> Aplicar
+        </button>
+      </form>
+    </div>
+  {% endif %}
+{% endcall %}
+
+<!-- Historial de movimientos del lote -->
+<div class="section-card" style="margin-top:20px;">
+  <div class="section-header-row">
+    <h3><i class="fa-solid fa-arrow-right-arrow-left"></i> Historial de movimientos</h3>
+    <span class="chart-badge">{{ movimientos|length }} registro(s)</span>
+  </div>
+
+  {% set _row = namespace(i=0) %}
+  {% call(m) table(
+      headers=[
+        {'label': 'Fecha / hora'},
+        {'label': 'Tipo'},
+        {'label': 'Cantidad', 'align': 'center'},
+        {'label': 'Stock antes→después', 'align': 'center'},
+        {'label': 'Responsable'},
+        {'label': 'Motivo / referencia'},
+      ],
+      rows=movimientos,
+      empty_icon='fa-arrow-right-arrow-left',
+      empty_title='Sin movimientos registrados para este lote',
+      footer_text='Total: ' ~ movimientos|length ~ ' movimiento(s)'
+  ) %}
+    <tr>
+      <td class="muted-td" style="font-size:13px;">
+        {{ m.created_at.strftime('%d/%m/%Y %H:%M') if m.created_at else '—' }}
+      </td>
+      <td>
+        {% set mt = m.movement_type or '' %}
+        {% if mt == 'Entrada' %}
+          {{ badge('Entrada',       color='success',   icon='fa-arrow-down',        size='sm') }}
+        {% elif mt == 'Salida_Aplicacion' %}
+          {{ badge('Aplicación',    color='primary',   icon='fa-syringe',           size='sm') }}
+        {% elif mt == 'Salida_Merma' %}
+          {{ badge('Merma',         color='error',     icon='fa-biohazard',         size='sm') }}
+        {% elif mt == 'Salida_Caducidad' %}
+          {{ badge('Caducidad',     color='error',     icon='fa-skull-crossbones',  size='sm') }}
+        {% elif mt == 'Ajuste_Positivo' %}
+          {{ badge('Ajuste +',      color='success',   icon='fa-circle-plus',       size='sm') }}
+        {% elif mt == 'Ajuste_Negativo' %}
+          {{ badge('Ajuste –',      color='secondary', icon='fa-circle-minus',      size='sm') }}
+        {% elif mt == 'Transferencia_Salida' %}
+          {{ badge('Trans. salida', color='warning',   icon='fa-arrow-right',       size='sm') }}
+        {% elif mt == 'Transferencia_Entrada' %}
+          {{ badge('Trans. entrada',color='success',   icon='fa-arrow-left',        size='sm') }}
+        {% else %}
+          {{ badge(mt or '—', color='neutral', size='sm') }}
+        {% endif %}
+      </td>
+      <td class="col-center" style="font-weight:600;">{{ m.quantity }}</td>
+      <td class="col-center">
+        <div class="qty-arrow">
+          <span class="qty-arrow__before">{{ m.quantity_before }}</span>
+          <span class="qty-arrow__icon"><i class="fa-solid fa-arrow-right"></i></span>
+          <span class="qty-arrow__after">{{ m.quantity_after }}</span>
+        </div>
+      </td>
+      <td class="muted-td" style="font-size:13px;">{{ m.worker_name or '—' }}</td>
+      <td class="muted-td" style="font-size:13px;">
+        {% if m.reason %}
+          {{ m.reason }}
+        {% elif m.reference_type == 'vaccination_record' %}
+          Vacuna aplicada (reg. #{{ m.reference_id }})
+        {% else %}
+          —
+        {% endif %}
+      </td>
+    </tr>
+    {% set _row.i = _row.i + 1 %}
+  {% endcall %}
+</div>
+
+<!-- Modal: Registrar movimiento manual -->
+{% if is_almacen %}
+<div class="md3-modal-overlay" id="movModal" role="dialog" aria-modal="true" aria-labelledby="movModal-title" hidden>
+  <div class="md3-modal">
+    <div class="md3-modal__header">
+      <div class="md3-modal__header-content">
+        <i class="fa-solid fa-sliders"></i>
+        <h2 class="md3-modal__title" id="movModal-title">Registrar movimiento</h2>
+      </div>
+      <button class="md3-modal__close" onclick="closeMovModal()" aria-label="Cerrar">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+    </div>
+    <form method="POST" action="{{ url_for('almacen_registrar_movimiento') }}">
+      <input type="hidden" name="lot_id" id="movLotId">
+      <input type="hidden" name="next"   value="{{ url_for('almacen_lote_detalle', lot_id=lote.lot_id) }}">
+      <div class="md3-modal__body">
+        <p id="movLotLabel" style="margin-bottom:16px;color:var(--md-on-surface-variant);font-size:14px;"></p>
+        <div class="md3-form__section">
+          <div class="md3-form__row md3-form__row--2">
+            <div class="md3-field">
+              <label class="md3-field__label">Tipo de movimiento *</label>
+              <select class="md3-input" name="movement_type" required>
+                <option value="">Seleccionar...</option>
+                <option value="Ajuste_Positivo">Ajuste positivo (suma stock)</option>
+                <option value="Ajuste_Negativo">Ajuste negativo (resta stock)</option>
+                <option value="Salida_Merma">Merma (dosis dañada)</option>
+                <option value="Salida_Caducidad">Salida por caducidad</option>
+              </select>
+            </div>
+            <div class="md3-field">
+              <label class="md3-field__label">Cantidad *</label>
+              <input class="md3-input" type="number" name="quantity"
+                     min="1" required placeholder="Ej: 5">
+            </div>
+          </div>
+          <div class="md3-field" style="margin-top:12px;">
+            <label class="md3-field__label">Motivo / observación</label>
+            <input class="md3-input" type="text" name="reason"
+                   placeholder="Describe el motivo del ajuste...">
+          </div>
+        </div>
+      </div>
+      <div class="md3-modal__footer">
+        <button type="button" class="md3-btn md3-btn--outlined" onclick="closeMovModal()">
+          Cancelar
+        </button>
+        <button type="submit" class="md3-btn md3-btn--filled">
+          <i class="fa-solid fa-check"></i> Registrar
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endif %}
+
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/pages/almacen_lotes.js') }}" defer></script>
+{% endblock %}

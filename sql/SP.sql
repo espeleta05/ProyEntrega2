@@ -989,22 +989,41 @@ CREATE OR REPLACE PROCEDURE sp_create_vaccine_lot(
     IN    p_lot_number           VARCHAR,
     IN    p_quantity_received    INT,
     IN    p_expiration_date      DATE,
-    INOUT p_results              REFCURSOR
+    INOUT p_results              REFCURSOR,
+    IN    p_worker_id            INT DEFAULT NULL
 )
 LANGUAGE plpgsql AS $$
 DECLARE
-    v_lot_id INT;
+    v_lot_id       INT;
+    v_lot_status   VARCHAR(30);
 BEGIN
+    v_lot_status := CASE
+        WHEN p_expiration_date < CURRENT_DATE THEN 'Caducado'
+        ELSE 'Disponible'
+    END;
+
     INSERT INTO vaccine_lots (
         vaccine_id, clinic_id, lot_number,
-        quantity_received, quantity_available, expiration_date, received_date, is_active
+        quantity_received, quantity_available, expiration_date, received_date,
+        is_active, lot_status
     )
     VALUES (
         p_vaccine_id, p_clinic_id, p_lot_number,
         p_quantity_received, p_quantity_received, p_expiration_date, NOW()::DATE,
-        (p_expiration_date >= NOW()::DATE)
+        (p_expiration_date >= CURRENT_DATE), v_lot_status
     )
     RETURNING vaccine_lots.lot_id INTO v_lot_id;
+
+    -- Registrar movimiento de entrada
+    INSERT INTO inventory_movements (
+        lot_id, vaccine_id, clinic_id, worker_id,
+        movement_type, quantity, quantity_before, quantity_after,
+        reference_type, reason
+    ) VALUES (
+        v_lot_id, p_vaccine_id, p_clinic_id, p_worker_id,
+        'Entrada', p_quantity_received, 0, p_quantity_received,
+        'manual', 'Recepción inicial de lote'
+    );
 
     OPEN p_results FOR
         SELECT v_lot_id AS lot_id;
@@ -4091,6 +4110,399 @@ BEGIN
     SELECT chart_order, row_order, 'delay'::TEXT, label, value
     FROM delay_top5
     ORDER BY chart_order, row_order;
+
+
+-- ============================================================
+--  MÓDULO ALMACÉN v2 — Stored Procedures
+-- ============================================================
+
+-- Dashboard principal del almacén: KPIs, alertas, movimientos recientes, lotes críticos.
+CREATE OR REPLACE PROCEDURE sp_almacen_dashboard(
+    IN    p_clinic_id       INT,
+    INOUT p_kpis            REFCURSOR,
+    INOUT p_alertas         REFCURSOR,
+    INOUT p_movimientos     REFCURSOR,
+    INOUT p_lotes_criticos  REFCURSOR
+)
+LANGUAGE plpgsql AS $$
+BEGIN
+    -- KPIs
+    OPEN p_kpis FOR
+        SELECT
+            COUNT(*)                                                                  AS lotes_activos,
+            COALESCE(SUM(quantity_available), 0)                                      AS dosis_disponibles,
+            COUNT(*) FILTER (WHERE expiration_date <= CURRENT_DATE + 30
+                               AND lot_status = 'Disponible')                         AS lotes_por_vencer,
+            COUNT(*) FILTER (WHERE lot_status = 'Agotado')                            AS lotes_agotados,
+            COUNT(*) FILTER (WHERE lot_status = 'Caducado')                           AS lotes_caducados,
+            COUNT(*) FILTER (WHERE quantity_available <= 10 AND lot_status = 'Disponible'
+                                OR (expiration_date <= CURRENT_DATE + 7
+                                    AND lot_status = 'Disponible'))                   AS alertas_criticas
+        FROM vaccine_lots
+        WHERE (p_clinic_id IS NULL OR clinic_id = p_clinic_id)
+          AND lot_status NOT IN ('Retirado');
+
+    -- Alertas (lotes próximos a vencer o con stock bajo)
+    OPEN p_alertas FOR
+        SELECT
+            vl.lot_id,
+            vl.lot_number,
+            v.name                                      AS vaccine_name,
+            c.name                                      AS clinic_name,
+            vl.quantity_available,
+            vl.expiration_date,
+            (vl.expiration_date - CURRENT_DATE)         AS days_to_expiry,
+            CASE
+                WHEN vl.expiration_date <= CURRENT_DATE + 7  THEN 'Critico'
+                WHEN vl.expiration_date <= CURRENT_DATE + 30 THEN 'Advertencia'
+                WHEN vl.quantity_available <= 5              THEN 'Critico'
+                WHEN vl.quantity_available <= 10             THEN 'Advertencia'
+                ELSE 'Informativo'
+            END                                         AS alert_type,
+            CASE
+                WHEN vl.expiration_date <= CURRENT_DATE + 7  THEN 'Vence en menos de 7 días'
+                WHEN vl.expiration_date <= CURRENT_DATE + 30 THEN 'Vence en menos de 30 días'
+                WHEN vl.quantity_available <= 5              THEN 'Stock crítico (≤5 dosis)'
+                ELSE 'Stock bajo (≤10 dosis)'
+            END                                         AS alert_reason
+        FROM vaccine_lots vl
+        JOIN vaccines  v ON v.vaccine_id  = vl.vaccine_id
+        JOIN clinics   c ON c.clinic_id   = vl.clinic_id
+        WHERE vl.lot_status = 'Disponible'
+          AND (p_clinic_id IS NULL OR vl.clinic_id = p_clinic_id)
+          AND (
+                vl.expiration_date <= CURRENT_DATE + 30
+             OR vl.quantity_available <= 10
+          )
+        ORDER BY
+            CASE WHEN vl.expiration_date <= CURRENT_DATE + 7 OR vl.quantity_available <= 5
+                 THEN 0 ELSE 1 END,
+            vl.expiration_date;
+
+    -- Movimientos recientes (últimos 20)
+    OPEN p_movimientos FOR
+        SELECT
+            im.movement_id,
+            im.created_at,
+            im.movement_type,
+            im.quantity,
+            im.quantity_before,
+            im.quantity_after,
+            vl.lot_number,
+            v.name   AS vaccine_name,
+            c.name   AS clinic_name,
+            (w.first_name || ' ' || w.last_name) AS worker_name,
+            im.reason,
+            im.reference_type
+        FROM inventory_movements im
+        JOIN vaccine_lots vl ON vl.lot_id    = im.lot_id
+        JOIN vaccines      v ON v.vaccine_id  = im.vaccine_id
+        JOIN clinics       c ON c.clinic_id   = im.clinic_id
+        LEFT JOIN workers  w ON w.worker_id   = im.worker_id
+        WHERE (p_clinic_id IS NULL OR im.clinic_id = p_clinic_id)
+        ORDER BY im.created_at DESC
+        LIMIT 20;
+
+    -- Lotes críticos (stock ≤10 o vencen en ≤30d)
+    OPEN p_lotes_criticos FOR
+        SELECT
+            vl.lot_id,
+            vl.lot_number,
+            vl.quantity_available,
+            vl.expiration_date,
+            vl.lot_status,
+            v.name  AS vaccine_name,
+            c.name  AS clinic_name,
+            (vl.expiration_date - CURRENT_DATE) AS days_to_expiry
+        FROM vaccine_lots vl
+        JOIN vaccines v ON v.vaccine_id = vl.vaccine_id
+        JOIN clinics  c ON c.clinic_id  = vl.clinic_id
+        WHERE vl.lot_status = 'Disponible'
+          AND (p_clinic_id IS NULL OR vl.clinic_id = p_clinic_id)
+          AND (vl.quantity_available <= 10 OR vl.expiration_date <= CURRENT_DATE + 30)
+        ORDER BY vl.expiration_date, vl.quantity_available;
+END;
+$$;
+
+
+-- Historial completo de movimientos con filtros.
+CREATE OR REPLACE PROCEDURE sp_get_movements_full(
+    IN    p_clinic_id    INT,
+    IN    p_lot_id       INT,
+    IN    p_date_from    DATE,
+    IN    p_date_to      DATE,
+    IN    p_type_filter  VARCHAR,
+    INOUT p_results      REFCURSOR
+)
+LANGUAGE plpgsql AS $$
+BEGIN
+    OPEN p_results FOR
+        SELECT
+            im.movement_id,
+            im.created_at,
+            im.movement_type,
+            im.quantity,
+            im.quantity_before,
+            im.quantity_after,
+            im.reason,
+            im.reference_type,
+            im.reference_id,
+            vl.lot_number,
+            v.name                               AS vaccine_name,
+            c.name                               AS clinic_name,
+            (w.first_name || ' ' || w.last_name) AS worker_name
+        FROM inventory_movements im
+        JOIN vaccine_lots vl ON vl.lot_id    = im.lot_id
+        JOIN vaccines      v ON v.vaccine_id  = im.vaccine_id
+        JOIN clinics       c ON c.clinic_id   = im.clinic_id
+        LEFT JOIN workers  w ON w.worker_id   = im.worker_id
+        WHERE (p_clinic_id   IS NULL OR im.clinic_id   = p_clinic_id)
+          AND (p_lot_id      IS NULL OR im.lot_id      = p_lot_id)
+          AND (p_date_from   IS NULL OR im.created_at >= p_date_from::TIMESTAMP)
+          AND (p_date_to     IS NULL OR im.created_at <  (p_date_to + 1)::TIMESTAMP)
+          AND (p_type_filter IS NULL OR im.movement_type = p_type_filter)
+        ORDER BY im.created_at DESC;
+END;
+$$;
+
+
+-- Registrar movimiento manual (ajuste, merma, caducidad).
+CREATE OR REPLACE PROCEDURE sp_register_manual_movement(
+    IN    p_lot_id        INT,
+    IN    p_worker_id     INT,
+    IN    p_movement_type VARCHAR,
+    IN    p_quantity      INT,
+    IN    p_reason        TEXT,
+    INOUT p_results       REFCURSOR
+)
+LANGUAGE plpgsql AS $$
+DECLARE
+    v_qty_before   INT;
+    v_qty_after    INT;
+    v_vaccine_id   INT;
+    v_clinic_id    INT;
+    v_lot_status   VARCHAR(30);
+    v_movement_id  INT;
+BEGIN
+    -- Validar tipo de movimiento manual
+    IF p_movement_type NOT IN ('Salida_Merma','Salida_Caducidad','Ajuste_Positivo','Ajuste_Negativo') THEN
+        OPEN p_results FOR
+            SELECT FALSE AS success, 'Tipo de movimiento no permitido para ajuste manual.' AS message,
+                   NULL::INT AS movement_id, NULL::INT AS quantity_after;
+        RETURN;
+    END IF;
+
+    -- Obtener datos del lote (con bloqueo de fila)
+    SELECT quantity_available, vaccine_id, clinic_id, lot_status
+    INTO   v_qty_before, v_vaccine_id, v_clinic_id, v_lot_status
+    FROM   vaccine_lots
+    WHERE  lot_id = p_lot_id
+    FOR UPDATE;
+
+    IF NOT FOUND THEN
+        OPEN p_results FOR
+            SELECT FALSE AS success, 'Lote no encontrado.' AS message,
+                   NULL::INT AS movement_id, NULL::INT AS quantity_after;
+        RETURN;
+    END IF;
+
+    -- Calcular cantidad resultante
+    IF p_movement_type IN ('Salida_Merma','Salida_Caducidad','Ajuste_Negativo') THEN
+        IF v_qty_before < p_quantity THEN
+            OPEN p_results FOR
+                SELECT FALSE AS success,
+                       'Stock insuficiente. Disponible: ' || v_qty_before || ' dosis.' AS message,
+                       NULL::INT AS movement_id, v_qty_before AS quantity_after;
+            RETURN;
+        END IF;
+        v_qty_after := v_qty_before - p_quantity;
+    ELSE
+        -- Ajuste_Positivo
+        v_qty_after := v_qty_before + p_quantity;
+    END IF;
+
+    -- Actualizar stock (el trigger trg_auto_lot_status actualizará lot_status)
+    UPDATE vaccine_lots
+    SET quantity_available = v_qty_after
+    WHERE lot_id = p_lot_id;
+
+    -- Registrar movimiento
+    INSERT INTO inventory_movements (
+        lot_id, vaccine_id, clinic_id, worker_id,
+        movement_type, quantity, quantity_before, quantity_after,
+        reference_type, reason
+    ) VALUES (
+        p_lot_id, v_vaccine_id, v_clinic_id, p_worker_id,
+        p_movement_type, p_quantity, v_qty_before, v_qty_after,
+        'manual', p_reason
+    ) RETURNING movement_id INTO v_movement_id;
+
+    OPEN p_results FOR
+        SELECT TRUE AS success,
+               'Movimiento registrado correctamente.' AS message,
+               v_movement_id AS movement_id,
+               v_qty_after   AS quantity_after;
+END;
+$$;
+
+
+-- Cambiar estado de un lote con auditoría.
+CREATE OR REPLACE PROCEDURE sp_update_lot_status(
+    IN    p_lot_id      INT,
+    IN    p_new_status  VARCHAR,
+    IN    p_worker_id   INT,
+    IN    p_reason      TEXT,
+    INOUT p_results     REFCURSOR
+)
+LANGUAGE plpgsql AS $$
+DECLARE
+    v_current_status VARCHAR(30);
+BEGIN
+    -- Validar estado destino
+    IF p_new_status NOT IN ('Disponible','Agotado','Caducado','Bloqueado','Retirado') THEN
+        OPEN p_results FOR
+            SELECT FALSE AS success, 'Estado inválido.' AS message;
+        RETURN;
+    END IF;
+
+    SELECT lot_status INTO v_current_status
+    FROM vaccine_lots WHERE lot_id = p_lot_id;
+
+    IF NOT FOUND THEN
+        OPEN p_results FOR
+            SELECT FALSE AS success, 'Lote no encontrado.' AS message;
+        RETURN;
+    END IF;
+
+    -- Reglas de transición
+    IF p_new_status = 'Bloqueado' AND v_current_status NOT IN ('Disponible','Agotado') THEN
+        OPEN p_results FOR
+            SELECT FALSE AS success, 'Solo se pueden bloquear lotes Disponibles o Agotados.' AS message;
+        RETURN;
+    END IF;
+
+    IF p_new_status = 'Retirado' AND v_current_status NOT IN ('Bloqueado','Caducado','Agotado') THEN
+        OPEN p_results FOR
+            SELECT FALSE AS success, 'Solo se pueden retirar lotes Bloqueados, Caducados o Agotados.' AS message;
+        RETURN;
+    END IF;
+
+    UPDATE vaccine_lots SET lot_status = p_new_status WHERE lot_id = p_lot_id;
+
+    -- Auditoría
+    INSERT INTO audit_log (table_name, record_id, action, changed_data, worker_id)
+    VALUES (
+        'vaccine_lots', p_lot_id, 'UPDATE',
+        jsonb_build_object(
+            'from_status', v_current_status,
+            'to_status',   p_new_status,
+            'reason',      p_reason
+        ),
+        p_worker_id
+    );
+
+    OPEN p_results FOR
+        SELECT TRUE AS success, 'Estado actualizado correctamente.' AS message;
+END;
+$$;
+
+
+-- Alertas de almacén: stock bajo y caducidades próximas.
+CREATE OR REPLACE PROCEDURE sp_get_almacen_alerts(
+    IN    p_clinic_id INT,
+    INOUT p_results   REFCURSOR
+)
+LANGUAGE plpgsql AS $$
+BEGIN
+    OPEN p_results FOR
+        SELECT
+            vl.lot_id,
+            vl.lot_number,
+            vl.quantity_available,
+            vl.expiration_date,
+            vl.lot_status,
+            v.name                               AS vaccine_name,
+            c.name                               AS clinic_name,
+            (vl.expiration_date - CURRENT_DATE)  AS days_to_expiry,
+            CASE
+                WHEN vl.expiration_date <= CURRENT_DATE + 7 THEN 'Critico'
+                WHEN vl.quantity_available <= 5             THEN 'Critico'
+                WHEN vl.expiration_date <= CURRENT_DATE + 30 THEN 'Advertencia'
+                ELSE 'Advertencia'
+            END AS alert_type,
+            CASE
+                WHEN vl.expiration_date <= CURRENT_DATE + 7  THEN 'Vence en menos de 7 días'
+                WHEN vl.expiration_date <= CURRENT_DATE + 30 THEN 'Vence en menos de 30 días'
+                WHEN vl.quantity_available <= 5              THEN 'Stock crítico (≤5 dosis)'
+                ELSE 'Stock bajo (≤10 dosis)'
+            END AS alert_reason
+        FROM vaccine_lots vl
+        JOIN vaccines v ON v.vaccine_id = vl.vaccine_id
+        JOIN clinics  c ON c.clinic_id  = vl.clinic_id
+        WHERE vl.lot_status = 'Disponible'
+          AND (p_clinic_id IS NULL OR vl.clinic_id = p_clinic_id)
+          AND (
+                vl.expiration_date <= CURRENT_DATE + 30
+             OR vl.quantity_available <= 10
+          )
+        ORDER BY
+            CASE WHEN vl.expiration_date <= CURRENT_DATE + 7
+                   OR vl.quantity_available <= 5 THEN 0 ELSE 1 END,
+            vl.expiration_date,
+            vl.quantity_available;
+END;
+$$;
+
+
+-- Detalle de un lote con su historial de movimientos.
+CREATE OR REPLACE PROCEDURE sp_get_lot_detail(
+    IN    p_lot_id  INT,
+    INOUT p_lot     REFCURSOR,
+    INOUT p_movs    REFCURSOR
+)
+LANGUAGE plpgsql AS $$
+BEGIN
+    OPEN p_lot FOR
+        SELECT
+            vl.lot_id,
+            vl.lot_number,
+            vl.quantity_received,
+            vl.quantity_available,
+            (vl.quantity_received - vl.quantity_available) AS quantity_applied,
+            vl.expiration_date,
+            vl.received_date,
+            vl.is_active,
+            vl.lot_status,
+            v.name            AS vaccine_name,
+            v.commercial_name,
+            v.disease_prevented,
+            c.name            AS clinic_name,
+            m.name            AS manufacturer_name,
+            (vl.expiration_date - CURRENT_DATE) AS days_to_expiry
+        FROM vaccine_lots vl
+        JOIN vaccines      v ON v.vaccine_id     = vl.vaccine_id
+        JOIN clinics       c ON c.clinic_id      = vl.clinic_id
+        LEFT JOIN manufacturers m ON m.manufacturer_id = v.manufacturer_id
+        WHERE vl.lot_id = p_lot_id;
+
+    OPEN p_movs FOR
+        SELECT
+            im.movement_id,
+            im.created_at,
+            im.movement_type,
+            im.quantity,
+            im.quantity_before,
+            im.quantity_after,
+            im.reason,
+            im.reference_type,
+            im.reference_id,
+            (w.first_name || ' ' || w.last_name) AS worker_name
+        FROM inventory_movements im
+        LEFT JOIN workers w ON w.worker_id = im.worker_id
+        WHERE im.lot_id = p_lot_id
+        ORDER BY im.created_at DESC;
+END;
+$$;
 
 END;
 $$;

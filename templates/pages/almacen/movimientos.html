@@ -1,0 +1,170 @@
+{% extends 'base_2daE.html' %}
+
+{% from 'components/toolbar.html' import toolbar %}
+{% from 'components/badge.html'   import badge   %}
+{% from 'components/table.html'   import table   %}
+
+{% block head_extra %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/almacen.css') }}">
+{% endblock %}
+
+{% block title %}Movimientos de inventario — Almacén{% endblock %}
+
+{% block content %}
+
+{% call toolbar(
+    title='Movimientos de inventario',
+    subtitle='Total: ' ~ movimientos|length ~ ' registro(s)',
+    icon='fa-arrow-right-arrow-left'
+) %}
+  <a href="{{ url_for('almacen_lotes') }}" class="md3-btn md3-btn--outlined md3-btn--sm">
+    <i class="fa-solid fa-boxes-stacked"></i> Ver lotes
+  </a>
+{% endcall %}
+
+<!-- Filtros -->
+<div class="almacen-filters">
+  <i class="fa-solid fa-filter" style="color:var(--md-on-surface-variant);"></i>
+
+  <input type="date" id="dateFrom"
+         title="Desde"
+         value="{{ date_from or '' }}">
+  <span style="color:var(--md-on-surface-variant);font-size:13px;">—</span>
+  <input type="date" id="dateTo"
+         title="Hasta"
+         value="{{ date_to or '' }}">
+
+  <select id="typeFilter">
+    <option value="">Todos los tipos</option>
+    <option value="Entrada">Entrada</option>
+    <option value="Salida_Aplicacion">Aplicación</option>
+    <option value="Salida_Merma">Merma</option>
+    <option value="Salida_Caducidad">Caducidad</option>
+    <option value="Ajuste_Positivo">Ajuste positivo</option>
+    <option value="Ajuste_Negativo">Ajuste negativo</option>
+  </select>
+
+  <input type="text" id="searchInput"
+         placeholder="Buscar vacuna o lote..."
+         style="min-width:200px;padding:6px 10px;border:1px solid var(--md-outline,#79747e);border-radius:8px;background:var(--md-surface,#fffbfe);color:var(--md-on-surface,#1c1b1f);font-size:13px;">
+
+  <button id="btnFilter" class="md3-btn md3-btn--tonal md3-btn--sm">
+    <i class="fa-solid fa-magnifying-glass"></i> Filtrar
+  </button>
+  <button id="btnClear" class="md3-btn md3-btn--outlined md3-btn--sm">
+    <i class="fa-solid fa-xmark"></i> Limpiar
+  </button>
+</div>
+
+<!-- Tabla de movimientos -->
+{% set _row = namespace(i=0) %}
+{% call(m) table(
+    id='movTable',
+    headers=[
+      {'label': 'Fecha / hora'},
+      {'label': 'Tipo'},
+      {'label': 'Vacuna'},
+      {'label': 'Lote'},
+      {'label': 'Clínica'},
+      {'label': 'Cant.', 'align': 'center'},
+      {'label': 'Stock antes→después', 'align': 'center'},
+      {'label': 'Responsable'},
+      {'label': 'Motivo'},
+    ],
+    rows=movimientos,
+    empty_icon='fa-arrow-right-arrow-left',
+    empty_title='Sin movimientos en el período seleccionado',
+    footer_text='Total: ' ~ movimientos|length ~ ' movimiento(s)'
+) %}
+  <tr data-type="{{ m.movement_type or '' }}"
+      data-vaccine="{{ (m.vaccine_name or '')|lower }}"
+      data-lot="{{ (m.lot_number or '')|lower }}"
+      data-date="{{ m.created_at.date().isoformat() if m.created_at else '' }}">
+
+    <td class="muted-td" style="font-size:13px;">
+      {{ m.created_at.strftime('%d/%m/%Y %H:%M') if m.created_at else '—' }}
+    </td>
+
+    <td>
+      {% set mt = m.movement_type or '' %}
+      {% if mt == 'Entrada' %}
+        {{ badge('Entrada',       color='success',   icon='fa-arrow-down',        size='sm') }}
+      {% elif mt == 'Salida_Aplicacion' %}
+        {{ badge('Aplicación',    color='primary',   icon='fa-syringe',           size='sm') }}
+      {% elif mt == 'Salida_Merma' %}
+        {{ badge('Merma',         color='error',     icon='fa-biohazard',         size='sm') }}
+      {% elif mt == 'Salida_Caducidad' %}
+        {{ badge('Caducidad',     color='error',     icon='fa-skull-crossbones',  size='sm') }}
+      {% elif mt == 'Ajuste_Positivo' %}
+        {{ badge('Ajuste +',      color='success',   icon='fa-circle-plus',       size='sm') }}
+      {% elif mt == 'Ajuste_Negativo' %}
+        {{ badge('Ajuste –',      color='secondary', icon='fa-circle-minus',      size='sm') }}
+      {% elif mt == 'Transferencia_Salida' %}
+        {{ badge('Trans. salida', color='warning',   icon='fa-arrow-right',       size='sm') }}
+      {% elif mt == 'Transferencia_Entrada' %}
+        {{ badge('Trans. entrada',color='success',   icon='fa-arrow-left',        size='sm') }}
+      {% else %}
+        {{ badge(mt or '—', color='neutral', size='sm') }}
+      {% endif %}
+    </td>
+
+    <td>{{ m.vaccine_name or '—' }}</td>
+    <td class="muted-td" style="font-size:13px;">{{ m.lot_number or '—' }}</td>
+    <td class="muted-td" style="font-size:13px;">{{ m.clinic_name or '—' }}</td>
+
+    <td class="col-center" style="font-weight:600;">{{ m.quantity }}</td>
+
+    <td class="col-center">
+      <div class="qty-arrow">
+        <span class="qty-arrow__before">{{ m.quantity_before }}</span>
+        <span class="qty-arrow__icon"><i class="fa-solid fa-arrow-right"></i></span>
+        <span class="qty-arrow__after">{{ m.quantity_after }}</span>
+      </div>
+    </td>
+
+    <td class="muted-td" style="font-size:13px;">{{ m.worker_name or '—' }}</td>
+
+    <td class="muted-td" style="font-size:13px;">
+      {% if m.reason %}
+        {{ m.reason }}
+      {% elif m.reference_type == 'vaccination_record' %}
+        Vacuna aplicada
+      {% else %}
+        —
+      {% endif %}
+    </td>
+  </tr>
+  {% set _row.i = _row.i + 1 %}
+{% endcall %}
+
+<!-- Totales del período -->
+{% if movimientos %}
+<div class="mov-footer-totales">
+  <div class="mov-footer-totales__item">
+    <span class="mov-footer-totales__val" style="color:var(--md-tertiary,#386a20);" id="totalEntradas">—</span>
+    <span class="mov-footer-totales__lbl">Entradas</span>
+  </div>
+  <div class="mov-footer-totales__item">
+    <span class="mov-footer-totales__val" style="color:var(--md-error,#b3261e);" id="totalSalidas">—</span>
+    <span class="mov-footer-totales__lbl">Salidas</span>
+  </div>
+  <div class="mov-footer-totales__item">
+    <span class="mov-footer-totales__val" style="color:var(--md-primary,#6B007C);" id="totalAplicaciones">—</span>
+    <span class="mov-footer-totales__lbl">Aplicaciones</span>
+  </div>
+  <div class="mov-footer-totales__item">
+    <span class="mov-footer-totales__val" id="totalAjustes">—</span>
+    <span class="mov-footer-totales__lbl">Ajustes</span>
+  </div>
+  <div class="mov-footer-totales__item">
+    <span class="mov-footer-totales__val" id="totalMermas">—</span>
+    <span class="mov-footer-totales__lbl">Mermas</span>
+  </div>
+</div>
+{% endif %}
+
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/pages/almacen_movimientos.js') }}" defer></script>
+{% endblock %}

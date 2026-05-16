@@ -104,6 +104,50 @@
         </nav>
       </div>
 
+    {% elif user_role == 'Almacen' %}
+
+      <div class="sidebar-section">
+        <p class="sidebar-section-title">Almacén</p>
+        <nav class="sidebar-nav" aria-label="Almacén">
+          <a href="{{ url_for('almacen_dashboard') }}"
+             class="sidebar-nav-item {{ 'active' if request.endpoint == 'almacen_dashboard' else '' }}"
+             {{ 'aria-current=page' if request.endpoint == 'almacen_dashboard' else '' }}>
+            <i class="fa-solid fa-warehouse"></i>
+            <span>Dashboard</span>
+          </a>
+          <a href="{{ url_for('almacen_lotes') }}"
+             class="sidebar-nav-item {{ 'active' if request.endpoint in ['almacen_lotes','almacen_lote_detalle'] else '' }}"
+             {{ 'aria-current=page' if request.endpoint in ['almacen_lotes','almacen_lote_detalle'] else '' }}>
+            <i class="fa-solid fa-boxes-stacked"></i>
+            <span>Lotes de vacunas</span>
+          </a>
+          <a href="{{ url_for('almacen_movimientos') }}"
+             class="sidebar-nav-item {{ 'active' if request.endpoint == 'almacen_movimientos' else '' }}"
+             {{ 'aria-current=page' if request.endpoint == 'almacen_movimientos' else '' }}>
+            <i class="fa-solid fa-arrow-right-arrow-left"></i>
+            <span>Movimientos</span>
+          </a>
+        </nav>
+      </div>
+
+      <div class="sidebar-section">
+        <p class="sidebar-section-title">Inventario</p>
+        <nav class="sidebar-nav" aria-label="Inventario">
+          <a href="{{ url_for('vacunas_page') }}"
+             class="sidebar-nav-item {{ 'active' if request.endpoint == 'vacunas_page' else '' }}"
+             {{ 'aria-current=page' if request.endpoint == 'vacunas_page' else '' }}>
+            <i class="fa-solid fa-syringe"></i>
+            <span>Catálogo vacunas</span>
+          </a>
+          <a href="{{ url_for('inventario') }}"
+             class="sidebar-nav-item {{ 'active' if request.endpoint == 'inventario' else '' }}"
+             {{ 'aria-current=page' if request.endpoint == 'inventario' else '' }}>
+            <i class="fa-solid fa-clipboard-list"></i>
+            <span>Insumos</span>
+          </a>
+        </nav>
+      </div>
+
     {% elif user_role == 'Medico' %}
 
       <div class="sidebar-section">
