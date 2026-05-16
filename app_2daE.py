@@ -1,4 +1,4 @@
-import math
+﻿import math
 import psycopg
 from psycopg.rows import dict_row
 import os
@@ -1295,7 +1295,7 @@ def tutor_qr_imagen(patient_id):
     from flask import send_file as _send_file
     return _send_file(
         qr_buf,
-        mimetype="image/png",
+        mimetype="image/png",   
         as_attachment=True,
         download_name=f"qr_paciente_{patient_id}.png",
     )
@@ -4109,6 +4109,10 @@ def api_global_search():
         return jsonify({"results": []})
 
     q = (request.args.get("q") or "").strip().lower()
+    # El lector NFC físico suele agregar "/" u otros chars al final — limpiar
+    q_clean = q.rstrip("/ \t")
+    if q_clean.isdigit():
+        q = q_clean
     if not q:
         return jsonify({"results": []})
 
@@ -4137,6 +4141,11 @@ def api_global_search():
 
     patient_results.sort(key=lambda x: x[0])
     results.extend(r for _, r in patient_results)
+
+    # Detectar match exacto de NFC para auto-navegación
+    nfc_redirect = None
+    if is_numeric and patient_results and patient_results[0][0] == 0:
+        nfc_redirect = patient_results[0][1]["url"]
 
     # Buscar vacunas
     for v in _cur_fetchall("vaccines"):
@@ -4179,7 +4188,7 @@ def api_global_search():
                 "url":      url_for("personal") + f"?q={name}",
             })
 
-    return jsonify({"results": results[:10]})
+    return jsonify({"results": results[:10], "nfc_redirect": nfc_redirect})
 
 
 @app.route("/api/assign-nfc-id", methods=["POST"])
@@ -4228,11 +4237,58 @@ def api_clear_nfc_id():
     _safe_rollback(conn)
     try:
         with conn.cursor() as cur:
+            # Obtener todas las tarjetas del paciente
+            cur.execute("SELECT nfc_card_id FROM nfc_cards WHERE patient_id = %s", (patient_id,))
+            card_ids = [r["nfc_card_id"] for r in cur.fetchall()]
+
+            if card_ids:
+                # Usar DO block para manejar tablas opcionales (migración clínica puede no haberse corrido)
+                cur.execute("""
+                    DO $$
+                    DECLARE v_ids INT[] := %s;
+                    BEGIN
+                        -- nfc_scan_events.visit_id (columna del flujo clínico, opcional)
+                        IF EXISTS (
+                            SELECT 1 FROM information_schema.columns
+                            WHERE table_name='nfc_scan_events' AND column_name='visit_id'
+                        ) THEN
+                            UPDATE nfc_scan_events SET visit_id = NULL WHERE nfc_card_id = ANY(v_ids);
+                        END IF;
+
+                        -- patient_clinic_visits (tabla opcional)
+                        IF EXISTS (
+                            SELECT 1 FROM information_schema.tables WHERE table_name='patient_clinic_visits'
+                        ) THEN
+                            UPDATE patient_clinic_visits
+                               SET checkin_nfc_scan_id = NULL
+                             WHERE checkin_nfc_scan_id IN (
+                                   SELECT scan_event_id FROM nfc_scan_events WHERE nfc_card_id = ANY(v_ids));
+                            UPDATE patient_clinic_visits
+                               SET checkout_nfc_scan_id = NULL
+                             WHERE checkout_nfc_scan_id IN (
+                                   SELECT scan_event_id FROM nfc_scan_events WHERE nfc_card_id = ANY(v_ids));
+                        END IF;
+
+                        -- visit_area_movements (tabla opcional)
+                        IF EXISTS (
+                            SELECT 1 FROM information_schema.tables WHERE table_name='visit_area_movements'
+                        ) THEN
+                            UPDATE visit_area_movements
+                               SET nfc_scan_id = NULL
+                             WHERE nfc_scan_id IN (
+                                   SELECT scan_event_id FROM nfc_scan_events WHERE nfc_card_id = ANY(v_ids));
+                        END IF;
+                    END$$;
+                """, (card_ids,))
+                cur.execute("DELETE FROM nfc_scan_events WHERE nfc_card_id = ANY(%s)", (card_ids,))
+                cur.execute("DELETE FROM nfc_cards WHERE patient_id = %s", (patient_id,))
+
+            # Limpiar nfc_id del paciente
             cur.execute("CALL sp_clear_patient_nfc_id(%s)", (patient_id,))
         conn.commit()
     except Exception as e:
         _safe_rollback(conn)
-        logger.error(f"Error en /api/clear-nfc-id: {e}")
+        logger.error("Error en /api/clear-nfc-id: %s", e)
         return jsonify({"error": str(e)}), 400
     finally:
         if should_close and not _conn_is_closed(conn):
@@ -4401,6 +4457,293 @@ def api_alertas_esquema():
             conn.close()
 
     return jsonify(rows)
+
+
+# =============================================================================
+# RUTAS — Monitor de Sala (recepción en tiempo real)
+# =============================================================================
+
+@app.route("/sala-espera")
+def sala_espera():
+    locked = _require_role("Recepcionista", "Medico", "Enfermero", "Administrador")
+    if locked:
+        return locked
+
+    conn, should_close = _get_conn()
+    finalizados_hoy = 0
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT COUNT(*) FROM patient_clinic_visits
+                WHERE clinic_id    = %s
+                  AND DATE(checked_in_at) = CURRENT_DATE
+                  AND visit_status  = 'Finalizado'
+                """,
+                (session.get("clinic_id"),),
+            )
+            row = cur.fetchone()
+            finalizados_hoy = row[0] if row else 0
+    except Exception as e:
+        logger.error("Error en /sala-espera: %s", e)
+    finally:
+        if should_close and not _conn_is_closed(conn):
+            conn.close()
+
+    session["last_section"] = "sala_espera"
+    return render_template(
+        "pages/recepcionista/sala_espera.html",
+        **_session_vars(),
+        finalizados_hoy=finalizados_hoy,
+        today=datetime.now().strftime("%d de %B de %Y"),
+    )
+
+
+# =============================================================================
+# RUTAS — flujo clínico NFC
+# =============================================================================
+
+@app.route("/api/nfc/scan", methods=["POST"])
+def api_nfc_scan():
+    """
+    Punto de entrada único para todos los escaneos NFC operativos.
+    El parámetro `context` determina qué SP se invoca:
+      - checkin   → sp_nfc_checkin     (recepción)
+      - medical   → sp_nfc_medical_scan (médico/enfermero)
+      - checkout  → sp_nfc_checkout    (salida)
+    """
+    if not _check_role("Recepcionista", "Medico", "Enfermero", "Administrador"):
+        return jsonify({"error": "Sin permisos"}), 403
+
+    body      = request.get_json(force=True) or {}
+    nfc_uid   = (body.get("uid") or "").strip()
+    context   = (body.get("context") or "checkin").strip()
+    device_id = body.get("device_id")
+    worker_id = session.get("worker_id")
+    clinic_id = session.get("clinic_id")
+
+    if not nfc_uid:
+        return jsonify({"error": "uid requerido"}), 400
+
+    CONTEXT_SP = {
+        "checkin": "sp_nfc_checkin",
+        "medical": "sp_nfc_medical_scan",
+        "checkout": "sp_nfc_checkout",
+    }
+    sp_name = CONTEXT_SP.get(context)
+    if not sp_name:
+        return jsonify({"error": f"context no válido: {context}"}), 400
+
+    conn, should_close = _get_conn()
+    _safe_rollback(conn)
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                f"CALL {sp_name}(%s, %s, %s, %s, %s)",
+                (nfc_uid, worker_id, device_id, clinic_id, "cur_nfc_scan"),
+            )
+            cur.execute('FETCH ALL FROM "cur_nfc_scan"')
+            row = cur.fetchone()
+            result = dict(row) if row else {}
+            for k, v in result.items():
+                if isinstance(v, (datetime, date)):
+                    result[k] = _temporal_text(v)
+        conn.commit()
+        status_code = 200 if result.get("success") else 400
+        return jsonify(result), status_code
+    except Exception as e:
+        _safe_rollback(conn)
+        logger.error("Error en /api/nfc/scan [%s]: %s", context, e)
+        return jsonify({"error": str(e)}), 500
+    finally:
+        if should_close and not _conn_is_closed(conn):
+            conn.close()
+
+
+@app.route("/api/visits/realtime")
+def api_visits_realtime():
+    """
+    Lista de pacientes con visita activa en la clínica del usuario actual.
+    Consumido por el dashboard de recepción cada 10 segundos (polling).
+    """
+    if not _check_role("Recepcionista", "Medico", "Enfermero", "Administrador"):
+        return jsonify({"error": "Sin permisos"}), 403
+
+    clinic_id = session.get("clinic_id")
+    if not clinic_id:
+        return jsonify({"visits": [], "ts": datetime.now().isoformat()}), 200
+
+    conn, should_close = _get_conn()
+    _safe_rollback(conn)
+    try:
+        with conn.cursor() as cur:
+            cur.execute("CALL sp_reception_realtime(%s, %s)", (clinic_id, "cur_rt"))
+            cur.execute('FETCH ALL FROM "cur_rt"')
+            visits = []
+            for r in cur.fetchall():
+                row = dict(r)
+                for k, v in row.items():
+                    if isinstance(v, (datetime, date)):
+                        row[k] = _temporal_text(v)
+                visits.append(row)
+        conn.commit()
+        return jsonify({"visits": visits, "ts": datetime.now().isoformat()}), 200
+    except Exception as e:
+        _safe_rollback(conn)
+        logger.error("Error en /api/visits/realtime: %s", e)
+        return jsonify({"error": str(e)}), 500
+    finally:
+        if should_close and not _conn_is_closed(conn):
+            conn.close()
+
+
+@app.route("/api/visits/<int:visit_id>/transition", methods=["POST"])
+def api_visit_transition(visit_id):
+    """
+    Cambia el estado clínico de una visita activa sin necesidad de NFC.
+    Usado desde los botones del dashboard de recepción.
+    """
+    if not _check_role("Recepcionista", "Medico", "Enfermero", "Administrador"):
+        return jsonify({"error": "Sin permisos"}), 403
+
+    body       = request.get_json(force=True) or {}
+    new_status = (body.get("status") or "").strip()
+    new_area   = body.get("area_id")
+    notes      = body.get("notes")
+    worker_id  = session.get("worker_id")
+
+    VALID = {"En recepcion","En espera","En consulta","En vacunacion",
+             "Finalizado","Abandono","Cancelado"}
+    if new_status not in VALID:
+        return jsonify({"error": f"Estado no válido: {new_status}"}), 400
+
+    conn, should_close = _get_conn()
+    _safe_rollback(conn)
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                "CALL sp_visit_transition(%s, %s::visit_status, %s, %s, %s, %s, %s)",
+                (visit_id, new_status, new_area, worker_id, None, notes, "cur_tr"),
+            )
+            cur.execute('FETCH ALL FROM "cur_tr"')
+            row = cur.fetchone()
+            result = dict(row) if row else {}
+        conn.commit()
+        return jsonify(result), 200 if result.get("success") else 400
+    except Exception as e:
+        _safe_rollback(conn)
+        logger.error("Error en /api/visits/%s/transition: %s", visit_id, e)
+        return jsonify({"error": str(e)}), 500
+    finally:
+        if should_close and not _conn_is_closed(conn):
+            conn.close()
+
+
+@app.route("/api/visits/<int:visit_id>/patient-summary")
+def api_visit_patient_summary(visit_id):
+    """
+    Devuelve el expediente clínico completo de una visita:
+    datos del paciente, alergias, dosis pendientes/atrasadas,
+    historial reciente de vacunación.
+    Usado por el dashboard médico tras escanear NFC.
+    """
+    if not _check_role("Medico", "Enfermero", "Administrador"):
+        return jsonify({"error": "Sin permisos"}), 403
+
+    conn, should_close = _get_conn()
+    _safe_rollback(conn)
+    try:
+        with conn.cursor() as cur:
+            # Resumen principal
+            cur.execute("CALL sp_visit_patient_summary(%s, %s)", (visit_id, "cur_sum"))
+            cur.execute('FETCH ALL FROM "cur_sum"')
+            row = cur.fetchone()
+            if not row:
+                return jsonify({"error": "Visita no encontrada"}), 404
+            summary = dict(row)
+            for k, v in summary.items():
+                if isinstance(v, (datetime, date)):
+                    summary[k] = _temporal_text(v)
+
+            # Dosis pendientes y atrasadas con lote recomendado
+            cur.execute("CALL sp_patient_pending_doses(%s, %s)",
+                        (summary.get("patient_id"), "cur_doses"))
+            cur.execute('FETCH ALL FROM "cur_doses"')
+            pending_doses = []
+            for r in cur.fetchall():
+                d = dict(r)
+                for k, v in d.items():
+                    if isinstance(v, (datetime, date)):
+                        d[k] = _temporal_text(v)
+                pending_doses.append(d)
+
+            # Últimas 5 vacunas aplicadas
+            cur.execute("""
+                SELECT vr.record_id,
+                       vr.applied_date,
+                       v.name          AS vaccine_name,
+                       vl.lot_number,
+                       TRIM(w.first_name || ' ' || w.last_name) AS applied_by,
+                       vr.had_reaction
+                FROM   vaccination_records vr
+                JOIN   vaccines v  ON v.vaccine_id  = vr.vaccine_id
+                LEFT   JOIN vaccine_lots vl ON vl.lot_id = vr.lot_id
+                JOIN   workers w   ON w.worker_id   = vr.worker_id
+                WHERE  vr.patient_id = %s
+                ORDER  BY vr.applied_date DESC
+                LIMIT  5
+            """, (summary.get("patient_id"),))
+            recent_vaccinations = [
+                {**dict(r), "applied_date": _temporal_text(r.get("applied_date"))}
+                for r in cur.fetchall()
+            ]
+
+        conn.commit()
+        return jsonify({
+            "patient":             summary,
+            "pending_doses":       pending_doses,
+            "recent_vaccinations": recent_vaccinations,
+        }), 200
+    except Exception as e:
+        _safe_rollback(conn)
+        logger.error("Error en /api/visits/%s/patient-summary: %s", visit_id, e)
+        return jsonify({"error": str(e)}), 500
+    finally:
+        if should_close and not _conn_is_closed(conn):
+            conn.close()
+
+
+@app.route("/api/visits/<int:visit_id>/link-vaccination", methods=["POST"])
+def api_visit_link_vaccination(visit_id):
+    """
+    Vincula un registro de vacunación recién creado a la visita activa.
+    Llamado automáticamente tras registrar la vacuna en el flujo médico.
+    """
+    if not _check_role("Medico", "Enfermero", "Administrador"):
+        return jsonify({"error": "Sin permisos"}), 403
+
+    body      = request.get_json(force=True) or {}
+    record_id = body.get("record_id")
+    if not record_id:
+        return jsonify({"error": "record_id requerido"}), 400
+
+    conn, should_close = _get_conn()
+    _safe_rollback(conn)
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                "UPDATE vaccination_records SET visit_id = %s WHERE record_id = %s",
+                (visit_id, record_id),
+            )
+        conn.commit()
+        return jsonify({"success": True, "visit_id": visit_id, "record_id": record_id}), 200
+    except Exception as e:
+        _safe_rollback(conn)
+        logger.error("Error en /api/visits/%s/link-vaccination: %s", visit_id, e)
+        return jsonify({"error": str(e)}), 500
+    finally:
+        if should_close and not _conn_is_closed(conn):
+            conn.close()
 
 
 # =============================================================================
