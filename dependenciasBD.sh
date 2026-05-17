@@ -30,13 +30,36 @@ EOF
 
 # ──────────────────────────────────────────────
 # 2. INSTALAR DEPENDENCIAS DEL SISTEMA
+# Detecta el gestor de paquetes (apt/dnf/yum)
 # ──────────────────────────────────────────────
 echo "[2/5] Instalando dependencias del sistema..."
-sudo apt-get update -qq
-sudo apt-get install -y -qq \
-    python3 python3-venv python3-pip \
-    postgresql postgresql-contrib \
-    libpq-dev
+if command -v apt-get &>/dev/null; then
+    sudo apt-get update -qq
+    sudo apt-get install -y -qq \
+        python3 python3-venv python3-pip \
+        postgresql postgresql-contrib libpq-dev
+elif command -v dnf &>/dev/null; then
+    sudo dnf install -y -q \
+        python3 python3-pip \
+        postgresql-server postgresql-contrib libpq-devel
+    # Inicializar clúster postgres si es la primera vez
+    if [ ! -f "/var/lib/pgsql/data/PG_VERSION" ]; then
+        sudo postgresql-setup --initdb
+    fi
+elif command -v yum &>/dev/null; then
+    sudo yum install -y -q \
+        python3 python3-pip \
+        postgresql-server postgresql-contrib libpq-devel
+    if [ ! -f "/var/lib/pgsql/data/PG_VERSION" ]; then
+        sudo postgresql-setup initdb
+    fi
+else
+    echo "[ERROR] No se encontró apt-get, dnf ni yum."
+    exit 1
+fi
+
+# python3-venv viene incluido en dnf/yum con python3, pero pip install venv cubre el resto
+python3 -m ensurepip --upgrade 2>/dev/null || true
 
 # ──────────────────────────────────────────────
 # 3. INSTALAR DEPENDENCIAS PYTHON
