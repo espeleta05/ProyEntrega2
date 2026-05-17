@@ -67,6 +67,7 @@ def get_connection():
                 password=PG_PASSWORD,
                 dbname=PG_DB,
                 row_factory=dict_row,
+                options="-c client_encoding=UTF8",
             )
         return pymysql.connect(
             host=MYSQL_HOST,

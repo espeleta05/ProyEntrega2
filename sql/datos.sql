@@ -281,13 +281,21 @@ INSERT INTO patient_guardian_relations (patient_id, guardian_id, relation_type, 
 (14,14,'Madre',TRUE,TRUE),
 (15,15,'Padre',TRUE,TRUE);
 
+-- ══════════════════════════════════════════════════════════════
+-- LIMPIEZA: roles + todo lo que depende via CASCADE
+-- (workers, users, appointments, vaccination_records, etc.)
+-- Permite re-ejecutar el archivo sin errores de duplicados
+-- ══════════════════════════════════════════════════════════════
+TRUNCATE TABLE roles RESTART IDENTITY CASCADE;
+
 -- ROLES
 INSERT INTO roles (name, description) VALUES
 ('Administrador','Gestiona el sistema'),
 ('Enfermero','Aplica vacunas'),
-('Médico','Supervisa pacientes'),
+('Medico','Supervisa pacientes'),
 ('Recepcionista','Agenda citas'),
-('Almacén','Controla inventario');
+('Almacen','Controla inventario'),
+('Tutor','Cuida pacientes');
 
 -- SPECIALTIES
 INSERT INTO specialties (name) VALUES
@@ -336,56 +344,56 @@ INSERT INTO worker_professional (worker_id, cedula_profesional, specialty_id, in
 (14, '5678901', 3,  4),
 (15, '6789012', 5,  2);
 
-INSERT INTO worker_phones (phone_id, worker_id, phone, phone_type, is_primary) VALUES
-(1,  1,  '81-3001-1111', 'Celular', TRUE),
-(2,  2,  '81-3001-2222', 'Celular', TRUE),
-(3,  3,  '81-3001-3333', 'Celular', TRUE),
-(4,  4,  '81-3001-4444', 'Celular', TRUE),
-(5,  5,  '81-3001-5555', 'Celular', TRUE),
-(6,  6,  '81-3001-6666', 'Celular', TRUE),
-(7,  7,  '81-3001-7777', 'Celular', TRUE),
-(8,  8,  '81-3001-8888', 'Celular', TRUE),
-(9,  9,  '81-3001-9999', 'Celular', TRUE),
-(10, 10, '81-3002-0000', 'Celular', TRUE),
-(11, 11, '81-3002-1111', 'Celular', TRUE),
-(12, 12, '81-3002-2222', 'Celular', TRUE),
-(13, 13, '81-3002-3333', 'Celular', TRUE),
-(14, 14, '81-3002-4444', 'Celular', TRUE),
-(15, 15, '81-3002-5555', 'Celular', TRUE);
+INSERT INTO worker_phones (worker_id, phone, phone_type, is_primary) VALUES
+(1,  '81-3001-1111', 'Celular', TRUE),
+(2,  '81-3001-2222', 'Celular', TRUE),
+(3,  '81-3001-3333', 'Celular', TRUE),
+(4,  '81-3001-4444', 'Celular', TRUE),
+(5,  '81-3001-5555', 'Celular', TRUE),
+(6,  '81-3001-6666', 'Celular', TRUE),
+(7,  '81-3001-7777', 'Celular', TRUE),
+(8,  '81-3001-8888', 'Celular', TRUE),
+(9,  '81-3001-9999', 'Celular', TRUE),
+(10, '81-3002-0000', 'Celular', TRUE),
+(11, '81-3002-1111', 'Celular', TRUE),
+(12, '81-3002-2222', 'Celular', TRUE),
+(13, '81-3002-3333', 'Celular', TRUE),
+(14, '81-3002-4444', 'Celular', TRUE),
+(15, '81-3002-5555', 'Celular', TRUE);
 
-INSERT INTO worker_emails (email_id, worker_id, email, is_primary) VALUES
-(1, 1, 'jose.perez@gmail.com', TRUE),
-(2, 2, 'lucia.santos@gmail.com', TRUE),
-(3, 3, 'mario.luna@gmail.com', TRUE),
-(4, 4, 'elisa.campos@gmail.com', TRUE),
-(5, 5, 'raul.mora@gmail.com', TRUE),
-(6, 6, 'paty.rios@gmail.com', TRUE),
-(7, 7, 'andres.leon@gmail.com', TRUE),
-(8, 8, 'diana.paz@gmail.com', TRUE),
-(9, 9, 'ivan.silva@gmail.com', TRUE),
-(10, 10, 'karen.vega@gmail.com', TRUE),
-(11, 11, 'tomas.gil@gmail.com', TRUE),
-(12, 12, 'nora.reyes@gmail.com', TRUE),
-(13, 13, 'alan.cruz@gmail.com', TRUE),
-(14, 14, 'monica.pena@gmail.com', TRUE),
-(15, 15, 'victor.soto@gmail.com', TRUE);
+INSERT INTO worker_emails (worker_id, email, is_primary) VALUES
+(1,  'jose.perez@gmail.com',    TRUE),
+(2,  'lucia.santos@gmail.com',  TRUE),
+(3,  'mario.luna@gmail.com',    TRUE),
+(4,  'elisa.campos@gmail.com',  TRUE),
+(5,  'raul.mora@gmail.com',     TRUE),
+(6,  'paty.rios@gmail.com',     TRUE),
+(7,  'andres.leon@gmail.com',   TRUE),
+(8,  'diana.paz@gmail.com',     TRUE),
+(9,  'ivan.silva@gmail.com',    TRUE),
+(10, 'karen.vega@gmail.com',    TRUE),
+(11, 'tomas.gil@gmail.com',     TRUE),
+(12, 'nora.reyes@gmail.com',    TRUE),
+(13, 'alan.cruz@gmail.com',     TRUE),
+(14, 'monica.pena@gmail.com',   TRUE),
+(15, 'victor.soto@gmail.com',   TRUE);
 
-INSERT INTO worker_clinic_assignment (assignment_id, worker_id, clinic_id, area_id, start_date, end_date, is_active) VALUES
-(1,  1,  1, 5,  '2015-03-01', NULL, TRUE),
-(2,  2,  1, 2,  '2010-07-20', NULL, TRUE),
-(3,  3,  1, 3,  '2018-01-10', NULL, TRUE),
-(4,  4,  1, 4,  '2020-06-15', NULL, TRUE),
-(5,  5,  2, 7,  '2012-09-01', NULL, TRUE),
-(6,  6,  2, 8,  '2019-04-01', NULL, TRUE),
-(7,  7,  3, 12, '2017-11-15', NULL, TRUE),
-(8,  8,  3, 11, '2008-03-20', NULL, TRUE),
-(9,  9,  2, 9,  '2022-01-05', NULL, TRUE),
-(10, 10, 4, 13, '2016-08-01', NULL, TRUE),
-(11, 11, 4, 14, '2021-03-10', NULL, TRUE),
-(12, 12, 5, 15, '2009-11-01', NULL, TRUE),
-(13, 13, 5, 14, '2014-05-20', NULL, TRUE),
-(14, 14, 1, 3,  '2013-02-01', NULL, TRUE),
-(15, 15, 1, 2,  '2011-10-10', NULL, TRUE);
+INSERT INTO worker_clinic_assignment (worker_id, clinic_id, area_id, start_date, end_date, is_active) VALUES
+(1,  1, 5,  '2015-03-01', NULL, TRUE),
+(2,  1, 2,  '2010-07-20', NULL, TRUE),
+(3,  1, 3,  '2018-01-10', NULL, TRUE),
+(4,  1, 4,  '2020-06-15', NULL, TRUE),
+(5,  2, 7,  '2012-09-01', NULL, TRUE),
+(6,  2, 8,  '2019-04-01', NULL, TRUE),
+(7,  3, 12, '2017-11-15', NULL, TRUE),
+(8,  3, 11, '2008-03-20', NULL, TRUE),
+(9,  2, 9,  '2022-01-05', NULL, TRUE),
+(10, 4, 13, '2016-08-01', NULL, TRUE),
+(11, 4, 14, '2021-03-10', NULL, TRUE),
+(12, 5, 15, '2009-11-01', NULL, TRUE),
+(13, 5, 14, '2014-05-20', NULL, TRUE),
+(14, 1, 3,  '2013-02-01', NULL, TRUE),
+(15, 1, 2,  '2011-10-10', NULL, TRUE);
 
 INSERT INTO worker_schedules (worker_id, clinic_id, day_of_week, entry_time, exit_time, shift_type) VALUES
 (1,  1, 1, '08:00', '14:00', 'Matutino'),
@@ -528,107 +536,186 @@ INSERT INTO scheme_doses (dose_id, scheme_id, vaccine_id, dose_number, dose_labe
     (8, 'Glúteo_Der');
 
  -- ─────────────────────────────────────────────
-    --  APPOINTMENTS
+    --  APPOINTMENTS  (schema correcto: sin vaccine_id/scheme_dose_id)
+    --  15 citas — una por paciente, vinculadas al primer registro de cada uno.
+    --  Worker 3 (Médico Mario, clinic 1, area 3) y Worker 2 (Enfermera Lucía, clinic 1, area 2).
+    --  Fechas distintas → no viola UNIQUE(worker_id, scheduled_at) ni UNIQUE(clinic_id, area_id, scheduled_at).
     -- ─────────────────────────────────────────────
-INSERT INTO appointments 
-(appointment_id, patient_id, clinic_id, area_id, worker_id, vaccine_id, scheme_dose_id, scheduled_at, duration_min, reason, appointment_status, appointment_notes) 
+INSERT INTO appointments
+(appointment_id, patient_id, clinic_id, area_id, worker_id,
+ patient_schedule_id, scheduled_at, duration_min, reason,
+ appointment_status, created_by_role, created_by_worker_id)
 VALUES
-(1,  1,  1, 3, 3, 1, 1,  '2024-02-10 09:00', 20, 'Vacuna BCG y Hepatitis B — nacimiento', 'Completada', 'Sin incidencias'),
-
-(2,  2,  1, 3, 3, 2, 2,  '2023-08-15 10:00', 20, 'Pentavalente 1ra dosis — 2 meses', 'Completada', 'Sin incidencias'),
-
-(3,  3,  2, 8, 6, 3, 3,  '2023-01-25 09:30', 20, 'Pentavalente 1ra dosis', 'Completada', NULL),
-
-(4,  4,  1, 3, 3, 4, 4,  '2021-06-10 11:00', 20, 'Hepatitis B 2da dosis — 4 meses', 'Completada', NULL),
-
-(5,  5,  2, 7, 5, 5, 5,  '2020-10-05 09:00', 20, 'Rotavirus 1ra dosis — 2 meses', 'Completada', NULL),
-
-(6,  6,  3,12, 7, 6, 6,  '2020-03-22 10:30', 20, 'SRP 1ra dosis', 'Completada', NULL),
-
--- Ajustados (worker 3 mismo día)
-(7,  7,  1, 3, 3, 7, 7,  '2019-07-30 09:00', 20, 'BCG nacimiento', 'Completada', 'Paciente prematura'),
-(15, 15, 1, 3, 3, 1, 1,  '2019-07-30 09:30', 20, 'BCG nacimiento', 'Completada', NULL),
-
--- Ajustados (worker 6 mismo día)
-(8,  8,  2, 8, 6, 8, 8,  '2019-12-12 11:00', 20, 'DPT refuerzo — 4 años', 'Completada', NULL),
-
-(9,  9,  1, 3, 3, 9, 9,  '2018-08-03 09:00', 20, 'BCG nacimiento', 'Completada', NULL),
-
-(10, 10, 1, 3, 3, 10,10, '2017-04-05 10:00', 20, 'SRP 1ra dosis', 'Completada', NULL),
-
-(11, 11, 2, 7, 5, 8, 15, '2022-09-18 09:00', 20, 'SRP 1ra dosis', 'Completada', NULL),
-
--- Ajustados (worker 5 mismo día)
-(12, 12, 2, 7, 5, 7, 18, '2022-09-20 09:00', 20, 'Influenza refuerzo anual', 'Completada', NULL),
-(13, 13, 3,12, 7, 8, 15, '2020-03-22 11:00', 20, 'SRP 1ra dosis', 'Completada', NULL),
-
--- Ajustados (worker 10 mismo día)
-(14, 14, 4,13,10,10,20, '2023-03-22 10:30', 20, 'DPT refuerzo — 4 años', 'Completada', NULL);
+-- Médico Mario (worker 3) → area 3
+(1,  1,  1, 3, 3, NULL, '2018-03-15 09:00', 20, 'BCG + Hep B nacimiento',       'Completada', 'Medico',    3),
+(2,  2,  1, 3, 3, NULL, '2019-07-20 09:00', 20, 'BCG + Hep B nacimiento',       'Completada', 'Medico',    3),
+(4,  4,  1, 3, 3, NULL, '2017-11-05 09:00', 20, 'Hep B 1ra dosis nacimiento',   'Completada', 'Medico',    3),
+(6,  6,  1, 3, 3, NULL, '2018-08-18 09:00', 20, 'BCG nacimiento',               'Completada', 'Medico',    3),
+(8,  8,  1, 3, 3, NULL, '2020-09-14 09:00', 20, 'BCG nacimiento',               'Completada', 'Medico',    3),
+(9,  9,  1, 3, 3, NULL, '2017-12-30 09:00', 20, 'BCG + Hep B nacimiento',       'Completada', 'Medico',    3),
+(11,11,  1, 3, 3, NULL, '2018-05-03 09:00', 20, 'BCG nacimiento',               'Completada', 'Medico',    3),
+(13,13,  1, 3, 3, NULL, '2020-09-01 09:00', 20, 'Pentavalente 1ra dosis — 2m',  'Completada', 'Medico',    3),
+(14,14,  1, 3, 3, NULL, '2017-09-27 09:00', 20, 'BCG nacimiento',               'Completada', 'Medico',    3),
+-- Enfermera Lucía (worker 2) → area 2
+(3,  3,  1, 2, 2, NULL, '2020-01-10 09:00', 20, 'BCG nacimiento',               'Completada', 'Enfermero', 2),
+(5,  5,  1, 2, 2, NULL, '2021-06-12 09:00', 20, 'BCG nacimiento',               'Completada', 'Enfermero', 2),
+(7,  7,  1, 2, 2, NULL, '2019-04-09 09:00', 20, 'Hep B 1ra dosis nacimiento',   'Completada', 'Enfermero', 2),
+(10,10,  1, 2, 2, NULL, '2021-02-25 09:00', 20, 'Hep B 1ra dosis nacimiento',   'Completada', 'Enfermero', 2),
+(12,12,  1, 2, 2, NULL, '2019-10-16 09:00', 20, 'BCG nacimiento',               'Completada', 'Enfermero', 2),
+(15,15,  1, 2, 2, NULL, '2021-04-11 09:00', 20, 'BCG nacimiento',               'Completada', 'Enfermero', 2);
 
     -- ─────────────────────────────────────────────
-    --  VACCINATION RECORDS
+    --  VACCINATION RECORDS (96 registros)
+    --  15 registros vinculados a su appointment (first visit).
+    --  El resto: appointment_id = NULL (dosis extra, sin cita previa).
+    --  Paciente 9 = ESQUEMA COMPLETO hasta 24 meses.
     -- ─────────────────────────────────────────────
 
-INSERT INTO vaccination_records 
-(record_id, patient_id, vaccine_id, worker_id, clinic_id, lot_id, scheme_dose_id, applied_date, application_site_id, appointment_id, patient_temp_c, had_reaction) 
+INSERT INTO vaccination_records
+(record_id, patient_id, vaccine_id, worker_id, clinic_id, lot_id,
+ scheme_dose_id, applied_date, application_site_id, appointment_id,
+ patient_temp_c, had_reaction)
 VALUES
 
--- appointment 1
-(1,  1,  1, 3, 1, 1, 1, '2024-02-10', 6, 1, 36.5, FALSE),
+-- ── Paciente 9 — Leonardo Gómez (2017-12-30) — ESQUEMA COMPLETO ──
+(1,  9,1,3,1,1,  1,'2017-12-30',6, 9,  36.5,FALSE), -- BCG             ← appointment 9
+(2,  9,2,3,1,2,  2,'2017-12-30',1,NULL,36.5,FALSE), -- Hep B 1ra
+(3,  9,3,3,1,3,  3,'2018-02-28',1,NULL,36.5,FALSE), -- Penta 1ra
+(4,  9,4,3,1,4,  4,'2018-02-28',2,NULL,36.5,FALSE), -- Hep B 2da
+(5,  9,5,3,1,5,  5,'2018-02-28',5,NULL,36.6,FALSE), -- Rotavirus 1ra
+(6,  9,6,3,1,6,  6,'2018-02-28',4,NULL,36.6,FALSE), -- Neumococo 1ra
+(7,  9,3,3,1,3,  7,'2018-04-30',1,NULL,36.6,FALSE), -- Penta 2da
+(8,  9,5,3,1,5,  8,'2018-04-30',2,NULL,36.6,FALSE), -- Rotavirus 2da
+(9,  9,6,3,1,6,  9,'2018-04-30',4,NULL,36.5,FALSE), -- Neumococo 2da
+(10, 9,3,2,1,3, 10,'2018-06-30',1,NULL,36.7,FALSE), -- Penta 3ra
+(11, 9,4,2,1,4, 11,'2018-06-30',2,NULL,36.7,FALSE), -- Hep B 3ra
+(12, 9,5,2,1,5, 12,'2018-06-30',5,NULL,36.7,FALSE), -- Rotavirus 3ra
+(13, 9,7,2,1,7, 13,'2018-06-30',3,NULL,36.5,FALSE), -- Influenza 1ra
+(14, 9,7,2,1,7, 14,'2018-07-30',3,NULL,36.5,FALSE), -- Influenza 2da
+(15, 9,8,3,1,8, 15,'2018-12-30',3,NULL,36.8,FALSE), -- SRP 1ra
+(16, 9,6,3,1,6, 16,'2018-12-30',1,NULL,36.8,FALSE), -- Neumococo 3ra
+(17, 9,9,3,2,9, 17,'2019-06-30',1,NULL,36.6,FALSE), -- Penta refuerzo
+(18, 9,7,3,1,7, 18,'2019-12-30',3,NULL,36.5,FALSE), -- Influenza anual ← ESQUEMA COMPLETO a 24m
 
--- appointment 2
-(2,  2,  2, 3, 1, 2, 2, '2023-08-15', 1, 2, 36.5, FALSE),
+-- ── Paciente 1 — Mateo García (2018-03-15, ~8 años) ──
+(19, 1,1,3,1,1,  1,'2018-03-15',6, 1, 36.5,FALSE), -- BCG             ← appointment 1
+(20, 1,2,3,1,2,  2,'2018-03-15',1,NULL,36.5,FALSE), -- Hep B 1ra
+(21, 1,6,3,1,6,  6,'2018-05-15',4,NULL,36.6,FALSE), -- Neumococo 1ra (2m)
+(22, 1,8,3,1,8, 15,'2019-03-15',3,NULL,36.7,FALSE), -- SRP 1ra (12m)
+(23, 1,9,3,2,9, 17,'2019-09-15',1,NULL,36.5,FALSE), -- Penta refuerzo (18m)
+(24, 1,10,3,2,10,20,'2022-03-15',2,NULL,36.6,FALSE), -- DPT refuerzo (48m)
+(25, 1,8,3,1,8, 24,'2024-03-15',3,NULL,36.6,FALSE), -- SRP refuerzo (72m)
 
--- appointment 3
-(3,  3,  3, 6, 2, 3, 3, '2023-01-25', 1, 3, 36.7, FALSE),
+-- ── Paciente 2 — Sofía Martínez (2019-07-20, ~6 años 10m) ──
+(26, 2,1,3,1,1,  1,'2019-07-20',6, 2, 36.5,FALSE), -- BCG             ← appointment 2
+(27, 2,2,3,1,2,  2,'2019-07-20',1,NULL,36.5,FALSE), -- Hep B 1ra
+(28, 2,6,3,1,6,  6,'2019-09-20',4,NULL,36.6,FALSE), -- Neumococo 1ra (2m)
+(29, 2,8,3,1,8, 15,'2020-07-20',3,NULL,36.7,FALSE), -- SRP 1ra (12m)
+(30, 2,9,3,2,9, 17,'2021-01-20',1,NULL,36.5,FALSE), -- Penta refuerzo (18m)
+(31, 2,8,3,1,8, 24,'2025-07-20',3,NULL,36.6,FALSE), -- SRP refuerzo (72m)
 
--- appointment 4
-(4,  4,  4, 3, 1, 4, 4, '2021-06-10', 2, 4, 36.7, FALSE),
+-- ── Paciente 3 — Diego López (2020-01-10, prematuro) ──
+(32, 3,1,2,1,1,  1,'2020-01-10',6, 3, 36.5,FALSE), -- BCG             ← appointment 3
+(33, 3,3,2,1,3,  3,'2020-03-10',1,NULL,36.6,FALSE), -- Penta 1ra (2m)
+(34, 3,6,2,1,6,  6,'2020-03-10',4,NULL,36.6,FALSE), -- Neumococo 1ra (2m)
+(35, 3,8,2,1,8, 15,'2021-01-10',3,NULL,36.7,FALSE), -- SRP 1ra (12m)
+(36, 3,10,2,2,10,20,'2024-01-10',1,NULL,36.5,FALSE), -- DPT refuerzo (48m)
 
--- appointment 5
-(5,  5,  5, 5, 2, 5, 5, '2020-10-05', 5, 5, 36.7, FALSE),
+-- ── Paciente 4 — Valentina Hernández (2017-11-05, ~8 años 6m) ──
+(37, 4,2,3,1,2,  2,'2017-11-05',1, 4, 36.5,FALSE), -- Hep B 1ra      ← appointment 4
+(38, 4,4,3,1,4,  4,'2018-01-05',2,NULL,36.6,FALSE), -- Hep B 2da (2m)
+(39, 4,8,3,1,8, 15,'2018-11-05',3,NULL,36.7,FALSE), -- SRP 1ra (12m)
+(40, 4,9,3,2,9, 17,'2019-05-05',1,NULL,36.5,FALSE), -- Penta refuerzo (18m)
+(41, 4,8,3,1,8, 24,'2023-11-05',3,NULL,36.6,FALSE), -- SRP refuerzo (72m)
 
--- appointment 6
-(6,  6,  6, 7, 3, 6, 6, '2020-03-22', 3, 6, 36.5, FALSE),
+-- ── Paciente 5 — Lucas Ramírez (2021-06-12, ~4 años 11m) ──
+(42, 5,1,2,1,1,  1,'2021-06-12',6, 5, 36.5,FALSE), -- BCG             ← appointment 5
+(43, 5,3,2,1,3,  3,'2021-08-12',1,NULL,36.6,FALSE), -- Penta 1ra (2m)
+(44, 5,5,2,1,5,  5,'2021-08-12',5,NULL,36.6,FALSE), -- Rotavirus 1ra (2m)
+(45, 5,3,2,1,3,  7,'2021-10-12',1,NULL,36.5,FALSE), -- Penta 2da (4m)
+(46, 5,8,2,1,8, 15,'2022-06-12',3,NULL,36.7,FALSE), -- SRP 1ra (12m)
+(47, 5,9,2,2,9, 17,'2022-12-12',1,NULL,36.5,FALSE), -- Penta refuerzo (18m)
+(48, 5,10,2,2,10,20,'2025-06-12',2,NULL,36.6,FALSE), -- DPT refuerzo (48m)
 
--- appointment 7
-(7,  7,  7, 3, 1, 7, 7, '2019-07-30', 6, 7, 36.4, FALSE),
+-- ── Paciente 6 — Emma Torres (2018-08-18, ~7 años 9m) ──
+(49, 6,1,3,1,1,  1,'2018-08-18',6, 6, 36.5,FALSE), -- BCG             ← appointment 6
+(50, 6,6,3,1,6,  6,'2018-10-18',4,NULL,36.6,FALSE), -- Neumococo 1ra (2m)
+(51, 6,8,3,1,8, 15,'2019-08-18',3,NULL,36.7,FALSE), -- SRP 1ra (12m)
+(52, 6,6,3,1,6, 16,'2019-08-18',1,NULL,36.7,FALSE), -- Neumococo 3ra (12m)
+(53, 6,10,3,2,10,20,'2022-08-18',2,NULL,36.5,FALSE), -- DPT refuerzo (48m)
+(54, 6,8,3,1,8, 24,'2024-08-18',3,NULL,36.6,FALSE), -- SRP refuerzo (72m)
 
--- appointment 8
-(8,  8,  8, 6, 2, 8, 8, '2019-12-12', 4, 8, 37.0, FALSE),
+-- ── Paciente 7 — Sebastián Flores (2019-04-09, ~7 años) ──
+(55, 7,2,2,1,2,  2,'2019-04-09',1, 7, 36.5,FALSE), -- Hep B 1ra      ← appointment 7
+(56, 7,3,2,1,3,  3,'2019-06-09',2,NULL,36.6,FALSE), -- Penta 1ra (2m)
+(57, 7,8,2,1,8, 15,'2020-04-09',3,NULL,36.7,FALSE), -- SRP 1ra (12m)
+(58, 7,9,2,2,9, 17,'2020-10-09',1,NULL,36.5,FALSE), -- Penta refuerzo (18m)
+(59, 7,8,2,1,8, 24,'2025-04-09',4,NULL,36.6,FALSE), -- SRP refuerzo (72m)
 
--- appointment 9
-(9,  9,  9, 3, 1, 9, 9, '2018-08-03', 3, 9, 36.6, FALSE),
+-- ── Paciente 8 — Camila Rivera (2020-09-14, prematura) ──
+(60, 8,1,3,1,1,  1,'2020-09-14',6, 8, 36.5,FALSE), -- BCG             ← appointment 8
+(61, 8,6,3,1,6,  6,'2020-11-14',4,NULL,36.6,FALSE), -- Neumococo 1ra (2m)
+(62, 8,8,3,1,8, 15,'2021-09-14',3,NULL,36.7,FALSE), -- SRP 1ra (12m)
+(63, 8,9,3,2,9, 17,'2022-03-14',1,NULL,36.5,FALSE), -- Penta refuerzo (18m)
+(64, 8,10,3,2,10,20,'2024-09-14',2,NULL,36.6,FALSE), -- DPT refuerzo (48m)
 
--- appointment 10
-(10, 10, 10, 3, 1, 10, 10, '2017-04-05', 2, 10, 36.6, FALSE),
+-- ── Paciente 10 — Renata Díaz (2021-02-25, ~5 años 2m) ──
+(65,10,2,2,1,2,  2,'2021-02-25',1,10, 36.5,FALSE), -- Hep B 1ra      ← appointment 10
+(66,10,5,2,1,5,  5,'2021-04-25',5,NULL,36.6,FALSE), -- Rotavirus 1ra (2m)
+(67,10,8,2,1,8, 15,'2022-02-25',3,NULL,36.7,FALSE), -- SRP 1ra (12m)
+(68,10,9,2,2,9, 17,'2022-08-25',1,NULL,36.5,FALSE), -- Penta refuerzo (18m)
+(69,10,10,2,2,10,20,'2025-02-25',2,NULL,36.6,FALSE), -- DPT refuerzo (48m)
 
--- appointment 11
-(11, 11, 8, 5, 2, 8, 15, '2022-09-18', 3, 11, 36.6, FALSE),
+-- ── Paciente 11 — Emiliano Castro (2018-05-03, ~8 años) ──
+(70,11,1,3,1,1,  1,'2018-05-03',6,11, 36.5,FALSE), -- BCG             ← appointment 11
+(71,11,3,3,1,3,  3,'2018-07-03',1,NULL,36.6,FALSE), -- Penta 1ra (2m)
+(72,11,7,3,1,7, 13,'2018-11-03',3,NULL,36.5,FALSE), -- Influenza 1ra (6m)
+(73,11,8,3,1,8, 15,'2019-05-03',3,NULL,36.7,FALSE), -- SRP 1ra (12m)
+(74,11,10,3,2,10,20,'2022-05-03',2,NULL,36.6,FALSE), -- DPT refuerzo (48m)
+(75,11,8,3,1,8, 24,'2024-05-03',3,NULL,36.6,FALSE), -- SRP refuerzo (72m)
 
--- appointment 12
-(12, 12, 7, 5, 2, 7, 18, '2022-09-20', 2, 12, 36.6, FALSE),
+-- ── Paciente 12 — Regina Ortiz (2019-10-16, ~6 años 7m) ──
+(76,12,1,2,1,1,  1,'2019-10-16',6,12, 36.5,FALSE), -- BCG             ← appointment 12
+(77,12,6,2,1,6,  6,'2019-12-16',4,NULL,36.6,FALSE), -- Neumococo 1ra (2m)
+(78,12,8,2,1,8, 15,'2020-10-16',3,NULL,36.7,FALSE), -- SRP 1ra (12m)
+(79,12,6,2,1,6, 16,'2020-10-16',1,NULL,36.7,FALSE), -- Neumococo 3ra (12m)
+(80,12,8,2,1,8, 24,'2025-10-16',3,NULL,36.6,FALSE), -- SRP refuerzo (72m)
 
--- appointment 13
-(13, 13, 8, 7, 3, 8, 15, '2020-03-22', 3, 13, 36.6, FALSE),
+-- ── Paciente 13 — Daniel Morales (2020-07-01, prematuro) ──
+(81,13,3,3,1,3,  3,'2020-09-01',1,13, 36.6,FALSE), -- Penta 1ra (2m) ← appointment 13
+(82,13,6,3,1,6,  6,'2020-09-01',4,NULL,36.6,FALSE), -- Neumococo 1ra (2m)
+(83,13,8,3,1,8, 15,'2021-07-01',3,NULL,36.7,FALSE), -- SRP 1ra (12m)
+(84,13,9,3,2,9, 17,'2022-01-01',1,NULL,36.5,FALSE), -- Penta refuerzo (18m)
+(85,13,10,3,2,10,20,'2024-07-01',2,NULL,36.6,FALSE), -- DPT refuerzo (48m)
 
--- appointment 14
-(14, 14, 10,10,4,10,20, '2023-03-22', 2, 14, 36.7, FALSE),
+-- ── Paciente 14 — Victoria Ruiz (2017-09-27, ~8 años 7m) ──
+(86,14,1,3,1,1,  1,'2017-09-27',6,14, 36.5,FALSE), -- BCG             ← appointment 14
+(87,14,8,3,1,8, 15,'2018-09-27',3,NULL,36.7,FALSE), -- SRP 1ra (12m)
+(88,14,9,3,2,9, 17,'2019-03-27',1,NULL,36.5,FALSE), -- Penta refuerzo (18m)
+(89,14,10,3,2,10,20,'2021-09-27',2,NULL,36.6,FALSE), -- DPT refuerzo (48m)
+(90,14,8,3,1,8, 24,'2023-09-27',3,NULL,36.6,FALSE), -- SRP refuerzo (72m)
 
--- appointment 15
-(15, 15, 1, 3, 1, 1, 1, '2019-07-30', 6, 15, 36.5, FALSE);  -- Luciana: SRP refuerzo
+-- ── Paciente 15 — Ángel Navarro (2021-04-11, ~5 años 1m) ──
+(91,15,1,2,1,1,  1,'2021-04-11',6,15, 36.5,FALSE), -- BCG             ← appointment 15
+(92,15,5,2,1,5,  5,'2021-06-11',5,NULL,36.6,FALSE), -- Rotavirus 1ra (2m)
+(93,15,6,2,1,6,  6,'2021-06-11',4,NULL,36.6,FALSE), -- Neumococo 1ra (2m)
+(94,15,8,2,1,8, 15,'2022-04-11',3,NULL,36.7,FALSE), -- SRP 1ra (12m)
+(95,15,9,2,2,9, 17,'2022-10-11',1,NULL,36.5,FALSE), -- Penta refuerzo (18m)
+(96,15,10,2,2,10,20,'2025-04-11',2,NULL,36.6,FALSE); -- DPT refuerzo (48m)
 
+-- Reacciones vinculadas a registros reales del paciente 9 (esquema completo)
+-- y a registros de otros pacientes. Todos los reported_by son médicos/enfermeros válidos.
 INSERT INTO post_vaccine_reactions (reaction_id, record_id, reported_by, symptom, severity, onset_hours, treatment, notified_authority) VALUES
-    (1,  11, 6, 'Eritema leve en sitio de aplicación',    'Leve',     4,  'Compresas frías',              FALSE),
-    (2,  11, 6, 'Llanto persistente 2h',                  'Leve',     2,  'Observación — cedió solo',     FALSE),
-    (3,  3,  3, 'Fiebre 37.8°C transitoria',              'Leve',     12, 'Paracetamol 60mg/kg oral',     FALSE),
-    (4,  8,  3, 'Endurecimiento en zona de punción',      'Leve',     6,  'Compresas tibias',             FALSE),
-    (5,  15, 6, 'Fiebre 38.0°C',                          'Leve',     12, 'Paracetamol 150mg oral',       FALSE),
-    (6,  12, 3, 'Eritema leve post-SRP',                  'Leve',     24, 'Observación',                  FALSE),
-    (7,  13, 7, 'Dolor local en sitio de inyección',      'Leve',     2,  'Compresas frías',              FALSE),
-    (8,  15, 6, 'Rinorrea leve post-influenza',           'Leve',     48, 'Observación',                  FALSE),
-    (9,  4, 3, 'Fiebre 38.2°C post-SRP refuerzo',       'Moderada', 24, 'Paracetamol + hidratación',    FALSE),
-    (10, 5,  3, 'Malestar gástrico leve post-rotavirus',  'Leve',     6,  'Hidratación oral',             FALSE);
+    (1,  13, 3, 'Eritema leve en sitio de aplicación',   'Leve',     4,  'Compresas frías',           FALSE), -- P9 Influenza 1ra
+    (2,  13, 3, 'Llanto persistente 2h post-influenza',  'Leve',     2,  'Observación — cedió solo',  FALSE), -- P9 Influenza 1ra
+    (3,  3,  3, 'Fiebre 37.8°C transitoria',             'Leve',     12, 'Paracetamol 60mg/kg oral',  FALSE), -- P9 Penta 1ra
+    (4,  8,  3, 'Endurecimiento en zona de punción',     'Leve',     6,  'Compresas tibias',          FALSE), -- P9 Rotavirus 2da
+    (5,  15, 3, 'Fiebre 38.0°C post-SRP',                'Leve',     12, 'Paracetamol 150mg oral',    FALSE), -- P9 SRP 1ra
+    (6,  12, 3, 'Eritema leve post-rotavirus',           'Leve',     24, 'Observación',               FALSE), -- P9 Rotavirus 3ra
+    (7,  14, 3, 'Dolor local en sitio de inyección',     'Leve',     2,  'Compresas frías',           FALSE), -- P9 Influenza 2da
+    (8,  22, 3, 'Fiebre 38.1°C post-SRP',                'Leve',     12, 'Paracetamol + hidratación', FALSE), -- P1 SRP 1ra
+    (9,  4,  3, 'Fiebre 38.2°C post-HepB',              'Moderada', 24, 'Paracetamol + hidratación', FALSE), -- P9 Hep B 2da
+    (10, 5,  3, 'Malestar gástrico leve post-rotavirus', 'Leve',     6,  'Hidratación oral',          FALSE); -- P9 Rotavirus 1ra
 
      INSERT INTO nfc_cards (nfc_card_id, patient_id, uid, card_type, issued_date, issued_by, status, last_scanned_at, nfc_card_notes) VALUES
     (1,  1,  '04:A1:2B:11:5C:22:80', 'Pulsera', '2024-01-15', 3, 'Activa',      '2025-03-10 09:00', NULL),
@@ -670,19 +757,7 @@ INSERT INTO post_vaccine_reactions (reaction_id, record_id, reported_by, symptom
     (11,11, 6, 2, 6, '2025-03-12 08:58', 'Registrar_Llegada', 'TABLET-REC-02',  'OK'),
     (12,12, 6, 2, 6, '2025-03-08 10:15', 'Registrar_Llegada', 'TABLET-REC-02',  'OK');
 
-    INSERT INTO scheme_completion_alerts (alert_id, patient_id, scheme_dose_id, due_date, status, notified_at) VALUES
-    (1,  1,  6,  '2024-03-15', 'Completada',  '2024-03-01 09:00'),  -- Sofía: Neumococo 1ra
-    (2,  1,  7,  '2024-05-15', 'Pendiente', NULL),                 -- Sofía: Penta 2da
-    (3,  2,  7,  '2023-10-10', 'Completada',  '2023-09-25 09:00'),  -- Mateo: Penta 2da (aprox)
-    (4,  2,  15, '2024-06-10', 'Pendiente', NULL),                 -- Mateo: SRP 1ra
-    (5,  3,  7,  '2023-03-20', 'Completada',  '2023-03-05 09:00'),  -- Valentina: Penta 2da
-    (6,  4,  17, '2022-10-05', 'Completada',  '2022-09-20 09:00'),  -- Santiago: Penta refuerzo
-    (7,  5,  19, '2023-09-18', 'Pendiente', NULL),                 -- Isabella: Influenza 3 años
-    (8,  6,  20, '2023-03-22', 'Completada',  '2023-03-08 09:00'),  -- Emiliano: DPT refuerzo
-    (9,  10, 2,  '2024-07-20', 'Pendiente', NULL),                 -- Nicolás: HepB 1ra
-    (10, 11, 3,  '2023-04-14', 'Completada',  '2023-04-01 09:00'),  -- Regina: Penta 1ra
-    (11, 12, 7,  '2022-07-25', 'Completada',  '2022-07-10 09:00'),  -- Rodrigo: Penta 2da
-    (12, 13, 15, '2022-10-10', 'Completada',  '2022-09-25 09:00');  -- Mariana: SRP 1ra
+-- scheme_completion_alerts se genera dinámicamente por el sistema; omitido en datos semilla.
 
     INSERT INTO supply_catalog (supply_id, name, unit, category) VALUES
     (1,  'Jeringa 0.5ml 25Gx1"',               'Pieza',  'Jeringa'),
@@ -713,15 +788,15 @@ INSERT INTO post_vaccine_reactions (reaction_id, record_id, reported_by, symptom
     (12, 4,  1, 200,  80, '2025-03-15');
 
     INSERT INTO audit_log (audit_id, table_name, record_id, action, worker_id, changed_at, ip_address) VALUES
-    (1,  'vaccination_records', 1,  'INSERT', 3,  '2024-01-15 09:10', '192.168.1.45'),
-    (2,  'vaccination_records', 2,  'INSERT', 3,  '2024-01-15 09:11', '192.168.1.45'),
-    (3,  'patients',            1,  'UPDATE', 1,  '2024-03-15 10:20', '192.168.1.12'),
-    (4,  'vaccination_records', 3,  'INSERT', 3,  '2024-03-15 09:05', '192.168.1.45'),
-    (5,  'vaccine_lots',        1,  'UPDATE', 4,  '2024-03-15 09:06', '192.168.1.50'),
-    (6,  'appointments',        1,  'INSERT', 1,  '2024-01-10 08:00', '192.168.1.12'),
-    (7,  'nfc_cards',           1,  'INSERT', 3,  '2024-01-15 09:15', '192.168.1.45'),
-    (8,  'gps_devices',         1,  'INSERT', 3,  '2024-02-01 10:00', '192.168.1.45'),
-    (9,  'guardians',           1,  'UPDATE', 1,  '2024-05-20 11:30', '192.168.1.12'),
-    (10, 'vaccination_records', 11, 'INSERT', 6,  '2023-01-20 09:30', '192.168.2.10'),
-    (11, 'post_vaccine_reactions',1,'INSERT', 6,  '2023-01-20 09:45', '192.168.2.10'),
-    (12, 'vaccine_lots',        5,  'UPDATE', 9,  '2024-01-20 08:00', '192.168.1.55');
+    (1,  'vaccination_records',  1,  'INSERT', 3, '2017-12-30 09:05', '192.168.1.45'),
+    (2,  'vaccination_records',  2,  'INSERT', 3, '2017-12-30 09:06', '192.168.1.45'),
+    (3,  'patients',             1,  'UPDATE', 1, '2024-03-15 10:20', '192.168.1.12'),
+    (4,  'vaccination_records',  19, 'INSERT', 3, '2018-03-15 09:05', '192.168.1.45'),
+    (5,  'vaccine_lots',         1,  'UPDATE', 4, '2025-01-05 09:06', '192.168.1.50'),
+    (6,  'appointments',         1,  'INSERT', 1, '2018-03-14 08:00', '192.168.1.12'),
+    (7,  'nfc_cards',            1,  'INSERT', 3, '2024-01-15 09:15', '192.168.1.45'),
+    (8,  'nfc_cards',            2,  'INSERT', 3, '2024-01-15 09:20', '192.168.1.45'),
+    (9,  'guardians',            1,  'UPDATE', 1, '2024-05-20 11:30', '192.168.1.12'),
+    (10, 'vaccination_records',  70, 'INSERT', 3, '2018-05-03 09:30', '192.168.2.10'),
+    (11, 'post_vaccine_reactions',1, 'INSERT', 3, '2018-06-30 09:45', '192.168.1.45'),
+    (12, 'vaccine_lots',         5,  'UPDATE', 4, '2025-01-10 08:00', '192.168.1.55');

@@ -15,8 +15,8 @@
 
 {# ── Toolbar con botón "Nueva cita" ── #}
 {% call toolbar(
-    title='Citas — Próximos 30 días',
-    subtitle='Programadas: ' ~ upcoming_citas|length ~ '  ·  Historial: ' ~ history_citas|length,
+    title='Citas',
+    subtitle='Programadas: ' ~ upcoming_citas|length ~ '  ·  Historial total: ' ~ history_citas|length,
     icon='fa-calendar-check'
 ) %}
   <a href="{{ url_for('admin_nueva_cita') }}" class="md3-btn md3-btn--filled">
@@ -24,14 +24,6 @@
     Nueva cita
   </a>
 {% endcall %}
-
-{# Rango de fechas activo #}
-{% if date_from and date_to %}
-<div class="citas-date-bar">
-  <i class="fa-regular fa-calendar"></i>
-  Mostrando citas del <strong>{{ date_from }}</strong> al <strong>{{ date_to }}</strong>
-</div>
-{% endif %}
 
 {# ══════════════════════════════════════════════════════════════════
    SECCIÓN 1: Citas programadas / confirmadas
@@ -158,7 +150,7 @@
 {# ══════════════════════════════════════════════════════════════════
    SECCIÓN 2: Historial de citas
    ══════════════════════════════════════════════════════════════════ #}
-<div class="citas-section-header">
+<div class="citas-section-header" style="margin-top:24px;">
   <h3 class="citas-section-title">
     <i class="fa-solid fa-clock-rotate-left"></i>
     Historial de citas
@@ -166,8 +158,38 @@
   {{ badge(history_citas|length|string, color='neutral', size='sm') }}
 </div>
 
+{# ── Filtros del historial ── #}
+<div class="search-bar-container section">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="text" id="histSearchInput" placeholder="Buscar por paciente, vacuna o doctor...">
+</div>
+
+<div class="sort-and-filter">
+  <div class="sort-options">
+    <p class="sort-label">Filtrar por estado:</p>
+    <select id="histStatusFilter" class="sort-select">
+      <option value="">Todos</option>
+      <option value="completada">Completada</option>
+      <option value="cancelada">Cancelada</option>
+      <option value="no show">No Show</option>
+      <option value="reagendada">Reagendada</option>
+    </select>
+  </div>
+  <div class="sort-options">
+    <p class="sort-label">Ordenar por:</p>
+    <select id="histSortOrder" class="sort-select">
+      <option value="">Ninguno</option>
+      <option value="desc">Fecha: más reciente</option>
+      <option value="asc">Fecha: más antigua</option>
+      <option value="paciente">Paciente</option>
+      <option value="estado">Estado</option>
+    </select>
+  </div>
+</div>
+
 {% call card() %}
   {% call(h) table(
+      id='historialTable',
       headers=[
         {'label': 'Paciente'},
         {'label': 'Tutor'},
@@ -178,11 +200,15 @@
       ],
       rows=history_citas,
       empty_icon='fa-clock-rotate-left',
-      empty_title='Sin historial en este período',
-      empty_text='No hay citas completadas, canceladas ni No Show en el período seleccionado.',
+      empty_title='Sin historial de citas',
+      empty_text='No hay citas completadas, canceladas ni No Show registradas.',
       footer_text=history_citas|length|string ~ ' registros históricos'
   ) %}
-    <tr class="citas-row-history" data-patient="{{ h.patient_name|lower }}">
+    <tr class="citas-row-history"
+        data-patient="{{ h.patient_name|lower }}"
+        data-vaccine="{{ h.vaccine_name|lower if h.vaccine_name else '' }}"
+        data-status="{{ h.appointment_status|lower if h.appointment_status else '' }}"
+        data-date="{{ h.scheduled_at[:10] if h.scheduled_at else '' }}">
 
       <td><strong>{{ h.patient_name or '—' }}</strong></td>
 
@@ -234,4 +260,56 @@
 
 {% block scripts %}
 <script src="{{ url_for('static', filename='js/pages/citas.js') }}"></script>
+<script>
+(function () {
+  const searchInput  = document.getElementById('histSearchInput');
+  const statusFilter = document.getElementById('histStatusFilter');
+  const sortOrder    = document.getElementById('histSortOrder');
+  const tbody = document.querySelector('#historialTable tbody');
+  if (!tbody) return;
+
+  // Guardar el orden original para restaurar cuando sort = ''
+  const originalOrder = Array.from(tbody.querySelectorAll('tr.citas-row-history'));
+
+  function applyFilters() {
+    const q         = (searchInput.value || '').toLowerCase().trim();
+    const status    = (statusFilter.value || '').toLowerCase();
+    const sort      = sortOrder.value;
+    const allRows   = Array.from(tbody.querySelectorAll('tr.citas-row-history'));
+
+    // 1. Filtrar
+    allRows.forEach(row => {
+      const patient   = (row.dataset.patient  || '');
+      const vaccine   = (row.dataset.vaccine  || '');
+      const rowStatus = (row.dataset.status   || '');
+      const matchSearch = !q || patient.includes(q) || vaccine.includes(q);
+      const matchStatus = !status || rowStatus === status;
+      row.style.display = (matchSearch && matchStatus) ? '' : 'none';
+    });
+
+    // 2. Ordenar
+    const visible = allRows.filter(r => r.style.display !== 'none');
+    if (sort === 'asc' || sort === 'desc') {
+      visible.sort((a, b) => {
+        const da = a.dataset.date || '', db = b.dataset.date || '';
+        return sort === 'asc' ? da.localeCompare(db) : db.localeCompare(da);
+      });
+    } else if (sort === 'paciente') {
+      visible.sort((a, b) => (a.dataset.patient || '').localeCompare(b.dataset.patient || ''));
+    } else if (sort === 'estado') {
+      visible.sort((a, b) => (a.dataset.status || '').localeCompare(b.dataset.status || ''));
+    } else {
+      // Ninguno → restaurar orden original
+      originalOrder.filter(r => r.style.display !== 'none')
+                   .forEach(r => tbody.appendChild(r));
+      return;
+    }
+    visible.forEach(r => tbody.appendChild(r));
+  }
+
+  searchInput .addEventListener('input',  applyFilters);
+  statusFilter.addEventListener('change', applyFilters);
+  sortOrder   .addEventListener('change', applyFilters);
+})();
+</script>
 {% endblock %}

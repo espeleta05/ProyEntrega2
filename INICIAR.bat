@@ -2,13 +2,7 @@
 setlocal
 cd /d "%~dp0"
 
-echo [0/2] Instalando dependencias...
-call "%~dp0INSTALAR_DEPENDENCIAS.bat"
-if errorlevel 1 (
-    echo [ERROR] Fallo la instalacion de dependencias.
-    pause
-    exit /b 1
-)
+
 
 if exist ".env" (
     for /f "usebackq eol=# tokens=1,* delims==" %%A in (".env") do (

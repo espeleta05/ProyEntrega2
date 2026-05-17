@@ -2,6 +2,7 @@
 import psycopg
 from psycopg.rows import dict_row
 import os
+import sys
 from datetime import date, datetime, timedelta
 from flask import Flask, flash, jsonify, redirect, render_template, request, session, url_for, g, has_request_context
 from werkzeug.utils import secure_filename
@@ -17,6 +18,12 @@ app.config["DATABASE_URL"] = DATABASE_URL
 app.config["DB_ENGINE"] = DB_ENGINE
 app.secret_key = SECRET_KEY
 app.config['JSON_AS_ASCII'] = False
+
+# Forzar UTF-8 en la salida estándar de Python (necesario en Windows con WIN1252)
+if sys.stdout.encoding and sys.stdout.encoding.upper() != "UTF-8":
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+if sys.stderr.encoding and sys.stderr.encoding.upper() != "UTF-8":
+    sys.stderr.reconfigure(encoding="utf-8", errors="replace")
 
 logger = logging.getLogger(__name__)
 try:
@@ -208,14 +215,37 @@ def _home_url_for_role(role):
     return url_for("dashboard")
 
 def _session_vars():
-    first    = session.get("user_name", "")
-    last     = session.get("user_lastname", "")
+    worker_id = session.get("worker_id")
+    first     = session.get("user_name", "")
+    last      = session.get("user_lastname", "")
+
+    # Siempre refrescar nombre desde la BD para evitar valores corruptos en cookie
+    if worker_id:
+        try:
+            conn, should_close = _get_conn()
+            with conn.cursor() as cur:
+                cur.execute(
+                    "SELECT first_name, last_name FROM workers WHERE worker_id = %s",
+                    (worker_id,)
+                )
+                row = cur.fetchone()
+                if row:
+                    first = (row.get("first_name") or first).strip()
+                    last  = (row.get("last_name")  or last).strip()
+                    # Actualizar sesión para que quede coherente
+                    session["user_name"]     = first
+                    session["user_lastname"] = last
+            if should_close:
+                conn.close()
+        except Exception:
+            pass  # fallback a lo que hay en sesión
+
     initials = ((first[:1] + last[:1]).upper()) or "AD"
     return {
         "name":      first,
         "lastname":  last,
         "role":      session.get("role", "Administrador"),
-        "worker_id": session.get("worker_id"),
+        "worker_id": worker_id,
         "initials":  initials,
     }
 
@@ -1314,9 +1344,11 @@ def dashboard():
     try:
         conn, should_close = _get_conn()
         _safe_rollback(conn)
-        kpis         = {}
-        top_patients = []
-        chart_rows   = []
+        kpis            = {}
+        chart_rows      = []
+        citas_hoy       = []
+        recent_apps     = []
+        today_iso       = date.today().isoformat()
         try:
             with conn.cursor() as cur:
 
@@ -1325,13 +1357,35 @@ def dashboard():
                 cur.execute('FETCH ALL FROM "cur_kpis"')
                 kpis = dict(cur.fetchone() or {})
 
-                # 2. Últimos 10 pacientes (reutiliza sp_get_patients con límite)
-                cur.execute("CALL sp_get_patients_full(%s, %s)", (10, "cur_top_patients"))
-                cur.execute('FETCH ALL FROM "cur_top_patients"')
-                top_patients = [dict(r) for r in cur.fetchall()]
+                # 2. Citas de hoy (todas las clínicas)
+                cur.execute("CALL sp_get_citas_admin(%s, %s, %s, %s)",
+                            (None, today_iso, today_iso, "cur_dash_citas"))
+                cur.execute('FETCH ALL FROM "cur_dash_citas"')
+                citas_hoy = [dict(r) for r in cur.fetchall()]
 
-                # 3. Datos para las 3 gráficas
+                # 3. Últimas 10 aplicaciones de vacunas
+                cur.execute("""
+                    SELECT
+                        vr.record_id,
+                        vr.applied_date,
+                        TRIM(p.first_name || ' ' || p.last_name)  AS patient_name,
+                        p.patient_id,
+                        v.name                                     AS vaccine_name,
+                        COALESCE(sd.dose_label, 'Dosis única')    AS dose_label,
+                        TRIM(w.first_name || ' ' || w.last_name)  AS worker_name,
+                        c.name                                     AS clinic_name
+                    FROM   vaccination_records vr
+                    JOIN   patients   p  ON p.patient_id  = vr.patient_id
+                    JOIN   vaccines   v  ON v.vaccine_id  = vr.vaccine_id
+                    LEFT   JOIN scheme_doses sd ON sd.dose_id   = vr.scheme_dose_id
+                    LEFT   JOIN workers   w  ON w.worker_id  = vr.worker_id
+                    LEFT   JOIN clinics   c  ON c.clinic_id  = vr.clinic_id
+                    ORDER  BY vr.applied_date DESC, vr.record_id DESC
+                    LIMIT  10
+                """)
+                recent_apps = [dict(r) for r in cur.fetchall()]
 
+                # 4. Datos para las 3 gráficas
                 cur.execute("CALL sp_dashboard_charts(%s)", ("cur_charts",))
                 cur.execute('FETCH ALL FROM "cur_charts"')
                 chart_rows = cur.fetchall()
@@ -1344,6 +1398,13 @@ def dashboard():
         finally:
             if should_close and not _conn_is_closed(conn):
                 conn.close()
+
+        # Separar citas por estado
+        ACTIVE_S  = {"Programada", "Confirmada"}
+        citas_pendientes_hoy = [c for c in citas_hoy
+                                if c.get("appointment_status") in ACTIVE_S]
+        citas_completadas_hoy = [c for c in citas_hoy
+                                 if c.get("appointment_status") == "Completada"]
 
         # Separar filas de gráficas por tipo
         coverage_by_age  = [
@@ -1361,29 +1422,32 @@ def dashboard():
 
         context = {
             **_session_vars(),
-            "today":              date.today().strftime("%d/%m/%Y"),
+            "today":                 date.today().strftime("%d/%m/%Y"),
             # KPIs
-            "total_patients":     kpis.get("total_patients",     0),
-            "coverage_pct":       kpis.get("coverage_pct",       0),
-            "coverage_trend":     kpis.get("coverage_trend",     0),
-            "delayed_patients":   kpis.get("delayed_patients",   0),
-            "applications_today": kpis.get("applications_today", 0),
-            "doses_this_week":    kpis.get("doses_this_week",    0),
-            "doses_this_month":   kpis.get("doses_this_month",   0),
-            "monthly_trend":      kpis.get("monthly_trend",      0),
-            "expired_doses":      kpis.get("expired_doses",      0),
-            "new_patients_month": kpis.get("new_patients_month", 0),
+            "total_patients":        kpis.get("total_patients",     0),
+            "coverage_pct":          kpis.get("coverage_pct",       0),
+            "coverage_trend":        kpis.get("coverage_trend",     0),
+            "delayed_patients":      kpis.get("delayed_patients",   0),
+            "applications_today":    kpis.get("applications_today", 0),
+            "doses_this_week":       kpis.get("doses_this_week",    0),
+            "doses_this_month":      kpis.get("doses_this_month",   0),
+            "monthly_trend":         kpis.get("monthly_trend",      0),
+            "expired_doses":         kpis.get("expired_doses",      0),
+            "new_patients_month":    kpis.get("new_patients_month", 0),
             # Alertas
-            "pending_alerts":     kpis.get("pending_alerts",     0),
-            "patients_critical":  kpis.get("patients_critical",  0),
-            "expiring_lots_week": kpis.get("expiring_lots_week", 0),
-            "low_stock_count":    kpis.get("low_stock_count",    0),
-            # Tabla
-            "top_patients":       top_patients,
+            "pending_alerts":        kpis.get("pending_alerts",     0),
+            "patients_critical":     kpis.get("patients_critical",  0),
+            "expiring_lots_week":    kpis.get("expiring_lots_week", 0),
+            "low_stock_count":       kpis.get("low_stock_count",    0),
+            # Tablas
+            "citas_hoy":             citas_pendientes_hoy,
+            "citas_completadas_hoy": len(citas_completadas_hoy),
+            "total_citas_hoy":       len(citas_hoy),
+            "recent_apps":           recent_apps,
             # Gráficas
-            "coverage_by_age":    coverage_by_age,
-            "doses_by_month":     doses_by_month,
-            "delay_by_vaccine":   delay_by_vaccine,
+            "coverage_by_age":       coverage_by_age,
+            "doses_by_month":        doses_by_month,
+            "delay_by_vaccine":      delay_by_vaccine,
         }
 
         session["last_visit"] = date.today().isoformat()
@@ -3117,8 +3181,9 @@ def citas():
             except Exception:
                 pass  # clinic_id queda en None; el SP devuelve todas las clínicas
 
-    date_from = date.today()
-    date_to   = date.today() + timedelta(days=30)
+    # Rango amplio: historial completo desde 2015, próximas citas hasta +1 año
+    date_from = date(2015, 1, 1)
+    date_to   = date.today() + timedelta(days=365)
     rows      = []
 
     conn, should_close = _get_conn()
@@ -3151,7 +3216,12 @@ def citas():
 
     all_fmt        = [_fmt(r) for r in rows]
     upcoming_citas = [r for r in all_fmt if r.get("appointment_status") in ACTIVE_STATES]
-    history_citas  = [r for r in all_fmt if r.get("appointment_status") in HISTORY_STATES]
+    # historial ordenado: más reciente primero
+    history_citas  = sorted(
+        [r for r in all_fmt if r.get("appointment_status") in HISTORY_STATES],
+        key=lambda r: r.get("scheduled_at") or "",
+        reverse=True,
+    )
 
     session["last_section"] = "citas"
     return render_template(
@@ -3159,8 +3229,6 @@ def citas():
         **_session_vars(),
         upcoming_citas=upcoming_citas,
         history_citas=history_citas,
-        date_from=date_from.strftime("%d/%m/%Y"),
-        date_to=date_to.strftime("%d/%m/%Y"),
     )
 
 
@@ -3744,7 +3812,6 @@ def medico_citas_hoy():
         return locked
 
     worker_id = session.get("worker_id")
-    clinic_id = session.get("clinic_id")
     today     = date.today()
 
     rows = []
@@ -3752,8 +3819,10 @@ def medico_citas_hoy():
     _safe_rollback(conn)
     try:
         with conn.cursor() as cur:
-            cur.execute("CALL sp_get_citas_admin(%s, %s, %s, %s)",
-                        (clinic_id, today.isoformat(), today.isoformat(), "cur_mc_citas"))
+            # sp_get_citas_medico filtra directamente por worker_id,
+            # devuelve historial completo (date_from/to = NULL → defaults en SP)
+            cur.execute("CALL sp_get_citas_medico(%s, %s, %s, %s)",
+                        (worker_id, None, None, "cur_mc_citas"))
             cur.execute('FETCH ALL FROM "cur_mc_citas"')
             rows = [dict(r) for r in cur.fetchall()]
         conn.commit()
@@ -3765,11 +3834,11 @@ def medico_citas_hoy():
         if should_close and not _conn_is_closed(conn):
             conn.close()
 
-    mis_citas = [r for r in rows if r.get("worker_id") == worker_id]
-    ACTIVE    = {"Programada", "Confirmada"}
-    HISTORY   = {"Completada", "Cancelada", "No Show"}
-    upcoming  = [r for r in mis_citas if r.get("appointment_status") in ACTIVE]
-    history   = [r for r in mis_citas if r.get("appointment_status") in HISTORY]
+    ACTIVE   = {"Programada", "Confirmada"}
+    HISTORY  = {"Completada", "Cancelada", "No Show"}
+    upcoming = [r for r in rows if r.get("appointment_status") in ACTIVE]
+    history  = [r for r in rows if r.get("appointment_status") in HISTORY]
+    # history ya viene ordenado DESC por scheduled_at desde el SP
 
     return render_template(
         "pages/medico/citas_medico.html",

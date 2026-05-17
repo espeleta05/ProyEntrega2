@@ -142,48 +142,104 @@
 
 </div>
 
-<!-- FILA 4: Pacientes recientes -->
-<div class="section-card mt-20">
-    <div class="section-header-row">
-        <h3>Pacientes recientes</h3>
-        {{ button('Agregar paciente', type='primary', size='md', icon='fa-plus', icon_position='left', disabled=False, onclick='openPatientModal()', class= 'md3-btn md3-btn--tonal') }}
-    </div>
+<!-- FILA 4: Citas de hoy + Últimas aplicaciones -->
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-top:20px;">
 
-    {% set _row = namespace(i=0) %}
-    {% call(p) table(
+  <!-- Citas de hoy -->
+  <div class="section-card">
+    <div class="section-header-row">
+      <h3><i class="fa-solid fa-calendar-day" style="margin-right:6px;color:var(--md-primary);"></i>Citas de hoy</h3>
+      <div style="display:flex;align-items:center;gap:8px;">
+        {{ badge(citas_completadas_hoy|string ~ ' completadas', color='success', size='sm') }}
+        {{ badge(citas_hoy|length|string ~ ' pendientes', color='secondary', size='sm') }}
+      </div>
+    </div>
+    {% call(c) table(
         headers=[
-            {'label': 'Paciente'},
-            {'label': 'Tutor'},
-            {'label': 'Edad'},
-            {'label': 'Tipo de sangre'},
-            {'label': 'Alergias'},
-            {'label': 'Estado', 'align': 'center'}
+          {'label': 'Hora'},
+          {'label': 'Paciente'},
+          {'label': 'Vacuna'},
+          {'label': 'Estado', 'align': 'center'},
         ],
-        rows=top_patients,
-        empty_icon='fa-users-slash',
-        empty_title='Sin pacientes registrados.',
-        footer_text='Mostrando ' ~ top_patients|length ~ ' de ' ~ total_patients ~ ' pacientes'
+        rows=citas_hoy,
+        empty_icon='fa-calendar-check',
+        empty_title='Sin citas programadas hoy',
+        footer_text=total_citas_hoy|string ~ ' citas en total hoy'
     ) %}
-        <tr class="inv-row bar-{{ _row.i % 9 }}">
-            <td>
-                <div class="patient-cell">
-                    <div class="avatar-sm">{{ p.first_name[0] }}{{ p.last_name[0] }}</div>
-                    <div>
-                        <span class="vax-name">{{ p.first_name }} {{ p.last_name }}</span>
-                        <span class="pt-id">ID: P{{ p.patient_id }}</span>
-                    </div>
-                </div>
-            </td>
-            <td class="muted-td">{{ p.guardian or '—' }}</td>
-            <td class="muted-td">{{ p.age }} años</td>
-            <td>{{ badge(p.blood_type or '—', color='primary', size='sm') }}</td>
-            <td class="muted-td">{{ p.allergies or 'Ninguna' }}</td>
-            <td class="col-center">
-                {{ badge('Al día', color='success', icon='fa-check', size='sm') }}
-            </td>
-        </tr>
-        {% set _row.i = _row.i + 1 %}
+      <tr>
+        <td class="muted-td" style="white-space:nowrap;">
+          {{ c.scheduled_at.strftime('%H:%M') if c.scheduled_at and c.scheduled_at.__class__.__name__ == 'datetime' else (c.scheduled_at[11:16] if c.scheduled_at else '—') }}
+        </td>
+        <td>
+          <span class="vax-name">{{ c.patient_name or '—' }}</span>
+        </td>
+        <td class="muted-td">{{ c.vaccine_name or '—' }}</td>
+        <td class="col-center">
+          {% if c.appointment_status == 'Confirmada' %}
+            {{ badge('Confirmada', color='success',   size='sm', icon='fa-circle-check') }}
+          {% elif c.appointment_status == 'Programada' %}
+            {{ badge('Programada', color='secondary', size='sm', icon='fa-clock') }}
+          {% elif c.appointment_status == 'Completada' %}
+            {{ badge('Completada', color='success',   size='sm', icon='fa-check') }}
+          {% elif c.appointment_status == 'No Show' %}
+            {{ badge('No Show',    color='error',     size='sm', icon='fa-user-slash') }}
+          {% else %}
+            {{ badge(c.appointment_status or '—', color='neutral', size='sm') }}
+          {% endif %}
+        </td>
+      </tr>
     {% endcall %}
+    <div style="margin-top:8px;">
+      <a href="{{ url_for('citas') }}" class="md3-btn md3-btn--outlined md3-btn--sm">
+        Ver todas las citas <i class="fa-solid fa-arrow-right" style="margin-left:4px;"></i>
+      </a>
+    </div>
+  </div>
+
+  <!-- Últimas aplicaciones -->
+  <div class="section-card">
+    <div class="section-header-row">
+      <h3><i class="fa-solid fa-syringe" style="margin-right:6px;color:var(--md-primary);"></i>Últimas aplicaciones</h3>
+      {{ badge(applications_today|string ~ ' hoy', color='secondary', size='sm') }}
+    </div>
+    {% call(a) table(
+        headers=[
+          {'label': 'Paciente'},
+          {'label': 'Vacuna / Dosis'},
+          {'label': 'Aplicó'},
+          {'label': 'Fecha'},
+        ],
+        rows=recent_apps,
+        empty_icon='fa-syringe',
+        empty_title='Sin aplicaciones registradas',
+        footer_text='Últimas 10 aplicaciones'
+    ) %}
+      <tr>
+        <td>
+          <div class="patient-cell">
+            <div class="avatar-sm">{{ a.patient_name[0] if a.patient_name else '?' }}</div>
+            <span class="vax-name">{{ a.patient_name or '—' }}</span>
+          </div>
+        </td>
+        <td>
+          {{ a.vaccine_name or '—' }}
+          {% if a.dose_label and a.dose_label not in ('—', 'Dosis única') %}
+            <br>{{ badge(a.dose_label, color='primary', size='sm') }}
+          {% endif %}
+        </td>
+        <td class="muted-td"><small>{{ a.worker_name or '—' }}</small></td>
+        <td class="muted-td" style="white-space:nowrap;">
+          {{ a.applied_date.strftime('%d/%m/%Y') if a.applied_date else '—' }}
+        </td>
+      </tr>
+    {% endcall %}
+    <div style="margin-top:8px;">
+      <a href="{{ url_for('aplicaciones') }}" class="md3-btn md3-btn--outlined md3-btn--sm">
+        Ver historial completo <i class="fa-solid fa-arrow-right" style="margin-left:4px;"></i>
+      </a>
+    </div>
+  </div>
+
 </div>
 
 {% include 'nuevoPaciente_2daE.html' %}

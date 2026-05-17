@@ -9,13 +9,13 @@
 <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/citas.css') }}">
 {% endblock %}
 
-{% block title %}Mis Citas — {{ today_label }}{% endblock %}
+{% block title %}Mis Citas{% endblock %}
 
 {% block content %}
 
 {% call toolbar(
-    title='Mis citas de hoy',
-    subtitle=today_label ~ '  ·  Programadas: ' ~ upcoming|length ~ '  ·  Historial: ' ~ history|length,
+    title='Mis citas',
+    subtitle='Hoy: ' ~ today_label ~ '  ·  Pendientes: ' ~ upcoming|length ~ '  ·  Historial total: ' ~ history|length,
     icon='fa-calendar-check'
 ) %}
   <a href="{{ url_for('admin_nueva_cita') }}" class="md3-btn md3-btn--filled">
@@ -56,7 +56,7 @@
     <tr data-patient="{{ c.patient_name|lower if c.patient_name else '' }}"
         data-status="{{ c.appointment_status|lower if c.appointment_status else '' }}">
 
-      <td>{{ c.scheduled_at[11:16] if c.scheduled_at else '—' }}</td>
+      <td>{{ c.scheduled_at.strftime('%H:%M') if c.scheduled_at else '—' }}</td>
 
       <td>
         <div class="patient-cell">
@@ -124,10 +124,10 @@
   {% endcall %}
 {% endcall %}
 
-<!-- Historial del día -->
+<!-- Historial completo -->
 <div class="citas-section-header" style="margin-top:24px;display:flex;align-items:center;gap:8px;">
   <h3 class="citas-section-title">
-    <i class="fa-solid fa-clock-rotate-left"></i> Historial del día
+    <i class="fa-solid fa-clock-rotate-left"></i> Historial completo
   </h3>
   {{ badge(history|length|string, color='neutral', size='sm') }}
 </div>
@@ -135,19 +135,38 @@
 {% call card() %}
   {% call(h) table(
       headers=[
+        {'label': 'Fecha'},
         {'label': 'Hora'},
         {'label': 'Paciente'},
         {'label': 'Vacuna / Dosis'},
         {'label': 'Estado', 'align': 'center'},
+        {'label': 'Acciones', 'align': 'center'},
       ],
       rows=history,
       empty_icon='fa-clock-rotate-left',
-      empty_title='Sin historial hoy'
+      empty_title='Sin historial de citas'
   ) %}
-    <tr>
-      <td>{{ h.scheduled_at[11:16] if h.scheduled_at else '—' }}</td>
-      <td>{{ h.patient_name or '—' }}</td>
-      <td>{{ h.vaccine_name or '—' }}</td>
+    <tr data-patient="{{ h.patient_name|lower if h.patient_name else '' }}"
+        data-status="{{ h.appointment_status|lower if h.appointment_status else '' }}">
+      <td class="muted-td">
+        {{ h.scheduled_at.strftime('%d/%m/%Y') if h.scheduled_at else '—' }}
+      </td>
+      <td>{{ h.scheduled_at.strftime('%H:%M') if h.scheduled_at else '—' }}</td>
+      <td>
+        <div class="patient-cell">
+          <div class="avatar-sm">{{ h.patient_name[0] if h.patient_name else '?' }}</div>
+          <div>
+            <span class="vax-name">{{ h.patient_name or '—' }}</span>
+            <span class="pt-id">ID: P{{ h.patient_id }}</span>
+          </div>
+        </div>
+      </td>
+      <td>
+        {{ h.vaccine_name or '—' }}
+        {% if h.dose_label and h.dose_label != '—' %}
+          <br>{{ badge(h.dose_label, color='primary', size='sm') }}
+        {% endif %}
+      </td>
       <td class="col-center">
         {% if h.appointment_status == 'Completada' %}
           {{ badge('Completada', color='success', size='sm', icon='fa-check')      }}
@@ -156,6 +175,12 @@
         {% else %}
           {{ badge('Cancelada',  color='neutral', size='sm', icon='fa-xmark')      }}
         {% endif %}
+      </td>
+      <td class="col-center">
+        <a href="{{ url_for('historial') }}?q={{ h.patient_id }}"
+           class="md3-btn md3-btn--outlined md3-btn--sm" title="Ver historial del paciente">
+          <i class="fa-solid fa-file-medical"></i>
+        </a>
       </td>
     </tr>
   {% endcall %}

@@ -131,22 +131,17 @@ EXECUTE FUNCTION fn_set_updated_at();
 
 -- Trigger 7: Auditoría de cambios en pacientes
 CREATE OR REPLACE FUNCTION fn_audit_patient_changes()
-RETURNS TRIGGER
-LANGUAGE plpgsql
-AS $$
+RETURNS TRIGGER LANGUAGE plpgsql AS $$
 BEGIN
     IF TG_OP = 'INSERT' THEN
-        INSERT INTO audit_log (table_name, action, record_id, changed_data, changed_at)
-        VALUES ('patients', 'INSERT', NEW.patient_id, row_to_json(NEW)::JSONB, NOW());
+        INSERT INTO audit_log (table_name, action, record_id, changed_at)
+        VALUES ('patients', 'INSERT', NEW.patient_id, NOW());
     ELSIF TG_OP = 'UPDATE' THEN
-        INSERT INTO audit_log (table_name, action, record_id, changed_data, changed_at)
-        VALUES ('patients', 'UPDATE', NEW.patient_id, jsonb_build_object(
-            'old', row_to_json(OLD),
-            'new', row_to_json(NEW)
-        ), NOW());
+        INSERT INTO audit_log (table_name, action, record_id, changed_at)
+        VALUES ('patients', 'UPDATE', NEW.patient_id, NOW());
     ELSIF TG_OP = 'DELETE' THEN
-        INSERT INTO audit_log (table_name, action, record_id, changed_data, changed_at)
-        VALUES ('patients', 'DELETE', OLD.patient_id, row_to_json(OLD)::JSONB, NOW());
+        INSERT INTO audit_log (table_name, action, record_id, changed_at)
+        VALUES ('patients', 'DELETE', OLD.patient_id, NOW());
     END IF;
     RETURN COALESCE(NEW, OLD);
 END;
@@ -161,22 +156,17 @@ EXECUTE FUNCTION fn_audit_patient_changes();
 
 -- Trigger 8: Auditoría de cambios en registros de vacunación
 CREATE OR REPLACE FUNCTION fn_audit_vaccination_records()
-RETURNS TRIGGER
-LANGUAGE plpgsql
-AS $$
+RETURNS TRIGGER LANGUAGE plpgsql AS $$
 BEGIN
     IF TG_OP = 'INSERT' THEN
-        INSERT INTO audit_log (table_name, action, record_id, changed_data, changed_at)
-        VALUES ('vaccination_records', 'INSERT', NEW.record_id, row_to_json(NEW)::JSONB, NOW());
+        INSERT INTO audit_log (table_name, action, record_id, changed_at)
+        VALUES ('vaccination_records', 'INSERT', NEW.record_id, NOW());
     ELSIF TG_OP = 'UPDATE' THEN
-        INSERT INTO audit_log (table_name, action, record_id, changed_data, changed_at)
-        VALUES ('vaccination_records', 'UPDATE', NEW.record_id, jsonb_build_object(
-            'old', row_to_json(OLD),
-            'new', row_to_json(NEW)
-        ), NOW());
+        INSERT INTO audit_log (table_name, action, record_id, changed_at)
+        VALUES ('vaccination_records', 'UPDATE', NEW.record_id, NOW());
     ELSIF TG_OP = 'DELETE' THEN
-        INSERT INTO audit_log (table_name, action, record_id, changed_data, changed_at)
-        VALUES ('vaccination_records', 'DELETE', OLD.record_id, row_to_json(OLD)::JSONB, NOW());
+        INSERT INTO audit_log (table_name, action, record_id, changed_at)
+        VALUES ('vaccination_records', 'DELETE', OLD.record_id, NOW());
     END IF;
     RETURN COALESCE(NEW, OLD);
 END;
@@ -191,22 +181,17 @@ EXECUTE FUNCTION fn_audit_vaccination_records();
 
 -- Trigger 9: Auditoría de cambios en trabajadores
 CREATE OR REPLACE FUNCTION fn_audit_worker_changes()
-RETURNS TRIGGER
-LANGUAGE plpgsql
-AS $$
+RETURNS TRIGGER LANGUAGE plpgsql AS $$
 BEGIN
     IF TG_OP = 'INSERT' THEN
-        INSERT INTO audit_log (table_name, action, record_id, changed_data, changed_at)
-        VALUES ('workers', 'INSERT', NEW.worker_id, row_to_json(NEW)::JSONB, NOW());
+        INSERT INTO audit_log (table_name, action, record_id, changed_at)
+        VALUES ('workers', 'INSERT', NEW.worker_id, NOW());
     ELSIF TG_OP = 'UPDATE' THEN
-        INSERT INTO audit_log (table_name, action, record_id, changed_data, changed_at)
-        VALUES ('workers', 'UPDATE', NEW.worker_id, jsonb_build_object(
-            'old', row_to_json(OLD),
-            'new', row_to_json(NEW)
-        ), NOW());
+        INSERT INTO audit_log (table_name, action, record_id, changed_at)
+        VALUES ('workers', 'UPDATE', NEW.worker_id, NOW());
     ELSIF TG_OP = 'DELETE' THEN
-        INSERT INTO audit_log (table_name, action, record_id, changed_data, changed_at)
-        VALUES ('workers', 'DELETE', OLD.worker_id, row_to_json(OLD)::JSONB, NOW());
+        INSERT INTO audit_log (table_name, action, record_id, changed_at)
+        VALUES ('workers', 'DELETE', OLD.worker_id, NOW());
     END IF;
     RETURN COALESCE(NEW, OLD);
 END;
@@ -353,19 +338,17 @@ BEGIN
             table_name,
             action,
             record_id,
-            changed_data,
-            changed_at
+            worker_id,
+            changed_at,
+            ip_address
         )
         VALUES (
             'vaccine_lots',
             'UPDATE',
             NEW.lot_id,
-            jsonb_build_object(
-                'alerta', 'stock_bajo',
-                'lot_id', NEW.lot_id,
-                'remaining_stock', NEW.quantity_available
-            ),
-            NOW()
+            NULL,
+            NOW(),
+            NULL
         );
 
     END IF;

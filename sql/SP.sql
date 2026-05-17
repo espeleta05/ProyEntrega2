@@ -4904,3 +4904,70 @@ BEGIN
         ORDER  BY pvs.status DESC, pvs.due_date;
 END;
 $$;
+
+
+-- ============================================================
+-- [NUEVO] sp_get_citas_medico
+-- Devuelve las citas de un trabajador específico (Médico o
+-- Enfermero) en un rango de fechas.
+-- p_worker_id  → filtra por el trabajador en sesión
+-- p_date_from  → fecha inicio (NULL = desde siempre)
+-- p_date_to    → fecha fin    (NULL = hasta +1 año)
+-- Devuelve los mismos campos que sp_get_citas_admin más
+-- la columna role_label para uso futuro.
+-- ============================================================
+CREATE OR REPLACE PROCEDURE sp_get_citas_medico(
+    IN    p_worker_id  INT,
+    IN    p_date_from  DATE,
+    IN    p_date_to    DATE,
+    INOUT p_results    REFCURSOR
+)
+LANGUAGE plpgsql AS $$
+BEGIN
+    OPEN p_results FOR
+    SELECT
+        af.appointment_id,
+        af.patient_id,
+        af.worker_id,
+        af.clinic_id,
+        af.area_id,
+        af.patient_schedule_id,
+        af.scheduled_at,
+        af.duration_min,
+        af.reason,
+        af.appointment_status,
+        af.appointment_notes,
+        af.cancel_reason,
+        af.created_by_role,
+        af.rescheduled_from_id,
+        af.patient_name,
+        af.worker_name,
+        af.clinic_name,
+        af.area_name,
+        af.vaccine_name,
+        af.dose_label,
+        af.dose_due_date,
+        af.dose_status,
+        COALESCE(TRIM(g.first_name || ' ' || g.last_name), 'Sin tutor') AS guardian_name,
+        COALESCE(
+            (SELECT gp.phone
+             FROM   guardian_phones gp
+             WHERE  gp.guardian_id = g.guardian_id
+             ORDER  BY gp.is_primary DESC LIMIT 1),
+            '—'
+        ) AS guardian_phone
+    FROM   v_appointments_full af
+    LEFT JOIN LATERAL (
+        SELECT grd.guardian_id, grd.first_name, grd.last_name
+        FROM   patient_guardian_relations pgr
+        JOIN   guardians grd ON grd.guardian_id = pgr.guardian_id
+        WHERE  pgr.patient_id = af.patient_id
+        ORDER  BY pgr.is_primary DESC LIMIT 1
+    ) g ON TRUE
+    WHERE  af.worker_id = p_worker_id
+      AND  af.scheduled_at::DATE BETWEEN
+               COALESCE(p_date_from, '2015-01-01'::DATE)
+           AND COALESCE(p_date_to,   CURRENT_DATE + INTERVAL '365 days')
+    ORDER  BY af.scheduled_at DESC;
+END;
+$$;
