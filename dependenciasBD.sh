@@ -42,16 +42,16 @@ elif command -v dnf &>/dev/null; then
     sudo dnf install -y -q \
         python3 python3-pip \
         postgresql-server postgresql-contrib libpq-devel
-    # Inicializar clúster postgres si es la primera vez
-    if [ ! -f "/var/lib/pgsql/data/PG_VERSION" ]; then
-        sudo postgresql-setup --initdb
+    # Inicializar clúster postgres solo si aún no existe
+    if ! sudo -u postgres test -f "/var/lib/pgsql/data/PG_VERSION" 2>/dev/null; then
+        sudo postgresql-setup --initdb || true
     fi
 elif command -v yum &>/dev/null; then
     sudo yum install -y -q \
         python3 python3-pip \
         postgresql-server postgresql-contrib libpq-devel
-    if [ ! -f "/var/lib/pgsql/data/PG_VERSION" ]; then
-        sudo postgresql-setup initdb
+    if ! sudo -u postgres test -f "/var/lib/pgsql/data/PG_VERSION" 2>/dev/null; then
+        sudo postgresql-setup initdb || true
     fi
 else
     echo "[ERROR] No se encontró apt-get, dnf ni yum."
