@@ -92,6 +92,12 @@ echo "[4/5] Configurando PostgreSQL..."
 sudo systemctl start postgresql
 sudo systemctl enable postgresql
 
+# Cambiar autenticación de ident a md5 para conexiones TCP (necesario en RHEL/CentOS)
+PG_HBA=$(sudo -u postgres psql -tAc "SHOW hba_file;" 2>/dev/null || echo "/var/lib/pgsql/data/pg_hba.conf")
+sudo sed -i '/^host/s/ident/md5/g'           "$PG_HBA"
+sudo sed -i '/^host/s/scram-sha-256/md5/g'   "$PG_HBA"
+sudo systemctl restart postgresql
+
 sudo -u postgres psql -c "ALTER USER postgres PASSWORD 'lt9128221d24';"
 sudo -u postgres psql -c "DROP DATABASE IF EXISTS sistemavacunacion;"
 sudo -u postgres psql -c "DROP USER IF EXISTS vaccine_user;"
