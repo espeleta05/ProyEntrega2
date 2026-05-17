@@ -418,6 +418,80 @@ INSERT INTO worker_schedules (worker_id, clinic_id, day_of_week, entry_time, exi
 (14, 1, 1, '08:00', '14:00', 'Matutino'),
 (15, 1, 2, '08:00', '14:00', 'Matutino');
 
+-- Ampliar horarios: lunes(1) a viernes(5) para todos los trabajadores
+INSERT INTO worker_schedules (worker_id, clinic_id, day_of_week, entry_time, exit_time, shift_type)
+VALUES
+-- Worker 1 — Clínica 1, Matutino (ya tiene 1,2,3 → agregar 4,5)
+(1,  1, 4, '08:00', '14:00', 'Matutino'),
+(1,  1, 5, '08:00', '14:00', 'Matutino'),
+-- Worker 2 — Clínica 1, Matutino (ya tiene 1,2 → agregar 3,4,5)
+(2,  1, 3, '08:00', '15:00', 'Matutino'),
+(2,  1, 4, '08:00', '15:00', 'Matutino'),
+(2,  1, 5, '08:00', '15:00', 'Matutino'),
+-- Worker 3 — Clínica 1, Matutino (ya tiene 1,2 → agregar 3,4,5)
+(3,  1, 3, '08:00', '14:00', 'Matutino'),
+(3,  1, 4, '08:00', '14:00', 'Matutino'),
+(3,  1, 5, '08:00', '14:00', 'Matutino'),
+-- Worker 4 — Clínica 1, Matutino (ya tiene 1 → agregar 2,3,4,5)
+(4,  1, 2, '08:00', '14:00', 'Matutino'),
+(4,  1, 3, '08:00', '14:00', 'Matutino'),
+(4,  1, 4, '08:00', '14:00', 'Matutino'),
+(4,  1, 5, '08:00', '14:00', 'Matutino'),
+-- Worker 5 — Clínica 2, Vespertino (ya tiene 1,2 → agregar 3,4,5)
+(5,  2, 3, '14:00', '20:00', 'Vespertino'),
+(5,  2, 4, '14:00', '20:00', 'Vespertino'),
+(5,  2, 5, '14:00', '20:00', 'Vespertino'),
+-- Worker 6 — Clínica 2, Vespertino (ya tiene 1 → agregar 2,3,4,5)
+(6,  2, 2, '14:00', '20:00', 'Vespertino'),
+(6,  2, 3, '14:00', '20:00', 'Vespertino'),
+(6,  2, 4, '14:00', '20:00', 'Vespertino'),
+(6,  2, 5, '14:00', '20:00', 'Vespertino'),
+-- Worker 7 — Clínica 3, Matutino (ya tiene 1,2 → agregar 3,4,5)
+(7,  3, 3, '08:00', '14:00', 'Matutino'),
+(7,  3, 4, '08:00', '14:00', 'Matutino'),
+(7,  3, 5, '08:00', '14:00', 'Matutino'),
+-- Worker 8 — Clínica 3, Matutino (ya tiene 1 → agregar 2,3,4,5)
+(8,  3, 2, '08:00', '14:00', 'Matutino'),
+(8,  3, 3, '08:00', '14:00', 'Matutino'),
+(8,  3, 4, '08:00', '14:00', 'Matutino'),
+(8,  3, 5, '08:00', '14:00', 'Matutino'),
+-- Worker 9 — Clínica 2, Vespertino (ya tiene 1 → agregar 2,3,4,5)
+(9,  2, 2, '14:00', '20:00', 'Vespertino'),
+(9,  2, 3, '14:00', '20:00', 'Vespertino'),
+(9,  2, 4, '14:00', '20:00', 'Vespertino'),
+(9,  2, 5, '14:00', '20:00', 'Vespertino'),
+-- Worker 10 — Clínica 4, Matutino (ya tiene 1 → agregar 2,3,4,5)
+(10, 4, 2, '08:00', '14:00', 'Matutino'),
+(10, 4, 3, '08:00', '14:00', 'Matutino'),
+(10, 4, 4, '08:00', '14:00', 'Matutino'),
+(10, 4, 5, '08:00', '14:00', 'Matutino'),
+-- Worker 11 — Clínica 4, Matutino (ya tiene 2 → agregar 1,3,4,5)
+(11, 4, 1, '08:00', '14:00', 'Matutino'),
+(11, 4, 3, '08:00', '14:00', 'Matutino'),
+(11, 4, 4, '08:00', '14:00', 'Matutino'),
+(11, 4, 5, '08:00', '14:00', 'Matutino'),
+-- Worker 12 — Clínica 5, Vespertino (ya tiene 1 → agregar 2,3,4,5)
+(12, 5, 2, '14:00', '20:00', 'Vespertino'),
+(12, 5, 3, '14:00', '20:00', 'Vespertino'),
+(12, 5, 4, '14:00', '20:00', 'Vespertino'),
+(12, 5, 5, '14:00', '20:00', 'Vespertino'),
+-- Worker 13 — Clínica 5, Vespertino (ya tiene 2 → agregar 1,3,4,5)
+(13, 5, 1, '14:00', '20:00', 'Vespertino'),
+(13, 5, 3, '14:00', '20:00', 'Vespertino'),
+(13, 5, 4, '14:00', '20:00', 'Vespertino'),
+(13, 5, 5, '14:00', '20:00', 'Vespertino'),
+-- Worker 14 — Clínica 1, Matutino (ya tiene 1 → agregar 2,3,4,5)
+(14, 1, 2, '08:00', '14:00', 'Matutino'),
+(14, 1, 3, '08:00', '14:00', 'Matutino'),
+(14, 1, 4, '08:00', '14:00', 'Matutino'),
+(14, 1, 5, '08:00', '14:00', 'Matutino'),
+-- Worker 15 — Clínica 1, Matutino (ya tiene 2 → agregar 1,3,4,5)
+(15, 1, 1, '08:00', '14:00', 'Matutino'),
+(15, 1, 3, '08:00', '14:00', 'Matutino'),
+(15, 1, 4, '08:00', '14:00', 'Matutino'),
+(15, 1, 5, '08:00', '14:00', 'Matutino')
+ON CONFLICT DO NOTHING;
+
 -- USERS
 INSERT INTO users (worker_id, username, password_hash, is_active) VALUES
 (1,'jose.perez',crypt('admin123', gen_salt('bf')),TRUE),
@@ -427,7 +501,7 @@ INSERT INTO users (worker_id, username, password_hash, is_active) VALUES
 (5,'raul.mora',crypt('almacen123', gen_salt('bf')),TRUE);
 
 INSERT INTO guardian_accounts (guardian_id, email, password_hash, is_active, email_verified)
-VALUES (36, 'mauricio.olvera@gmail.com', crypt('tutor29', gen_salt('bf')), TRUE, TRUE);
+VALUES (20, 'mauricio.olvera@gmail.com', crypt('tutor29', gen_salt('bf')), TRUE, TRUE);
 
 INSERT INTO guardian_accounts (guardian_id, email, password_hash, is_active,email_verified) VALUES 
 (1, 'carlos.garcia@gmail.com',crypt('tutor1', gen_salt('bf')), TRUE, TRUE);
@@ -800,3 +874,26 @@ INSERT INTO post_vaccine_reactions (reaction_id, record_id, reported_by, symptom
     (10, 'vaccination_records',  70, 'INSERT', 3, '2018-05-03 09:30', '192.168.2.10'),
     (11, 'post_vaccine_reactions',1, 'INSERT', 3, '2018-06-30 09:45', '192.168.1.45'),
     (12, 'vaccine_lots',         5,  'UPDATE', 4, '2025-01-10 08:00', '192.168.1.55');
+
+-- Sincronizar secuencias SERIAL después de inserts con IDs explícitos
+SELECT setval(pg_get_serial_sequence('neighborhoods',   'neighborhood_id'),   MAX(neighborhood_id))   FROM neighborhoods;
+SELECT setval(pg_get_serial_sequence('addresses',       'address_id'),        MAX(address_id))        FROM addresses;
+SELECT setval(pg_get_serial_sequence('clinics',         'clinic_id'),         MAX(clinic_id))         FROM clinics;
+SELECT setval(pg_get_serial_sequence('equipment_catalog','equipment_id'),     MAX(equipment_id))      FROM equipment_catalog;
+SELECT setval(pg_get_serial_sequence('area_equipment',  'area_equipment_id'), MAX(area_equipment_id)) FROM area_equipment;
+SELECT setval(pg_get_serial_sequence('patient_allergies','patient_allergy_id'),MAX(patient_allergy_id))FROM patient_allergies;
+SELECT setval(pg_get_serial_sequence('guardian_emails', 'email_id'),          MAX(email_id))          FROM guardian_emails;
+SELECT setval(pg_get_serial_sequence('manufacturers',   'manufacturer_id'),   MAX(manufacturer_id))   FROM manufacturers;
+SELECT setval(pg_get_serial_sequence('vaccines',        'vaccine_id'),        MAX(vaccine_id))        FROM vaccines;
+SELECT setval(pg_get_serial_sequence('vaccine_lots',    'lot_id'),            MAX(lot_id))            FROM vaccine_lots;
+SELECT setval(pg_get_serial_sequence('vaccination_scheme','scheme_id'),       MAX(scheme_id))         FROM vaccination_scheme;
+SELECT setval(pg_get_serial_sequence('scheme_doses',    'dose_id'),           MAX(dose_id))           FROM scheme_doses;
+SELECT setval(pg_get_serial_sequence('application_sites','application_site_id'),MAX(application_site_id)) FROM application_sites;
+SELECT setval(pg_get_serial_sequence('appointments',    'appointment_id'),    MAX(appointment_id))    FROM appointments;
+SELECT setval(pg_get_serial_sequence('vaccination_records','record_id'),      MAX(record_id))         FROM vaccination_records;
+SELECT setval(pg_get_serial_sequence('post_vaccine_reactions','reaction_id'), MAX(reaction_id))       FROM post_vaccine_reactions;
+SELECT setval(pg_get_serial_sequence('nfc_cards',       'nfc_card_id'),       MAX(nfc_card_id))       FROM nfc_cards;
+SELECT setval(pg_get_serial_sequence('nfc_scan_events', 'scan_event_id'),     MAX(scan_event_id))     FROM nfc_scan_events;
+SELECT setval(pg_get_serial_sequence('supply_catalog',  'supply_id'),         MAX(supply_id))         FROM supply_catalog;
+SELECT setval(pg_get_serial_sequence('clinic_inventory','inventory_id'),      MAX(inventory_id))      FROM clinic_inventory;
+SELECT setval(pg_get_serial_sequence('audit_log',       'audit_id'),          MAX(audit_id))          FROM audit_log;

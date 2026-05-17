@@ -150,7 +150,7 @@
         <div class="tutor-child-info">
           <p class="tutor-child-name">{{ child.full_name }}</p>
           <p class="tutor-child-meta">
-            {{ child.age_years }} año{{ 's' if child.age_years != 1 else '' }}
+            {{ child.age_label }}
             · ID: P{{ child.patient_id }}
           </p>
 
@@ -243,10 +243,16 @@
 
         <td>
           {% if d.estado == 'Pendiente con retraso' %}
-            {{ badge(d.dias_retraso|string ~ ' días atrasada',
-                     color='error', icon='fa-triangle-exclamation', size='sm') }}
-          {% elif d.alerta_retraso %}
-            {{ badge(d.alerta_retraso, color='secondary', icon='fa-clock', size='sm') }}
+            {% set dias = d.dias_retraso | int %}
+            {% if dias >= 365 %}
+              {% set n = (dias / 365) | int %}
+              {{ badge(n|string ~ ' año' ~ ('s' if n != 1 else '') ~ ' atrasada', color='error', icon='fa-triangle-exclamation', size='sm') }}
+            {% elif dias >= 30 %}
+              {% set n = (dias / 30) | int %}
+              {{ badge(n|string ~ ' mes' ~ ('es' if n != 1 else '') ~ ' atrasada', color='error', icon='fa-triangle-exclamation', size='sm') }}
+            {% else %}
+              {{ badge(dias|string ~ ' día' ~ ('s' if dias != 1 else '') ~ ' atrasada', color='error', icon='fa-triangle-exclamation', size='sm') }}
+            {% endif %}
           {% else %}
             <span class="text-muted">Pendiente</span>
           {% endif %}

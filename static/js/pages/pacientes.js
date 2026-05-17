@@ -39,8 +39,18 @@
   sortPatients();
   applyPatientsView();
 
+  // Navegar al esquema al hacer clic en la tarjeta
+  if (container) {
+    container.addEventListener('click', e => {
+      if (e.target.closest('.pt-card-actions, .pt-avatar, button, a, input')) return;
+      const wrapper = e.target.closest('.patient-card-wrapper');
+      if (wrapper?.dataset.url) window.location.href = wrapper.dataset.url;
+    });
+  }
+
   document.querySelectorAll('.delete-patient-btn').forEach(btn => {
-    btn.addEventListener('click', async function () {
+    btn.addEventListener('click', async function (e) {
+      e.stopPropagation();
       const id = this.dataset.patientId;
       if (!id) return;
       if (!confirm('Esta accion eliminara al paciente y sus registros relacionados. Continuar?')) return;
@@ -220,6 +230,7 @@ document.getElementById('formNewPatient')?.addEventListener('submit', async e =>
   const data = {
     first_name:  val('p_name'),
     last_name:   val('p_lastname'),
+    curp:        val('p_curp').toUpperCase() || null,
     birth_date:  val('p_birthdate'),
     gender:      val('p_gender') === 'Masculino' ? 'M' : 'F',
     blood_type:  val('p_blood'),
@@ -507,7 +518,8 @@ document.getElementById('formEditPatient')?.addEventListener('submit', async e =
 
 // Abrir modal desde botones de las cards
 document.querySelectorAll('.edit-patient-btn').forEach(btn => {
-  btn.addEventListener('click', function () {
+  btn.addEventListener('click', function (e) {
+    e.stopPropagation();
     openEditPatientModal(this.dataset.patientId);
   });
 });

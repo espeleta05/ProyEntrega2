@@ -181,11 +181,6 @@ function createTypeahead(cfg) {
 }
 
 /* ── Carga dinámica de dosis del paciente ────────────────────────── */
-const ESTADO_LABELS = {
-  'Pendiente': 'Pendiente',
-  'Atrasada':  '⚠ Atrasada',
-};
-
 function loadPatientDoses(patientId) {
   const doseField  = document.getElementById('dose-field');
   const doseSelect = document.getElementById('patient_schedule_id');
@@ -209,18 +204,25 @@ function loadPatientDoses(patientId) {
         opt.textContent = 'Sin dosis pendientes registradas';
         doseSelect.appendChild(opt);
       } else {
-        dosis.forEach(d => {
-          const opt  = document.createElement('option');
-          opt.value  = d.patient_schedule_id;
+        const atrasadas = dosis.filter(d => d.status === 'Atrasada');
+        const pendientes = dosis.filter(d => d.status !== 'Atrasada');
 
-          const label  = `${d.vaccine_name} — ${d.dose_label || 'Dosis'}`;
-          const estado = ESTADO_LABELS[d.status] || d.status || '';
-          const fecha  = d.due_date ? ` · Vence: ${d.due_date}` : '';
-          opt.textContent = `${label}  [${estado}${fecha}]`;
-          if (d.status === 'Atrasada') opt.style.color = 'var(--md-error)';
+        const addGroup = (label, items) => {
+          if (!items.length) return;
+          const group = document.createElement('optgroup');
+          group.label = label;
+          items.forEach(d => {
+            const opt = document.createElement('option');
+            opt.value = d.patient_schedule_id;
+            opt.textContent = d.dose_label || `${d.vaccine_name} — Dosis`;
+            if (d.status === 'Atrasada') opt.style.color = 'var(--md-error)';
+            group.appendChild(opt);
+          });
+          doseSelect.appendChild(group);
+        };
 
-          doseSelect.appendChild(opt);
-        });
+        addGroup('⚠ Atrasadas', atrasadas);
+        addGroup('Pendientes', pendientes);
       }
 
       /* Pre-seleccionar si viene ?schedule_id=... en la URL */

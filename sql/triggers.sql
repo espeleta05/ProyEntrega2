@@ -605,3 +605,84 @@ BEFORE UPDATE ON vaccine_lots
 FOR EACH ROW
 EXECUTE FUNCTION fn_auto_lot_status();
 */
+
+-- ============================================================
+-- Trigger 16: Auto-asignar trabajador y área a citas de tutor
+-- Cuando un tutor agenda una cita (worker_id NULL), el trigger
+-- busca el médico/enfermero disponible con menos carga ese día
+-- y un área libre en la misma clínica.
+-- ============================================================
+
+CREATE OR REPLACE FUNCTION fn_auto_assign_worker_area()
+RETURNS TRIGGER LANGUAGE plpgsql AS $$
+DECLARE
+    v_worker_id  INT;
+    v_area_id    INT;
+BEGIN
+    -- Solo actuar en citas de tutor sin trabajador asignado
+    IF NEW.created_by_role <> 'Tutor' OR NEW.worker_id IS NOT NULL THEN
+        RETURN NEW;
+    END IF;
+
+    -- Buscar trabajador (Médico o Enfermero) activo con horario en esa
+    -- clínica/día/hora y sin cita que se solape en ventana de 20 min.
+    -- Se elige el que tenga menos citas activas ese día (menor carga).
+    SELECT ws.worker_id
+    INTO   v_worker_id
+    FROM   worker_schedules ws
+    JOIN   workers w ON w.worker_id = ws.worker_id
+    JOIN   roles   r ON r.role_id   = w.role_id
+    WHERE  ws.clinic_id   = NEW.clinic_id
+    AND    r.name         IN ('Medico', 'Enfermero')
+    AND    w.is_active    = TRUE
+    AND    ws.day_of_week = EXTRACT(ISODOW FROM NEW.scheduled_at)::SMALLINT
+    AND    ws.entry_time  <= NEW.scheduled_at::TIME
+    AND    ws.exit_time   >  NEW.scheduled_at::TIME
+    AND    NOT EXISTS (
+        SELECT 1 FROM appointments a
+        WHERE  a.worker_id        = ws.worker_id
+        AND    a.appointment_id   <> NEW.appointment_id
+        AND    a.appointment_status NOT IN ('Cancelada', 'No Show', 'Reagendada')
+        AND    a.scheduled_at < NEW.scheduled_at + (NEW.duration_min * INTERVAL '1 minute')
+        AND    a.scheduled_at + (a.duration_min * INTERVAL '1 minute') > NEW.scheduled_at
+    )
+    ORDER BY (
+        SELECT COUNT(*)
+        FROM   appointments a2
+        WHERE  a2.worker_id = ws.worker_id
+        AND    DATE(a2.scheduled_at) = DATE(NEW.scheduled_at)
+        AND    a2.appointment_status NOT IN ('Cancelada', 'No Show', 'Reagendada')
+    ) ASC
+    LIMIT 1;
+
+    -- Si se encontró trabajador, buscar área libre en esa clínica a esa hora
+    IF v_worker_id IS NOT NULL THEN
+        SELECT ca.area_id
+        INTO   v_area_id
+        FROM   clinic_areas ca
+        WHERE  ca.clinic_id = NEW.clinic_id
+        AND    NOT EXISTS (
+            SELECT 1 FROM appointments a
+            WHERE  a.area_id        = ca.area_id
+            AND    a.clinic_id      = NEW.clinic_id
+            AND    a.appointment_id <> NEW.appointment_id
+            AND    a.appointment_status NOT IN ('Cancelada', 'No Show', 'Reagendada')
+            AND    a.scheduled_at   = NEW.scheduled_at
+        )
+        LIMIT 1;
+
+        UPDATE appointments
+        SET    worker_id = v_worker_id,
+               area_id   = v_area_id
+        WHERE  appointment_id = NEW.appointment_id;
+    END IF;
+
+    RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS trg_auto_assign_worker_area ON appointments;
+CREATE TRIGGER trg_auto_assign_worker_area
+AFTER INSERT ON appointments
+FOR EACH ROW
+EXECUTE FUNCTION fn_auto_assign_worker_area();

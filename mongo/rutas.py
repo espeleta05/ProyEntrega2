@@ -16,7 +16,7 @@ Endpoints:
 from flask import Blueprint, jsonify, request, session
 
 from .conexion import ping, get_db
-from .repositorios import EventosRepo, HistorialRepo
+from .repositorios import EventosRepo, HistorialRepo, AuditoriaRepo
 
 mongo_bp = Blueprint("mongo_bp", __name__)
 
@@ -25,7 +25,7 @@ def _sin_mongo():
     return jsonify({"error": "MongoDB no disponible. Verifica que mongod esté corriendo."}), 503
 
 
-def _entero(nombre, default, lo=1, hi=365):
+def _entero(nombre, default, lo=1, hi=120):
     try:
         v = int(request.args.get(nombre, default))
     except (TypeError, ValueError):
@@ -80,7 +80,7 @@ def api_eventos_tipos():
 def api_historial_mes():
     if not ping():
         return _sin_mongo()
-    meses = _entero("meses", 12, 1, 36)
+    meses = _entero("meses", 12, 1, 120)
     filas = HistorialRepo.dosis_por_mes(meses=meses)
     return jsonify({
         "categorias":     [r["_id"] for r in filas],
@@ -93,7 +93,7 @@ def api_historial_mes():
 def api_historial_clinica():
     if not ping():
         return _sin_mongo()
-    meses = _entero("meses", 6, 1, 36)
+    meses = _entero("meses", 6, 1, 120)
     filas = HistorialRepo.dosis_por_clinica(meses=meses)
     return jsonify({
         "categorias": [r["_id"] for r in filas if r["_id"]],
@@ -105,7 +105,7 @@ def api_historial_clinica():
 def api_historial_vacuna():
     if not ping():
         return _sin_mongo()
-    meses = _entero("meses", 6, 1, 36)
+    meses = _entero("meses", 6, 1, 120)
     filas = HistorialRepo.dosis_por_vacuna(meses=meses)
     return jsonify({
         "categorias": [r["_id"] for r in filas if r["_id"]],
@@ -117,7 +117,7 @@ def api_historial_vacuna():
 def api_historial_reaccion():
     if not ping():
         return _sin_mongo()
-    meses = _entero("meses", 12, 1, 36)
+    meses = _entero("meses", 12, 1, 120)
     filas = HistorialRepo.tasa_reaccion_por_vacuna(meses=meses)
     return jsonify({
         "items": [
@@ -129,4 +129,16 @@ def api_historial_reaccion():
             }
             for r in filas if r["_id"]
         ]
+    })
+
+
+@mongo_bp.route("/api/mongo/historial/edades")
+def api_historial_edades():
+    if not ping():
+        return _sin_mongo()
+    meses = _entero("meses", 12, 1, 120)
+    filas = HistorialRepo.distribucion_por_edad(meses=meses)
+    return jsonify({
+        "categorias": [r["grupo"] for r in filas],
+        "datos":      [r["total"] for r in filas],
     })

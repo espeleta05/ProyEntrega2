@@ -74,6 +74,12 @@
               'endpoint': 'tutor_dashboard'
             },
             {
+              'label':     'Mis hijos',
+              'icon':      'fa-children',
+              'endpoint':  'tutor_mis_hijos',
+              'active_if': ['tutor_mis_hijos', 'tutor_registrar_hijo']
+            },
+            {
               'label':     'Vacunas',
               'icon':      'fa-syringe',
               'url':       url_for('tutor_dashboard') ~ '#mis-hijos',
@@ -89,13 +95,6 @@
               'label':    'Agendar cita',
               'icon':     'fa-calendar-plus',
               'endpoint': 'tutor_agendar'
-            },
-            {
-              'label':    'Historial',
-              'icon':     'fa-file-medical',
-              'url':      '#',
-              'disabled': true,
-              'badge':    'Próximo'
             },
           ]
         }

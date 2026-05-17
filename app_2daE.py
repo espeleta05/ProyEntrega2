@@ -269,6 +269,24 @@ def _age_years(birth_date_str):
         years -= 1
     return max(years, 0)
 
+def _age_label(birth_date) -> str:
+    """'3 meses' si < 1 año, '2 años' en caso contrario. birth_date puede ser date o str."""
+    if birth_date is None:
+        return ""
+    if isinstance(birth_date, str):
+        try:
+            birth_date = datetime.strptime(birth_date, "%Y-%m-%d").date()
+        except ValueError:
+            return ""
+    today = date.today()
+    total_months = (today.year - birth_date.year) * 12 + (today.month - birth_date.month)
+    total_months = max(total_months, 0)
+    if total_months < 12:
+        return f"{total_months} mes{'es' if total_months != 1 else ''}"
+    years = total_months // 12
+    return f"{years} año{'s' if years != 1 else ''}"
+
+
 def _distance_meters(lat1, lon1, lat2, lon2):
     r = 6371000.0
     phi1, phi2 = math.radians(lat1), math.radians(lat2)
@@ -541,6 +559,7 @@ def tutor_dashboard():
                 "patient_id":    pid,
                 "full_name":     fn,
                 "age_years":     r.get("age_years", 0),
+                "age_label":     _age_label(r.get("birth_date")),
                 "birth_date":    _temporal_text(r.get("birth_date")),
                 "photo_url":     (f"/static/uploads/patients/{r['photo']}"
                                   if r.get("photo") else None),
@@ -574,7 +593,8 @@ def tutor_dashboard():
         if months == 0:
             edad_label = "Al nacer"
         elif months >= 12:
-            edad_label = f"{months // 12} año(s)"
+            y = months // 12
+            edad_label = f"{y} año{'s' if y != 1 else ''}"
         else:
             edad_label = f"{months} meses"
 
@@ -585,7 +605,7 @@ def tutor_dashboard():
             "due_date":       _temporal_text(due_dt),
             "dias_retraso":   dias,
             "dose_status":    r.get("dose_status"),
-            "estado":         ("Pendiente con retraso" if r.get("dose_status") == "Atrasada"
+            "estado":         ("Pendiente con retraso" if r.get("dose_status") == "Atrasada" or dias > 0
                                else r.get("dose_status") or "Pendiente"),
             "alerta_retraso": alerta,
             "edad_ideal":     edad_label,
@@ -690,6 +710,7 @@ def tutor_esquema(patient_id):
         "full_name":  fn,
         "birth_date": _temporal_text(first.get("birth_date")),
         "age":        first.get("age_years"),
+        "age_label":  _age_label(first.get("birth_date")),
         "photo_url":  f"/static/uploads/patients/{_photo}" if _photo else None,
         "initials":   (fn[:1] + (parts[-1][:1] if len(parts) > 1 else "")).upper(),
     }
@@ -737,6 +758,177 @@ def tutor_esquema(patient_id):
         total_pending=total_pending,
         total_doses=total_doses,
         pct=pct,
+        **vars_,
+    )
+
+
+@app.route("/tutor/mis-hijos")
+def tutor_mis_hijos():
+    locked = _require_tutor()
+    if locked:
+        return locked
+
+    vars_       = _tutor_session_vars()
+    guardian_id = vars_["guardian_id"]
+    children    = []
+
+    conn, should_close = _get_conn()
+    _safe_rollback(conn)
+    try:
+        with conn.cursor() as cur:
+            cur.execute("CALL sp_get_tutor_children(%s, %s)",
+                        (guardian_id, "cur_tutor_children"))
+            cur.execute('FETCH ALL FROM "cur_tutor_children"')
+            rows = [dict(r) for r in cur.fetchall()]
+        conn.commit()
+    except Exception as e:
+        _safe_rollback(conn)
+        logger.error("Error en tutor_mis_hijos: %s", e)
+        flash("Error al cargar los niños registrados.", "danger")
+        rows = []
+    finally:
+        if should_close and not _conn_is_closed(conn):
+            conn.close()
+
+    for r in rows:
+        fn    = r.get("full_name", "")
+        parts = fn.split()
+        children.append({
+            "patient_id":    r.get("patient_id"),
+            "full_name":     fn,
+            "birth_date":    _temporal_text(r.get("birth_date")),
+            "age_years":     r.get("age_years", 0),
+            "age_label":     _age_label(r.get("birth_date")),
+            "curp":          r.get("curp") or "",
+            "blood_type":    r.get("blood_type") or "",
+            "gender":        r.get("gender"),
+            "weight_kg":     r.get("weight_kg"),
+            "premature":     r.get("premature") or False,
+            "photo_url":     (f"/static/uploads/patients/{r['photo']}"
+                              if r.get("photo") else None),
+            "initials":      (fn[:1] + (parts[-1][:1] if len(parts) > 1 else "")).upper(),
+            "total_applied": r.get("total_applied", 0),
+            "total_pending": r.get("total_pending", 0),
+            "total_doses":   r.get("total_doses", 0),
+            "pct":           r.get("pct", 0),
+            "delayed_count": r.get("delayed_count", 0),
+        })
+
+    return render_template(
+        "tutor/mis_hijos.html",
+        children=children,
+        **vars_,
+    )
+
+
+@app.route("/tutor/mis-hijos/registrar", methods=["GET", "POST"])
+def tutor_registrar_hijo():
+    locked = _require_tutor()
+    if locked:
+        return locked
+
+    vars_       = _tutor_session_vars()
+    guardian_id = vars_["guardian_id"]
+    blood_types = _cur_fetchall("blood_types")
+
+    if request.method == "POST":
+        first_name     = request.form.get("first_name", "").strip()
+        last_name      = request.form.get("last_name",  "").strip()
+        birth_date_raw = request.form.get("birth_date", "").strip() or None
+        gender         = request.form.get("gender", "").strip().upper()
+        curp_raw       = request.form.get("curp", "").strip().upper()
+        curp           = curp_raw or None
+        blood_type_str = request.form.get("blood_type", "").strip()
+        weight_raw     = request.form.get("weight_kg", "").strip()
+        premature      = request.form.get("premature") == "on"
+
+        errors = []
+        if not first_name:
+            errors.append("El nombre es obligatorio.")
+        if not last_name:
+            errors.append("El apellido es obligatorio.")
+        if not birth_date_raw:
+            errors.append("La fecha de nacimiento es obligatoria.")
+        if gender not in ("M", "F"):
+            errors.append("Selecciona el género del niño/a.")
+        if curp and len(curp) != 18:
+            errors.append("La CURP debe tener exactamente 18 caracteres.")
+
+        weight_kg = None
+        if weight_raw:
+            try:
+                weight_kg = float(weight_raw)
+            except ValueError:
+                errors.append("El peso debe ser un número válido (ej: 22.5).")
+
+        blood_type_id = None
+        if blood_type_str:
+            match = next(
+                (bt for bt in blood_types
+                 if (bt.get("blood_type") or "").upper() == blood_type_str.upper()),
+                None,
+            )
+            blood_type_id = match["blood_type_id"] if match else None
+
+        if errors:
+            for err in errors:
+                flash(err, "danger")
+            return render_template(
+                "tutor/registrar_hijo.html",
+                blood_types=blood_types,
+                form_data=request.form,
+                today_iso=date.today().isoformat(),
+                **vars_,
+            )
+
+        conn, should_close = _get_conn()
+        _safe_rollback(conn)
+        row = None
+        try:
+            with conn.cursor() as cur:
+                cur.execute(
+                    "CALL sp_tutor_register_child(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",
+                    (guardian_id, first_name, last_name, birth_date_raw,
+                     gender, curp, blood_type_id, weight_kg, premature,
+                     "cur_reg_hijo"),
+                )
+                cur.execute('FETCH ALL FROM "cur_reg_hijo"')
+                row = cur.fetchone()
+            conn.commit()
+        except Exception as e:
+            _safe_rollback(conn)
+            logger.error("Error en tutor_registrar_hijo: %s", e)
+            flash("Error interno al registrar. Intenta de nuevo.", "danger")
+            return render_template(
+                "tutor/registrar_hijo.html",
+                blood_types=blood_types,
+                form_data=request.form,
+                today_iso=date.today().isoformat(),
+                **vars_,
+            )
+        finally:
+            if should_close and not _conn_is_closed(conn):
+                conn.close()
+
+        if row and row.get("success"):
+            flash(f"{first_name} {last_name} fue registrado/a correctamente.", "success")
+            return redirect(url_for("tutor_mis_hijos"))
+
+        msg = (row.get("message") if row else None) or "No se pudo registrar al paciente."
+        flash(msg.split("\n")[0], "danger")
+        return render_template(
+            "tutor/registrar_hijo.html",
+            blood_types=blood_types,
+            form_data=request.form,
+            today_iso=date.today().isoformat(),
+            **vars_,
+        )
+
+    return render_template(
+        "tutor/registrar_hijo.html",
+        blood_types=blood_types,
+        form_data={},
+        today_iso=date.today().isoformat(),
         **vars_,
     )
 
@@ -908,13 +1100,17 @@ def tutor_agendar():
                 ),
             )
             cur.execute('FETCH ALL FROM "cur_agendar"')
-            result = cur.fetchone()
+            result = dict(cur.fetchone() or {})
         conn.commit()
-        flash("Cita agendada correctamente.", "success")
+        if result.get("success"):
+            flash("Cita agendada correctamente.", "success")
+        else:
+            msg = result.get("message") or "No se pudo agendar la cita."
+            flash(msg, "danger")
     except Exception as e:
         _safe_rollback(conn)
         logger.error("Error en tutor_agendar POST: %s", e)
-        flash(f"No se pudo agendar la cita: {e}", "danger")
+        flash(str(e).split("\n")[0], "danger")
     finally:
         if should_close and not _conn_is_closed(conn):
             conn.close()
@@ -1165,35 +1361,9 @@ def tutor_comprobante(record_id):
     _safe_rollback(conn)
     try:
         with conn.cursor() as cur:
-            cur.execute("""
-                SELECT
-                    vr.record_id,
-                    vr.patient_id,
-                    vr.applied_date,
-                    vr.patient_temp_c,
-                    vr.had_reaction,
-                    TRIM(p.first_name || ' ' || p.last_name) AS patient_name,
-                    p.curp,
-                    p.birth_date,
-                    DATE_PART('year', AGE(CURRENT_DATE, p.birth_date))::INT AS age_years,
-                    v.name                                    AS vaccine_name,
-                    v.commercial_name,
-                    COALESCE(TRIM(w.first_name||' '||w.last_name), '—') AS worker_name,
-                    COALESCE(sd.dose_label, '—')              AS dose_label,
-                    COALESCE(aps.application_site, '—')       AS application_site,
-                    c.name                                    AS clinic_name,
-                    COALESCE(vl.lot_number, '—')              AS lot_number
-                FROM   vaccination_records vr
-                JOIN   patients p   ON p.patient_id  = vr.patient_id
-                JOIN   vaccines v   ON v.vaccine_id  = vr.vaccine_id
-                JOIN   workers  w   ON w.worker_id   = vr.worker_id
-                JOIN   clinics  c   ON c.clinic_id   = vr.clinic_id
-                LEFT JOIN scheme_doses     sd  ON sd.dose_id              = vr.scheme_dose_id
-                LEFT JOIN application_sites aps ON aps.application_site_id = vr.application_site_id
-                LEFT JOIN vaccine_lots     vl  ON vl.lot_id               = vr.lot_id
-                WHERE  vr.record_id = %s
-                LIMIT  1;
-            """, (record_id,))
+            cur.execute("CALL sp_get_vaccination_record(%s, %s)",
+                        (record_id, "cur_comprobante"))
+            cur.execute('FETCH ALL FROM "cur_comprobante"')
             row = cur.fetchone()
         conn.commit()
     except Exception as e:
@@ -1364,25 +1534,8 @@ def dashboard():
                 citas_hoy = [dict(r) for r in cur.fetchall()]
 
                 # 3. Últimas 10 aplicaciones de vacunas
-                cur.execute("""
-                    SELECT
-                        vr.record_id,
-                        vr.applied_date,
-                        TRIM(p.first_name || ' ' || p.last_name)  AS patient_name,
-                        p.patient_id,
-                        v.name                                     AS vaccine_name,
-                        COALESCE(sd.dose_label, 'Dosis única')    AS dose_label,
-                        TRIM(w.first_name || ' ' || w.last_name)  AS worker_name,
-                        c.name                                     AS clinic_name
-                    FROM   vaccination_records vr
-                    JOIN   patients   p  ON p.patient_id  = vr.patient_id
-                    JOIN   vaccines   v  ON v.vaccine_id  = vr.vaccine_id
-                    LEFT   JOIN scheme_doses sd ON sd.dose_id   = vr.scheme_dose_id
-                    LEFT   JOIN workers   w  ON w.worker_id  = vr.worker_id
-                    LEFT   JOIN clinics   c  ON c.clinic_id  = vr.clinic_id
-                    ORDER  BY vr.applied_date DESC, vr.record_id DESC
-                    LIMIT  10
-                """)
+                cur.execute("CALL sp_get_last_applications(%s)", ("cur_recent_apps",))
+                cur.execute('FETCH ALL FROM "cur_recent_apps"')
                 recent_apps = [dict(r) for r in cur.fetchall()]
 
                 # 4. Datos para las 3 gráficas
@@ -1660,12 +1813,6 @@ def register_patient():
                         ON CONFLICT DO NOTHING
                         """,
                         (patient_id, guardian_id_existing),
-                    )
-
-                if rfc and patient_id:
-                    cur.execute(
-                        "UPDATE patients SET rfc = %s WHERE patient_id = %s",
-                        (rfc, patient_id),
                     )
 
         conn.commit()
@@ -3239,14 +3386,23 @@ def admin_nueva_cita():
     if locked:
         return locked
 
-    clinic_id = session.get("clinic_id")
+    session_clinic_id = session.get("clinic_id")
+    if request.method == "GET":
+        clinic_id = request.args.get("clinic_id", type=int) or session_clinic_id
+    else:
+        clinic_id = request.form.get("clinic_id", type=int) or session_clinic_id
 
     if request.method == "GET":
         conn, should_close = _get_conn()
         _safe_rollback(conn)
-        patients, workers, areas = [], [], []
+        patients, workers, areas, clinics = [], [], [], []
         try:
             with conn.cursor() as cur:
+                cur.execute(
+                    "SELECT clinic_id, name FROM clinics WHERE is_active = TRUE ORDER BY name"
+                )
+                clinics = [dict(r) for r in cur.fetchall()]
+
                 cur.execute(
                     "CALL sp_get_agenda_form_data(%s, %s, %s, %s)",
                     (clinic_id, "cur_pat", "cur_wrk", "cur_area"),
@@ -3272,6 +3428,8 @@ def admin_nueva_cita():
             patients=patients,
             workers=workers,
             areas=areas,
+            clinics=clinics,
+            selected_clinic_id=clinic_id,
             today_iso=date.today().isoformat(),
         )
 
@@ -4561,9 +4719,10 @@ def api_reportes_publicos_resumen():
     try:
         with conn.cursor() as cur:
             cur.execute(
-                "SELECT * FROM sp_reportes_resumen(%s, %s)",
-                (from_date, to_date),
+                "CALL sp_reportes_resumen(%s, %s, %s)",
+                (from_date, to_date, "cur_reportes"),
             )
+            cur.execute('FETCH ALL FROM "cur_reportes"')
             sp_row = cur.fetchone()
         conn.commit()
     except Exception:

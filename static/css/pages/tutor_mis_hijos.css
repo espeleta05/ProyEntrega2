@@ -1,0 +1,281 @@
+/* ══════════════════════════════════════════════════════════════
+   tutor_mis_hijos.css
+   Páginas "Mis hijos" y "Registrar hijo" — Portal Familiar
+   Usa tokens de design-system.css
+   ══════════════════════════════════════════════════════════════ */
+
+/* ── Encabezado de acciones ──────────────────────────────────── */
+.mh-header-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: var(--md-spacing-4);
+}
+
+/* ── KPIs ────────────────────────────────────────────────────── */
+.mh-kpi-grid {
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  margin-bottom: var(--md-spacing-4);
+}
+
+/* ── Grid de tarjetas ────────────────────────────────────────── */
+.mh-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: var(--md-spacing-4);
+}
+
+/* ── Tarjeta hijo ────────────────────────────────────────────── */
+.mh-card {
+  background: var(--md-surface);
+  border: 1px solid var(--md-outline-variant, #e5e7eb);
+  border-radius: var(--md-shape-large, 16px);
+  padding: var(--md-spacing-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--md-spacing-3);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, .07);
+  transition: box-shadow .18s ease, transform .18s ease;
+}
+
+.mh-card:hover {
+  box-shadow: 0 6px 18px rgba(0, 0, 0, .12);
+  transform: translateY(-2px);
+}
+
+/* Avatar wrap */
+.mh-card__avatar-wrap {
+  position: relative;
+  align-self: center;
+}
+
+.mh-card__photo {
+  width: 76px;
+  height: 76px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 3px solid var(--md-primary-container, #f3e5ff);
+  display: block;
+}
+
+.mh-card__avatar {
+  width: 76px;
+  height: 76px;
+  border-radius: 50%;
+  background: var(--md-primary-container, #f3e5ff);
+  color: var(--md-on-primary-container, var(--md-primary));
+  font-size: 1.6rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 3px solid var(--md-primary-container, #f3e5ff);
+}
+
+/* Badge porcentaje */
+.mh-card__pct-badge {
+  position: absolute;
+  bottom: -4px;
+  right: -8px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 100px;
+  border: 2px solid var(--md-surface);
+  line-height: 1.5;
+  white-space: nowrap;
+}
+
+.mh-pct--ok   { background: var(--md-success,   #1D7B00); color: #fff; }
+.mh-pct--warn { background: var(--md-tertiary,  #7B6800); color: #fff; }
+.mh-pct--low  { background: var(--md-error,     #C40000); color: #fff; }
+
+/* Cuerpo */
+.mh-card__body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--md-spacing-2);
+}
+
+.mh-card__name {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--md-on-surface);
+  margin: 0;
+}
+
+.mh-card__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem 0.9rem;
+  font-size: 0.79rem;
+  color: var(--md-on-surface-variant);
+  margin: 0;
+}
+
+.mh-card__meta span {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.mh-card__meta i { opacity: .6; }
+
+/* Chips de detalle clínico */
+.mh-card__details {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.mh-detail-chip {
+  font-size: 0.74rem;
+  background: var(--md-surface-variant, #f0ebf5);
+  color: var(--md-on-surface-variant, #555);
+  border-radius: 100px;
+  padding: 3px 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mh-detail-chip--warn {
+  background: var(--md-error-container, #fde8e8);
+  color: var(--md-error, #C40000);
+}
+
+.mh-detail-chip--curp {
+  font-family: monospace;
+  letter-spacing: 0.04em;
+  font-size: 0.7rem;
+}
+
+/* Barra de progreso */
+.mh-card__progress-wrap {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.mh-card__progress-bar {
+  flex: 1;
+  height: 7px;
+  background: var(--md-surface-variant, #ede8f5);
+  border-radius: 100px;
+  overflow: hidden;
+}
+
+.mh-card__progress-fill {
+  height: 100%;
+  border-radius: 100px;
+  width: var(--pct, 0%);
+  transition: width .4s ease;
+}
+
+.mh-fill--ok   { background: var(--md-success,  #1D7B00); }
+.mh-fill--warn { background: var(--md-tertiary, #7B6800); }
+.mh-fill--low  { background: var(--md-error,    #C40000); }
+
+.mh-card__progress-label {
+  font-size: 0.74rem;
+  color: var(--md-on-surface-variant);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* Chips de estado */
+.mh-card__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+/* Acciones */
+.mh-card__actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  padding-top: var(--md-spacing-2);
+  border-top: 1px solid var(--md-outline-variant, #e5e7eb);
+  margin-top: auto;
+}
+
+/* Empty state CTA */
+.mh-empty-cta {
+  display: flex;
+  justify-content: center;
+  margin-top: var(--md-spacing-4);
+}
+
+/* ── Formulario de registro ───────────────────────────────────── */
+.rh-form-card {
+  max-width: 640px;
+  margin: var(--md-spacing-4) auto 0;
+}
+
+.rh-row-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--md-spacing-3);
+}
+
+.rh-curp {
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-family: monospace;
+}
+
+/* Checkbox personalizado */
+.rh-checkbox-label {
+  display: inline-flex;
+  align-items: flex-start;
+  gap: var(--md-spacing-2);
+  cursor: pointer;
+  user-select: none;
+}
+
+.rh-checkbox {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--md-primary);
+  margin-top: 2px;
+  flex-shrink: 0;
+  cursor: pointer;
+}
+
+.rh-checkbox-text {
+  font-size: 0.9rem;
+  color: var(--md-on-surface);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  line-height: 1.4;
+}
+
+.rh-checkbox-text i { color: var(--md-primary); }
+
+.rh-section-optional {
+  font-size: 0.78rem;
+  font-weight: 400;
+  color: var(--md-on-surface-variant);
+  margin-left: 4px;
+}
+
+/* ── Responsive ──────────────────────────────────────────────── */
+@media (max-width: 540px) {
+  .rh-row-2 {
+    grid-template-columns: 1fr;
+  }
+
+  .mh-card__actions {
+    flex-direction: column;
+  }
+
+  .mh-card__actions .md3-btn {
+    width: 100%;
+    justify-content: center;
+  }
+}

@@ -149,6 +149,27 @@
       <span class="md3-field__helper">Horario de atención: 07:00 – 20:00 hrs.</span>
     </div>
 
+    {# ══ Sucursal ══ #}
+    <hr class="md3-form__divider">
+    <p class="md3-form__section-title">
+      <i class="fa-solid fa-hospital"></i>
+      Sucursal *
+    </p>
+
+    <div class="md3-field">
+      <label class="md3-field__label" for="clinic_id">Clínica / Sucursal</label>
+      <select name="clinic_id" id="clinic_id" class="md3-select"
+              onchange="window.location.href='{{ url_for('admin_nueva_cita') }}?clinic_id=' + this.value">
+        {% for c in clinics %}
+          <option value="{{ c.clinic_id }}"
+            {{ 'selected' if c.clinic_id == selected_clinic_id else '' }}>
+            {{ c.name }}
+          </option>
+        {% endfor %}
+      </select>
+      <span class="md3-field__helper">Al cambiar la sucursal se actualiza el personal y las áreas disponibles.</span>
+    </div>
+
     {# ══ Personal y área ══ #}
     <hr class="md3-form__divider">
     <p class="md3-form__section-title">

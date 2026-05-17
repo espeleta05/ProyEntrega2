@@ -1,0 +1,162 @@
+{% extends 'tutor/base_tutor.html' %}
+
+{% block title %}Mis hijos — Portal Familiar{% endblock %}
+
+{% block head_extra %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/tutor_mis_hijos.css') }}">
+{% endblock %}
+
+{% block content %}
+{% from 'components/toolbar.html'     import toolbar     %}
+{% from 'components/badge.html'       import badge       %}
+{% from 'components/kpi_card.html'    import kpi_card    %}
+{% from 'components/empty_state.html' import empty_state %}
+
+{{ toolbar('Mis hijos',
+           subtitle='Niños registrados en tu cuenta familiar',
+           icon='fa-children',
+           back_href=url_for('tutor_dashboard')) }}
+
+{# ── Botón registrar ── #}
+<div class="mh-header-actions">
+  <a href="{{ url_for('tutor_registrar_hijo') }}" class="md3-btn md3-btn--filled">
+    <i class="fa-solid fa-user-plus"></i>
+    Registrar nuevo hijo
+  </a>
+</div>
+
+{% if children %}
+
+  {# ── KPIs ── #}
+  {% set total_delayed = namespace(v=0) %}
+  {% for c in children %}{% set total_delayed.v = total_delayed.v + c.delayed_count %}{% endfor %}
+
+  <div class="kpi-grid mh-kpi-grid">
+    {{ kpi_card(value=children|length, label='Niños registrados', icon='fa-children', color='primary') }}
+    {{ kpi_card(
+        value=total_delayed.v,
+        label='Dosis atrasadas',
+        icon='fa-triangle-exclamation',
+        color='primary' if total_delayed.v > 0 else 'secondary'
+    ) }}
+  </div>
+
+  {# ── Grid de tarjetas ── #}
+  <div class="mh-grid">
+    {% for child in children %}
+    <div class="mh-card">
+
+      {# ── Avatar / foto ── #}
+      <div class="mh-card__avatar-wrap">
+        {% if child.photo_url %}
+          <img src="{{ child.photo_url }}" alt="{{ child.full_name }}" class="mh-card__photo">
+        {% else %}
+          <div class="mh-card__avatar">{{ child.initials }}</div>
+        {% endif %}
+        <span class="mh-card__pct-badge
+          {{ 'mh-pct--ok'  if child.pct == 100 else
+             'mh-pct--warn' if child.pct >= 60  else
+             'mh-pct--low' }}">{{ child.pct }}%</span>
+      </div>
+
+      {# ── Info ── #}
+      <div class="mh-card__body">
+        <p class="mh-card__name">{{ child.full_name }}</p>
+        <p class="mh-card__meta">
+          <span><i class="fa-solid fa-id-card"></i> P{{ child.patient_id }}</span>
+          <span><i class="fa-solid fa-cake-candles"></i> {{ child.age_label }}</span>
+          {% if child.birth_date %}
+          <span><i class="fa-solid fa-calendar"></i> {{ child.birth_date }}</span>
+          {% endif %}
+        </p>
+
+        {# Chips de detalle clínico #}
+        <div class="mh-card__details">
+          {% if child.blood_type %}
+          <span class="mh-detail-chip">
+            <i class="fa-solid fa-droplet"></i> {{ child.blood_type }}
+          </span>
+          {% endif %}
+          {% if child.gender %}
+          <span class="mh-detail-chip">
+            <i class="fa-solid {{ 'fa-mars' if child.gender == 'M' else 'fa-venus' }}"></i>
+            {{ 'Masculino' if child.gender == 'M' else 'Femenino' }}
+          </span>
+          {% endif %}
+          {% if child.premature %}
+          <span class="mh-detail-chip mh-detail-chip--warn">
+            <i class="fa-solid fa-baby"></i> Prematuro
+          </span>
+          {% endif %}
+          {% if child.curp %}
+          <span class="mh-detail-chip mh-detail-chip--curp" title="{{ child.curp }}">
+            <i class="fa-solid fa-fingerprint"></i> {{ child.curp }}
+          </span>
+          {% endif %}
+        </div>
+
+        {# Barra de progreso #}
+        <div class="mh-card__progress-wrap">
+          <div class="mh-card__progress-bar">
+            <div class="mh-card__progress-fill
+              {{ 'mh-fill--ok'  if child.pct == 100 else
+                 'mh-fill--warn' if child.pct >= 60  else
+                 'mh-fill--low' }}"
+                 style="--pct: {{ child.pct }}%;"></div>
+          </div>
+          <span class="mh-card__progress-label">
+            {{ child.total_applied }} / {{ child.total_doses }} dosis
+          </span>
+        </div>
+
+        {# Estado rápido #}
+        <div class="mh-card__chips">
+          {% if child.delayed_count > 0 %}
+            {{ badge(child.delayed_count|string ~ ' atrasada' ~ ('s' if child.delayed_count > 1 else ''),
+                     color='error', icon='fa-triangle-exclamation', size='sm') }}
+          {% elif child.total_pending > 0 %}
+            {{ badge(child.total_pending|string ~ ' pendiente' ~ ('s' if child.total_pending > 1 else ''),
+                     color='primary', icon='fa-clock', size='sm') }}
+          {% else %}
+            {{ badge('Al día', color='success', icon='fa-check', size='sm') }}
+          {% endif %}
+        </div>
+      </div>
+
+      {# ── Acciones ── #}
+      <div class="mh-card__actions">
+        <a href="{{ url_for('tutor_esquema', patient_id=child.patient_id) }}"
+           class="md3-btn md3-btn--filled md3-btn--sm">
+          <i class="fa-solid fa-syringe"></i> Ver vacunas
+        </a>
+        <a href="{{ url_for('tutor_agendar') }}?patient_id={{ child.patient_id }}"
+           class="md3-btn md3-btn--outlined md3-btn--sm">
+          <i class="fa-solid fa-calendar-plus"></i> Agendar
+        </a>
+        <a href="{{ url_for('tutor_qr', patient_id=child.patient_id) }}"
+           class="md3-btn md3-btn--outlined md3-btn--icon md3-btn--sm" title="Código QR">
+          <i class="fa-solid fa-qrcode"></i>
+        </a>
+      </div>
+
+    </div>
+    {% endfor %}
+  </div>
+
+{% else %}
+  {{ empty_state(
+      icon='fa-baby',
+      title='No tienes niños registrados aún',
+      text='Registra a tu hijo/a para ver y gestionar su esquema de vacunación completo.',
+      size='lg',
+      color='primary'
+  ) }}
+  <div class="mh-empty-cta">
+    <a href="{{ url_for('tutor_registrar_hijo') }}" class="md3-btn md3-btn--filled">
+      <i class="fa-solid fa-user-plus"></i>
+      Registrar mi primer hijo
+    </a>
+  </div>
+{% endif %}
+
+{% endblock %}

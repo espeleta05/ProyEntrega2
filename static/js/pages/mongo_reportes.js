@@ -12,6 +12,7 @@
   const PALETA = ['#6B007C', '#E8ABCE', '#FF6F61', '#1ca657', '#2e90fa', '#f4b400'];
 
   Highcharts.setOptions({
+    accessibility: { enabled: false },
     colors: PALETA,
     credits: { enabled: false },
     chart:   { style: { fontFamily: "'Open Sans', system-ui, sans-serif" }, backgroundColor: 'transparent' },
@@ -101,7 +102,7 @@
       const d = await apiFetch('/api/mongo/historial/mes?meses=' + getMeses());
       if (!d.categorias.length) { cont.innerHTML = '<p style="padding:24px;color:#888">Sin datos.</p>'; return; }
       Highcharts.chart(cont, {
-        chart:   { height: 340 },
+        chart:   { type: 'areaspline', height: 340 },
         title:   { text: 'Dosis aplicadas por mes' },
         subtitle:{ text: 'Fuente: historial_vacunacion (MongoDB) · Sincronizado desde PostgreSQL por pg_record_id' },
         xAxis:   { categories: d.categorias },
@@ -110,9 +111,10 @@
           { title: { text: 'Pacientes únicos' }, opposite: true, allowDecimals: false },
         ],
         tooltip: { shared: true },
+        plotOptions: { areaspline: { fillOpacity: 0.2 } },
         series:  [
-          { name: 'Dosis aplicadas', type: 'column', data: d.dosis,    color: COLOR_PRIMARY, borderRadius: 3 },
-          { name: 'Pacientes únicos', type: 'spline', data: d.pacientes, color: '#1ca657', yAxis: 1 },
+          { name: 'Dosis aplicadas', data: d.dosis,    color: COLOR_PRIMARY },
+          { name: 'Pacientes únicos', data: d.pacientes, color: '#1ca657', yAxis: 1 },
         ],
       });
     } catch (e) {
@@ -143,63 +145,47 @@
     }
   }
 
-  // ── Reporte 3: indicadores dinámicos (solid-gauge) ───────────
+  // ── Reporte 3: distribución por edad ────────────────────────
   // Fuente: historial_vacunacion (MongoDB)
-  // Consulta: $group + $cond + $divide → porcentaje de reacción
+  // Consulta: $bucket por campo edad → grupos etarios
 
-  async function cargarReaccion() {
-    const cont = document.getElementById('mrGauges');
-    cont.innerHTML = '';
+  async function cargarEdades() {
+    const cont = document.getElementById('mrChartEdades');
+    if (!cont) return;
     try {
-      const d = await apiFetch('/api/mongo/historial/reaccion?meses=' + getMeses());
-      if (!d.items.length) {
-        cont.innerHTML = '<p style="color:#888;padding:12px">Sin datos de reacciones.</p>';
+      const d = await apiFetch('/api/mongo/historial/edades?meses=' + getMeses());
+      if (!d.categorias.length) {
+        cont.innerHTML = '<p style="padding:24px;color:#888">Sin datos disponibles.</p>';
         return;
       }
-      d.items.slice(0, 6).forEach(function (item, i) {
-        var card = document.createElement('div');
-        card.className = 'mr-gauge-card';
-        card.innerHTML = '<h4>' + item.vacuna + '</h4><div id="gauge' + i + '" style="width:100%;height:160px"></div>'
-          + '<span class="mr-gauge-meta">' + item.reacciones + ' / ' + item.total + ' aplicaciones</span>';
-        cont.appendChild(card);
-
-        Highcharts.chart('gauge' + i, {
-          chart: { type: 'solidgauge', height: 160, margin: [0,0,0,0], backgroundColor: 'transparent' },
-          title: null,
-          pane:  {
-            center: ['50%', '85%'], size: '140%',
-            startAngle: -90, endAngle: 90,
-            background: { backgroundColor: '#f0e8f5', borderWidth: 0, innerRadius: '60%', outerRadius: '100%', shape: 'arc' },
+      Highcharts.chart(cont, {
+        chart:   { type: 'column', height: 320 },
+        title:   { text: 'Distribución por grupo de edad' },
+        subtitle:{ text: 'Fuente: MongoDB (historial_vacunacion) · $bucket por campo edad' },
+        xAxis:   { categories: d.categorias, title: { text: 'Grupo etario' } },
+        yAxis:   { title: { text: 'Pacientes atendidos' }, allowDecimals: false },
+        legend:  { enabled: false },
+        plotOptions: {
+          column: {
+            borderRadius: 4,
+            dataLabels: { enabled: true },
+            colorByPoint: true,
+            colors: PALETA,
           },
-          tooltip: { enabled: false },
-          yAxis: {
-            min: 0, max: 20,
-            stops: [[0.33, '#1ca657'], [0.66, '#f4b400'], [1, '#c62828']],
-            lineWidth: 0, tickWidth: 0, minorTickInterval: null,
-            labels: { y: 16, style: { fontSize: '10px' } },
-          },
-          plotOptions: {
-            solidgauge: {
-              dataLabels: {
-                y: -22, borderWidth: 0, useHTML: true,
-                format: '<div style="text-align:center"><span style="font-size:1.3rem;color:#6B007C;font-weight:700">{y:.1f}%</span></div>',
-              },
-            },
-          },
-          series: [{ name: 'Tasa', data: [Math.min(item.tasa, 20)] }],
-        });
+        },
+        series: [{ name: 'Pacientes', data: d.datos }],
       });
     } catch (e) {
-      cont.innerHTML = '<p style="color:#a02a2a;padding:12px">Error al cargar indicadores.</p>';
+      cont.innerHTML = '<p style="padding:24px;color:#a02a2a">Error al cargar datos.</p>';
     }
   }
 
   // ── Carga automática junto con la página de reportes ────────
 
   document.addEventListener('DOMContentLoaded', function () {
-    // mrChartSerie se carga sola; los demás (mrChartTipos, mrChartMes, etc.)
-    // ya no existen en el HTML, así que las funciones con null-check no hacen nada.
-    cargarClinica();
+    cargarMes();
+    cargarVacuna();
+    cargarEdades();
   });
 
 })();

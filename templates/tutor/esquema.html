@@ -38,9 +38,8 @@
       {% if patient.birth_date %}
         <span><i class="fa-solid fa-cake-candles"></i> {{ patient.birth_date }}</span>
       {% endif %}
-      {% if patient.age is not none %}
-        <span><i class="fa-solid fa-person"></i>
-          {{ patient.age }} año{{ 's' if patient.age != 1 else '' }}</span>
+      {% if patient.age_label %}
+        <span><i class="fa-solid fa-person"></i> {{ patient.age_label }}</span>
       {% endif %}
     </p>
 
@@ -170,10 +169,16 @@
 
       <td>
         {% if nv.estado == 'Pendiente con retraso' %}
-          {{ badge(nv.dias_retraso|string ~ ' días atrasada',
-                   color='error', icon='fa-triangle-exclamation', size='sm') }}
-        {% elif nv.alerta_retraso %}
-          {{ badge(nv.alerta_retraso, color='secondary', icon='fa-clock', size='sm') }}
+          {% set dias = nv.dias_retraso | int %}
+          {% if dias >= 365 %}
+            {% set n = (dias / 365) | int %}
+            {{ badge(n|string ~ ' año' ~ ('s' if n != 1 else '') ~ ' atrasada', color='error', icon='fa-triangle-exclamation', size='sm') }}
+          {% elif dias >= 30 %}
+            {% set n = (dias / 30) | int %}
+            {{ badge(n|string ~ ' mes' ~ ('es' if n != 1 else '') ~ ' atrasada', color='error', icon='fa-triangle-exclamation', size='sm') }}
+          {% else %}
+            {{ badge(dias|string ~ ' día' ~ ('s' if dias != 1 else '') ~ ' atrasada', color='error', icon='fa-triangle-exclamation', size='sm') }}
+          {% endif %}
         {% else %}
           <span class="text-muted">Pendiente</span>
         {% endif %}

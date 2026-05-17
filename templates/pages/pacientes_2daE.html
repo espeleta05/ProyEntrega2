@@ -71,7 +71,8 @@
              data-patient-id="{{ p.patient_id }}"
              data-name="{{ p.full_name | lower }}"
              data-blood="{{ p.blood_type | lower }}"
-             data-birth="{{ p.birth_date }}">
+             data-birth="{{ p.birth_date }}"
+             data-url="{{ url_for('esquema_paciente', id=p.patient_id) }}">
             <div class="pt-card">
 
                 <!-- Top strip de color por riesgo -->

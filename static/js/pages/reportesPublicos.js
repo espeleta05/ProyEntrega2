@@ -162,18 +162,6 @@
   };
 
   function paintMonthly(rows) {
-    if (monthlyHC) monthlyHC.destroy();
-    monthlyHC = Highcharts.chart('monthlyChart', {
-      ...HC_THEME,
-      chart:       { ...HC_THEME.chart, type: 'areaspline' },
-      xAxis:       { ...HC_THEME.xAxis, categories: rows.map(r => r.period_label) },
-      plotOptions: { areaspline: { fillOpacity: 0.15, marker: { enabled: false } } },
-      series: [
-        { name: 'Dosis aplicadas',    data: rows.map(r => r.doses_applied),   color: '#4f8ef7', fillColor: 'rgba(79,142,247,.15)' },
-        { name: 'Personas atendidas', data: rows.map(r => r.unique_patients), color: '#34d399', fillColor: 'rgba(52,211,153,.1)'  },
-      ],
-    });
-
     const EMPTY_ROW = '<tr><td colspan="3" class="tbl-empty-cell">Sin datos para el rango seleccionado.</td></tr>';
     document.getElementById('monthlyBody').innerHTML = rows.length
       ? rows.map(r => `<tr><td>${r.period_label}</td><td>${fmt.format(r.doses_applied || 0)}</td><td>${fmt.format(r.unique_patients || 0)}</td></tr>`).join('')
@@ -181,24 +169,17 @@
   }
 
   function paintVaccines(rows) {
-    if (vaccineHC) vaccineHC.destroy();
-    vaccineHC = Highcharts.chart('vaccineChart', {
-      ...HC_THEME,
-      chart:  { ...HC_THEME.chart, type: 'bar' },
-      xAxis:  { ...HC_THEME.xAxis, categories: rows.map(r => r.vaccine_name) },
-      series: [{ name: 'Dosis aplicadas', data: rows.map(r => r.doses_applied), color: '#4f8ef7', borderRadius: 4 }],
-      legend: { enabled: false },
-    });
-
     const EMPTY_ROW = '<tr><td colspan="4" class="tbl-empty-cell">Sin datos para el rango seleccionado.</td></tr>';
     document.getElementById('vaccinesBody').innerHTML = rows.length
-      ? rows.map(r => `<tr><td>${r.vaccine_name}</td><td>${fmt.format(r.doses_applied || 0)}</td><td>${fmt.format(r.unique_patients || 0)}</td><td>${fmtDec.format(r.share_percent || 0)}%</td></tr>`).join('')
+      ? rows.map(r => `<tr><td>${r.vaccine_name}</td><td>${fmt.format(r.doses_applied || 0)}</td><td>${fmt.format(r.unique_patients || 0)}</td><td><span class="rp-pct">${fmtDec.format(r.share_percent || 0)}%</span></td></tr>`).join('')
       : EMPTY_ROW;
   }
 
   function paintZones(rows) {
+    const el = document.getElementById('zonesBody');
+    if (!el) return;
     const EMPTY_ROW = '<tr><td colspan="4" class="tbl-empty-cell">Sin zonas registradas.</td></tr>';
-    document.getElementById('zonesBody').innerHTML = rows.length
+    el.innerHTML = rows.length
       ? rows.map(r => `<tr><td>${r.zone_name}</td><td>${fmt.format(r.doses_applied || 0)}</td><td>${fmt.format(r.unique_patients || 0)}</td><td><span class="risk-badge ${r.risk_level || ''}">${r.risk_label || '—'}</span></td></tr>`).join('')
       : EMPTY_ROW;
   }

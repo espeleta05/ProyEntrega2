@@ -633,23 +633,46 @@
 
   </div><!-- /kpi-detail-grid -->
 
-  <!-- ── SECCIÓN 3: GRÁFICAS ── -->
-  <h2 class="section-title">Análisis Visual</h2>
-  <p class="section-subtitle">Tendencias y distribuciones del período</p>
+  <!-- ── SECCIÓN MongoDB: ANALÍTICA EN TIEMPO REAL ── -->
+  <h2 class="section-title">Analítica en Tiempo Real — MongoDB</h2>
+  <p class="section-subtitle">
+    Datos obtenidos directamente desde MongoDB (colección <code>historial_vacunacion</code>).
+    Sincronizados desde PostgreSQL mediante el campo compartido <code>pg_record_id</code>.
+  </p>
+
+  <div style="margin-bottom:1rem">
+    <label>Período (meses):
+      <input id="mrMeses" type="number" min="1" max="120" value="120"
+             style="width:5rem;margin-left:.5rem;padding:.25rem .5rem;border:1px solid var(--md-outline,#ccc);border-radius:4px">
+    </label>
+  </div>
 
   <div class="charts-row">
-    <div class="chart-panel">
-      <h4>Tendencia mensual de dosis</h4>
-      <div id="monthlyChart" style="height:var(--chart-height,280px)"></div>
+    <div class="chart-panel" style="flex:2">
+      <h4>Dosis aplicadas por mes</h4>
+      <p style="font-size:.8rem;color:var(--md-on-surface-variant,#666);margin:.25rem 0 .75rem">
+        Fuente: <strong>MongoDB</strong> › historial_vacunacion ·
+        Consulta: <code>$group por anio_mes → dosis + pacientes_unicos</code>
+      </p>
+      <div id="mrChartMes" style="height:320px"></div>
     </div>
-    <div class="chart-panel">
+    <div class="chart-panel" style="flex:1">
       <h4>Top vacunas aplicadas</h4>
-      <div id="vaccineChart" style="height:var(--chart-height,280px)"></div>
+      <p style="font-size:.8rem;color:var(--md-on-surface-variant,#666);margin:.25rem 0 .75rem">
+        Fuente: <strong>MongoDB</strong> › historial_vacunacion ·
+        Consulta: <code>$group por vacuna_nombre, $sort desc, $limit 10</code>
+      </p>
+      <div id="mrChartVacuna" style="height:320px"></div>
     </div>
-    <div class="chart-panel">
-      <h4>Dosis por clínica </h4>
-      <div id="mrChartSerie" style="height:var(--chart-height,280px)"></div>
-    </div>
+  </div>
+
+  <div class="chart-panel" style="margin-top:1.5rem">
+    <h4>Distribución por grupo de edad de pacientes atendidos</h4>
+    <p style="font-size:.8rem;color:var(--md-on-surface-variant,#666);margin:.25rem 0 .75rem">
+      Fuente: <strong>MongoDB</strong> › historial_vacunacion ·
+      Consulta: <code>$bucket por campo edad → rangos: 0-2, 3-5, 6-11, 12-17, 18-29, 30-49, 50-64, 65+</code>
+    </p>
+    <div id="mrChartEdades" style="height:320px"></div>
   </div>
 
   <!-- ── SECCIÓN 4: TABLAS DE DETALLE ── -->
@@ -694,24 +717,6 @@
     </div>
   </div>
 
-  <div class="table-panel">
-    <h4>Zonas con actividad</h4>
-    <div class="table-wrap">
-      <table class="rp-table">
-        <thead>
-          <tr>
-            <th>Zona</th>
-            <th>Dosis</th>
-            <th>Personas</th>
-            <th>Nivel de riesgo</th>
-          </tr>
-        </thead>
-        <tbody id="zonesBody">
-          <tr><td colspan="4" style="color:var(--md-on-surface-variant);text-align:center;padding:1.5rem">Sin datos aún.</td></tr>
-        </tbody>
-      </table>
-    </div>
-  </div>
 
 </div><!-- /rp-wrap -->
 

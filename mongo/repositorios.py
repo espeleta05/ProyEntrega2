@@ -208,6 +208,48 @@ class HistorialRepo:
         return list(db.historial_vacunacion.aggregate(pipeline))
 
     @staticmethod
+    def distribucion_por_edad(meses=12):
+        """
+        Distribución de pacientes atendidos por grupo de edad.
+        Usa $bucket para agrupar en rangos: 0-2, 3-5, 6-11, 12-17, 18-29, 30-49, 50-64, 65+
+        """
+        db = get_db()
+        if db is None:
+            return []
+        desde = datetime.utcnow() - timedelta(days=30 * meses)
+        pipeline = [
+            {"$match": {"fecha_aplicacion": {"$gte": desde}, "edad": {"$exists": True}}},
+            {"$group": {
+                "_id":    "$patient_id",
+                "edad":   {"$first": "$edad"},
+            }},
+            {"$bucket": {
+                "groupBy": "$edad",
+                "boundaries": [0, 3, 6, 12, 18, 30, 50, 65, 120],
+                "default": "Otro",
+                "output": {"pacientes": {"$sum": 1}},
+            }},
+        ]
+        etiquetas = {
+            0:   "0-2 años",
+            3:   "3-5 años",
+            6:   "6-11 años",
+            12:  "12-17 años",
+            18:  "18-29 años",
+            30:  "30-49 años",
+            50:  "50-64 años",
+            65:  "65+ años",
+        }
+        resultado = []
+        for r in db.historial_vacunacion.aggregate(pipeline):
+            key = r["_id"]
+            resultado.append({
+                "grupo": etiquetas.get(key, str(key)),
+                "total": r["pacientes"],
+            })
+        return resultado
+
+    @staticmethod
     def total():
         db = get_db()
         if db is None:

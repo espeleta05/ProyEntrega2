@@ -1,0 +1,147 @@
+{% extends 'tutor/base_tutor.html' %}
+
+{% block title %}Registrar hijo — Portal Familiar{% endblock %}
+
+{% block head_extra %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/tutor_mis_hijos.css') }}">
+{% endblock %}
+
+{% block content %}
+{% from 'components/toolbar.html' import toolbar %}
+
+{{ toolbar('Registrar nuevo hijo',
+           subtitle='Completa los datos de tu niño/a',
+           icon='fa-user-plus',
+           back_href=url_for('tutor_mis_hijos')) }}
+
+<div class="md3-form-card rh-form-card">
+
+  <div class="md3-form-card__header">
+    <p class="md3-form-card__title">
+      <i class="fa-solid fa-baby" style="color:var(--md-primary);margin-right:var(--md-spacing-2);"></i>
+      Datos del niño/a
+    </p>
+    <p class="md3-form-card__subtitle">
+      Los campos marcados con <strong>*</strong> son obligatorios.
+      El sistema generará el esquema de vacunación automáticamente al guardar.
+    </p>
+  </div>
+
+  <form method="POST" action="{{ url_for('tutor_registrar_hijo') }}" class="md3-form">
+
+    {# ── Información personal ── #}
+    <hr class="md3-form__divider">
+    <p class="md3-form__section-title">
+      <i class="fa-solid fa-user"></i> Información personal
+    </p>
+
+    <div class="rh-row-2">
+      <div class="md3-field">
+        <label class="md3-field__label" for="first_name">Nombre(s) *</label>
+        <input type="text" id="first_name" name="first_name" class="md3-input"
+               placeholder="Ej. Mateo Sebastián"
+               value="{{ form_data.get('first_name', '') }}"
+               required maxlength="100" autofocus>
+      </div>
+      <div class="md3-field">
+        <label class="md3-field__label" for="last_name">Apellido(s) *</label>
+        <input type="text" id="last_name" name="last_name" class="md3-input"
+               placeholder="Ej. García López"
+               value="{{ form_data.get('last_name', '') }}"
+               required maxlength="100">
+      </div>
+    </div>
+
+    <div class="rh-row-2">
+      <div class="md3-field">
+        <label class="md3-field__label" for="birth_date">Fecha de nacimiento *</label>
+        <input type="date" id="birth_date" name="birth_date" class="md3-input"
+               value="{{ form_data.get('birth_date', '') }}"
+               max="{{ today_iso }}"
+               required>
+        <span class="md3-field__helper">Solo se aceptan pacientes menores de 15 años.</span>
+      </div>
+      <div class="md3-field">
+        <label class="md3-field__label" for="gender">Género *</label>
+        <select id="gender" name="gender" class="md3-select" required>
+          <option value="" disabled {{ 'selected' if not form_data.get('gender') else '' }}>
+            — Selecciona —
+          </option>
+          <option value="M" {{ 'selected' if form_data.get('gender') == 'M' else '' }}>
+            Masculino
+          </option>
+          <option value="F" {{ 'selected' if form_data.get('gender') == 'F' else '' }}>
+            Femenino
+          </option>
+        </select>
+      </div>
+    </div>
+
+    <div class="md3-field">
+      <label class="md3-field__label" for="curp">
+        CURP *
+      </label>
+      <input type="text" id="curp" name="curp" class="md3-input rh-curp"
+             placeholder="18 caracteres alfanuméricos"
+             value="{{ form_data.get('curp', '') }}"
+             maxlength="18" required
+             oninput="this.value = this.value.toUpperCase()">
+    </div>
+
+    {# ── Datos clínicos ── #}
+    <hr class="md3-form__divider">
+    <p class="md3-form__section-title">
+      <i class="fa-solid fa-stethoscope"></i> Datos clínicos
+      <span class="rh-section-optional">— todos opcionales</span>
+    </p>
+
+    <div class="rh-row-2">
+      <div class="md3-field">
+        <label class="md3-field__label" for="blood_type">Tipo de sangre</label>
+        <select id="blood_type" name="blood_type" class="md3-select">
+          <option value="">— Desconocido —</option>
+          {% for bt in blood_types %}
+            <option value="{{ bt.blood_type }}"
+              {{ 'selected' if form_data.get('blood_type') == bt.blood_type else '' }}>
+              {{ bt.blood_type }}
+            </option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="md3-field">
+        <label class="md3-field__label" for="weight_kg">Peso actual (kg)</label>
+        <input type="number" id="weight_kg" name="weight_kg" class="md3-input"
+               placeholder="Ej. 22.5"
+               value="{{ form_data.get('weight_kg', '') }}"
+               min="0.5" max="80" step="0.1">
+        <span class="md3-field__helper">Entre 0.5 y 80 kg.</span>
+      </div>
+    </div>
+
+    <div class="md3-field">
+      <label class="rh-checkbox-label">
+        <input type="checkbox" name="premature" id="premature" class="rh-checkbox"
+               {{ 'checked' if form_data.get('premature') else '' }}>
+        <span class="rh-checkbox-text">
+          <i class="fa-solid fa-baby"></i>
+          El niño/a nació prematuro/a (antes de la semana 37)
+        </span>
+      </label>
+    </div>
+
+    {# ── Acciones ── #}
+    <div class="md3-form__actions">
+      <a href="{{ url_for('tutor_mis_hijos') }}" class="md3-btn md3-btn--outlined">
+        <i class="fa-solid fa-arrow-left"></i>
+        Cancelar
+      </a>
+      <button type="submit" class="md3-btn md3-btn--filled">
+        <i class="fa-solid fa-user-plus"></i>
+        Registrar niño/a
+      </button>
+    </div>
+
+  </form>
+</div>
+
+{% endblock %}

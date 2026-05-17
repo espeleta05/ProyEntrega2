@@ -71,12 +71,16 @@
 {# ── Toolbar ── #}
 {% call toolbar(
     title='Esquema de vacunación',
-    subtitle='ID: P' ~ patient.patient_id ~ '  ·  ' ~ (patient.age if patient.age is defined else '') ~ ' años',
+    subtitle='ID: P' ~ patient.patient_id ~ '  ·  ' ~ (patient.age_label if patient.age_label is defined else ''),
     back_href=url_for('historial')
 ) %}
     <a href="{{ url_for('agregar_aplicacion', patient_id=patient.patient_id, next='/esquema_paciente/' ~ patient.patient_id) }}"
        class="md3-btn md3-btn--filled">
         <i class="fa-solid fa-syringe"></i> Registrar aplicación
+    </a>
+    <a href="{{ url_for('admin_nueva_cita', patient_id=patient.patient_id, next='/esquema_paciente/' ~ patient.patient_id) }}" class="md3-btn md3-btn--filled">
+      <i class="fa-solid fa-calendar-plus"></i>
+      Nueva cita
     </a>
 {% endcall %}
 
@@ -96,8 +100,8 @@
       {% if patient.birth_date %}
       <span><i class="fa-solid fa-cake-candles"></i> {{ patient.birth_date }}</span>
       {% endif %}
-      {% if patient.age is not none %}
-      <span><i class="fa-solid fa-person"></i> {{ patient.age }} años</span>
+      {% if patient.age_label %}
+      <span><i class="fa-solid fa-person"></i> {{ patient.age_label }}</span>
       {% endif %}
     </p>
     <div class="patient-hero__progress">
@@ -174,7 +178,7 @@
     empty_title='Sin dosis pendientes.',
     footer_text=pending_doses|length ~ ' dosis pendientes'
 ) %}
-  {% set is_delayed = pd.estado == 'Atrasada' %}
+  {% set is_delayed = pd.estado in ('Atrasada', 'Pendiente con retraso') %}
   {% set dias = pd.dias_retraso | int %}
   <tr class="{{ 'row-even' if _pd.i % 2 == 1 else 'row-odd' }} {{ 'row-delayed' if is_delayed else '' }}">
 
@@ -204,10 +208,6 @@
             {{ dias }} día{{ 's' if dias != 1 else '' }} atrasada
           </span>
         {% endif %}
-      {% elif pd.alerta_retraso %}
-        <span class="ndt-badge ndt-badge--ok">
-          <i class="fa-solid fa-clock"></i> {{ pd.alerta_retraso }}
-        </span>
       {% else %}
         <span class="ndt-muted">Pendiente</span>
       {% endif %}

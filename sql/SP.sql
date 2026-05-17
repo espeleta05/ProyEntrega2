@@ -396,7 +396,7 @@ BEGIN
     IF p_guardian_curp IS NOT NULL AND TRIM(p_guardian_curp) <> '' THEN
         SELECT guardian_id INTO v_guardian_id
         FROM   guardians
-        WHERE  curp = TRIM(p_guardian_curp)
+        WHERE  curp = UPPER(TRIM(p_guardian_curp))
         LIMIT  1;
     END IF;
 
@@ -412,15 +412,23 @@ BEGIN
         LIMIT  1;
     END IF;
 
-    -- 3. Si no existe, crear tutor nuevo
+    -- 3. Si no existe, crear tutor nuevo (con manejo de race condition en CURP)
     IF v_guardian_id IS NULL AND p_guardian_name IS NOT NULL AND TRIM(p_guardian_name) <> '' THEN
-        INSERT INTO guardians (first_name, last_name, curp)
-        VALUES (
-            TRIM(p_guardian_name),
-            TRIM(COALESCE(p_guardian_last, '')),
-            NULLIF(TRIM(COALESCE(p_guardian_curp, '')), '')
-        )
-        RETURNING guardian_id INTO v_guardian_id;
+        BEGIN
+            INSERT INTO guardians (first_name, last_name, curp)
+            VALUES (
+                TRIM(p_guardian_name),
+                TRIM(COALESCE(p_guardian_last, '')),
+                NULLIF(UPPER(TRIM(COALESCE(p_guardian_curp, ''))), '')
+            )
+            RETURNING guardian_id INTO v_guardian_id;
+        EXCEPTION
+            WHEN unique_violation THEN
+                -- CURP ya registrado; recuperar el guardian existente sin modificarlo
+                SELECT guardian_id INTO v_guardian_id
+                FROM   guardians
+                WHERE  curp = NULLIF(UPPER(TRIM(COALESCE(p_guardian_curp, ''))), '');
+        END;
     END IF;
 
     -- 4. Agregar contacto solo si no existe ya (ON CONFLICT DO NOTHING evita duplicados)
@@ -711,6 +719,33 @@ BEGIN
 END;
 $$;
 
+CREATE OR REPLACE PROCEDURE sp_get_last_applications(   
+    INOUT p_results REFCURSOR
+)
+LANGUAGE plpgsql AS $$
+BEGIN
+    OPEN p_results FOR
+    SELECT
+        vr.record_id,
+        vr.applied_date,
+        TRIM(p.first_name || ' ' || p.last_name)  AS patient_name,
+        p.patient_id,
+        v.name                                     AS vaccine_name,
+        COALESCE(sd.dose_label, 'Dosis única')    AS dose_label,
+        TRIM(w.first_name || ' ' || w.last_name)  AS worker_name,
+        c.name                                     AS clinic_name
+        FROM   vaccination_records vr
+        JOIN   patients   p  ON p.patient_id  = vr.patient_id
+        JOIN   vaccines   v  ON v.vaccine_id  = vr.vaccine_id
+        LEFT   JOIN scheme_doses sd ON sd.dose_id   = vr.scheme_dose_id
+        LEFT   JOIN workers   w  ON w.worker_id  = vr.worker_id
+        LEFT   JOIN clinics   c  ON c.clinic_id  = vr.clinic_id
+        ORDER  BY vr.applied_date DESC, vr.record_id DESC
+        LIMIT  10;
+END;
+$$;
+
+
 
 CREATE OR REPLACE PROCEDURE sp_get_patient_scheme(
     IN    p_patient_id INT,
@@ -921,6 +956,203 @@ BEGIN;
 CALL sp_get_patient_scheme(11, 'cur_esquema');
 FETCH ALL FROM cur_esquema;
 COMMIT;
+
+
+-- ============================================================
+-- sp_get_vaccination_record
+-- Devuelve los datos completos de un registro de vacunación
+-- para generar el comprobante PDF del portal tutor.
+-- ============================================================
+CREATE OR REPLACE PROCEDURE sp_get_vaccination_record(
+    IN    p_record_id INT,
+    INOUT p_results   REFCURSOR
+)
+LANGUAGE plpgsql AS $$
+BEGIN
+    OPEN p_results FOR
+    SELECT
+        vr.record_id,
+        vr.patient_id,
+        vr.applied_date,
+        vr.patient_temp_c,
+        vr.had_reaction,
+        TRIM(p.first_name || ' ' || p.last_name)                    AS patient_name,
+        p.curp,
+        p.birth_date,
+        DATE_PART('year', AGE(CURRENT_DATE, p.birth_date))::INT      AS age_years,
+        v.name                                                        AS vaccine_name,
+        v.commercial_name,
+        COALESCE(TRIM(w.first_name || ' ' || w.last_name), '—')      AS worker_name,
+        COALESCE(sd.dose_label, '—')                                  AS dose_label,
+        COALESCE(aps.application_site, '—')                           AS application_site,
+        c.name                                                        AS clinic_name,
+        COALESCE(vl.lot_number, '—')                                  AS lot_number
+    FROM   vaccination_records vr
+    JOIN   patients            p   ON p.patient_id           = vr.patient_id
+    JOIN   vaccines            v   ON v.vaccine_id           = vr.vaccine_id
+    JOIN   workers             w   ON w.worker_id            = vr.worker_id
+    JOIN   clinics             c   ON c.clinic_id            = vr.clinic_id
+    LEFT JOIN scheme_doses     sd  ON sd.dose_id             = vr.scheme_dose_id
+    LEFT JOIN application_sites aps ON aps.application_site_id = vr.application_site_id
+    LEFT JOIN vaccine_lots     vl  ON vl.lot_id              = vr.lot_id
+    WHERE  vr.record_id = p_record_id
+    LIMIT  1;
+END;
+$$;
+
+
+-- ============================================================
+-- sp_get_tutor_children
+-- Lista de pacientes vinculados a un tutor con KPIs de
+-- vacunación. Una fila por paciente, ordenada por fecha de
+-- vinculación (primero el hijo añadido antes).
+-- ============================================================
+CREATE OR REPLACE PROCEDURE sp_get_tutor_children(
+    IN    p_guardian_id INT,
+    INOUT p_results     REFCURSOR
+)
+LANGUAGE plpgsql AS $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM guardians WHERE guardian_id = p_guardian_id) THEN
+        RAISE EXCEPTION 'Tutor no encontrado';
+    END IF;
+
+    OPEN p_results FOR
+    SELECT
+        p.patient_id,
+        TRIM(p.first_name || ' ' || p.last_name)                    AS full_name,
+        p.first_name,
+        p.last_name,
+        p.birth_date,
+        DATE_PART('year', AGE(CURRENT_DATE, p.birth_date))::INT      AS age_years,
+        COALESCE(p.curp, '')                                         AS curp,
+        p.photo,
+        p.gender,
+        p.weight_kg,
+        p.premature,
+        COALESCE(bt.blood_type, '')                                  AS blood_type,
+        -- KPIs de vacunación
+        COALESCE(kpi.total_doses,   0)                               AS total_doses,
+        COALESCE(kpi.total_applied, 0)                               AS total_applied,
+        COALESCE(kpi.total_pending, 0)                               AS total_pending,
+        COALESCE(kpi.delayed_count, 0)                               AS delayed_count,
+        COALESCE(kpi.pct,           0)                               AS pct
+    FROM patient_guardian_relations pgr
+    JOIN   patients    p   ON p.patient_id    = pgr.patient_id
+    LEFT JOIN blood_types bt ON bt.blood_type_id = p.blood_type_id
+    LEFT JOIN LATERAL (
+        SELECT
+            COUNT(*)                                                               AS total_doses,
+            SUM(CASE WHEN pvs.status = 'Aplicada' THEN 1 ELSE 0 END)              AS total_applied,
+            SUM(CASE WHEN pvs.status <> 'Aplicada' THEN 1 ELSE 0 END)             AS total_pending,
+            SUM(CASE WHEN pvs.status = 'Atrasada'  THEN 1 ELSE 0 END)             AS delayed_count,
+            CASE
+                WHEN COUNT(*) = 0 THEN 0
+                ELSE SUM(CASE WHEN pvs.status = 'Aplicada' THEN 1 ELSE 0 END) * 100 / COUNT(*)
+            END                                                                    AS pct
+        FROM patient_vaccine_schedule pvs
+        WHERE pvs.patient_id = p.patient_id
+    ) kpi ON TRUE
+    WHERE pgr.guardian_id = p_guardian_id
+      AND p.is_active = TRUE
+    ORDER BY p.patient_id ASC;
+END;
+$$;
+
+
+-- ============================================================
+-- sp_tutor_register_child
+-- Registra un nuevo paciente y lo vincula al tutor autenticado.
+-- No crea guardián (el tutor ya existe como guardián en sesión).
+-- El trigger trg_generate_expected_vaccination_scheme genera el
+-- esquema de vacunación automáticamente tras el INSERT.
+-- ============================================================
+CREATE OR REPLACE PROCEDURE sp_tutor_register_child(
+    IN    p_guardian_id   INT,
+    IN    p_first_name    VARCHAR,
+    IN    p_last_name     VARCHAR,
+    IN    p_birth_date    DATE,
+    IN    p_gender        CHAR(1),
+    IN    p_curp          VARCHAR,
+    IN    p_blood_type_id INT,
+    IN    p_weight_kg     NUMERIC,
+    IN    p_premature     BOOLEAN,
+    INOUT p_results       REFCURSOR
+)
+LANGUAGE plpgsql AS $$
+DECLARE
+    v_patient_id INT;
+    v_age_years  INT;
+BEGIN
+    -- Validaciones de negocio (paralelas a sp_register_patient)
+    IF p_first_name IS NULL OR TRIM(p_first_name) = '' THEN
+        RAISE EXCEPTION 'El nombre es obligatorio';
+    END IF;
+    IF p_last_name IS NULL OR TRIM(p_last_name) = '' THEN
+        RAISE EXCEPTION 'El apellido es obligatorio';
+    END IF;
+    IF p_birth_date IS NULL OR p_birth_date > CURRENT_DATE THEN
+        RAISE EXCEPTION 'La fecha de nacimiento no puede ser futura';
+    END IF;
+    v_age_years := DATE_PART('year', AGE(CURRENT_DATE, p_birth_date));
+    IF v_age_years > 15 THEN
+        RAISE EXCEPTION 'El paciente excede la edad pediátrica permitida';
+    END IF;
+    IF p_gender NOT IN ('M', 'F') THEN
+        RAISE EXCEPTION 'El género debe ser M o F';
+    END IF;
+    IF p_curp IS NOT NULL AND TRIM(p_curp) <> '' AND EXISTS (
+        SELECT 1 FROM patients WHERE curp = UPPER(TRIM(p_curp))
+    ) THEN
+        RAISE EXCEPTION 'Ya existe un paciente registrado con esa CURP';
+    END IF;
+    IF p_weight_kg IS NOT NULL AND (p_weight_kg <= 0 OR p_weight_kg > 80) THEN
+        RAISE EXCEPTION 'Peso fuera de rango pediátrico';
+    END IF;
+    IF p_blood_type_id IS NOT NULL AND NOT EXISTS (
+        SELECT 1 FROM blood_types WHERE blood_type_id = p_blood_type_id
+    ) THEN
+        RAISE EXCEPTION 'Tipo sanguíneo inexistente';
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM guardians WHERE guardian_id = p_guardian_id) THEN
+        RAISE EXCEPTION 'Tutor no encontrado';
+    END IF;
+
+    -- Insertar paciente (trigger genera esquema de vacunación automáticamente)
+    INSERT INTO patients (
+        first_name, last_name, curp, birth_date, gender,
+        blood_type_id, weight_kg, premature, is_active, created_at
+    )
+    VALUES (
+        TRIM(p_first_name),
+        TRIM(p_last_name),
+        NULLIF(UPPER(TRIM(COALESCE(p_curp, ''))), ''),
+        p_birth_date,
+        p_gender,
+        p_blood_type_id,
+        p_weight_kg,
+        COALESCE(p_premature, FALSE),
+        TRUE,
+        NOW()
+    )
+    RETURNING patient_id INTO v_patient_id;
+
+    -- Vincular paciente con el tutor
+    INSERT INTO patient_guardian_relations (patient_id, guardian_id, relation_type, is_primary, has_custody)
+    VALUES (v_patient_id, p_guardian_id, 'Tutor', TRUE, TRUE)
+    ON CONFLICT DO NOTHING;
+
+    OPEN p_results FOR
+    SELECT TRUE  AS success,
+           'Paciente registrado correctamente' AS message,
+           v_patient_id AS patient_id;
+
+EXCEPTION
+WHEN OTHERS THEN
+    OPEN p_results FOR
+    SELECT FALSE AS success, SQLERRM AS message, NULL::INT AS patient_id;
+END;
+$$;
 
 
 
@@ -1512,18 +1744,34 @@ COMMIT;
             END IF;
         END IF;
 
-        -- Verificar que el trabajador tiene horario laboral en esa clinica para ese dia/hora
+        -- Validar que el paciente no tenga otra cita activa que se solape
+        IF EXISTS (
+            SELECT 1 FROM appointments
+            WHERE  patient_id = p_patient_id
+            AND    appointment_status NOT IN ('Cancelada', 'No Show', 'Completada', 'Reagendada')
+            AND    scheduled_at < p_scheduled_at + (duration_min * INTERVAL '1 minute')
+            AND    scheduled_at + (duration_min * INTERVAL '1 minute') > p_scheduled_at
+        ) THEN
+            RAISE EXCEPTION 'El paciente ya tiene una cita programada que se solapa con ese horario';
+        END IF;
+
+        -- Verificar horario laboral solo si el trabajador tiene horarios configurados en esa clínica
         IF p_worker_id IS NOT NULL THEN
-            IF NOT EXISTS (
-                SELECT 1
-                FROM   worker_schedules ws
-                WHERE  ws.worker_id   = p_worker_id
-                AND  ws.clinic_id   = p_clinic_id
-                AND  ws.day_of_week = EXTRACT(ISODOW FROM p_scheduled_at)::SMALLINT
-                AND  ws.entry_time  <= p_scheduled_at::TIME
-                AND  ws.exit_time   >  p_scheduled_at::TIME
+            IF EXISTS (
+                SELECT 1 FROM worker_schedules
+                WHERE worker_id = p_worker_id AND clinic_id = p_clinic_id
             ) THEN
-                RAISE EXCEPTION 'El trabajador no tiene horario laboral en esa clinica para la fecha y hora indicadas';
+                IF NOT EXISTS (
+                    SELECT 1
+                    FROM   worker_schedules ws
+                    WHERE  ws.worker_id   = p_worker_id
+                    AND    ws.clinic_id   = p_clinic_id
+                    AND    ws.day_of_week = EXTRACT(ISODOW FROM p_scheduled_at)::SMALLINT
+                    AND    ws.entry_time  <= p_scheduled_at::TIME
+                    AND    ws.exit_time   >  p_scheduled_at::TIME
+                ) THEN
+                    RAISE EXCEPTION 'El trabajador no tiene horario laboral en esa clinica para la fecha y hora indicadas';
+                END IF;
             END IF;
         END IF;
 
@@ -3009,30 +3257,10 @@ $$;
 -- Uso: SELECT * FROM sp_reportes_resumen('2024-01-01', '2024-12-31');
 -- ============================================================
 
-CREATE OR REPLACE FUNCTION sp_reportes_resumen(
-    p_from DATE,
-    p_to   DATE
-)
-RETURNS TABLE (
-    -- KPIs principales
-    total_doses_applied         BIGINT,
-    target_population           BIGINT,
-    reached_population          BIGINT,
-    coverage_percent            NUMERIC(5,1),
-    avg_delay_days              NUMERIC(6,1),
-    active_zones                BIGINT,
-    reaction_rate               NUMERIC(5,1),
-    completed_scheme            BIGINT,
-    delayed_patients            BIGINT,
-    appointment_completion_rate NUMERIC(5,1),
-    low_stock_count             BIGINT,
-    new_patients                BIGINT,
-    active_workers              BIGINT,
-    avg_temp_c                  NUMERIC(4,1),
-    -- Serializado como JSON para vaccines y monthly
-    vaccines                    JSON,
-    monthly                     JSON,
-    zones                       JSON
+CREATE OR REPLACE PROCEDURE sp_reportes_resumen(
+    IN    p_from    DATE,
+    IN    p_to      DATE,
+    INOUT p_results REFCURSOR
 )
 LANGUAGE plpgsql
 AS $$
@@ -3206,24 +3434,24 @@ BEGIN
         GROUP BY m.municipality_id, m.name
     ) t;
 
-    RETURN QUERY SELECT
-        v_total_doses,
-        v_target,
-        v_reached,
-        v_coverage,
-        COALESCE(v_avg_delay, 0.0),
-        v_active_zones,
-        v_reaction_rate,
-        v_completed_scheme,
-        v_delayed_patients,
-        v_appt_rate,
-        v_low_stock,
-        v_new_patients,
-        v_active_workers,
-        v_avg_temp,
-        COALESCE(v_vaccines_json, '[]'::JSON),
-        COALESCE(v_monthly_json,  '[]'::JSON),
-        COALESCE(v_zones_json,    '[]'::JSON);
+    OPEN p_results FOR SELECT
+        v_total_doses                           AS total_doses_applied,
+        v_target                                AS target_population,
+        v_reached                               AS reached_population,
+        v_coverage                              AS coverage_percent,
+        COALESCE(v_avg_delay, 0.0)              AS avg_delay_days,
+        v_active_zones                          AS active_zones,
+        v_reaction_rate                         AS reaction_rate,
+        v_completed_scheme                      AS completed_scheme,
+        v_delayed_patients                      AS delayed_patients,
+        v_appt_rate                             AS appointment_completion_rate,
+        v_low_stock                             AS low_stock_count,
+        v_new_patients                          AS new_patients,
+        v_active_workers                        AS active_workers,
+        v_avg_temp                              AS avg_temp_c,
+        COALESCE(v_vaccines_json, '[]'::JSON)   AS vaccines,
+        COALESCE(v_monthly_json,  '[]'::JSON)   AS monthly,
+        COALESCE(v_zones_json,    '[]'::JSON)   AS zones;
 
 END;
 $$;
