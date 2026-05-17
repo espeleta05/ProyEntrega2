@@ -875,6 +875,227 @@ INSERT INTO post_vaccine_reactions (reaction_id, record_id, reported_by, symptom
     (11, 'post_vaccine_reactions',1, 'INSERT', 3, '2018-06-30 09:45', '192.168.1.45'),
     (12, 'vaccine_lots',         5,  'UPDATE', 4, '2025-01-10 08:00', '192.168.1.55');
 
+
+-- (requiere que existan vacunas y clínicas)
+
+INSERT INTO vaccine_lots
+    (vaccine_id, clinic_id, lot_number, quantity_received, quantity_available,
+     expiration_date, received_date, lot_status)
+SELECT
+    (SELECT vaccine_id FROM vaccines ORDER BY vaccine_id LIMIT 1 OFFSET 0),
+    (SELECT clinic_id  FROM clinics  WHERE is_active = TRUE ORDER BY clinic_id LIMIT 1 OFFSET 0),
+    'LOTE-HB-2024-001', 100, 72,
+    CURRENT_DATE + INTERVAL '180 days', CURRENT_DATE - INTERVAL '30 days',
+    'Disponible'
+WHERE NOT EXISTS (SELECT 1 FROM vaccine_lots WHERE lot_number = 'LOTE-HB-2024-001');
+
+INSERT INTO vaccine_lots
+    (vaccine_id, clinic_id, lot_number, quantity_received, quantity_available,
+     expiration_date, received_date, lot_status)
+SELECT
+    (SELECT vaccine_id FROM vaccines ORDER BY vaccine_id LIMIT 1 OFFSET 1),
+    (SELECT clinic_id  FROM clinics  WHERE is_active = TRUE ORDER BY clinic_id LIMIT 1 OFFSET 0),
+    'LOTE-BCG-2024-002', 50, 8,
+    CURRENT_DATE + INTERVAL '25 days', CURRENT_DATE - INTERVAL '60 days',
+    'Disponible'
+WHERE NOT EXISTS (SELECT 1 FROM vaccine_lots WHERE lot_number = 'LOTE-BCG-2024-002');
+
+INSERT INTO vaccine_lots
+    (vaccine_id, clinic_id, lot_number, quantity_received, quantity_available,
+     expiration_date, received_date, lot_status)
+SELECT
+    (SELECT vaccine_id FROM vaccines ORDER BY vaccine_id LIMIT 1 OFFSET 2),
+    (SELECT clinic_id  FROM clinics  WHERE is_active = TRUE ORDER BY clinic_id LIMIT 1 OFFSET 1),
+    'LOTE-NEU-2024-003', 80, 5,
+    CURRENT_DATE + INTERVAL '90 days', CURRENT_DATE - INTERVAL '45 days',
+    'Disponible'
+WHERE NOT EXISTS (SELECT 1 FROM vaccine_lots WHERE lot_number = 'LOTE-NEU-2024-003');
+
+INSERT INTO vaccine_lots
+    (vaccine_id, clinic_id, lot_number, quantity_received, quantity_available,
+     expiration_date, received_date, lot_status)
+SELECT
+    (SELECT vaccine_id FROM vaccines ORDER BY vaccine_id LIMIT 1 OFFSET 0),
+    (SELECT clinic_id  FROM clinics  WHERE is_active = TRUE ORDER BY clinic_id LIMIT 1 OFFSET 1),
+    'LOTE-HB-2024-004', 60, 0,
+    CURRENT_DATE + INTERVAL '200 days', CURRENT_DATE - INTERVAL '20 days',
+    'Agotado'
+WHERE NOT EXISTS (SELECT 1 FROM vaccine_lots WHERE lot_number = 'LOTE-HB-2024-004');
+
+INSERT INTO vaccine_lots
+    (vaccine_id, clinic_id, lot_number, quantity_received, quantity_available,
+     expiration_date, received_date, lot_status)
+SELECT
+    (SELECT vaccine_id FROM vaccines ORDER BY vaccine_id LIMIT 1 OFFSET 3),
+    (SELECT clinic_id  FROM clinics  WHERE is_active = TRUE ORDER BY clinic_id LIMIT 1 OFFSET 0),
+    'LOTE-VPH-2023-005', 40, 40,
+    CURRENT_DATE - INTERVAL '10 days', CURRENT_DATE - INTERVAL '120 days',
+    'Caducado'
+WHERE NOT EXISTS (SELECT 1 FROM vaccine_lots WHERE lot_number = 'LOTE-VPH-2023-005');
+
+-- ── 2. MOVIMIENTOS DE INVENTARIO ─────────────────────────────
+-- (requiere que inventory_movements exista — creada en Fase 1)
+
+INSERT INTO inventory_movements
+    (lot_id, vaccine_id, clinic_id, worker_id,
+     movement_type, quantity, quantity_before, quantity_after,
+     reference_type, reason)
+SELECT
+    vl.lot_id, vl.vaccine_id, vl.clinic_id,
+    (SELECT worker_id FROM workers WHERE is_active = TRUE ORDER BY worker_id LIMIT 1),
+    'Entrada', 100, 0, 100,
+    'manual', 'Recepción inicial de lote'
+FROM vaccine_lots vl WHERE vl.lot_number = 'LOTE-HB-2024-001';
+
+INSERT INTO inventory_movements
+    (lot_id, vaccine_id, clinic_id, worker_id,
+     movement_type, quantity, quantity_before, quantity_after,
+     reference_type, reason, created_at)
+SELECT
+    vl.lot_id, vl.vaccine_id, vl.clinic_id,
+    (SELECT worker_id FROM workers WHERE is_active = TRUE ORDER BY worker_id LIMIT 1),
+    'Salida_Aplicacion', 10, 100, 90,
+    'manual', 'Aplicaciones jornada vacunación',
+    NOW() - INTERVAL '20 days'
+FROM vaccine_lots vl WHERE vl.lot_number = 'LOTE-HB-2024-001';
+
+INSERT INTO inventory_movements
+    (lot_id, vaccine_id, clinic_id, worker_id,
+     movement_type, quantity, quantity_before, quantity_after,
+     reference_type, reason, created_at)
+SELECT
+    vl.lot_id, vl.vaccine_id, vl.clinic_id,
+    (SELECT worker_id FROM workers WHERE is_active = TRUE ORDER BY worker_id LIMIT 1),
+    'Salida_Aplicacion', 12, 90, 78,
+    'manual', 'Aplicaciones semana 2',
+    NOW() - INTERVAL '13 days'
+FROM vaccine_lots vl WHERE vl.lot_number = 'LOTE-HB-2024-001';
+
+INSERT INTO inventory_movements
+    (lot_id, vaccine_id, clinic_id, worker_id,
+     movement_type, quantity, quantity_before, quantity_after,
+     reference_type, reason, created_at)
+SELECT
+    vl.lot_id, vl.vaccine_id, vl.clinic_id,
+    (SELECT worker_id FROM workers WHERE is_active = TRUE ORDER BY worker_id LIMIT 1),
+    'Salida_Merma', 3, 78, 75,
+    'manual', 'Frascos dañados en refrigeración',
+    NOW() - INTERVAL '7 days'
+FROM vaccine_lots vl WHERE vl.lot_number = 'LOTE-HB-2024-001';
+
+INSERT INTO inventory_movements
+    (lot_id, vaccine_id, clinic_id, worker_id,
+     movement_type, quantity, quantity_before, quantity_after,
+     reference_type, reason, created_at)
+SELECT
+    vl.lot_id, vl.vaccine_id, vl.clinic_id,
+    (SELECT worker_id FROM workers WHERE is_active = TRUE ORDER BY worker_id LIMIT 1),
+    'Ajuste_Positivo', 3, 69, 72,
+    'manual', 'Corrección de conteo físico',
+    NOW() - INTERVAL '3 days'
+FROM vaccine_lots vl WHERE vl.lot_number = 'LOTE-HB-2024-001';
+
+INSERT INTO inventory_movements
+    (lot_id, vaccine_id, clinic_id, worker_id,
+     movement_type, quantity, quantity_before, quantity_after,
+     reference_type, reason, created_at)
+SELECT
+    vl.lot_id, vl.vaccine_id, vl.clinic_id,
+    (SELECT worker_id FROM workers WHERE is_active = TRUE ORDER BY worker_id LIMIT 1),
+    'Entrada', 50, 0, 50,
+    'manual', 'Recepción inicial de lote BCG',
+    NOW() - INTERVAL '60 days'
+FROM vaccine_lots vl WHERE vl.lot_number = 'LOTE-BCG-2024-002';
+
+INSERT INTO inventory_movements
+    (lot_id, vaccine_id, clinic_id, worker_id,
+     movement_type, quantity, quantity_before, quantity_after,
+     reference_type, reason, created_at)
+SELECT
+    vl.lot_id, vl.vaccine_id, vl.clinic_id,
+    (SELECT worker_id FROM workers WHERE is_active = TRUE ORDER BY worker_id LIMIT 1),
+    'Salida_Aplicacion', 42, 50, 8,
+    'manual', 'Aplicaciones acumuladas',
+    NOW() - INTERVAL '5 days'
+FROM vaccine_lots vl WHERE vl.lot_number = 'LOTE-BCG-2024-002';
+
+INSERT INTO inventory_movements
+    (lot_id, vaccine_id, clinic_id, worker_id,
+     movement_type, quantity, quantity_before, quantity_after,
+     reference_type, reason, created_at)
+SELECT
+    vl.lot_id, vl.vaccine_id, vl.clinic_id,
+    (SELECT worker_id FROM workers WHERE is_active = TRUE ORDER BY worker_id LIMIT 1),
+    'Salida_Caducidad', 40, 40, 0,
+    'manual', 'Retiro de lote vencido por control de calidad',
+    NOW() - INTERVAL '9 days'
+FROM vaccine_lots vl WHERE vl.lot_number = 'LOTE-VPH-2023-005';
+
+-- ── 3. TRANSFERENCIAS ────────────────────────────────────────
+-- (requiere ≥ 2 clínicas activas)
+
+INSERT INTO inventory_transfers
+    (lot_id, vaccine_id, from_clinic_id, to_clinic_id,
+     quantity, transfer_status, requested_by, reason, requested_at)
+SELECT
+    vl.lot_id, vl.vaccine_id,
+    (SELECT clinic_id FROM clinics WHERE is_active = TRUE ORDER BY clinic_id LIMIT 1 OFFSET 0),
+    (SELECT clinic_id FROM clinics WHERE is_active = TRUE ORDER BY clinic_id LIMIT 1 OFFSET 1),
+    20, 'Pendiente',
+    (SELECT worker_id FROM workers WHERE is_active = TRUE ORDER BY worker_id LIMIT 1),
+    'Redistribución por exceso de stock en clínica Norte',
+    NOW() - INTERVAL '2 days'
+FROM vaccine_lots vl WHERE vl.lot_number = 'LOTE-HB-2024-001';
+
+INSERT INTO inventory_transfers
+    (lot_id, vaccine_id, from_clinic_id, to_clinic_id,
+     quantity, transfer_status, requested_by, approved_by,
+     reason, notes, requested_at, resolved_at)
+SELECT
+    vl.lot_id, vl.vaccine_id,
+    (SELECT clinic_id FROM clinics WHERE is_active = TRUE ORDER BY clinic_id LIMIT 1 OFFSET 0),
+    (SELECT clinic_id FROM clinics WHERE is_active = TRUE ORDER BY clinic_id LIMIT 1 OFFSET 1),
+    15, 'Recibido',
+    (SELECT worker_id FROM workers WHERE is_active = TRUE ORDER BY worker_id LIMIT 1),
+    (SELECT worker_id FROM workers WHERE is_active = TRUE ORDER BY worker_id LIMIT 1),
+    'Cobertura campaña vacunación clínica Sur',
+    'Recibido en buen estado, cadena de frío conservada',
+    NOW() - INTERVAL '15 days',
+    NOW() - INTERVAL '13 days'
+FROM vaccine_lots vl WHERE vl.lot_number = 'LOTE-NEU-2024-003';
+
+INSERT INTO inventory_transfers
+    (lot_id, vaccine_id, from_clinic_id, to_clinic_id,
+     quantity, transfer_status, requested_by, approved_by,
+     reason, notes, requested_at, resolved_at)
+SELECT
+    vl.lot_id, vl.vaccine_id,
+    (SELECT clinic_id FROM clinics WHERE is_active = TRUE ORDER BY clinic_id LIMIT 1 OFFSET 1),
+    (SELECT clinic_id FROM clinics WHERE is_active = TRUE ORDER BY clinic_id LIMIT 1 OFFSET 0),
+    10, 'Rechazado',
+    (SELECT worker_id FROM workers WHERE is_active = TRUE ORDER BY worker_id LIMIT 1),
+    (SELECT worker_id FROM workers WHERE is_active = TRUE ORDER BY worker_id LIMIT 1),
+    'Préstamo temporal por campaña',
+    'Stock insuficiente en clínica origen para cubrir la solicitud',
+    NOW() - INTERVAL '8 days',
+    NOW() - INTERVAL '7 days'
+FROM vaccine_lots vl WHERE vl.lot_number = 'LOTE-BCG-2024-002';
+
+INSERT INTO inventory_transfers
+    (lot_id, vaccine_id, from_clinic_id, to_clinic_id,
+     quantity, transfer_status, requested_by,
+     reason, requested_at, resolved_at)
+SELECT
+    vl.lot_id, vl.vaccine_id,
+    (SELECT clinic_id FROM clinics WHERE is_active = TRUE ORDER BY clinic_id LIMIT 1 OFFSET 0),
+    (SELECT clinic_id FROM clinics WHERE is_active = TRUE ORDER BY clinic_id LIMIT 1 OFFSET 1),
+    5, 'Cancelado',
+    (SELECT worker_id FROM workers WHERE is_active = TRUE ORDER BY worker_id LIMIT 1),
+    'Solicitud por error de sistema',
+    NOW() - INTERVAL '20 days',
+    NOW() - INTERVAL '19 days'
+FROM vaccine_lots vl WHERE vl.lot_number = 'LOTE-HB-2024-001';
+
 -- Sincronizar secuencias SERIAL después de inserts con IDs explícitos
 SELECT setval(pg_get_serial_sequence('neighborhoods',   'neighborhood_id'),   MAX(neighborhood_id))   FROM neighborhoods;
 SELECT setval(pg_get_serial_sequence('addresses',       'address_id'),        MAX(address_id))        FROM addresses;

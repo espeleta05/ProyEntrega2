@@ -38,6 +38,7 @@
   </div>
 
   <form method="POST" action="{{ url_for('admin_nueva_cita') }}" class="md3-form">
+    <input type="hidden" name="next" value="{{ request.args.get('next', '') }}">
 
     {# ══ Paciente ══ #}
     <hr class="md3-form__divider">

@@ -35,22 +35,22 @@
   /* ── Utilidad: abrir / cerrar modales ── */
   window.closeModal = function (id) {
     var el = document.getElementById(id);
-    if (el) el.hidden = true;
+    if (el) { el.classList.remove('active'); el.hidden = true; }
     document.body.style.overflow = '';
   };
 
   function openModal(id) {
     var el = document.getElementById(id);
-    if (el) { el.hidden = false; document.body.style.overflow = 'hidden'; }
+    if (el) { el.hidden = false; el.classList.add('active'); document.body.style.overflow = 'hidden'; }
   }
 
   /* Cerrar con Escape o clic en overlay */
   document.addEventListener('keydown', function (e) {
     if (e.key === 'Escape') {
-      ['nuevaTransModal', 'aceptarModal', 'rechazarModal', 'cancelarModal'].forEach(window.closeModal);
+      ['nuevaTransModal', 'solicitarModal', 'aceptarModal', 'rechazarModal', 'cancelarModal'].forEach(window.closeModal);
     }
   });
-  ['nuevaTransModal', 'aceptarModal', 'rechazarModal', 'cancelarModal'].forEach(function (id) {
+  ['nuevaTransModal', 'solicitarModal', 'aceptarModal', 'rechazarModal', 'cancelarModal'].forEach(function (id) {
     var el = document.getElementById(id);
     if (el) {
       el.addEventListener('click', function (e) {
@@ -64,18 +64,77 @@
     openModal('nuevaTransModal');
   };
 
-  /* Actualizar hint de stock al cambiar lote */
-  window.updateTransStock = function () {
-    var sel   = document.getElementById('transLotSelect');
-    var hint  = document.getElementById('transStockHint');
-    var input = document.getElementById('transQtyInput');
+  /* ── Modal: Solicitar stock ── */
+  window.openSolicitarModal = function () {
+    openModal('solicitarModal');
+  };
+
+  window.updateSolStock = function () {
+    var sel   = document.getElementById('solLotSelect');
+    var hint  = document.getElementById('solStockHint');
+    var input = document.getElementById('solQtyInput');
+    var clinicSel = document.getElementById('solClinicSelect');
     if (!sel || !hint || !input) return;
 
-    var opt   = sel.options[sel.selectedIndex];
-    var stock = opt ? parseInt(opt.dataset.stock || '0', 10) : 0;
+    var opt      = sel.options[sel.selectedIndex];
+    var stock    = opt ? parseInt(opt.dataset.stock    || '0', 10) : 0;
+    var originId = opt ? (opt.dataset.clinicId || '')              : '';
 
     hint.textContent = stock > 0 ? 'Stock disponible: ' + stock + ' dosis' : '';
     input.max = stock > 0 ? stock : '';
+
+    // Para admin (sin clínica fija): ocultar la clínica origen en destino
+    if (clinicSel) {
+      Array.from(clinicSel.options).forEach(function (o) {
+        if (!o.value) return;
+        var hide = originId && o.value === originId;
+        o.hidden = hide; o.disabled = hide;
+        if (hide && clinicSel.value === o.value) clinicSel.value = '';
+      });
+    }
+  };
+
+  /* Validar cantidad al enviar solicitud */
+  var formSolicitar = document.querySelector('#solicitarModal form');
+  if (formSolicitar) {
+    formSolicitar.addEventListener('submit', function (e) {
+      var sel   = document.getElementById('solLotSelect');
+      var input = document.getElementById('solQtyInput');
+      if (!sel || !input) return;
+      var stock = parseInt((sel.options[sel.selectedIndex] || {}).dataset.stock || '0', 10);
+      var qty   = parseInt(input.value, 10);
+      if (qty > stock) {
+        e.preventDefault();
+        alert('La cantidad solicitada (' + qty + ') supera el stock disponible (' + stock + ').');
+      }
+    });
+  }
+
+  /* Actualizar hint de stock y filtrar clínica destino al cambiar lote */
+  window.updateTransStock = function () {
+    var sel        = document.getElementById('transLotSelect');
+    var hint       = document.getElementById('transStockHint');
+    var input      = document.getElementById('transQtyInput');
+    var clinicSel  = document.getElementById('transClinicSelect');
+    if (!sel || !hint || !input) return;
+
+    var opt        = sel.options[sel.selectedIndex];
+    var stock      = opt ? parseInt(opt.dataset.stock    || '0', 10) : 0;
+    var originId   = opt ? (opt.dataset.clinicId || '')              : '';
+
+    hint.textContent = stock > 0 ? 'Stock disponible: ' + stock + ' dosis' : '';
+    input.max = stock > 0 ? stock : '';
+
+    // Ocultar la clínica de origen en el dropdown destino
+    if (clinicSel) {
+      Array.from(clinicSel.options).forEach(function (o) {
+        if (!o.value) return; // placeholder
+        var hide = originId && o.value === originId;
+        o.hidden   = hide;
+        o.disabled = hide;
+        if (hide && clinicSel.value === o.value) clinicSel.value = '';
+      });
+    }
   };
 
   /* Validar cantidad no excede stock al enviar */

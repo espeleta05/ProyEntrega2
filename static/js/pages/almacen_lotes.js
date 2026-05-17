@@ -2,10 +2,11 @@
   'use strict';
 
   /* ── Filtros de tabla ── */
-  const searchInput  = document.getElementById('searchInput');
-  const statusFilter = document.getElementById('statusFilter');
-  const sortSelect   = document.getElementById('sortSelect');
-  const table        = document.getElementById('lotesTable');
+  const searchInput    = document.getElementById('searchInput');
+  const statusFilter   = document.getElementById('statusFilter');
+  const clinicFilter   = document.getElementById('clinicFilterSelect');
+  const sortSelect     = document.getElementById('sortSelect');
+  const table          = document.getElementById('lotesTable');
 
   function getRows() {
     if (!table) return [];
@@ -15,18 +16,21 @@
   function applyFilters() {
     const q      = (searchInput  ? searchInput.value.trim().toLowerCase()  : '');
     const status = (statusFilter ? statusFilter.value.toLowerCase()         : '');
+    const clinic = (clinicFilter ? clinicFilter.value                       : '');
     let visible  = 0;
 
     getRows().forEach(function (row) {
-      const vaccine = (row.dataset.vaccine || '').toLowerCase();
-      const lot     = (row.dataset.lot     || '').toLowerCase();
-      const st      = (row.dataset.status  || '').toLowerCase();
+      const vaccine    = (row.dataset.vaccine || '').toLowerCase();
+      const lot        = (row.dataset.lot     || '').toLowerCase();
+      const st         = (row.dataset.status  || '').toLowerCase();
+      const rowClinic  = (row.dataset.clinic  || '');
 
       const matchQ = !q      || vaccine.includes(q) || lot.includes(q);
       const matchS = !status || st === status;
+      const matchC = !clinic || rowClinic === clinic;
 
-      row.style.display = (matchQ && matchS) ? '' : 'none';
-      if (matchQ && matchS) visible++;
+      row.style.display = (matchQ && matchS && matchC) ? '' : 'none';
+      if (matchQ && matchS && matchC) visible++;
     });
 
     updateFooter(visible);
@@ -60,6 +64,7 @@
 
   if (searchInput)  searchInput.addEventListener('input',  applyFilters);
   if (statusFilter) statusFilter.addEventListener('change', applyFilters);
+  if (clinicFilter) clinicFilter.addEventListener('change', applyFilters);
   if (sortSelect) {
     sortSelect.addEventListener('change', function () {
       applyFilters();

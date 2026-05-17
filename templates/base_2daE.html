@@ -66,9 +66,11 @@
         {
           'title': 'Clínica',
           'items': [
-            {'label': 'Vacunas',    'icon': 'fa-syringe',        'endpoint': 'vacunas_page'},
-            {'label': 'Citas',      'icon': 'fa-calendar-check', 'endpoint': 'citas'},
-            {'label': 'Inventario', 'icon': 'fa-boxes-stacked',  'endpoint': 'inventario'},
+            {'label': 'Vacunas',         'icon': 'fa-syringe',            'endpoint': 'vacunas_page'},
+            {'label': 'Citas',           'icon': 'fa-calendar-check',    'endpoint': 'citas'},
+            {'label': 'Monitor de Sala', 'icon': 'fa-tachograph-digital', 'endpoint': 'sala_espera'},
+            {'label': 'Inventario',      'icon': 'fa-boxes-stacked',      'endpoint': 'inventario'},
+            {'label': 'Transferencias',  'icon': 'fa-truck-fast',         'endpoint': 'almacen_transferencias'},
           ]
         },
         {
@@ -91,6 +93,7 @@
       user_name=name ~ ' ' ~ lastname,
       user_role=role,
       user_initials=initials,
+      clinic_name=clinic_name,
   ) }}
 
   <main class="content">

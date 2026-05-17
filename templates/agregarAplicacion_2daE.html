@@ -1,9 +1,10 @@
 {% extends 'base_2daE.html' %}
 
 {# ── Macros ── #}
-{% from 'components/form.html' import form as form_card %}
+{% from 'components/form.html'  import form as form_card %}
+{% from 'components/badge.html' import badge %}
 
-{% block title %}Registrar Aplicación - Sistema Clínico{% endblock %}
+{% block title %}Registrar Aplicación — ImmuniCare{% endblock %}
 
 {% block head_extra %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/crud.css') }}">
@@ -21,42 +22,49 @@
     action=url_for('agregar_aplicacion'),
     title='Registrar aplicación de vacuna',
     cancel_href=next_url or url_for('aplicaciones'),
-    submit_text='Registrar aplicación',
+    submit_text='Registrar vacuna',
     submit_icon='fa-syringe'
 ) %}
 
-    {# Campo oculto para redirigir de regreso al esquema del paciente #}
-    <input type="hidden" name="next" value="{{ next_url or '' }}">
+    {# Campos ocultos de contexto #}
+    <input type="hidden" name="next"           value="{{ next_url or '' }}">
+    <input type="hidden" name="appointment_id" id="ap_appointment_id"
+           value="{{ prefilled_appointment_id or form.get('appointment_id', '') or '' }}">
+
+    {% if prefilled_appointment_id %}
+    <div class="md3-alert md3-alert--primary" style="margin-bottom:16px;">
+      <i class="fa-solid fa-calendar-check"></i>
+      <span>Aplicando vacuna para la cita #{{ prefilled_appointment_id }}.
+        Después de registrar puedes añadir más vacunas a la misma cita.</span>
+    </div>
+    {% endif %}
 
     {% if error %}
-    <div class="md3-alert md3-alert--error" style="margin-bottom: var(--md-spacing-5);">
+    <div class="md3-alert md3-alert--error" style="margin-bottom:16px;">
         <i class="fa-solid fa-circle-exclamation"></i>
         <span>{{ error }}</span>
     </div>
     {% endif %}
 
     <div class="md3-form__section">
-        <h3 class="md3-form__section-title">Datos de la aplicación</h3>
+        <h3 class="md3-form__section-title">Paciente y vacuna</h3>
 
         <div class="md3-form__row md3-form__row--2">
 
-            {# ── Paciente: prellenado (solo lectura) o seleccionable ── #}
+            {# ── Paciente ── #}
             <div class="md3-field">
                 <label class="md3-field__label" for="ap_patient">Paciente *</label>
                 {% if prefilled_patient %}
-                    {# Mostrar nombre como campo bloqueado y enviar el ID por hidden #}
-                    <input class="md3-input"
-                           type="text"
-                           id="ap_patient"
+                    <input class="md3-input" type="text" id="ap_patient"
                            value="{{ prefilled_patient.first_name }} {{ prefilled_patient.last_name }} — ID: P{{ prefilled_patient.patient_id }}"
                            readonly
-                           style="background:var(--md-surface-container,#ede8f4);cursor:not-allowed;opacity:.85;">
+                           style="background:var(--md-surface-container);cursor:not-allowed;opacity:.85;">
                     <input type="hidden" name="patient_id" value="{{ prefilled_patient.patient_id }}">
                 {% else %}
                     <select class="md3-select" id="ap_patient" name="patient_id" required>
-                        <option value="" disabled {% if not form.patient_id %}selected{% endif %}>Seleccionar paciente</option>
+                        <option value="" disabled {{ 'selected' if not form.get('patient_id') }}>Seleccionar paciente</option>
                         {% for p in patients %}
-                        <option value="{{ p.patient_id }}" {% if form.patient_id | string == p.patient_id | string %}selected{% endif %}>
+                        <option value="{{ p.patient_id }}" {{ 'selected' if form.get('patient_id')|string == p.patient_id|string }}>
                             {{ p.first_name }} {{ p.last_name }} — ID: P{{ p.patient_id }}
                         </option>
                         {% endfor %}
@@ -64,12 +72,14 @@
                 {% endif %}
             </div>
 
+            {# ── Vacuna ── #}
             <div class="md3-field">
                 <label class="md3-field__label" for="ap_vaccine">Vacuna *</label>
-                <select class="md3-select" id="ap_vaccine" name="vaccine_id" required>
-                    <option value="" disabled {% if not form.vaccine_id %}selected{% endif %}>Seleccionar vacuna</option>
+                <select class="md3-select" id="ap_vaccine" name="vaccine_id" required
+                        onchange="filterLotsByVaccine()">
+                    <option value="" disabled {{ 'selected' if not form.get('vaccine_id') }}>Seleccionar vacuna</option>
                     {% for v in vaccines %}
-                    <option value="{{ v.vaccine_id }}" {% if form.vaccine_id | string == v.vaccine_id | string %}selected{% endif %}>
+                    <option value="{{ v.vaccine_id }}" {{ 'selected' if form.get('vaccine_id')|string == v.vaccine_id|string }}>
                         {{ v.name }}
                     </option>
                     {% endfor %}
@@ -78,92 +88,189 @@
         </div>
 
         <div class="md3-form__row md3-form__row--2">
+            {# ── Aplicado por ── #}
             <div class="md3-field">
-                <label class="md3-field__label" for="ap_worker_id">Aplicado por * <span style="font-weight:400;opacity:.65;font-size:.8em">(solo médicos y enfermeros)</span></label>
+                <label class="md3-field__label" for="ap_worker_id">
+                    Aplicado por *
+                    <span style="font-weight:400;opacity:.65;font-size:.8em">(médico o enfermero)</span>
+                </label>
                 <select class="md3-select" id="ap_worker_id" name="worker_id" required>
-                    <option value="">Selecciona un médico o enfermero…</option>
+                    <option value="">Selecciona personal clínico…</option>
                     {% for w in medical_workers %}
                     <option value="{{ w.worker_id }}"
-                        {% if form.worker_id | string == w.worker_id | string %}selected{% endif %}>
+                        {{ 'selected' if form.get('worker_id')|string == w.worker_id|string }}>
                         {{ w.first_name }} {{ w.last_name }} ({{ w.role_name }})
                     </option>
                     {% endfor %}
                 </select>
             </div>
+
+            {# ── Dosis del esquema ── #}
             <div class="md3-field">
-                <label class="md3-field__label" for="ap_scheme_dose">Dosis del esquema</label>
+                <label class="md3-field__label" for="ap_scheme_dose">
+                    Dosis del esquema
+                    <span style="font-weight:400;opacity:.65;font-size:.8em">(recomendado para actualizar esquema)</span>
+                </label>
                 <select class="md3-select" id="ap_scheme_dose" name="scheme_dose_id">
-                    <option value="" selected>N/A</option>
+                    <option value="" selected>N/A — vacuna fuera de esquema</option>
                     {% for d in scheme_doses %}
-                    <option value="{{ d.dose_id }}" {% if form.scheme_dose_id | string == d.dose_id | string %}selected{% endif %}>
+                    <option value="{{ d.dose_id }}" {{ 'selected' if form.get('scheme_dose_id')|string == d.dose_id|string }}>
                         {{ d.dose_label }}
                     </option>
                     {% endfor %}
                 </select>
             </div>
         </div>
+    </div>
+
+    <div class="md3-form__section">
+        <h3 class="md3-form__section-title">Inventario y clínica</h3>
 
         <div class="md3-form__row md3-form__row--2">
+            {# ── Lote (filtrado por vacuna) ── #}
             <div class="md3-field">
-                <label class="md3-field__label" for="ap_date">Fecha de aplicación *</label>
-                <input class="md3-input" type="date" id="ap_date" name="applied_date"
-                       value="{{ form.applied_date or '' }}" required>
-            </div>
-            <div class="md3-field">
-                <label class="md3-field__label" for="ap_lot">Lote <span style="font-weight:400;opacity:.7">(opcional)</span></label>
-                <select class="md3-select" id="ap_lot" name="lot_id">
-                    <option value="" selected>N/A</option>
+                <label class="md3-field__label" for="ap_lot">
+                    Lote de vacuna *
+                </label>
+                <select class="md3-select" id="ap_lot" name="lot_id" required>
+                    <option value="" {{ 'selected' if not form.get('lot_id') }}>Seleccionar lote…</option>
                     {% for lot in lots %}
-                    <option value="{{ lot.lot_id }}" {% if form.lot_id | string == lot.lot_id | string %}selected{% endif %}>
-                        {{ lot.lot_number }}
+                    <option value="{{ lot.lot_id }}"
+                            data-vaccine="{{ lot.vaccine_id }}"
+                            {{ 'selected' if form.get('lot_id')|string == lot.lot_id|string }}>
+                        {{ lot.vaccine_name }} — Lote {{ lot.lot_number }}
+                        ({{ lot.quantity_available }} disp. · vence {{ lot.expiration_date.strftime('%d/%m/%Y') if lot.expiration_date else '—' }})
                     </option>
                     {% endfor %}
                 </select>
+                <small id="ap_lot_hint" style="font-size:12px;color:var(--md-on-surface-variant);margin-top:4px;display:block;">
+                    Selecciona primero la vacuna para filtrar lotes disponibles.
+                </small>
             </div>
-        </div>
 
-        <div class="md3-form__row md3-form__row--2">
+            {# ── Clínica ── #}
             <div class="md3-field">
                 <label class="md3-field__label" for="ap_clinic">Clínica *</label>
                 <select class="md3-select" id="ap_clinic" name="clinic_id" required>
-                    <option value="" disabled {% if not form.clinic_id %}selected{% endif %}>Seleccionar clínica</option>
+                    <option value="" disabled {{ 'selected' if not form.get('clinic_id') }}>Seleccionar clínica</option>
                     {% for c in clinics %}
-                    <option value="{{ c.clinic_id }}" {% if form.clinic_id | string == c.clinic_id | string %}selected{% endif %}>
+                    <option value="{{ c.clinic_id }}" {{ 'selected' if form.get('clinic_id')|string == c.clinic_id|string }}>
                         {{ c.name }}
                     </option>
                     {% endfor %}
                 </select>
             </div>
+        </div>
+
+        <div class="md3-form__row md3-form__row--2">
+            {# ── Sitio de aplicación ── #}
             <div class="md3-field">
                 <label class="md3-field__label" for="ap_site">Sitio de aplicación</label>
                 <select class="md3-select" id="ap_site" name="application_site_id">
                     <option value="" selected>N/A</option>
                     {% for s in application_sites %}
-                    <option value="{{ s.application_site_id }}" {% if form.application_site_id | string == s.application_site_id | string %}selected{% endif %}>
+                    <option value="{{ s.application_site_id }}" {{ 'selected' if form.get('application_site_id')|string == s.application_site_id|string }}>
                         {{ s.application_site }}
                     </option>
                     {% endfor %}
                 </select>
             </div>
+
+            {# ── Temperatura ── #}
+            <div class="md3-field">
+                <label class="md3-field__label" for="ap_temp">Temperatura del paciente (°C)</label>
+                <input class="md3-input" type="number" step="0.1" min="30" max="45"
+                       id="ap_temp" name="patient_temp_c"
+                       placeholder="Ej: 36.5"
+                       value="{{ form.get('patient_temp_c', '') }}">
+            </div>
         </div>
 
         <div class="md3-form__row md3-form__row--2">
+            {# ── Reacción ── #}
             <div class="md3-field">
-                <label class="md3-field__label" for="ap_temp">Temperatura del paciente (°C)</label>
-                <input class="md3-input" type="number" step="0.1" id="ap_temp" name="patient_temp_c"
-                       value="{{ form.patient_temp_c or '' }}">
-            </div>
-            <div class="md3-field">
-                <label class="md3-field__label" for="ap_reaction">¿Tuvo reacción?</label>
+                <label class="md3-field__label" for="ap_reaction">¿Presentó reacción adversa?</label>
                 <select class="md3-select" id="ap_reaction" name="had_reaction">
-                    <option value="false" {% if form.had_reaction != 'true' %}selected{% endif %}>No</option>
-                    <option value="true"  {% if form.had_reaction == 'true' %}selected{% endif %}>Sí</option>
+                    <option value="false" {{ 'selected' if form.get('had_reaction') != 'true' }}>No</option>
+                    <option value="true"  {{ 'selected' if form.get('had_reaction') == 'true'  }}>Sí</option>
                 </select>
             </div>
         </div>
-
     </div>
 
 {% endcall %}
 
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+  'use strict';
+
+  var vaccineSelect = document.getElementById('ap_vaccine');
+  var lotSelect     = document.getElementById('ap_lot');
+  var lotHint       = document.getElementById('ap_lot_hint');
+
+  // Guardar todas las opciones originales del selector de lotes
+  var allLotOptions = Array.from(lotSelect.options);
+
+  window.filterLotsByVaccine = function () {
+    var vaccineId = vaccineSelect ? vaccineSelect.value : '';
+
+    // Limpiar selector de lotes
+    while (lotSelect.options.length > 0) lotSelect.remove(0);
+
+    // Opción vacía
+    var emptyOpt = document.createElement('option');
+    emptyOpt.value = '';
+    emptyOpt.textContent = vaccineId ? 'Seleccionar lote…' : 'Selecciona primero la vacuna';
+    lotSelect.appendChild(emptyOpt);
+
+    if (!vaccineId) {
+      if (lotHint) lotHint.textContent = 'Selecciona primero la vacuna para filtrar lotes disponibles.';
+      return;
+    }
+
+    var matching = allLotOptions.filter(function (o) {
+      return o.value && o.dataset.vaccine === vaccineId;
+    });
+
+    matching.forEach(function (o) { lotSelect.appendChild(o.cloneNode(true)); });
+
+    if (lotHint) {
+      lotHint.textContent = matching.length > 0
+        ? matching.length + ' lote(s) disponible(s) para esta vacuna.'
+        : 'Sin lotes disponibles para esta vacuna en la clínica actual.';
+    }
+  };
+
+  // Aplicar filtro al cargar si la vacuna ya viene seleccionada
+  if (vaccineSelect && vaccineSelect.value) {
+    filterLotsByVaccine();
+    // Re-seleccionar lote previo si había uno
+    var prevLot = '{{ form.get("lot_id", "") }}';
+    if (prevLot) {
+      for (var i = 0; i < lotSelect.options.length; i++) {
+        if (lotSelect.options[i].value === prevLot) {
+          lotSelect.selectedIndex = i;
+          break;
+        }
+      }
+    }
+  }
+
+  // Pre-seleccionar el worker actual si es médico/enfermero
+  var workerSelect  = document.getElementById('ap_worker_id');
+  var sessionWorker = '{{ session.get("worker_id", "") }}';
+  if (workerSelect && sessionWorker && !workerSelect.value) {
+    for (var j = 0; j < workerSelect.options.length; j++) {
+      if (workerSelect.options[j].value === sessionWorker) {
+        workerSelect.selectedIndex = j;
+        break;
+      }
+    }
+  }
+
+}());
+</script>
 {% endblock %}

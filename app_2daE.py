@@ -230,8 +230,8 @@ def _session_vars():
                 )
                 row = cur.fetchone()
                 if row:
-                    first = (row.get("first_name") or first).strip()
-                    last  = (row.get("last_name")  or last).strip()
+                    first = _to_utf8((row.get("first_name") or first).strip())
+                    last  = _to_utf8((row.get("last_name")  or last).strip())
                     # Actualizar sesión para que quede coherente
                     session["user_name"]     = first
                     session["user_lastname"] = last
@@ -241,13 +241,77 @@ def _session_vars():
             pass  # fallback a lo que hay en sesión
 
     initials = ((first[:1] + last[:1]).upper()) or "AD"
+
+    clinic_name = None
+    clinic_id   = session.get("clinic_id")
+    if clinic_id:
+        try:
+            conn2, sc2 = _get_conn()
+            with conn2.cursor() as cur:
+                cur.execute("SELECT name FROM clinics WHERE clinic_id = %s", (clinic_id,))
+                crow = cur.fetchone()
+                if crow:
+                    clinic_name = crow.get("name")
+            if sc2:
+                conn2.close()
+        except Exception:
+            pass
+
     return {
-        "name":      first,
-        "lastname":  last,
-        "role":      session.get("role", "Administrador"),
-        "worker_id": worker_id,
-        "initials":  initials,
+        "name":        first,
+        "lastname":    last,
+        "role":        session.get("role", "Administrador"),
+        "worker_id":   worker_id,
+        "initials":    initials,
+        "clinic_name": clinic_name,
     }
+
+def _to_utf8(s):
+    """
+    Repara Mojibake en nombres de trabajadores.
+    Cuando los datos se insertaron con encoding Latin-1/Win1252 en una DB declarada
+    UTF-8, psycopg devuelve una cadena con los caracteres mal interpretados.
+    Ejemplo: 'é' guardado como byte 0xC3 0xA9 (UTF-8) → decodificado como latin-1
+             → 'Ã©' (dos chars). Esta función revierte ese proceso.
+    Si la cadena ya está bien (o no es reparable), la devuelve sin cambios.
+    """
+    if not isinstance(s, str) or not s:
+        return s
+    try:
+        # Re-encoda a bytes Latin-1 y decodifica como UTF-8.
+        # Solo funciona si la cadena es Mojibake (bytes UTF-8 leídos como Latin-1).
+        return s.encode('latin-1').decode('utf-8')
+    except (UnicodeDecodeError, UnicodeEncodeError):
+        # La cadena ya está correctamente en Unicode o no es reparable.
+        return s
+
+_WORKER_NAME_FIELDS = frozenset({
+    "worker_name", "requested_by_name", "approved_by_name",
+    "first_name", "last_name",
+})
+
+def _fix_worker_encoding(rows):
+    """Aplica _to_utf8 a los campos de nombre de trabajador en una lista de dicts."""
+    if not rows:
+        return rows
+    fixed = []
+    for row in rows:
+        d = dict(row)
+        for field in _WORKER_NAME_FIELDS:
+            if field in d and isinstance(d[field], str):
+                d[field] = _to_utf8(d[field])
+        fixed.append(d)
+    return fixed
+
+def _fix_worker_row(row):
+    """Aplica _to_utf8 a los campos de nombre de trabajador en un solo dict."""
+    if not row:
+        return row
+    d = dict(row)
+    for field in _WORKER_NAME_FIELDS:
+        if field in d and isinstance(d[field], str):
+            d[field] = _to_utf8(d[field])
+    return d
 
 def _temporal_text(value):
     if value is None:
@@ -285,6 +349,17 @@ def _age_label(birth_date) -> str:
         return f"{total_months} mes{'es' if total_months != 1 else ''}"
     years = total_months // 12
     return f"{years} año{'s' if years != 1 else ''}"
+
+
+def _ideal_age_label(months) -> str:
+    """Convierte ideal_age_months a texto legible ('Al nacer', '6 meses', '2 años')."""
+    m = int(months or 0)
+    if m == 0:
+        return "Al nacer"
+    if m >= 12:
+        y = m // 12
+        return f"{y} año{'s' if y != 1 else ''}"
+    return f"{m} meses"
 
 
 def _distance_meters(lat1, lon1, lat2, lon2):
@@ -342,8 +417,8 @@ def _authenticate_user(login_value, password):
             pass  # clinic_id queda en None; el SP acepta NULL
         return {
             "worker_id": worker_id,
-            "name":      (row.get("first_name") or "").strip(),
-            "lastname":  (row.get("last_name")  or "").strip(),
+            "name":      _to_utf8((row.get("first_name") or "").strip()),
+            "lastname":  _to_utf8((row.get("last_name")  or "").strip()),
             "role":      row.get("name") or "Administrador",
             "clinic_id": clinic_id,
         }
@@ -730,7 +805,7 @@ def tutor_esquema(patient_id):
         {
             "name":           r.get("name"),
             "dose":           r.get("dose"),
-            "edad_ideal":     r.get("edad_ideal_label"),
+            "edad_ideal":     _ideal_age_label(r.get("ideal_age_months")),
             "dias_retraso":   r.get("dias_retraso") or 0,
             "alerta_retraso": r.get("alerta_retraso"),
             "estado":         r.get("estado"),
@@ -887,7 +962,11 @@ def tutor_registrar_hijo():
         try:
             with conn.cursor() as cur:
                 cur.execute(
-                    "CALL sp_tutor_register_child(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",
+                    """CALL sp_tutor_register_child(
+                        %s::INT, %s::VARCHAR, %s::VARCHAR, %s::DATE,
+                        %s::CHAR(1), %s::VARCHAR, %s::INT, %s::NUMERIC,
+                        %s::BOOLEAN, %s
+                    )""",
                     (guardian_id, first_name, last_name, birth_date_raw,
                      gender, curp, blood_type_id, weight_kg, premature,
                      "cur_reg_hijo"),
@@ -1531,12 +1610,12 @@ def dashboard():
                 cur.execute("CALL sp_get_citas_admin(%s, %s, %s, %s)",
                             (None, today_iso, today_iso, "cur_dash_citas"))
                 cur.execute('FETCH ALL FROM "cur_dash_citas"')
-                citas_hoy = [dict(r) for r in cur.fetchall()]
+                citas_hoy = _fix_worker_encoding([dict(r) for r in cur.fetchall()])
 
                 # 3. Últimas 10 aplicaciones de vacunas
                 cur.execute("CALL sp_get_last_applications(%s)", ("cur_recent_apps",))
                 cur.execute('FETCH ALL FROM "cur_recent_apps"')
-                recent_apps = [dict(r) for r in cur.fetchall()]
+                recent_apps = _fix_worker_encoding([dict(r) for r in cur.fetchall()])
 
                 # 4. Datos para las 3 gráficas
                 cur.execute("CALL sp_dashboard_charts(%s)", ("cur_charts",))
@@ -2477,7 +2556,7 @@ def esquema_paciente(id):
         {
             "name":             r.get("name"),
             "dose":             r.get("dose"),
-            "edad_ideal":       r.get("edad_ideal_label"),
+            "edad_ideal":       _ideal_age_label(r.get("ideal_age_months")),
             "ideal_age_months": r.get("ideal_age_months"),
             "schedule_id":      r.get("schedule_id"),
             "dias_retraso":     r.get("dias_retraso"),
@@ -2690,8 +2769,8 @@ def create_vaccine_lot():
     try:
         with conn.cursor() as cur:
             cur.execute(
-                "CALL sp_create_vaccine_lot(%s,%s,%s,%s,%s,%s)",
-                (vaccine_id, clinic_id, lot_number, int(qty_received), exp_date, "cur_create_lot"),
+                "CALL sp_create_vaccine_lot(%s::INT,%s::INT,%s::VARCHAR,%s::INT,%s::DATE,%s::REFCURSOR)",
+                (int(vaccine_id), int(clinic_id), str(lot_number), int(qty_received), str(exp_date), "cur_create_lot"),
             )
             cur.execute('FETCH ALL FROM "cur_create_lot"')
             row = cur.fetchone()
@@ -2906,10 +2985,11 @@ def agregar_aplicacion():
     form  = {}
     error = None
 
-    # Soporte para pre-llenar paciente desde esquema o historial
-    prefilled_patient_id = request.args.get("patient_id", type=int)
-    prefilled_patient    = _cur_fetchone("patients", "patient_id", prefilled_patient_id) if prefilled_patient_id else None
-    next_url             = request.args.get("next") or url_for("aplicaciones")
+    # Soporte para pre-llenar paciente y cita desde query string
+    prefilled_patient_id    = request.args.get("patient_id",    type=int)
+    prefilled_appointment_id = request.args.get("appointment_id", type=int)
+    prefilled_patient       = _cur_fetchone("patients", "patient_id", prefilled_patient_id) if prefilled_patient_id else None
+    next_url                = request.args.get("next") or url_for("aplicaciones")
 
     if request.method == "POST":
         form = dict(request.form)
@@ -3011,17 +3091,31 @@ def agregar_aplicacion():
                     error = row.get("message", "Error al registrar la aplicación")
                 elif row:
                     p_name = f"{patient['first_name']} {patient['last_name']}".strip()
-                    flash(f"Aplicación de {vaccine['name']} registrada para {p_name}.", "success")
-                    next_url = request.form.get("next") or url_for("aplicaciones")
-                    return redirect(next_url)
+                    flash(f"Vacuna {vaccine['name']} registrada para {p_name}. Puedes aplicar otra vacuna en la misma cita.", "success")
+                    # Redirigir de vuelta al mismo formulario con patient_id y appointment_id
+                    # para permitir registrar múltiples vacunas en la misma cita.
+                    # Si el usuario quiere salir, usa el botón Regresar.
+                    redir_next = request.form.get("next") or url_for("aplicaciones")
+                    same_appt  = request.form.get("appointment_id")
+                    same_pat   = request.form.get("patient_id")
+                    if same_appt and same_pat:
+                        return redirect(url_for("agregar_aplicacion",
+                                                patient_id=same_pat,
+                                                appointment_id=same_appt,
+                                                next=redir_next))
+                    return redirect(redir_next)
                 elif not error:
                     error = "No se pudo registrar la aplicación en base de datos"
 
-    # Solo médicos y enfermeros pueden aplicar vacunas
+    # Cargar datos del formulario en una sola conexión
+    session_clinic_id = session.get("clinic_id")
     conn_mw, sc_mw = _get_conn()
     _safe_rollback(conn_mw)
+    medical_workers = []
+    available_lots  = []
     try:
         with conn_mw.cursor() as cur:
+            # Solo médicos y enfermeros activos
             cur.execute(
                 """SELECT w.worker_id, w.first_name, w.last_name, r.name AS role_name
                    FROM workers w
@@ -3030,10 +3124,25 @@ def agregar_aplicacion():
                    ORDER BY w.first_name, w.last_name"""
             )
             medical_workers = [dict(r) for r in cur.fetchall()]
+
+            # Lotes disponibles de la clínica de sesión, con nombre de vacuna
+            cur.execute(
+                """SELECT vl.lot_id, vl.lot_number, vl.quantity_available,
+                          vl.expiration_date, vl.clinic_id,
+                          v.vaccine_id, v.name AS vaccine_name
+                   FROM vaccine_lots vl
+                   JOIN vaccines v ON v.vaccine_id = vl.vaccine_id
+                   WHERE vl.lot_status = 'Disponible'
+                     AND vl.quantity_available > 0
+                     AND vl.expiration_date >= CURRENT_DATE
+                     AND (%s IS NULL OR vl.clinic_id = %s)
+                   ORDER BY v.name, vl.expiration_date""",
+                (session_clinic_id, session_clinic_id),
+            )
+            available_lots = [dict(r) for r in cur.fetchall()]
         conn_mw.commit()
     except Exception:
         _safe_rollback(conn_mw)
-        medical_workers = []
     finally:
         if sc_mw and not _conn_is_closed(conn_mw):
             conn_mw.close()
@@ -3045,12 +3154,13 @@ def agregar_aplicacion():
         vaccines=_cur_fetchall("vaccines"),
         medical_workers=medical_workers,
         clinics=_cur_fetchall("clinics"),
-        lots=_cur_fetchall("vaccine_lots"),
+        lots=available_lots,
         scheme_doses=_cur_fetchall("scheme_doses"),
         application_sites=_cur_fetchall("application_sites"),
         form=form,
         error=error,
         prefilled_patient=prefilled_patient,
+        prefilled_appointment_id=prefilled_appointment_id,
         next_url=next_url,
     )
 
@@ -3438,6 +3548,7 @@ def admin_nueva_cita():
     worker_id           = request.form.get("worker_id",           type=int)  or None
     area_id             = request.form.get("area_id",             type=int)  or None
     scheduled_at_str    = request.form.get("scheduled_at",        "").strip()
+    next_url            = request.form.get("next", "").strip() or None
     reason              = request.form.get("reason",              "").strip() or None
     patient_schedule_id = request.form.get("patient_schedule_id", type=int)  or None
 
@@ -3471,7 +3582,10 @@ def admin_nueva_cita():
         if should_close and not _conn_is_closed(conn):
             conn.close()
 
-    return redirect(url_for("citas"))
+    if not next_url:
+        role = session.get("role", "")
+        next_url = url_for("medico_citas_hoy") if role in ("Medico", "Enfermero") else url_for("citas")
+    return redirect(next_url)
 
 
 @app.route("/citas/<int:appointment_id>/cancelar", methods=["POST"])
@@ -3965,7 +4079,7 @@ def medico_dashboard():
 
 @app.route("/medico/citas")
 def medico_citas_hoy():
-    locked = _require_role("Medico", "Administrador")
+    locked = _require_role("Medico", "Enfermero", "Administrador")
     if locked:
         return locked
 
@@ -3982,7 +4096,7 @@ def medico_citas_hoy():
             cur.execute("CALL sp_get_citas_medico(%s, %s, %s, %s)",
                         (worker_id, None, None, "cur_mc_citas"))
             cur.execute('FETCH ALL FROM "cur_mc_citas"')
-            rows = [dict(r) for r in cur.fetchall()]
+            rows = _fix_worker_encoding([dict(r) for r in cur.fetchall()])
         conn.commit()
     except Exception as e:
         _safe_rollback(conn)
@@ -4046,7 +4160,7 @@ def almacen_dashboard():
             cur.execute('FETCH ALL FROM "cur_alm_alertas"')
             alertas = [dict(r) for r in cur.fetchall()]
             cur.execute('FETCH ALL FROM "cur_alm_movs"')
-            movimientos = [dict(r) for r in cur.fetchall()]
+            movimientos = _fix_worker_encoding([dict(r) for r in cur.fetchall()])
             cur.execute('FETCH ALL FROM "cur_alm_lotes"')
             lotes_criticos = [dict(r) for r in cur.fetchall()]
         conn.commit()
@@ -4127,7 +4241,7 @@ def almacen_lote_detalle(lot_id):
             if row:
                 lote = dict(row)
             cur.execute('FETCH ALL FROM "cur_lot_movs"')
-            movs = [dict(r) for r in cur.fetchall()]
+            movs = _fix_worker_encoding([dict(r) for r in cur.fetchall()])
         conn.commit()
     except Exception as e:
         _safe_rollback(conn)
@@ -4204,7 +4318,7 @@ def almacen_movimientos():
             cur.execute("CALL sp_get_movements_full(%s, %s, %s, %s, %s, %s)",
                         (clinic_id, None, date_from, date_to, type_filter, "cur_movs"))
             cur.execute('FETCH ALL FROM "cur_movs"')
-            movimientos = [dict(r) for r in cur.fetchall()]
+            movimientos = _fix_worker_encoding([dict(r) for r in cur.fetchall()])
         conn.commit()
     except Exception as e:
         _safe_rollback(conn)
@@ -4287,11 +4401,17 @@ def api_almacen_alertas():
         if should_close and not _conn_is_closed(conn):
             conn.close()
 
-    return jsonify({
-        "alertas": alertas,
-        "total":   len(alertas),
-        "criticas": sum(1 for a in alertas if a.get("alert_type") == "Critico"),
-    })
+    # Serializar fechas para JSON
+    def _serialize(a):
+        out = {}
+        for k, v in a.items():
+            if hasattr(v, 'isoformat'):
+                out[k] = v.isoformat()
+            else:
+                out[k] = v
+        return out
+
+    return jsonify([_serialize(a) for a in alertas])
 
 
 @app.route("/api/almacen/movimientos")
@@ -4313,7 +4433,7 @@ def api_almacen_movimientos():
             cur.execute("CALL sp_get_movements_full(%s, %s, %s, %s, %s, %s)",
                         (clinic_id, lot_id, date_from, date_to, type_filter, "cur_api_movs"))
             cur.execute('FETCH ALL FROM "cur_api_movs"')
-            movimientos = [dict(r) for r in cur.fetchall()]
+            movimientos = _fix_worker_encoding([dict(r) for r in cur.fetchall()])
         conn.commit()
     except Exception as e:
         _safe_rollback(conn)
@@ -4329,7 +4449,9 @@ def api_almacen_movimientos():
 
 @app.route("/almacen/transferencias")
 def almacen_transferencias():
-    _require_role(*_ALMACEN_RW)
+    locked = _require_role(*_ALMACEN_RW)
+    if locked:
+        return locked
     clinic_id     = session.get("clinic_id")
     status_filter = request.args.get("status") or None
 
@@ -4342,10 +4464,10 @@ def almacen_transferencias():
             cur.execute("CALL sp_get_transfers(%s, %s, %s)",
                         (clinic_id, status_filter, "cur_trans"))
             cur.execute('FETCH ALL FROM "cur_trans"')
-            transferencias = cur.fetchall()
+            transferencias = _fix_worker_encoding([dict(r) for r in cur.fetchall()])
 
-            cur.execute("SELECT clinic_id, clinic_name FROM clinics WHERE is_active = TRUE ORDER BY clinic_name")
-            clinics = cur.fetchall()
+            cur.execute("SELECT clinic_id, name AS clinic_name FROM clinics WHERE is_active = TRUE ORDER BY name")
+            clinics = [dict(r) for r in cur.fetchall()]
         conn.commit()
     except Exception as e:
         _safe_rollback(conn)
@@ -4359,11 +4481,34 @@ def almacen_transferencias():
     _safe_rollback(conn2)
     try:
         with conn2.cursor() as cur:
-            cur.execute("CALL sp_get_vacunas_full(%s)", ("cur_lots_t",))
-            cur.execute('FETCH ALL FROM "cur_lots_t"')
-            lotes = [r for r in cur.fetchall() if r.get("quantity_available", 0) > 0
-                     and r.get("lot_status") == "Disponible"
-                     and r.get("clinic_id") == clinic_id]
+            cur.execute("""
+                SELECT vl.lot_id, vl.lot_number, vl.quantity_available, vl.clinic_id,
+                       v.vaccine_id, v.name AS vaccine_name,
+                       c.name AS clinic_name
+                FROM vaccine_lots vl
+                JOIN vaccines v ON v.vaccine_id = vl.vaccine_id
+                JOIN clinics  c ON c.clinic_id  = vl.clinic_id
+                WHERE vl.lot_status = 'Disponible'
+                  AND vl.quantity_available > 0
+                  AND (%(clinic_id)s IS NULL OR vl.clinic_id = %(clinic_id)s)
+                ORDER BY v.name, vl.lot_number
+            """, {"clinic_id": clinic_id})
+            lotes = cur.fetchall()
+
+            # Lotes de OTRAS clínicas (para "Solicitar stock")
+            cur.execute("""
+                SELECT vl.lot_id, vl.lot_number, vl.quantity_available, vl.clinic_id,
+                       v.vaccine_id, v.name AS vaccine_name,
+                       c.name AS clinic_name
+                FROM vaccine_lots vl
+                JOIN vaccines v ON v.vaccine_id = vl.vaccine_id
+                JOIN clinics  c ON c.clinic_id  = vl.clinic_id
+                WHERE vl.lot_status = 'Disponible'
+                  AND vl.quantity_available > 0
+                  AND (%(clinic_id)s IS NULL OR vl.clinic_id != %(clinic_id)s)
+                ORDER BY v.name, vl.lot_number
+            """, {"clinic_id": clinic_id})
+            lotes_otros = cur.fetchall()
         conn2.commit()
     except Exception as e:
         _safe_rollback(conn2)
@@ -4374,21 +4519,22 @@ def almacen_transferencias():
 
     return render_template(
         "pages/almacen/transferencias.html",
+        **_session_vars(),
         transferencias=transferencias,
         clinics=clinics,
         lotes=lotes,
+        lotes_otros=lotes_otros,
         status_filter=status_filter,
         is_almacen=session.get("role") in _ALMACEN_RW,
-        name=session.get("name", ""),
-        lastname=session.get("lastname", ""),
-        role=session.get("role", ""),
-        initials=session.get("initials", ""),
+        user_clinic_id=clinic_id,
     )
 
 
 @app.route("/almacen/transferencias/nueva", methods=["POST"])
 def almacen_crear_transferencia():
-    _require_role(*_ALMACEN_RW)
+    locked = _require_role(*_ALMACEN_RW)
+    if locked:
+        return locked
     lot_id       = request.form.get("lot_id",      type=int)
     to_clinic_id = request.form.get("to_clinic_id", type=int)
     quantity     = request.form.get("quantity",    type=int)
@@ -4422,7 +4568,9 @@ def almacen_crear_transferencia():
 
 @app.route("/almacen/transferencias/<int:transfer_id>/aceptar", methods=["POST"])
 def almacen_aceptar_transferencia(transfer_id):
-    _require_role(*_ALMACEN_RW)
+    locked = _require_role(*_ALMACEN_RW)
+    if locked:
+        return locked
     worker_id = session.get("worker_id")
     notes     = request.form.get("notes", "").strip() or None
     next_url  = request.form.get("next") or url_for("almacen_transferencias")
@@ -4451,7 +4599,9 @@ def almacen_aceptar_transferencia(transfer_id):
 
 @app.route("/almacen/transferencias/<int:transfer_id>/rechazar", methods=["POST"])
 def almacen_rechazar_transferencia(transfer_id):
-    _require_role(*_ALMACEN_RW)
+    locked = _require_role(*_ALMACEN_RW)
+    if locked:
+        return locked
     worker_id = session.get("worker_id")
     reason    = request.form.get("reason", "").strip() or None
     next_url  = request.form.get("next") or url_for("almacen_transferencias")
@@ -4480,7 +4630,9 @@ def almacen_rechazar_transferencia(transfer_id):
 
 @app.route("/almacen/transferencias/<int:transfer_id>/cancelar", methods=["POST"])
 def almacen_cancelar_transferencia(transfer_id):
-    _require_role(*_ALMACEN_RW)
+    locked = _require_role(*_ALMACEN_RW)
+    if locked:
+        return locked
     worker_id = session.get("worker_id")
     reason    = request.form.get("reason", "").strip() or None
     next_url  = request.form.get("next") or url_for("almacen_transferencias")

@@ -37,39 +37,31 @@ EXECUTE FUNCTION fn_validate_lot_clinic_consistency();
 
 -- Trigger 4 (v2): Descontar inventario + registrar movimiento en inventory_movements
 CREATE OR REPLACE FUNCTION fn_decrement_vaccine_lot_stock()
-RETURNS TRIGGER
-LANGUAGE plpgsql
-AS $$
+RETURNS TRIGGER 
+LANGUAGE plpgsql AS $$
 DECLARE
     v_qty_before INT;
     v_qty_after  INT;
 BEGIN
-    IF NEW.lot_id IS NULL THEN
-        RETURN NEW;
-    END IF;
+    IF NEW.lot_id IS NULL THEN RETURN NEW; END IF;
 
     SELECT quantity_available INTO v_qty_before
-    FROM vaccine_lots
-    WHERE lot_id = NEW.lot_id
-    FOR UPDATE;
+    FROM vaccine_lots WHERE lot_id = NEW.lot_id FOR UPDATE;
 
     IF v_qty_before IS NULL THEN
-        RAISE EXCEPTION 'No se encontró el lote % para ajustar stock', NEW.lot_id;
+        RAISE EXCEPTION 'Lote % no encontrado', NEW.lot_id;
     END IF;
-
     IF v_qty_before <= 0 THEN
         RAISE EXCEPTION 'El lote % no tiene stock disponible', NEW.lot_id;
     END IF;
 
     v_qty_after := v_qty_before - 1;
 
-    -- Descontar stock y actualizar estado si llega a 0
     UPDATE vaccine_lots
     SET quantity_available = v_qty_after,
         lot_status = CASE WHEN v_qty_after = 0 THEN 'Agotado' ELSE lot_status END
     WHERE lot_id = NEW.lot_id;
 
-    -- Registrar movimiento de trazabilidad
     INSERT INTO inventory_movements (
         lot_id, vaccine_id, clinic_id, worker_id,
         movement_type, quantity, quantity_before, quantity_after,
@@ -82,13 +74,35 @@ BEGIN
 
     RETURN NEW;
 END;
-$$;
 
 DROP TRIGGER IF EXISTS trg_decrement_vaccine_lot_stock ON vaccination_records;
 CREATE TRIGGER trg_decrement_vaccine_lot_stock
 AFTER INSERT ON vaccination_records
 FOR EACH ROW
 EXECUTE FUNCTION fn_decrement_vaccine_lot_stock();
+
+-- TRIGGER FALTANTE
+CREATE OR REPLACE FUNCTION fn_auto_lot_status()
+RETURNS TRIGGER
+LANGUAGE plpgsql AS $$
+
+BEGIN
+    IF NEW.expiration_date < CURRENT_DATE
+       AND NEW.lot_status NOT IN ('Bloqueado', 'Retirado') THEN
+        NEW.lot_status := 'Caducado';
+    ELSIF NEW.quantity_available = 0 AND NEW.lot_status = 'Disponible' THEN
+        NEW.lot_status := 'Agotado';
+    ELSIF NEW.quantity_available > 0 AND OLD.lot_status = 'Agotado'
+          AND NEW.expiration_date >= CURRENT_DATE THEN
+        NEW.lot_status := 'Disponible';
+    END IF;
+    RETURN NEW;
+END;
+
+DROP TRIGGER IF EXISTS trg_auto_lot_status ON vaccine_lots;
+CREATE TRIGGER trg_auto_lot_status
+BEFORE UPDATE ON vaccine_lots
+FOR EACH ROW EXECUTE FUNCTION fn_auto_lot_status();
 
 
 -- Trigger 5: Actualizar timestamp created_at automáticamente

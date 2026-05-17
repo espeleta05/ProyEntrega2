@@ -21,7 +21,13 @@
   {% if is_almacen and lotes %}
     <button class="md3-btn md3-btn--filled"
             onclick="openNuevaTransModal()">
-      <i class="fa-solid fa-plus"></i> Nueva transferencia
+      <i class="fa-solid fa-arrow-up-from-bracket"></i> Enviar stock
+    </button>
+  {% endif %}
+  {% if is_almacen and lotes_otros %}
+    <button class="md3-btn md3-btn--tonal"
+            onclick="openSolicitarModal()">
+      <i class="fa-solid fa-arrow-down-to-bracket"></i> Solicitar stock
     </button>
   {% endif %}
 {% endcall %}
@@ -168,9 +174,10 @@
               {% for l in lotes %}
                 <option value="{{ l.lot_id }}"
                         data-stock="{{ l.quantity_available }}"
+                        data-clinic-id="{{ l.clinic_id }}"
                         data-vaccine="{{ l.vaccine_name|e }}"
                         data-lot="{{ l.lot_number|e }}">
-                  {{ l.vaccine_name }} — Lote {{ l.lot_number }} ({{ l.quantity_available }} dosis)
+                  {{ l.vaccine_name }} — Lote {{ l.lot_number }} ({{ l.quantity_available }} dosis){% if not user_clinic_id %} · {{ l.clinic_name }}{% endif %}
                 </option>
               {% endfor %}
             </select>
@@ -179,7 +186,7 @@
           <div class="md3-form__row md3-form__row--2" style="margin-top:12px;">
             <div class="md3-field">
               <label class="md3-field__label">Clínica destino *</label>
-              <select class="md3-input" name="to_clinic_id" required>
+              <select class="md3-input" name="to_clinic_id" id="transClinicSelect" required>
                 <option value="">Seleccionar clínica...</option>
                 {% for c in clinics %}
                   <option value="{{ c.clinic_id }}">{{ c.clinic_name }}</option>
@@ -208,6 +215,82 @@
         </button>
         <button type="submit" class="md3-btn md3-btn--filled">
           <i class="fa-solid fa-paper-plane"></i> Solicitar transferencia
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Modal: Solicitar stock de otra clínica -->
+<div class="md3-modal-overlay" id="solicitarModal"
+     role="dialog" aria-modal="true" aria-labelledby="solicitarModal-title" hidden>
+  <div class="md3-modal">
+    <div class="md3-modal__header">
+      <div class="md3-modal__header-content">
+        <i class="fa-solid fa-arrow-down-to-bracket"></i>
+        <h2 class="md3-modal__title" id="solicitarModal-title">Solicitar stock</h2>
+      </div>
+      <button class="md3-modal__close" onclick="closeModal('solicitarModal')" aria-label="Cerrar">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+    </div>
+    <form method="POST" action="{{ url_for('almacen_crear_transferencia') }}">
+      <input type="hidden" name="next" value="{{ url_for('almacen_transferencias') }}">
+      {% if user_clinic_id %}
+        <input type="hidden" name="to_clinic_id" value="{{ user_clinic_id }}">
+      {% endif %}
+      <div class="md3-modal__body">
+        <div class="md3-form__section">
+
+          <div class="md3-field">
+            <label class="md3-field__label">Lote a solicitar *</label>
+            <select class="md3-input" name="lot_id" id="solLotSelect" required
+                    onchange="updateSolStock()">
+              <option value="">Seleccionar lote...</option>
+              {% for l in lotes_otros %}
+                <option value="{{ l.lot_id }}"
+                        data-stock="{{ l.quantity_available }}"
+                        data-clinic-id="{{ l.clinic_id }}">
+                  {{ l.vaccine_name }} — Lote {{ l.lot_number }} ({{ l.quantity_available }} dosis) · {{ l.clinic_name }}
+                </option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <div class="md3-form__row md3-form__row--2" style="margin-top:12px;">
+            {% if not user_clinic_id %}
+            <div class="md3-field">
+              <label class="md3-field__label">Clínica destino *</label>
+              <select class="md3-input" name="to_clinic_id" id="solClinicSelect" required>
+                <option value="">Seleccionar clínica...</option>
+                {% for c in clinics %}
+                  <option value="{{ c.clinic_id }}">{{ c.clinic_name }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            {% endif %}
+            <div class="md3-field">
+              <label class="md3-field__label">Cantidad *</label>
+              <input class="md3-input" type="number" name="quantity" id="solQtyInput"
+                     min="1" required placeholder="Dosis a solicitar">
+              <small id="solStockHint" style="font-size:12px;color:var(--md-on-surface-variant);"></small>
+            </div>
+          </div>
+
+          <div class="md3-field" style="margin-top:12px;">
+            <label class="md3-field__label">Motivo</label>
+            <input class="md3-input" type="text" name="reason"
+                   placeholder="Ej: Stock insuficiente para campaña...">
+          </div>
+
+        </div>
+      </div>
+      <div class="md3-modal__footer">
+        <button type="button" class="md3-btn md3-btn--outlined" onclick="closeModal('solicitarModal')">
+          Cancelar
+        </button>
+        <button type="submit" class="md3-btn md3-btn--tonal">
+          <i class="fa-solid fa-paper-plane"></i> Enviar solicitud
         </button>
       </div>
     </form>

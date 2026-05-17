@@ -6,117 +6,151 @@
 {% from 'components/card.html'    import card    %}
 
 {% block head_extra %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/crud.css') }}">
 <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/citas.css') }}">
 {% endblock %}
 
-{% block title %}Mis Citas{% endblock %}
+{% block title %}Citas — Personal Clínico{% endblock %}
 
 {% block content %}
 
 {% call toolbar(
-    title='Mis citas',
-    subtitle='Hoy: ' ~ today_label ~ '  ·  Pendientes: ' ~ upcoming|length ~ '  ·  Historial total: ' ~ history|length,
+    title='Citas',
+    subtitle='Programadas: ' ~ upcoming|length ~ '  ·  Historial total: ' ~ history|length,
     icon='fa-calendar-check'
 ) %}
-  <a href="{{ url_for('admin_nueva_cita') }}" class="md3-btn md3-btn--filled">
-    <i class="fa-solid fa-calendar-plus"></i> Nueva cita
+  <a href="{{ url_for('admin_nueva_cita') }}?next={{ url_for('medico_citas_hoy') }}" class="md3-btn md3-btn--filled">
+    <i class="fa-solid fa-calendar-plus"></i>
+    Nueva cita
   </a>
 {% endcall %}
 
-<!-- Barra de búsqueda y filtro -->
-<div class="search-bar-container section">
-  <i class="fa-solid fa-magnifying-glass"></i>
-  <input type="text" id="searchInput" placeholder="Buscar por paciente...">
-  <select id="roleFilterSelect" class="sort-select" style="margin-left:12px;">
-    <option value="">Todos los estados</option>
-    <option value="programada">Programada</option>
-    <option value="confirmada">Confirmada</option>
-    <option value="completada">Completada</option>
-    <option value="cancelada">Cancelada</option>
-    <option value="no show">No Show</option>
-  </select>
+{# ══════════════════════════════════════════════════════════════════
+   SECCIÓN 1: Citas programadas / confirmadas
+══════════════════════════════════════════════════════════════════ #}
+<div class="citas-section-header">
+  <h3 class="citas-section-title">
+    <i class="fa-solid fa-calendar-days"></i>
+    Citas programadas
+  </h3>
+  {{ badge(upcoming|length|string, color='primary', size='sm') }}
 </div>
 
-<!-- Tabla: citas pendientes -->
 {% call card() %}
   {% call(c) table(
       id='appointmentsTable',
       headers=[
-        {'label': 'Hora'},
         {'label': 'Paciente'},
+        {'label': 'Tutor'},
         {'label': 'Vacuna / Dosis'},
-        {'label': 'Área'},
+        {'label': 'Fecha · Hora'},
+        {'label': 'Área · Médico'},
         {'label': 'Estado',   'align': 'center'},
         {'label': 'Acciones', 'align': 'center'},
       ],
       rows=upcoming,
       empty_icon='fa-calendar-xmark',
-      empty_title='Sin citas programadas para hoy'
+      empty_title='Sin citas programadas',
+      empty_text='No hay citas activas en el período seleccionado.',
+      footer_text=upcoming|length|string ~ ' citas en los próximos 30 días'
   ) %}
     <tr data-patient="{{ c.patient_name|lower if c.patient_name else '' }}"
         data-status="{{ c.appointment_status|lower if c.appointment_status else '' }}">
 
-      <td>{{ c.scheduled_at.strftime('%H:%M') if c.scheduled_at else '—' }}</td>
+      {# Paciente #}
+      <td><strong>{{ c.patient_name or '—' }}</strong></td>
 
-      <td>
-        <div class="patient-cell">
-          <div class="avatar-sm">{{ c.patient_name[0] if c.patient_name else '?' }}</div>
-          <div>
-            <span class="vax-name">{{ c.patient_name }}</span>
-            <span class="pt-id">ID: P{{ c.patient_id }}</span>
-          </div>
-        </div>
-      </td>
-
-      <td>
-        {{ c.vaccine_name or '—' }}
-        {% if c.dose_label and c.dose_label != '—' %}
-          <br>{{ badge(c.dose_label, color='primary', size='sm') }}
+      {# Tutor #}
+      <td class="muted-td">
+        {{ c.guardian_name or '—' }}
+        {% if c.guardian_phone and c.guardian_phone != '—' %}
+          <br><small>{{ c.guardian_phone }}</small>
         {% endif %}
       </td>
 
-      <td class="muted-td">{{ c.area_name or '—' }}</td>
+      {# Vacuna / Dosis #}
+      <td>
+        {% if c.vaccine_name and c.vaccine_name not in ('—', '-', '') %}
+          <span>{{ c.vaccine_name }}</span>
+          {% if c.dose_label and c.dose_label not in ('—', '-', '') %}
+            <br>{{ badge(c.dose_label, color='primary', size='sm') }}
+          {% endif %}
+        {% else %}
+          <span class="muted-td">—</span>
+        {% endif %}
+      </td>
 
+      {# Fecha · Hora #}
+      <td class="muted-td" style="white-space:nowrap;">
+        {% if c.scheduled_at %}
+          <strong>{{ c.scheduled_at.strftime('%Y-%m-%d') if c.scheduled_at is not string else c.scheduled_at[:10] }}</strong><br>
+          <span>{{ c.scheduled_at.strftime('%H:%M') if c.scheduled_at is not string else (c.scheduled_at[11:16] if c.scheduled_at|length > 10 else '') }}</span>
+        {% else %}—{% endif %}
+      </td>
+
+      {# Área · Médico #}
+      <td class="muted-td">
+        {% if c.area_name and c.area_name != '—' %}
+          <span>{{ c.area_name }}</span><br>
+        {% endif %}
+        <small>{{ c.worker_name or '—' }}</small>
+      </td>
+
+      {# Estado #}
       <td class="col-center">
         {% if c.appointment_status == 'Confirmada' %}
-          {{ badge('Confirmada', color='success',   size='sm', icon='fa-circle-check') }}
+          {{ badge('Confirmada', color='success',   icon='fa-circle-check', size='sm') }}
         {% elif c.appointment_status == 'Programada' %}
-          {{ badge('Programada', color='secondary', size='sm', icon='fa-clock')       }}
+          {{ badge('Programada', color='secondary', icon='fa-clock',        size='sm') }}
         {% else %}
           {{ badge(c.appointment_status or '—', color='neutral', size='sm') }}
         {% endif %}
       </td>
 
+      {# Acciones #}
       <td class="col-center">
         <div class="citas-row-actions">
+
+          {# Aplicar vacuna — acción principal #}
           <a href="{{ url_for('agregar_aplicacion') }}?patient_id={{ c.patient_id }}&appointment_id={{ c.appointment_id }}&next={{ url_for('medico_citas_hoy') }}"
-             class="md3-btn md3-btn--tonal md3-btn--sm" title="Aplicar vacuna">
+             class="md3-btn md3-btn--filled md3-btn--sm"
+             title="Aplicar vacuna">
             <i class="fa-solid fa-syringe"></i>
           </a>
-          <a href="{{ url_for('historial') }}?q={{ c.patient_id }}"
-             class="md3-btn md3-btn--outlined md3-btn--sm" title="Historial">
-            <i class="fa-solid fa-file-medical"></i>
+
+          {# Editar cita #}
+          <a href="{{ url_for('admin_editar_cita', appointment_id=c.appointment_id) }}"
+             class="md3-btn md3-btn--tonal md3-btn--sm"
+             title="Editar cita">
+            <i class="fa-solid fa-pen-to-square"></i>
           </a>
-          <form action="{{ url_for('admin_no_show', appointment_id=c.appointment_id) }}"
-                method="POST"
-                onsubmit="return confirm('¿Marcar como No Show?')">
-            <input type="hidden" name="next" value="{{ url_for('medico_citas_hoy') }}">
-            <button type="submit" class="md3-btn md3-btn--outlined md3-btn--sm" title="No Show">
-              <i class="fa-solid fa-user-slash"></i>
-            </button>
-          </form>
+
+          {# Cancelar #}
           <form action="{{ url_for('admin_cancelar_cita', appointment_id=c.appointment_id) }}"
                 method="POST"
-                onsubmit="return confirm('¿Cancelar esta cita?')">
+                onsubmit="return confirm('¿Cancelar esta cita? Esta acción no se puede deshacer.')">
             <input type="hidden" name="next" value="{{ url_for('medico_citas_hoy') }}">
-            <input type="hidden" name="cancel_reason" value="Cancelada por médico">
+            <input type="hidden" name="cancel_reason" value="Cancelada por personal clínico">
             <button type="submit"
                     class="md3-btn md3-btn--outlined md3-btn--sm"
                     style="color:var(--md-error);border-color:var(--md-error);"
-                    title="Cancelar">
+                    title="Cancelar cita">
               <i class="fa-solid fa-xmark"></i>
             </button>
           </form>
+
+          {# No Show #}
+          <form action="{{ url_for('admin_no_show', appointment_id=c.appointment_id) }}"
+                method="POST"
+                onsubmit="return confirm('¿Marcar al paciente como No Show?')">
+            <input type="hidden" name="next" value="{{ url_for('medico_citas_hoy') }}">
+            <button type="submit"
+                    class="md3-btn md3-btn--outlined md3-btn--sm"
+                    title="Marcar No Show">
+              <i class="fa-solid fa-user-slash"></i>
+            </button>
+          </form>
+
         </div>
       </td>
 
@@ -124,64 +158,112 @@
   {% endcall %}
 {% endcall %}
 
-<!-- Historial completo -->
-<div class="citas-section-header" style="margin-top:24px;display:flex;align-items:center;gap:8px;">
+
+{# ══════════════════════════════════════════════════════════════════
+   SECCIÓN 2: Historial de citas
+══════════════════════════════════════════════════════════════════ #}
+<div class="citas-section-header" style="margin-top:24px;">
   <h3 class="citas-section-title">
-    <i class="fa-solid fa-clock-rotate-left"></i> Historial completo
+    <i class="fa-solid fa-clock-rotate-left"></i>
+    Historial de citas
   </h3>
   {{ badge(history|length|string, color='neutral', size='sm') }}
 </div>
 
+{# Filtros del historial #}
+<div class="search-bar-container section">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="text" id="histSearchInput" placeholder="Buscar por paciente, vacuna o doctor...">
+</div>
+
+<div class="sort-and-filter">
+  <div class="sort-options">
+    <p class="sort-label">Filtrar por estado:</p>
+    <select id="histStatusFilter" class="sort-select">
+      <option value="">Todos</option>
+      <option value="completada">Completada</option>
+      <option value="cancelada">Cancelada</option>
+      <option value="no show">No Show</option>
+      <option value="reagendada">Reagendada</option>
+    </select>
+  </div>
+  <div class="sort-options">
+    <p class="sort-label">Ordenar por:</p>
+    <select id="histSortOrder" class="sort-select">
+      <option value="">Ninguno</option>
+      <option value="desc">Fecha: más reciente</option>
+      <option value="asc">Fecha: más antigua</option>
+      <option value="paciente">Paciente</option>
+      <option value="estado">Estado</option>
+    </select>
+  </div>
+</div>
+
 {% call card() %}
   {% call(h) table(
+      id='historialTable',
       headers=[
-        {'label': 'Fecha'},
-        {'label': 'Hora'},
         {'label': 'Paciente'},
+        {'label': 'Tutor'},
         {'label': 'Vacuna / Dosis'},
+        {'label': 'Fecha'},
+        {'label': 'Área · Médico'},
         {'label': 'Estado', 'align': 'center'},
-        {'label': 'Acciones', 'align': 'center'},
       ],
       rows=history,
       empty_icon='fa-clock-rotate-left',
-      empty_title='Sin historial de citas'
+      empty_title='Sin historial de citas',
+      empty_text='No hay citas completadas, canceladas ni No Show registradas.',
+      footer_text=history|length|string ~ ' registros históricos'
   ) %}
-    <tr data-patient="{{ h.patient_name|lower if h.patient_name else '' }}"
-        data-status="{{ h.appointment_status|lower if h.appointment_status else '' }}">
-      <td class="muted-td">
-        {{ h.scheduled_at.strftime('%d/%m/%Y') if h.scheduled_at else '—' }}
-      </td>
-      <td>{{ h.scheduled_at.strftime('%H:%M') if h.scheduled_at else '—' }}</td>
+    <tr class="citas-row-history"
+        data-patient="{{ h.patient_name|lower if h.patient_name else '' }}"
+        data-vaccine="{{ h.vaccine_name|lower if h.vaccine_name else '' }}"
+        data-status="{{ h.appointment_status|lower if h.appointment_status else '' }}"
+        data-date="{{ h.scheduled_at.strftime('%Y-%m-%d') if h.scheduled_at and h.scheduled_at is not string else (h.scheduled_at[:10] if h.scheduled_at else '') }}">
+
+      <td><strong>{{ h.patient_name or '—' }}</strong></td>
+
+      <td class="muted-td">{{ h.guardian_name or '—' }}</td>
+
       <td>
-        <div class="patient-cell">
-          <div class="avatar-sm">{{ h.patient_name[0] if h.patient_name else '?' }}</div>
-          <div>
-            <span class="vax-name">{{ h.patient_name or '—' }}</span>
-            <span class="pt-id">ID: P{{ h.patient_id }}</span>
-          </div>
-        </div>
-      </td>
-      <td>
-        {{ h.vaccine_name or '—' }}
-        {% if h.dose_label and h.dose_label != '—' %}
-          <br>{{ badge(h.dose_label, color='primary', size='sm') }}
+        {% if h.vaccine_name and h.vaccine_name not in ('—', '-', '') %}
+          <span>{{ h.vaccine_name }}</span>
+          {% if h.dose_label and h.dose_label not in ('—', '-', '') %}
+            <br>{{ badge(h.dose_label, color='primary', size='sm') }}
+          {% endif %}
+        {% else %}
+          <span class="muted-td">—</span>
         {% endif %}
       </td>
+
+      <td class="muted-td" style="white-space:nowrap;">
+        {% if h.scheduled_at %}
+          {{ h.scheduled_at.strftime('%Y-%m-%d') if h.scheduled_at is not string else h.scheduled_at[:10] }}
+        {% else %}—{% endif %}
+      </td>
+
+      <td class="muted-td">
+        {% if h.area_name and h.area_name != '—' %}
+          <span>{{ h.area_name }}</span><br>
+        {% endif %}
+        <small>{{ h.worker_name or '—' }}</small>
+      </td>
+
       <td class="col-center">
         {% if h.appointment_status == 'Completada' %}
-          {{ badge('Completada', color='success', size='sm', icon='fa-check')      }}
+          {{ badge('Completada', color='success', icon='fa-check',         size='sm') }}
+        {% elif h.appointment_status == 'Cancelada' %}
+          {{ badge('Cancelada',  color='error',   icon='fa-xmark',         size='sm') }}
         {% elif h.appointment_status == 'No Show' %}
-          {{ badge('No Show',    color='error',   size='sm', icon='fa-user-slash') }}
+          {{ badge('No Show',    color='error',   icon='fa-user-slash',    size='sm') }}
+        {% elif h.appointment_status == 'Reagendada' %}
+          {{ badge('Reagendada', color='neutral',  icon='fa-calendar-pen', size='sm') }}
         {% else %}
-          {{ badge('Cancelada',  color='neutral', size='sm', icon='fa-xmark')      }}
+          {{ badge(h.appointment_status or '—', color='neutral', size='sm') }}
         {% endif %}
       </td>
-      <td class="col-center">
-        <a href="{{ url_for('historial') }}?q={{ h.patient_id }}"
-           class="md3-btn md3-btn--outlined md3-btn--sm" title="Ver historial del paciente">
-          <i class="fa-solid fa-file-medical"></i>
-        </a>
-      </td>
+
     </tr>
   {% endcall %}
 {% endcall %}
@@ -190,4 +272,52 @@
 
 {% block scripts %}
 <script src="{{ url_for('static', filename='js/pages/citas.js') }}" defer></script>
+<script>
+(function () {
+  var searchInput  = document.getElementById('histSearchInput');
+  var statusFilter = document.getElementById('histStatusFilter');
+  var sortOrder    = document.getElementById('histSortOrder');
+  var tbody = document.querySelector('#historialTable tbody');
+  if (!tbody) return;
+
+  var originalOrder = Array.from(tbody.querySelectorAll('tr.citas-row-history'));
+
+  function applyFilters() {
+    var q      = (searchInput.value  || '').toLowerCase().trim();
+    var status = (statusFilter.value || '').toLowerCase();
+    var sort   = sortOrder.value;
+    var allRows = Array.from(tbody.querySelectorAll('tr.citas-row-history'));
+
+    allRows.forEach(function (row) {
+      var patient   = (row.dataset.patient  || '');
+      var vaccine   = (row.dataset.vaccine  || '');
+      var rowStatus = (row.dataset.status   || '');
+      var matchSearch = !q      || patient.includes(q) || vaccine.includes(q);
+      var matchStatus = !status || rowStatus === status;
+      row.style.display = (matchSearch && matchStatus) ? '' : 'none';
+    });
+
+    var visible = allRows.filter(function (r) { return r.style.display !== 'none'; });
+    if (sort === 'asc' || sort === 'desc') {
+      visible.sort(function (a, b) {
+        var da = a.dataset.date || '', db = b.dataset.date || '';
+        return sort === 'asc' ? da.localeCompare(db) : db.localeCompare(da);
+      });
+    } else if (sort === 'paciente') {
+      visible.sort(function (a, b) { return (a.dataset.patient || '').localeCompare(b.dataset.patient || ''); });
+    } else if (sort === 'estado') {
+      visible.sort(function (a, b) { return (a.dataset.status || '').localeCompare(b.dataset.status || ''); });
+    } else {
+      originalOrder.filter(function (r) { return r.style.display !== 'none'; })
+                   .forEach(function (r) { tbody.appendChild(r); });
+      return;
+    }
+    visible.forEach(function (r) { tbody.appendChild(r); });
+  }
+
+  searchInput .addEventListener('input',  applyFilters);
+  statusFilter.addEventListener('change', applyFilters);
+  sortOrder   .addEventListener('change', applyFilters);
+}());
+</script>
 {% endblock %}

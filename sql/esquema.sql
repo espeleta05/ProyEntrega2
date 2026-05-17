@@ -421,8 +421,8 @@ CREATE TABLE vaccination_records (
     scheme_dose_id       INT      REFERENCES scheme_doses(dose_id),
     applied_date         DATE     NOT NULL,
     application_site_id  INT      REFERENCES application_sites(application_site_id),
-    appointment_id       INT      UNIQUE REFERENCES appointments(appointment_id),
-    -- sabemos que cada registro de vacunación se asocia a una cita, pero no todas las citas terminan en vacunación, por eso es opcional y único
+    appointment_id       INT      REFERENCES appointments(appointment_id),
+    -- Una cita puede tener múltiples registros de vacunación (varias vacunas por cita)
     patient_temp_c       NUMERIC(4,1),
     had_reaction         BOOLEAN  NOT NULL DEFAULT FALSE
 );
@@ -514,25 +514,6 @@ CREATE TABLE clinic_inventory (
     UNIQUE(clinic_id, supply_id)
 );
 
-CREATE TABLE beacons (
-    beacon_id      SERIAL PRIMARY KEY,
-    uuid           VARCHAR(50)  NOT NULL UNIQUE,
-    major          SMALLINT,
-    minor          SMALLINT,
-    area_id        INT          REFERENCES clinic_areas(area_id),
-    clinic_id      INT          REFERENCES clinics(clinic_id),
-    beacon_status  VARCHAR(20)  NOT NULL DEFAULT 'Online' CHECK (beacon_status IN ('Online','Offline','Mantenimiento')),
-    last_ping      TIMESTAMP
-);
-
-CREATE TABLE scan_logs (
-    log_id      SERIAL PRIMARY KEY,
-    patient_id  INT          NOT NULL REFERENCES patients(patient_id),
-    beacon_id   INT          NOT NULL REFERENCES beacons(beacon_id),
-    rssi        SMALLINT,
-    scanned_at  TIMESTAMP    NOT NULL,
-    scan_type   VARCHAR(10)  CHECK (scan_type IN ('NFC','BLE'))
-);
 
 CREATE TABLE audit_log (
     audit_id     SERIAL PRIMARY KEY,
@@ -573,6 +554,30 @@ CREATE INDEX idx_patients_active           ON patients(patient_id) WHERE is_acti
 -- ============================================================
 DROP TABLE IF EXISTS scan_logs;
 DROP TABLE IF EXISTS beacons;
+
+-- ============================================================
+-- MIGRACIÓN: eliminar UNIQUE de appointment_id en vaccination_records
+-- Permite múltiples vacunas por cita (flujo correcto)
+-- ============================================================
+DO $$
+BEGIN
+    IF EXISTS (
+        SELECT 1 FROM pg_constraint
+        WHERE conrelid = 'vaccination_records'::regclass
+          AND contype = 'u'
+          AND conname ILIKE '%appointment%'
+    ) THEN
+        EXECUTE (
+            SELECT 'ALTER TABLE vaccination_records DROP CONSTRAINT ' || conname
+            FROM pg_constraint
+            WHERE conrelid = 'vaccination_records'::regclass
+              AND contype = 'u'
+              AND conname ILIKE '%appointment%'
+            LIMIT 1
+        );
+    END IF;
+END;
+$$;
 
 -- ============================================================
 -- FASE 2 — Transferencias entre clínicas

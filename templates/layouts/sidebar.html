@@ -59,7 +59,7 @@
         se activa cuando request.endpoint coincide. Si no tiene endpoint, se usa 'url' directo.
 #}
 
-{% macro sidebar(sections=[], logo_text='ImmuniCare', logo_src=None, logo_href='#', user_name='', user_role='', user_initials='', logout_url='/logout', sidebar_class='') %}
+{% macro sidebar(sections=[], logo_text='ImmuniCare', logo_src=None, logo_href='#', user_name='', user_role='', user_initials='', logout_url='/logout', sidebar_class='', clinic_name=None) %}
 
 <aside class="sidebar {{ sidebar_class }}" id="appSidebar">
 
@@ -196,6 +196,62 @@
             <i class="fa-solid fa-syringe"></i>
             <span>Aplicar vacuna</span>
           </a>
+          <a href="{{ url_for('sala_espera') }}"
+             class="sidebar-nav-item {{ 'active' if request.endpoint == 'sala_espera' else '' }}"
+             {{ 'aria-current=page' if request.endpoint == 'sala_espera' else '' }}>
+            <i class="fa-solid fa-tachograph-digital"></i>
+            <span>Monitor de Sala</span>
+          </a>
+          <a href="{{ url_for('historial') }}"
+             class="sidebar-nav-item {{ 'active' if request.endpoint == 'historial' else '' }}"
+             {{ 'aria-current=page' if request.endpoint == 'historial' else '' }}>
+            <i class="fa-solid fa-file-medical"></i>
+            <span>Historial</span>
+          </a>
+          <a href="{{ url_for('esquema_vacunacion') }}"
+             class="sidebar-nav-item {{ 'active' if request.endpoint == 'esquema_vacunacion' else '' }}"
+             {{ 'aria-current=page' if request.endpoint == 'esquema_vacunacion' else '' }}>
+            <i class="fa-solid fa-shield-virus"></i>
+            <span>Esquema</span>
+          </a>
+        </nav>
+      </div>
+
+    {% elif user_role == 'Enfermero' %}
+
+      <div class="sidebar-section">
+        <p class="sidebar-section-title">Principal</p>
+        <nav class="sidebar-nav" aria-label="Navegación enfermero">
+          <a href="{{ url_for('medico_dashboard') }}"
+             class="sidebar-nav-item {{ 'active' if request.endpoint == 'medico_dashboard' else '' }}"
+             {{ 'aria-current=page' if request.endpoint == 'medico_dashboard' else '' }}>
+            <i class="fa-solid fa-stethoscope"></i>
+            <span>Dashboard</span>
+          </a>
+          <a href="{{ url_for('medico_citas_hoy') }}"
+             class="sidebar-nav-item {{ 'active' if request.endpoint == 'medico_citas_hoy' else '' }}"
+             {{ 'aria-current=page' if request.endpoint == 'medico_citas_hoy' else '' }}>
+            <i class="fa-solid fa-calendar-check"></i>
+            <span>Mis citas del día</span>
+          </a>
+          <a href="{{ url_for('pacientes') }}"
+             class="sidebar-nav-item {{ 'active' if request.endpoint == 'pacientes' else '' }}"
+             {{ 'aria-current=page' if request.endpoint == 'pacientes' else '' }}>
+            <i class="fa-solid fa-users"></i>
+            <span>Mis pacientes</span>
+          </a>
+        </nav>
+      </div>
+
+      <div class="sidebar-section">
+        <p class="sidebar-section-title">Clínica</p>
+        <nav class="sidebar-nav" aria-label="Clínica">
+          <a href="{{ url_for('agregar_aplicacion') }}"
+             class="sidebar-nav-item {{ 'active' if request.endpoint == 'agregar_aplicacion' else '' }}"
+             {{ 'aria-current=page' if request.endpoint == 'agregar_aplicacion' else '' }}>
+            <i class="fa-solid fa-syringe"></i>
+            <span>Aplicar vacuna</span>
+          </a>
           <a href="{{ url_for('historial') }}"
              class="sidebar-nav-item {{ 'active' if request.endpoint == 'historial' else '' }}"
              {{ 'aria-current=page' if request.endpoint == 'historial' else '' }}>
@@ -267,6 +323,7 @@
         <div class="sidebar-user__info">
           <p class="sidebar-user__name">{{ user_name }}</p>
           <p class="sidebar-user__role">{{ user_role }}</p>
+          {% if clinic_name %}<p class="sidebar-user__role" style="font-size:0.7rem;opacity:0.7;">{{ clinic_name }}</p>{% endif %}
         </div>
         <a href="{{ logout_url }}" class="sidebar-logout" title="Cerrar sesi&oacute;n">
           <i class="fa-solid fa-arrow-right-from-bracket"></i>

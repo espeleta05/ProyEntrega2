@@ -7,6 +7,7 @@
 {% from 'components/modal.html'   import modal   %}
 
 {% block head_extra %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/crud.css') }}">
 <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/almacen.css') }}">
 {% endblock %}
 
@@ -30,20 +31,40 @@
 <div class="search-bar-container section">
   <i class="fa-solid fa-magnifying-glass"></i>
   <input type="text" id="searchInput" placeholder="Buscar por vacuna o número de lote...">
-  <select id="statusFilter" class="sort-select" style="margin-left:10px;">
-    <option value="">Todos los estados</option>
-    <option value="disponible">Disponible</option>
-    <option value="agotado">Agotado</option>
-    <option value="caducado">Caducado</option>
-    <option value="bloqueado">Bloqueado</option>
-    <option value="retirado">Retirado</option>
-  </select>
-  <select id="sortSelect" class="sort-select" style="margin-left:10px;">
-    <option value="vacuna">Ordenar por vacuna</option>
-    <option value="lote">Número de lote</option>
-    <option value="stock">Stock disponible</option>
-    <option value="vencimiento">Fecha vencimiento</option>
-  </select>
+</div>
+
+<div class="sort-and-filter">
+  <div class="sort-options">
+    <p class="sort-label">Filtrar por estado:</p>
+    <select id="statusFilter" class="sort-select" style="margin-left:10px;">
+      <option value="">Todos los estados</option>
+      <option value="disponible">Disponible</option>
+      <option value="agotado">Agotado</option>
+      <option value="caducado">Caducado</option>
+      <option value="bloqueado">Bloqueado</option>
+      <option value="retirado">Retirado</option>
+    </select>
+  </div>
+  <div class="sort-options">
+    <p class="sort-label">Ordenar por:</p>
+    <select id="sortSelect" class="sort-select" style="margin-left:10px;">
+      <option value="vacuna">Ordenar por vacuna</option>
+      <option value="lote">Número de lote</option>
+      <option value="stock">Stock disponible</option>
+      <option value="vencimiento">Fecha vencimiento</option>
+    </select>
+  </div>
+
+  
+  <div class="sort-options">
+    <p class="sort-label">Clínica:</p>
+    <select id="clinicFilterSelect" class="sort-select">
+        <option value="">Todas</option>
+        {% for c in clinics %}
+        <option value="{{ c.clinic_id }}">{{ c.name }}</option>
+        {% endfor %}
+    </select>
+  </div>
 </div>
 
 <!-- Tabla de lotes -->
@@ -74,6 +95,7 @@
         data-status="{{ (l.lot_status or '')|lower }}"
         data-stock="{{ l.quantity_available }}"
         data-expiry="{{ exp.isoformat() if exp else '' }}"
+        data-clinic="{{ l.clinic_id }}"
         class="{{ 'lot-row-critical' if days_left <= 7 else ('lot-row-warning' if days_left <= 30 else '') }}">
 
       <td>
@@ -190,4 +212,5 @@
 
 {% block scripts %}
 <script src="{{ url_for('static', filename='js/pages/almacen_lotes.js') }}" defer></script>
+<script src="{{ url_for('static', filename='js/pages/vacunas.js') }}"></script>
 {% endblock %}
