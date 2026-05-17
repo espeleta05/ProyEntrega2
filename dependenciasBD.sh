@@ -40,56 +40,89 @@ sudo apt-get install -y -qq \
 
 # ──────────────────────────────────────────────
 # 3. INSTALAR DEPENDENCIAS PYTHON
+# Detecta automáticamente cuál requirements existe
 # ──────────────────────────────────────────────
 echo "[3/5] Creando entorno virtual e instalando dependencias Python..."
 if [ ! -f ".venv/bin/python" ]; then
     python3 -m venv .venv
 fi
 .venv/bin/python -m pip install --upgrade pip -q
-.venv/bin/python -m pip install -r requirements.txt -q
+
+if [ -f "requirements_2daE.txt" ]; then
+    REQS="requirements_2daE.txt"
+elif [ -f "requirements.txt" ]; then
+    REQS="requirements.txt"
+else
+    echo "[ERROR] No se encontró requirements.txt ni requirements_2daE.txt"
+    exit 1
+fi
+echo "  → Usando $REQS"
+.venv/bin/python -m pip install -r "$REQS" -q
 echo "[OK] Dependencias Python instaladas."
 
 # ──────────────────────────────────────────────
 # 4. CONFIGURAR POSTGRESQL
+# Detecta automáticamente la estructura de archivos SQL
 # ──────────────────────────────────────────────
 echo "[4/5] Configurando PostgreSQL..."
 
-# Asegurarse que el servicio esté corriendo
 sudo systemctl start postgresql
 sudo systemctl enable postgresql
 
-# Cambiar password del usuario postgres
 sudo -u postgres psql -c "ALTER USER postgres PASSWORD 'lt9128221d24';"
-
-# Eliminar BD anterior si existe (modo prueba: empezar limpio)
 sudo -u postgres psql -c "DROP DATABASE IF EXISTS sistemavacunacion;"
 sudo -u postgres psql -c "DROP USER IF EXISTS vaccine_user;"
 
 export PGPASSWORD="lt9128221d24"
 PG="psql -U postgres -h localhost"
 
-echo "  → Ejecutando esquema.sql (tablas, usuario, BD)..."
-$PG -f sql/esquema.sql
+# ── Detectar estructura de archivos SQL ──────
+if [ -f "sql/esquema.sql" ]; then
+    # Estructura local con carpeta sql/
+    echo "  → Estructura detectada: sql/"
 
-echo "  → Ejecutando SP.sql (stored procedures)..."
-$PG -d sistemavacunacion -f sql/SP.sql
+    echo "  → esquema.sql..."
+    $PG -f sql/esquema.sql
 
-echo "  → Ejecutando triggers.sql..."
-$PG -d sistemavacunacion -f sql/triggers.sql
+    echo "  → SP.sql..."
+    $PG -d sistemavacunacion -f sql/SP.sql
 
-echo "  → Ejecutando datos.sql (datos iniciales)..."
-$PG -d sistemavacunacion -f sql/datos.sql
+    echo "  → triggers.sql..."
+    $PG -d sistemavacunacion -f sql/triggers.sql
 
-echo "  → Ejecutando migracion_almacen.sql..."
-$PG -d sistemavacunacion -f sql/migracion_almacen.sql
+    echo "  → datos.sql..."
+    $PG -d sistemavacunacion -f sql/datos.sql
 
-echo "  → Ejecutando migraciones incrementales..."
-$PG -d sistemavacunacion -f sql/migrations/add_vaccine_lot_status.sql
-$PG -d sistemavacunacion -f sql/migrations/add_clinical_flow.sql
-$PG -d sistemavacunacion -f sql/migrations/add_nfc_relations.sql
-$PG -d sistemavacunacion -f sql/migrations/clear_nfc_data.sql
-$PG -d sistemavacunacion -f sql/migrations/add_recepcionista_sps.sql
-$PG -d sistemavacunacion -f sql/migrations/fix_lot_number_unique.sql
+    [ -f "sql/migracion_almacen.sql" ] && \
+        $PG -d sistemavacunacion -f sql/migracion_almacen.sql
+
+    for mig in sql/migrations/add_vaccine_lot_status.sql \
+               sql/migrations/add_clinical_flow.sql \
+               sql/migrations/add_nfc_relations.sql \
+               sql/migrations/clear_nfc_data.sql \
+               sql/migrations/add_recepcionista_sps.sql \
+               sql/migrations/fix_lot_number_unique.sql; do
+        [ -f "$mig" ] && $PG -d sistemavacunacion -f "$mig"
+    done
+
+elif [ -f "esquema_postgres_2daE.sql" ]; then
+    # Estructura de la VM (archivos en raíz con sufijo _2daE)
+    echo "  → Estructura detectada: archivos _2daE en raíz"
+
+    # esquema crea la BD, se corre contra postgres
+    echo "  → esquema_postgres_2daE.sql..."
+    $PG -f esquema_postgres_2daE.sql
+
+    echo "  → datos_postgres_2daE.sql..."
+    $PG -d sistemavacunacion -f datos_postgres_2daE.sql
+
+    [ -f "queries.sql" ] && \
+        $PG -d sistemavacunacion -f queries.sql
+
+else
+    echo "[ERROR] No se encontró ningún archivo SQL de esquema conocido."
+    exit 1
+fi
 
 unset PGPASSWORD
 echo "[OK] Base de datos lista."
