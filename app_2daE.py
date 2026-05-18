@@ -3922,23 +3922,45 @@ def clinicas():
 
     conn, should_close = _get_conn()
     _safe_rollback(conn)
+    clinics = []
     try:
         with conn.cursor() as cur:
-            cur.execute("CALL sp_get_clinics_full(%s)", ("cur_clinics_full",))
-            cur.execute('FETCH ALL FROM "cur_clinics_full"')
-            raw = [dict(r) for r in cur.fetchall()]
+            cur.execute("""
+                SELECT
+                    c.clinic_id,
+                    c.name,
+                    c.phone,
+                    c.institution_type,
+                    c.is_active,
+                    COALESCE(mu.name || ', ' || st.name, '—') AS address_str
+                FROM clinics c
+                LEFT JOIN addresses      ad  ON ad.address_id      = c.address_id
+                LEFT JOIN municipalities mu  ON mu.municipality_id = ad.municipality_id
+                LEFT JOIN states         st  ON st.state_id        = mu.state_id
+                WHERE c.is_active = TRUE
+                ORDER BY c.name
+            """)
+            clinics = [dict(r) for r in cur.fetchall()]
+
+            cur.execute("""
+                SELECT ca.clinic_id,
+                       ca.name,
+                       COALESCE(cat.name, '—') AS area_type,
+                       ca.floor,
+                       ca.capacity
+                FROM clinic_areas ca
+                LEFT JOIN clinic_area_types cat ON cat.area_type_id = ca.area_type_id
+                ORDER BY ca.clinic_id, ca.name
+            """)
+            areas_map = {}
+            for a in cur.fetchall():
+                a = dict(a)
+                cid = a.pop("clinic_id")
+                areas_map.setdefault(cid, []).append(a)
+
         conn.commit()
-        import json as _json
-        clinics = []
-        for c in raw:
-            areas = c.get("areas")
-            if isinstance(areas, str):
-                try:
-                    areas = _json.loads(areas)
-                except Exception:
-                    areas = []
-            c["areas"] = areas or []
-            clinics.append(c)
+        for c in clinics:
+            c["areas"] = areas_map.get(c["clinic_id"], [])
     except Exception as e:
         _safe_rollback(conn)
         logger.error(f"Error en /clinicas: {e}")
