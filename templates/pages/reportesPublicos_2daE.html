@@ -40,36 +40,7 @@
     No hay registros en el rango seleccionado. Ajusta las fechas o verifica que existan aplicaciones cargadas.
   </div>
 
-  <!-- ── SECCIÓN 1: KPIs RESUMEN ── -->
-  <h2 class="section-title">Resumen Ejecutivo</h2>
-  <p class="section-subtitle">Métricas de alto nivel del período seleccionado</p>
 
-  <div class="kpi-summary-grid">
-    <div class="kpi-summary-card blue">
-      <p>Dosis aplicadas</p>
-      <h3 id="kpiDoses">—</h3>
-    </div>
-    <div class="kpi-summary-card green">
-      <p>Cobertura (%)</p>
-      <h3 id="kpiCoverage">—</h3>
-    </div>
-    <div class="kpi-summary-card blue">
-      <p>Población objetivo</p>
-      <h3 id="kpiTarget">—</h3>
-    </div>
-    <div class="kpi-summary-card green">
-      <p>Personas alcanzadas</p>
-      <h3 id="kpiReached">—</h3>
-    </div>
-    <div class="kpi-summary-card amber">
-      <p>Retraso prom. (días)</p>
-      <h3 id="kpiDelay">—</h3>
-    </div>
-    <div class="kpi-summary-card blue">
-      <p>Zonas activas</p>
-      <h3 id="kpiZones">—</h3>
-    </div>
-  </div>
 
   <!-- ── SECCIÓN 2: 15 KPIs DOCUMENTADOS ── -->
   <h2 class="section-title">Indicadores Clave (KPIs)</h2>
@@ -377,7 +348,7 @@
     <div class="kpi-card">
       <div class="kpi-card-header">
         <span class="kpi-card-num">KPI 09</span>
-        <span class="kpi-card-name">Insumos en Stock Crítico</span>
+        <span class="kpi-card-name">Lotes de Vacuna en Stock Crítico</span>
       </div>
       <div class="kpi-card-body">
       <div class="kpi-card-top">
@@ -388,23 +359,23 @@
       <div class="kpi-meta">
         <div class="kpi-meta-item">
           <label>Descripción</label>
-          <span>Número de insumos o vacunas cuyo stock está por debajo del mínimo requerido</span>
+          <span>Número de lotes de vacuna con 10 unidades o menos disponibles y sin vencer</span>
         </div>
         <div class="kpi-meta-item formula"><label>Fórmula</label>
-          <span>COUNT(*) WHERE quantity &lt; min_stock FROM clinic_inventory</span>
+          <span>COUNT(*) FROM v_vaccine_lots_detail WHERE is_low_stock = TRUE AND expiration_date ≥ hoy</span>
         </div>
         <div class="kpi-meta-item">
           <label>Fuente</label>
-          <span>sp_low_stock_items, clinic_inventory</span>
+          <span>v_vaccine_lots_detail (vaccine_lots)</span>
         </div>
         <div class="kpi-meta-item">
           <label>Unidad</label>
-          <span>Número de insumos</span>
+          <span>Número de lotes</span>
         </div>
       </div>
       <div class="kpi-interpretation">
-        <strong>0</strong> insumos en crítico es el estado ideal. Cualquier valor mayor 
-        requiere gestión inmediata de reabastecimiento para evitar interrupciones de servicio.
+        <strong>0</strong> lotes en crítico es el estado ideal. Cada lote con ≤10 dosis
+        disponibles representa riesgo de desabasto para ese biológico en la clínica correspondiente.
       </div>
       </div>
 
@@ -488,7 +459,7 @@
     <div class="kpi-card">
       <div class="kpi-card-header">
         <span class="kpi-card-num">KPI 12</span>
-        <span class="kpi-card-name">Dosis Aplicadas Este Mes</span>
+        <span class="kpi-card-name">Tasa de Rezago del Esquema</span>
       </div>
       <div class="kpi-card-body">
       <div class="kpi-card-top">
@@ -499,23 +470,23 @@
       <div class="kpi-meta">
         <div class="kpi-meta-item">
           <label>Descripción</label>
-          <span>Total de dosis aplicadas en el mes en curso (referencia rápida)</span>
+          <span>Porcentaje de pacientes activos con al menos una dosis del esquema en estado Atrasada</span>
         </div>
         <div class="kpi-meta-item formula"><label>Fórmula</label>
-          <span>COUNT(*) WHERE to_char(applied_date,'YYYY-MM') = mes_actual</span>
+          <span>(pacientes_atrasados / total_pacientes_activos) × 100</span>
         </div>
         <div class="kpi-meta-item">
           <label>Fuente</label>
-          <span>vaccination_records</span>
+          <span>v_patient_vaccination_scheme_base, vw_patients</span>
         </div>
         <div class="kpi-meta-item">
           <label>Unidad</label>
-          <span>Número de dosis</span>
+          <span>Porcentaje (%)</span>
         </div>
       </div>
       <div class="kpi-interpretation">
-        Comparar con el <strong>promedio mensual histórico</strong> para detectar meses de baja actividad 
-        que requieran jornadas de recuperación o campañas especiales.
+        <strong>0%</strong> es el objetivo. <strong>&lt; 20%</strong> indica rezago manejable.
+        Valores superiores señalan fallas en el seguimiento activo y requieren campañas de recuperación.
       </div>
       </div>
 
@@ -525,7 +496,7 @@
     <div class="kpi-card">
       <div class="kpi-card-header">
         <span class="kpi-card-num">KPI 13</span>
-        <span class="kpi-card-name">Temperatura Promedio al Aplicar</span>
+        <span class="kpi-card-name">Lotes de Vacuna Próximos a Vencer</span>
       </div>
       <div class="kpi-card-body">
       <div class="kpi-card-top">
@@ -536,23 +507,23 @@
       <div class="kpi-meta">
         <div class="kpi-meta-item">
           <label>Descripción</label>
-          <span>Temperatura corporal promedio de los pacientes en el momento de la aplicación</span>
+          <span>Lotes de vacuna con stock disponible que vencen en los próximos 30 días</span>
         </div>
         <div class="kpi-meta-item formula"><label>Fórmula</label>
-          <span>AVG(patient_temp_c) FROM vaccination_records WHERE patient_temp_c IS NOT NULL</span>
+          <span>COUNT(*) FROM v_vaccine_lots_detail WHERE is_expiring_soon = TRUE AND quantity_available &gt; 0</span>
         </div>
         <div class="kpi-meta-item">
           <label>Fuente</label>
-          <span>vaccination_records (patient_temp_c)</span>
+          <span>v_vaccine_lots_detail (vaccine_lots)</span>
         </div>
         <div class="kpi-meta-item">
           <label>Unidad</label>
-          <span>Grados Celsius (°C)</span>
+          <span>Número de lotes</span>
         </div>
       </div>
       <div class="kpi-interpretation">
-        Rango normal: <strong>36.0°C – 37.5°C</strong>. 
-        Promedios elevados pueden indicar que se está vacunando a pacientes febriles, lo cual es contraindicado.
+        <strong>0</strong> lotes en riesgo es el estado ideal. Cada lote que vence con stock remanente
+        representa desperdicio de biológico y posible desabasto si no se aplica a tiempo.
       </div>
       </div>
 
@@ -562,7 +533,7 @@
     <div class="kpi-card">
       <div class="kpi-card-header">
         <span class="kpi-card-num">KPI 14</span>
-        <span class="kpi-card-name">Diversidad de Vacunas Aplicadas</span>
+        <span class="kpi-card-name">Alertas de Esquema Pendientes</span>
       </div>
       <div class="kpi-card-body">
       <div class="kpi-card-top">
@@ -573,23 +544,23 @@
       <div class="kpi-meta">
         <div class="kpi-meta-item">
           <label>Descripción</label>
-          <span>Número de vacunas distintas que se aplicaron al menos una vez en el período</span>
+          <span>Alertas de completitud de esquema vacunal que no han sido resueltas ni leídas</span>
         </div>
         <div class="kpi-meta-item formula"><label>Fórmula</label>
-          <span>COUNT(DISTINCT vaccine_id) FROM vaccination_records</span>
+          <span>COUNT(*) FROM v_scheme_alerts_full WHERE alert_status NOT IN ('Resuelta', 'Leída')</span>
         </div>
         <div class="kpi-meta-item">
           <label>Fuente</label>
-          <span>vaccination_records, vaccines</span>
+          <span>v_scheme_alerts_full (scheme_completion_alerts)</span>
         </div>
         <div class="kpi-meta-item">
           <label>Unidad</label>
-          <span>Número de vacunas distintas</span>
+          <span>Número de alertas</span>
         </div>
       </div>
       <div class="kpi-interpretation">
-        Refleja la <strong>amplitud del programa</strong>. 
-        Baja diversidad puede indicar desabasto de ciertos biológicos o falta de seguimiento del esquema completo.
+        <strong>0</strong> alertas pendientes es el objetivo. Cada alerta sin resolver representa
+        un paciente con riesgo de quedar fuera de su esquema vacunal sin seguimiento clínico.
       </div>
       </div>
 
@@ -599,7 +570,7 @@
     <div class="kpi-card">
       <div class="kpi-card-header">
         <span class="kpi-card-num">KPI 15</span>
-        <span class="kpi-card-name">Comportamiento Histórico Mensual</span>
+        <span class="kpi-card-name">Promedio Mensual de Dosis</span>
       </div>
       <div class="kpi-card-body">
       <div class="kpi-card-top">
@@ -610,23 +581,23 @@
       <div class="kpi-meta">
         <div class="kpi-meta-item">
           <label>Descripción</label>
-          <span>Tendencia de variación entre el mes con más y menos dosis aplicadas</span>
+          <span>Promedio de dosis aplicadas por mes dentro del período seleccionado</span>
         </div>
         <div class="kpi-meta-item formula"><label>Fórmula</label>
-          <span>((MAX_mes - MIN_mes) / MAX_mes) × 100</span>
+          <span>total_dosis_período / cantidad_de_meses</span>
         </div>
         <div class="kpi-meta-item">
           <label>Fuente</label>
-          <span>vaccination_records (agrupado por YYYY-MM)</span>
+          <span>v_reportes_vaccination_geo (agrupado por YYYY-MM)</span>
         </div>
         <div class="kpi-meta-item">
           <label>Unidad</label>
-          <span>Porcentaje de variación (%)</span>
+          <span>Dosis / mes</span>
         </div>
       </div>
       <div class="kpi-interpretation">
-        Una variación <strong>&lt; 30%</strong> indica estabilidad operativa. 
-        Variaciones altas señalan picos estacionales o interrupciones de servicio que deben investigarse.
+        Permite comparar la <strong>cadencia real de vacunación</strong> entre distintos períodos.
+        Comparar reportes trimestrales vs anuales revela si el ritmo del programa está acelerando o desacelerando.
       </div>
       </div><!-- /kpi-card-body -->
     </div><!-- /kpi-card KPI15 -->

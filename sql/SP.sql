@@ -3394,7 +3394,8 @@ DECLARE
     v_low_stock         BIGINT;
     v_new_patients      BIGINT;
     v_active_workers    BIGINT;
-    v_avg_temp          NUMERIC(4,1);
+    v_expiring_lots     BIGINT;
+    v_pending_alerts    BIGINT;
     v_active_zones      BIGINT;
     v_vaccines_json     JSON;
     v_monthly_json      JSON;
@@ -3402,30 +3403,27 @@ DECLARE
 BEGIN
 
     -- ── Dosis aplicadas y pacientes únicos en el período ──────────────────────
-    SELECT
-        COUNT(*)                        INTO v_total_doses
-    FROM vaccination_records
+    SELECT COUNT(*) INTO v_total_doses
+    FROM v_reportes_vaccination_geo
     WHERE applied_date BETWEEN p_from AND p_to;
 
-    SELECT
-        COUNT(DISTINCT patient_id)      INTO v_reached
-    FROM vaccination_records
+    SELECT COUNT(DISTINCT patient_id) INTO v_reached
+    FROM v_reportes_vaccination_geo
     WHERE applied_date BETWEEN p_from AND p_to;
 
-    SELECT COUNT(*)                     INTO v_target
-    FROM patients
-    WHERE is_active = TRUE;
+    SELECT COUNT(DISTINCT patient_id) INTO v_target
+    FROM v_patient_vaccination_scheme_base;
 
     v_coverage := CASE
         WHEN v_target > 0 THEN ROUND((v_reached::NUMERIC / v_target) * 100, 1)
         ELSE 0
     END;
 
-    -- ── Temperatura promedio ──────────────────────────────────────────────────
-    SELECT ROUND(AVG(patient_temp_c), 1) INTO v_avg_temp
-    FROM vaccination_records
-    WHERE applied_date BETWEEN p_from AND p_to
-      AND patient_temp_c IS NOT NULL;
+    -- ── Lotes próximos a vencer (≤30 días con stock disponible) ─────────────
+    SELECT COUNT(*) INTO v_expiring_lots
+    FROM v_vaccine_lots_detail
+    WHERE is_expiring_soon = TRUE
+      AND quantity_available > 0;
 
     -- ── Tasa de reacciones adversas ───────────────────────────────────────────
     SELECT CASE
@@ -3433,24 +3431,22 @@ BEGIN
         THEN ROUND(COUNT(*) FILTER (WHERE had_reaction = TRUE)::NUMERIC / COUNT(*) * 100, 1)
         ELSE 0
     END INTO v_reaction_rate
-    FROM vaccination_records
+    FROM v_reportes_vaccination_geo
     WHERE applied_date BETWEEN p_from AND p_to;
 
     -- ── Pacientes con esquema completo ────────────────────────────────────────
-    -- Se considera completo quien no tiene ninguna dosis en estado 'Pendiente' o 'Atrasada'
-    SELECT COUNT(DISTINCT patient_id) INTO v_completed_scheme
-    FROM patients p
-    WHERE is_active = TRUE
-      AND NOT EXISTS (
-          SELECT 1 FROM patient_vaccine_schedule pvs
-          WHERE pvs.patient_id = p.patient_id
-            AND pvs.status IN ('Pendiente', 'Atrasada')
-      );
+    SELECT COUNT(*) INTO v_completed_scheme
+    FROM (
+        SELECT patient_id
+        FROM v_patient_vaccination_scheme_base
+        GROUP BY patient_id
+        HAVING COUNT(*) FILTER (WHERE vaccination_status IN ('Pendiente', 'Atrasada')) = 0
+    ) sub;
 
     -- ── Pacientes con vacunas atrasadas ───────────────────────────────────────
     SELECT COUNT(DISTINCT patient_id) INTO v_delayed_patients
-    FROM patient_vaccine_schedule
-    WHERE status = 'Atrasada';
+    FROM v_patient_vaccination_scheme_base
+    WHERE vaccination_status = 'Atrasada';
 
     -- ── Tasa de cumplimiento de citas ─────────────────────────────────────────
     SELECT CASE
@@ -3460,57 +3456,61 @@ BEGIN
             / COUNT(*) * 100, 1)
         ELSE NULL
     END INTO v_appt_rate
-    FROM appointments
+    FROM v_appointments_full
     WHERE scheduled_at::DATE BETWEEN p_from AND p_to;
 
     -- ── Lotes en stock bajo (≤ 10 unidades) ──────────────────────────────────
     SELECT COUNT(*) INTO v_low_stock
-    FROM vaccine_lots
-    WHERE quantity_available <= 10
+    FROM v_vaccine_lots_detail
+    WHERE is_low_stock = TRUE
       AND expiration_date >= CURRENT_DATE;
 
+    -- ── Alertas de esquema pendientes (no resueltas ni leídas) ───────────────
+    BEGIN
+        SELECT COUNT(*) INTO v_pending_alerts
+        FROM v_scheme_alerts_full
+        WHERE alert_status NOT IN ('Resuelta', 'Le' || CHR(237) || 'da');
+    EXCEPTION WHEN undefined_table THEN
+        v_pending_alerts := NULL;
+    END;
+
     -- ── Nuevos pacientes en el período ────────────────────────────────────────
-    SELECT COUNT(*) INTO v_new_patients
-    FROM patients
-    WHERE created_at::DATE BETWEEN p_from AND p_to;
+    BEGIN
+        SELECT COUNT(*) INTO v_new_patients
+        FROM vw_patients
+        WHERE created_at::DATE BETWEEN p_from AND p_to;
+    EXCEPTION WHEN undefined_column THEN
+        v_new_patients := NULL;
+    END;
 
     -- ── Trabajadores activos que aplicaron en el período ──────────────────────
     SELECT COUNT(DISTINCT worker_id) INTO v_active_workers
-    FROM vaccination_records
+    FROM v_reportes_vaccination_geo
     WHERE applied_date BETWEEN p_from AND p_to;
 
-    -- ── Retraso promedio (días entre due_date y applied_date) ──────────────────
-    SELECT ROUND(AVG(
-        EXTRACT(EPOCH FROM (vr.applied_date - pvs.due_date)) / 86400
-    ), 1) INTO v_avg_delay
-    FROM vaccination_records vr
-    JOIN patient_vaccine_schedule pvs
-      ON vr.patient_id = pvs.patient_id
-     AND vr.scheme_dose_id = pvs.scheme_dose_id
-    WHERE vr.applied_date BETWEEN p_from AND p_to
-      AND vr.applied_date > pvs.due_date;
+    -- ── Retraso promedio (días entre due_date y applied_date) ─────────────────
+    SELECT ROUND(AVG(applied_date - due_date), 1) INTO v_avg_delay
+    FROM v_reportes_scheme_delay
+    WHERE applied_date BETWEEN p_from AND p_to;
 
     -- ── Zonas activas (municipios con al menos una dosis en el período) ───────
-    SELECT COUNT(DISTINCT a.neighborhood_id) INTO v_active_zones
-    FROM vaccination_records vr
-    JOIN clinics c   ON vr.clinic_id  = c.clinic_id
-    JOIN addresses a ON c.address_id  = a.address_id
-    WHERE vr.applied_date BETWEEN p_from AND p_to;
+    SELECT COUNT(DISTINCT neighborhood_id) INTO v_active_zones
+    FROM v_reportes_vaccination_geo
+    WHERE applied_date BETWEEN p_from AND p_to;
 
     -- ── JSON: vacunas (top 50 por dosis aplicadas) ────────────────────────────
     SELECT json_agg(t) INTO v_vaccines_json FROM (
         SELECT
-            v.name                                          AS vaccine_name,
-            COUNT(vr.record_id)                             AS doses_applied,
-            COUNT(DISTINCT vr.patient_id)                   AS unique_patients,
+            vaccine_name,
+            COUNT(record_id)                AS doses_applied,
+            COUNT(DISTINCT patient_id)      AS unique_patients,
             ROUND(
-                COUNT(vr.record_id)::NUMERIC
+                COUNT(record_id)::NUMERIC
                 / NULLIF(v_total_doses, 0) * 100, 1
-            )                                               AS share_percent
-        FROM vaccination_records vr
-        JOIN vaccines v ON vr.vaccine_id = v.vaccine_id
-        WHERE vr.applied_date BETWEEN p_from AND p_to
-        GROUP BY v.vaccine_id, v.name
+            )                               AS share_percent
+        FROM v_reportes_vaccination_geo
+        WHERE applied_date BETWEEN p_from AND p_to
+        GROUP BY vaccine_id, vaccine_name
         ORDER BY doses_applied DESC
         LIMIT 50
     ) t;
@@ -3518,10 +3518,10 @@ BEGIN
     -- ── JSON: resumen mensual ─────────────────────────────────────────────────
     SELECT json_agg(t ORDER BY t.period_label) INTO v_monthly_json FROM (
         SELECT
-            TO_CHAR(applied_date, 'YYYY-MM')    AS period_label,
-            COUNT(*)                             AS doses_applied,
-            COUNT(DISTINCT patient_id)           AS unique_patients
-        FROM vaccination_records
+            TO_CHAR(applied_date, 'YYYY-MM') AS period_label,
+            COUNT(*)                          AS doses_applied,
+            COUNT(DISTINCT patient_id)        AS unique_patients
+        FROM v_reportes_vaccination_geo
         WHERE applied_date BETWEEN p_from AND p_to
         GROUP BY TO_CHAR(applied_date, 'YYYY-MM')
     ) t;
@@ -3529,26 +3529,22 @@ BEGIN
     -- ── JSON: zonas (municipios) ──────────────────────────────────────────────
     SELECT json_agg(t ORDER BY t.doses_applied DESC) INTO v_zones_json FROM (
         SELECT
-            m.name                              AS zone_name,
-            COUNT(vr.record_id)                 AS doses_applied,
-            COUNT(DISTINCT vr.patient_id)       AS unique_patients,
+            municipality_name               AS zone_name,
+            COUNT(record_id)                AS doses_applied,
+            COUNT(DISTINCT patient_id)      AS unique_patients,
             CASE
-                WHEN COUNT(DISTINCT vr.patient_id) >= 100 THEN 'low'
-                WHEN COUNT(DISTINCT vr.patient_id) >= 30  THEN 'medium'
+                WHEN COUNT(DISTINCT patient_id) >= 100 THEN 'low'
+                WHEN COUNT(DISTINCT patient_id) >= 30  THEN 'medium'
                 ELSE 'high'
-            END                                 AS risk_level,
+            END                             AS risk_level,
             CASE
-                WHEN COUNT(DISTINCT vr.patient_id) >= 100 THEN 'Bajo'
-                WHEN COUNT(DISTINCT vr.patient_id) >= 30  THEN 'Medio'
+                WHEN COUNT(DISTINCT patient_id) >= 100 THEN 'Bajo'
+                WHEN COUNT(DISTINCT patient_id) >= 30  THEN 'Medio'
                 ELSE 'Alto'
-            END                                 AS risk_label
-        FROM vaccination_records vr
-        JOIN clinics c         ON vr.clinic_id      = c.clinic_id
-        JOIN addresses a       ON c.address_id       = a.address_id
-        JOIN neighborhoods n   ON a.neighborhood_id  = n.neighborhood_id
-        JOIN municipalities m  ON n.municipality_id  = m.municipality_id
-        WHERE vr.applied_date BETWEEN p_from AND p_to
-        GROUP BY m.municipality_id, m.name
+            END                             AS risk_label
+        FROM v_reportes_vaccination_geo
+        WHERE applied_date BETWEEN p_from AND p_to
+        GROUP BY municipality_id, municipality_name
     ) t;
 
     OPEN p_results FOR SELECT
@@ -3565,7 +3561,8 @@ BEGIN
         v_low_stock                             AS low_stock_count,
         v_new_patients                          AS new_patients,
         v_active_workers                        AS active_workers,
-        v_avg_temp                              AS avg_temp_c,
+        v_expiring_lots                         AS expiring_lots,
+        v_pending_alerts                        AS pending_alerts,
         COALESCE(v_vaccines_json, '[]'::JSON)   AS vaccines,
         COALESCE(v_monthly_json,  '[]'::JSON)   AS monthly,
         COALESCE(v_zones_json,    '[]'::JSON)   AS zones;

@@ -4868,7 +4868,9 @@ def api_reportes_publicos_resumen():
 
     # SP dedicado
     conn, should_close = _get_conn()
+    sp_row = None
     try:
+        _safe_rollback(conn)  # estado limpio antes de abrir el cursor
         with conn.cursor() as cur:
             cur.execute(
                 "CALL sp_reportes_resumen(%s, %s, %s)",
@@ -4877,123 +4879,50 @@ def api_reportes_publicos_resumen():
             cur.execute('FETCH ALL FROM "cur_reportes"')
             sp_row = cur.fetchone()
         conn.commit()
-    except Exception:
+    except Exception as e:
+        logger.error("Error en sp_reportes_resumen: %s", e, exc_info=True)
         _safe_rollback(conn)
-        sp_row = None
     finally:
         if should_close and not _conn_is_closed(conn):
             conn.close()
 
-    if sp_row:
-        import json as _json
-        row = dict(sp_row)
+    if not sp_row:
+        return jsonify({"error": "No se pudo generar el reporte. Revisa los logs del servidor para ver el error exacto."}), 503
 
-        def _parse_col(val):
-            if val is None:
-                return []
-            if isinstance(val, (list, dict)):
-                return val
-            try:
-                return _json.loads(val)
-            except Exception:
-                return []
+    import json as _json
+    row = dict(sp_row)
 
-        return jsonify({
-            "kpis": {
-                "total_doses_applied":         row.get("total_doses_applied", 0),
-                "target_population":           row.get("target_population", 0),
-                "reached_population":          row.get("reached_population", 0),
-                "coverage_percent":            float(row.get("coverage_percent") or 0),
-                "avg_delay_days":              float(row.get("avg_delay_days") or 0),
-                "active_zones":                row.get("active_zones", 0),
-                "reaction_rate":               float(row.get("reaction_rate")) if row.get("reaction_rate") is not None else None,
-                "completed_scheme":            row.get("completed_scheme"),
-                "delayed_patients":            row.get("delayed_patients"),
-                "appointment_completion_rate": float(row.get("appointment_completion_rate")) if row.get("appointment_completion_rate") is not None else None,
-                "low_stock_count":             row.get("low_stock_count"),
-                "new_patients":                row.get("new_patients"),
-                "active_workers":              row.get("active_workers"),
-                "avg_temp_c":                  float(row.get("avg_temp_c")) if row.get("avg_temp_c") is not None else None,
-            },
-            "vaccines": _parse_col(row.get("vaccines")),
-            "monthly":  _parse_col(row.get("monthly")),
-            "zones":    _parse_col(row.get("zones")),
-        })
-
-    # Fallback Python
-    all_records  = _cur_fetchall("vaccination_records")
-    all_patients = _cur_fetchall("patients")
-
-    if from_date and to_date:
-        all_records = [
-            r for r in all_records
-            if from_date <= str(r.get("applied_date") or "")[:10] <= to_date
-        ]
-
-    total_doses = len(all_records)
-    reached_pop = len(set(r["patient_id"] for r in all_records))
-    target_pop  = max(len(all_patients), 1)
-    coverage    = round((reached_pop / target_pop) * 100, 1)
-
-    monthly_map = {}
-    for r in all_records:
-        key = str(r.get("applied_date") or "")[:7]
-        if key:
-            entry = monthly_map.setdefault(key, {"period_label": key, "doses_applied": 0, "unique_patients": set()})
-            entry["doses_applied"] += 1
-            entry["unique_patients"].add(r["patient_id"])
-    monthly = [
-        {**v, "unique_patients": len(v["unique_patients"])}
-        for v in sorted(monthly_map.values(), key=lambda x: x["period_label"])
-    ]
-
-    vaccine_map = {}
-    for r in all_records:
-        vid = r.get("vaccine_id")
-        if vid:
-            v     = _cur_fetchone("vaccines", "vaccine_id", vid)
-            vname = v["name"] if v else "—"
-            entry = vaccine_map.setdefault(vname, {"vaccine_name": vname, "doses_applied": 0, "unique_patients": set()})
-            entry["doses_applied"] += 1
-            entry["unique_patients"].add(r["patient_id"])
-
-    vaccines_summary = sorted(
-        [
-            {
-                "vaccine_name":    k,
-                "doses_applied":   v["doses_applied"],
-                "unique_patients": len(v["unique_patients"]),
-                "share_percent":   round(v["doses_applied"] / total_doses * 100, 1) if total_doses else 0,
-            }
-            for k, v in vaccine_map.items()
-        ],
-        key=lambda x: x["doses_applied"],
-        reverse=True,
-    )[:50]
-
-    zones_summary = [
-        {
-            "zone_name":       z.get("name"),
-            "doses_applied":   z.get("cases"),
-            "unique_patients": z.get("cases"),
-            "risk_level":      z.get("risk"),
-            "risk_label":      {"high": "Alto", "medium": "Medio", "low": "Bajo"}.get(z.get("risk"), "—"),
-        }
-        for z in _cur_fetchall("zones")
-    ]
+    def _parse_col(val):
+        if val is None:
+            return []
+        if isinstance(val, (list, dict)):
+            return val
+        try:
+            return _json.loads(val)
+        except Exception:
+            return []
 
     return jsonify({
         "kpis": {
-            "total_doses_applied": total_doses,
-            "target_population":   target_pop,
-            "reached_population":  reached_pop,
-            "coverage_percent":    coverage,
-            "avg_delay_days":      0.0,
-            "active_zones":        len(zones_summary),
+            "total_doses_applied":         row.get("total_doses_applied", 0),
+            "target_population":           row.get("target_population", 0),
+            "reached_population":          row.get("reached_population", 0),
+            "coverage_percent":            float(row.get("coverage_percent") or 0),
+            "avg_delay_days":              float(row.get("avg_delay_days") or 0),
+            "active_zones":                row.get("active_zones", 0),
+            "reaction_rate":               float(row.get("reaction_rate")) if row.get("reaction_rate") is not None else None,
+            "completed_scheme":            row.get("completed_scheme"),
+            "delayed_patients":            row.get("delayed_patients"),
+            "appointment_completion_rate": float(row.get("appointment_completion_rate")) if row.get("appointment_completion_rate") is not None else None,
+            "low_stock_count":             row.get("low_stock_count"),
+            "new_patients":                row.get("new_patients"),
+            "active_workers":              row.get("active_workers"),
+            "expiring_lots":               row.get("expiring_lots"),
+            "pending_alerts":              row.get("pending_alerts"),
         },
-        "monthly":  monthly,
-        "vaccines": vaccines_summary,
-        "zones":    zones_summary,
+        "vaccines": _parse_col(row.get("vaccines")),
+        "monthly":  _parse_col(row.get("monthly")),
+        "zones":    _parse_col(row.get("zones")),
     })
 
 

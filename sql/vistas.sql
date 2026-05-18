@@ -1,6 +1,6 @@
 -- ============================================================
 -- ARCHIVO: vistas.sql
--- Total de objetos: 11
+-- Total de objetos: 14
 -- ============================================================
 
 SET client_encoding = 'UTF8';
@@ -41,7 +41,7 @@ SELECT
             SELECT gp.phone
             FROM   guardian_phones gp
             WHERE  gp.guardian_id = g.guardian_id
-            ORDER  BY gp.is_primary DESC, gp.guardian_phone_id ASC
+            ORDER  BY gp.is_primary DESC, gp.phone_id ASC
             LIMIT  1
         ),
         '—'
@@ -346,7 +346,6 @@ SELECT
     sca.alert_id,
     sca.schedule_id,
     sca.alert_type,
-    sca.message,
     sca.status                                              AS alert_status,
     sca.read_at,
     sca.created_at,
@@ -417,3 +416,68 @@ SELECT
     last_scanned_at,
     status
 FROM nfc_cards;
+
+-- ============================================================
+-- [12] v_reportes_vaccination_geo
+-- Función   : Registros de vacunación enriquecidos con datos geográficos (municipio, colonia) y worker_id para reportes públicos
+-- Recibe    : vaccination_records, vaccines, clinics, addresses, neighborhoods, municipalities
+-- Devuelve  : Una fila por registro de vacunación con datos geográficos completos para agregaciones de reportes
+-- ============================================================
+CREATE OR REPLACE VIEW v_reportes_vaccination_geo AS
+SELECT
+    vr.record_id,
+    vr.patient_id,
+    vr.worker_id,
+    vr.vaccine_id,
+    vr.clinic_id,
+    vr.applied_date,
+    vr.patient_temp_c,
+    vr.had_reaction,
+    v.name         AS vaccine_name,
+    c.name         AS clinic_name,
+    a.neighborhood_id,
+    n.municipality_id,
+    m.name         AS municipality_name
+FROM vaccination_records vr
+JOIN vaccines       v ON v.vaccine_id      = vr.vaccine_id
+JOIN clinics        c ON c.clinic_id       = vr.clinic_id
+JOIN addresses      a ON a.address_id      = c.address_id
+JOIN neighborhoods  n ON n.neighborhood_id = a.neighborhood_id
+JOIN municipalities m ON m.municipality_id = n.municipality_id;
+
+-- ============================================================
+-- [13] v_vaccine_lots_detail
+-- Función   : Lotes de vacunas con flags de bajo stock (≤10 unidades) y próximo vencimiento (≤30 días) para alertas y reportes
+-- Recibe    : vaccine_lots, vaccines, clinics
+-- Devuelve  : Una fila por lote con quantity_available, expiration_date y flags derivados is_low_stock / is_expiring_soon
+-- ============================================================
+CREATE OR REPLACE VIEW v_vaccine_lots_detail AS
+SELECT
+    vl.lot_id,
+    vl.vaccine_id,
+    vl.clinic_id,
+    vl.quantity_available,
+    vl.expiration_date,
+    (vl.quantity_available <= 10)                                    AS is_low_stock,
+    (vl.expiration_date BETWEEN CURRENT_DATE AND CURRENT_DATE + 30) AS is_expiring_soon,
+    v.name AS vaccine_name,
+    c.name AS clinic_name
+FROM vaccine_lots vl
+JOIN vaccines v ON v.vaccine_id = vl.vaccine_id
+JOIN clinics  c ON c.clinic_id  = vl.clinic_id;
+
+-- ============================================================
+-- [14] v_reportes_scheme_delay
+-- Función   : Pares registro-dosis aplicados con retraso respecto a due_date para cálculo de demora promedio en reportes
+-- Recibe    : v_patient_vaccination_scheme_base, patient_vaccine_schedule
+-- Devuelve  : Una fila por dosis aplicada fuera de fecha con patient_id, applied_date y due_date
+-- ============================================================
+CREATE OR REPLACE VIEW v_reportes_scheme_delay AS
+SELECT
+    base.patient_id,
+    base.applied_date,
+    pvs.due_date
+FROM v_patient_vaccination_scheme_base base
+JOIN patient_vaccine_schedule pvs ON pvs.schedule_id = base.schedule_id
+WHERE base.applied_date IS NOT NULL
+  AND base.applied_date > pvs.due_date;

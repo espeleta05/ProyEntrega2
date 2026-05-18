@@ -41,22 +41,7 @@
     return              ['alert','✗ Alto'];
   }
 
-  function tempStatus(t) {
-    if (!t)     return ['info', '— Sin datos'];
-    if (t <= 37.5) return ['ok', '✓ Normal'];
-    return             ['warn', '⚠ Revisar'];
-  }
-
-  function paintSummary(kpis) {
-    document.getElementById('kpiDoses').textContent    = fmt.format(kpis.total_doses_applied || 0);
-    document.getElementById('kpiTarget').textContent   = fmt.format(kpis.target_population  || 0);
-    document.getElementById('kpiReached').textContent  = fmt.format(kpis.reached_population || 0);
-    document.getElementById('kpiCoverage').textContent = fmtDec.format(kpis.coverage_percent || 0) + '%';
-    document.getElementById('kpiDelay').textContent    = fmtDec.format(kpis.avg_delay_days  || 0);
-    document.getElementById('kpiZones').textContent    = fmt.format(kpis.active_zones       || 0);
-  }
-
-  function paintDetailKpis(kpis, vaccines, monthly) {
+function paintDetailKpis(kpis, vaccines, monthly, zones) {
     const doses   = kpis.total_doses_applied || 0;
     const reached = kpis.reached_population  || 0;
     const target  = kpis.target_population   || 1;
@@ -125,28 +110,31 @@
       setStatus('kpi11-status', fmt.format(workerCount) + ' trabajadores activos', 'info');
     } else { setVal('kpi11', 'N/D', 'amber'); setStatus('kpi11-status', '— Sin datos de personal', 'warn'); }
 
-    const thisMonth  = new Date().toISOString().slice(0, 7);
-    const monthRow   = (monthly || []).find(r => r.period_label === thisMonth);
-    const dosesMonth = monthRow ? monthRow.doses_applied : 0;
-    setVal('kpi12', fmt.format(dosesMonth), dosesMonth > 0 ? 'green' : 'amber');
-    setStatus('kpi12-status', dosesMonth > 0 ? '✓ Actividad este mes' : '— Sin actividad este mes', dosesMonth > 0 ? 'ok' : 'warn');
+    const delayedPts = kpis.delayed_patients ?? null;
+    const rezagoPct  = (delayedPts !== null && target > 0) ? +(delayedPts / target * 100).toFixed(1) : null;
+    if (rezagoPct !== null) {
+      setVal('kpi12', fmtDec.format(rezagoPct) + '%', rezagoPct === 0 ? 'green' : rezagoPct < 20 ? 'amber' : 'red');
+      setStatus('kpi12-status', rezagoPct === 0 ? '✓ Sin rezago' : rezagoPct < 20 ? '⚠ Rezago moderado' : '✗ Rezago crítico', rezagoPct === 0 ? 'ok' : rezagoPct < 20 ? 'warn' : 'alert');
+    } else { setVal('kpi12', 'N/D', 'amber'); setStatus('kpi12-status', '— Sin datos de esquema', 'warn'); }
 
-    const avgTemp    = kpis.avg_temp_c ?? null;
-    const [ts, tl]   = tempStatus(avgTemp);
-    setVal('kpi13', avgTemp ? fmtDec.format(avgTemp) + ' °C' : 'N/D', ts === 'ok' ? 'green' : ts === 'warn' ? 'amber' : 'red');
-    setStatus('kpi13-status', tl, ts);
+    const expiringLots = kpis.expiring_lots ?? null;
+    if (expiringLots !== null) {
+      setVal('kpi13', fmt.format(expiringLots), expiringLots === 0 ? 'green' : expiringLots <= 3 ? 'amber' : 'red');
+      setStatus('kpi13-status', expiringLots === 0 ? '✓ Sin lotes en riesgo' : expiringLots <= 3 ? '⚠ Revisar lotes' : '✗ Acción urgente', expiringLots === 0 ? 'ok' : expiringLots <= 3 ? 'warn' : 'alert');
+    } else { setVal('kpi13', 'N/D', 'amber'); setStatus('kpi13-status', '— Sin datos de lotes', 'warn'); }
 
-    const uniqueVax = vaccines ? vaccines.length : 0;
-    setVal('kpi14', fmt.format(uniqueVax), uniqueVax >= 5 ? 'green' : uniqueVax >= 2 ? 'amber' : 'red');
-    setStatus('kpi14-status', uniqueVax >= 5 ? '✓ Alta diversidad' : uniqueVax >= 2 ? '⚠ Moderada' : '✗ Baja', uniqueVax >= 5 ? 'ok' : uniqueVax >= 2 ? 'warn' : 'alert');
+    const pendingAlerts = kpis.pending_alerts ?? null;
+    if (pendingAlerts !== null) {
+      setVal('kpi14', fmt.format(pendingAlerts), pendingAlerts === 0 ? 'green' : pendingAlerts <= 5 ? 'amber' : 'red');
+      setStatus('kpi14-status', pendingAlerts === 0 ? '✓ Sin alertas pendientes' : pendingAlerts <= 5 ? '⚠ Alertas en revisión' : '✗ Múltiples alertas activas', pendingAlerts === 0 ? 'ok' : pendingAlerts <= 5 ? 'warn' : 'alert');
+    } else { setVal('kpi14', 'N/D', 'amber'); setStatus('kpi14-status', '— Sin datos de alertas', 'warn'); }
 
-    if (monthly && monthly.length >= 2) {
-      const vals  = monthly.map(r => r.doses_applied || 0);
-      const mx    = Math.max(...vals), mn = Math.min(...vals);
-      const varPct = mx > 0 ? ((mx - mn) / mx * 100) : 0;
-      setVal('kpi15', fmtDec.format(varPct) + '%', varPct < 30 ? 'green' : varPct < 60 ? 'amber' : 'red');
-      setStatus('kpi15-status', varPct < 30 ? '✓ Estable' : varPct < 60 ? '⚠ Variable' : '✗ Muy variable', varPct < 30 ? 'ok' : varPct < 60 ? 'warn' : 'alert');
-    } else { setVal('kpi15', 'N/D', 'amber'); setStatus('kpi15-status', '— Menos de 2 meses de datos', 'warn'); }
+    if (monthly && monthly.length > 0) {
+      const monthCount  = monthly.length;
+      const avgMonthly  = monthCount > 0 ? (kpis.total_doses_applied || 0) / monthCount : 0;
+      setVal('kpi15', fmt.format(Math.round(avgMonthly)), 'blue');
+      setStatus('kpi15-status', `${monthCount} mes${monthCount !== 1 ? 'es' : ''} en el período`, 'info');
+    } else { setVal('kpi15', 'N/D', 'amber'); setStatus('kpi15-status', '— Sin datos mensuales', 'warn'); }
   }
 
   let monthlyHC, vaccineHC;
@@ -217,8 +205,7 @@
       const monthly  = data.monthly  || [];
       const zones    = data.zones    || [];
 
-      paintSummary(kpis);
-      paintDetailKpis(kpis, vaccines, monthly);
+paintDetailKpis(kpis, vaccines, monthly, zones);
       paintMonthly(monthly);
       paintVaccines(vaccines);
       paintZones(zones);
