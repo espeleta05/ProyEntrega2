@@ -154,7 +154,7 @@
     <tr class="inv-row bar-{{ _row.i % 9 }}">
 
       <td>
-        {{ c.scheduled_at.strftime('%H:%M') if c.scheduled_at else '—' }}
+        {{ c.scheduled_at[11:16] if c.scheduled_at else '—' }}
         {% if c.alerta_tardia %}
           {{ badge('Tardía', color='error', size='sm', icon='fa-clock') }}
         {% endif %}
