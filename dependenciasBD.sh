@@ -117,6 +117,9 @@ if [ -f "sql/esquema.sql" ]; then
     echo "  → esquema.sql..."
     $PG -f sql/esquema.sql
 
+    echo "  → vistas.sql..."
+    $PG -d sistemavacunacion -f sql/vistas.sql
+
     echo "  → SP.sql..."
     $PG -d sistemavacunacion -f sql/SP.sql
 
