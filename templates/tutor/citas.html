@@ -66,8 +66,8 @@
         <div class="pending-card__row">
           <i class="fa-regular fa-calendar"></i>
           {% if cita.scheduled_at %}
-            <strong>{{ cita.scheduled_at[:10] }}</strong>
-            &nbsp;{{ cita.scheduled_at[11:16] if cita.scheduled_at|length > 10 else '' }}
+            <strong>{{ cita.scheduled_at.strftime('%Y-%m-%d') }}</strong>
+            &nbsp;{{ cita.scheduled_at.strftime('%H:%M') }}
           {% else %}—{% endif %}
         </div>
 
@@ -155,8 +155,8 @@
 
         <td class="muted-td" style="white-space:nowrap;">
           {% if cita.scheduled_at %}
-            <strong>{{ cita.scheduled_at[:10] }}</strong><br>
-            {{ cita.scheduled_at[11:16] if cita.scheduled_at|length > 10 else '' }}
+            <strong>{{ cita.scheduled_at.strftime('%Y-%m-%d') }}</strong><br>
+            {{ cita.scheduled_at.strftime('%H:%M') }}
           {% else %}—{% endif %}
         </td>
 

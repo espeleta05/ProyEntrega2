@@ -125,7 +125,7 @@
   ) %}
     <tr class="inv-row bar-{{ _row.i % 9 }}">
 
-      <td>{{ c.scheduled_at[11:16] if c.scheduled_at else '—' }}</td>
+      <td>{{ c.scheduled_at.strftime('%H:%M') if c.scheduled_at else '—' }}</td>
 
       <td>
         <div class="patient-cell">

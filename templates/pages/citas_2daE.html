@@ -84,8 +84,8 @@
       {# Fecha · Hora #}
       <td class="muted-td" style="white-space:nowrap;">
         {% if c.scheduled_at %}
-          <strong>{{ c.scheduled_at[:10] }}</strong><br>
-          <span>{{ c.scheduled_at[11:16] if c.scheduled_at|length > 10 else '' }}</span>
+          <strong>{{ c.scheduled_at.strftime('%Y-%m-%d') }}</strong><br>
+          <span>{{ c.scheduled_at.strftime('%H:%M') }}</span>
         {% else %}—{% endif %}
       </td>
 
@@ -210,7 +210,7 @@
         data-patient="{{ h.patient_name|lower }}"
         data-vaccine="{{ h.vaccine_name|lower if h.vaccine_name else '' }}"
         data-status="{{ h.appointment_status|lower if h.appointment_status else '' }}"
-        data-date="{{ h.scheduled_at[:10] if h.scheduled_at else '' }}">
+        data-date="{{ h.scheduled_at.strftime('%Y-%m-%d') if h.scheduled_at else '' }}">
 
       <td><strong>{{ h.patient_name or '—' }}</strong></td>
 
@@ -229,7 +229,7 @@
 
       <td class="muted-td" style="white-space:nowrap;">
         {% if h.scheduled_at %}
-          {{ h.scheduled_at[:10] }}
+          {{ h.scheduled_at.strftime('%Y-%m-%d') }}
         {% else %}—{% endif %}
       </td>
 
