@@ -1,3 +1,8 @@
+-- ============================================================
+-- ARCHIVO: vistas.sql
+-- Total de objetos: 14
+-- ============================================================
+
 SET client_encoding = 'UTF8';
 
 -- VER VISTAS
@@ -7,7 +12,12 @@ SET client_encoding = 'UTF8';
 -- VISTAS PARA EL SISTEMA CLÍNICO DE VACUNACIÓN
 -- ===================================================
 
--- Vista 1: Información completa de pacientes (con guardián y alergias)
+-- ============================================================
+-- [1] vw_patients
+-- Función   : Información completa de pacientes con guardián principal, teléfono de contacto y alergias concatenadas
+-- Recibe    : patients, blood_types, patient_guardian_relations, guardians, guardian_phones, patient_allergies, allergies
+-- Devuelve  : Una fila por paciente activo o inactivo con datos demográficos, guardián y alergias
+-- ============================================================
 CREATE OR REPLACE VIEW vw_patients AS
 SELECT
     p.patient_id,
@@ -31,7 +41,7 @@ SELECT
             SELECT gp.phone
             FROM   guardian_phones gp
             WHERE  gp.guardian_id = g.guardian_id
-            ORDER  BY gp.is_primary DESC, gp.guardian_phone_id ASC
+            ORDER  BY gp.is_primary DESC, gp.phone_id ASC
             LIMIT  1
         ),
         '—'
@@ -49,7 +59,7 @@ SELECT
         'Ninguna'
     )                                                                     AS allergies,
     'N/A'::TEXT                                                           AS risk
- 
+
 FROM patients p
 LEFT JOIN blood_types bt ON bt.blood_type_id = p.blood_type_id
 LEFT JOIN LATERAL (
@@ -61,7 +71,12 @@ LEFT JOIN LATERAL (
 ) rel ON TRUE
 LEFT JOIN guardians g ON g.guardian_id = rel.guardian_id;
 
--- Vista 2: Historial de vacunación completo por paciente
+-- ============================================================
+-- [2] v_vaccination_records_full
+-- Función   : Historial de vacunación completo por paciente con datos de vacuna, trabajador, dosis y clínica
+-- Recibe    : vaccination_records, patients, vaccines, workers, scheme_doses, application_sites, clinics
+-- Devuelve  : Una fila por registro de vacunación con todos los datos enriquecidos
+-- ============================================================
 CREATE OR REPLACE VIEW v_vaccination_records_full AS
 SELECT
     vr.record_id,
@@ -84,7 +99,12 @@ LEFT JOIN scheme_doses sd ON sd.dose_id = vr.scheme_dose_id
 LEFT JOIN application_sites aps ON aps.application_site_id = vr.application_site_id
 JOIN clinics c ON c.clinic_id = vr.clinic_id;
 
--- Vista 3: Stock de vacunas disponibles
+-- ============================================================
+-- [3] v_vaccine_stock
+-- Función   : Stock de vacunas disponibles agregado por vacuna con fabricante, vía y fecha de vencimiento más próxima
+-- Recibe    : vaccines, manufacturers, vaccine_vias, vaccine_lots
+-- Devuelve  : Una fila por vacuna con total_stock acumulado y nearest_expiration
+-- ============================================================
 CREATE OR REPLACE VIEW v_vaccine_stock AS
 SELECT
     v.vaccine_id,
@@ -100,7 +120,12 @@ LEFT JOIN vaccine_vias vv ON vv.via_id = v.via_id
 LEFT JOIN vaccine_lots vl ON vl.vaccine_id = v.vaccine_id
 GROUP BY v.vaccine_id, v.name, v.commercial_name, m.name, vv.via;
 
--- Vista 4: Citas enriquecidas (con todos los detalles)
+-- ============================================================
+-- [4] v_appointments_full
+-- Función   : Citas enriquecidas con datos de paciente, trabajador, clínica, área y dosis del esquema vinculada
+-- Recibe    : appointments, patients, patient_vaccine_schedule, scheme_doses, vaccines, workers, clinics, clinic_areas
+-- Devuelve  : Una fila por cita con todos los detalles y datos de auditoría de origen
+-- ============================================================
 -- [REFACTORED] Ahora usa a.patient_id directamente (campo añadido a appointments).
 --              Eliminado a.tutor_accepted (flujo deprecado).
 --              patient_schedule_id sigue presente para citas vinculadas a dosis del esquema (opcional).
@@ -143,7 +168,12 @@ LEFT JOIN workers w                    ON w.worker_id      = a.worker_id
 JOIN      clinics c                    ON c.clinic_id      = a.clinic_id
 LEFT JOIN clinic_areas ca              ON ca.area_id       = a.area_id;
 
--- Vista 5: Estado de inventario de insumos
+-- ============================================================
+-- [5] v_inventory_status
+-- Función   : Estado de inventario de insumos por clínica con bandera de bajo stock
+-- Recibe    : clinic_inventory, supply_catalog, clinics
+-- Devuelve  : Una fila por ítem de inventario con datos del insumo, clínica y flag low_stock
+-- ============================================================
 CREATE OR REPLACE VIEW v_inventory_status AS
 SELECT
     ci.inventory_id,
@@ -160,7 +190,12 @@ FROM clinic_inventory ci
 JOIN supply_catalog sc ON sc.supply_id = ci.supply_id
 JOIN clinics c ON c.clinic_id = ci.clinic_id;
 
--- Vista 9: Insumos con bajo stock (sin filtro de clínica)
+-- ============================================================
+-- [6] v_low_stock_items
+-- Función   : Insumos con bajo stock (sin filtro de clínica) para alertas de almacén
+-- Recibe    : clinic_inventory, clinics, supply_catalog
+-- Devuelve  : Una fila por ítem cuya quantity < min_stock con datos de clínica e insumo
+-- ============================================================
 CREATE OR REPLACE VIEW v_low_stock_items AS
 SELECT
     ci.inventory_id,
@@ -174,7 +209,12 @@ JOIN clinics        c  ON ci.clinic_id = c.clinic_id
 JOIN supply_catalog sc ON ci.supply_id = sc.supply_id
 WHERE ci.quantity < ci.min_stock;
 
--- Vista 10: Trabajadores con detalles (nombres, roles, emails)
+-- ============================================================
+-- [7] vw_worker_full
+-- Función   : Trabajadores con detalles completos: nombre, rol y correos electrónicos
+-- Recibe    : workers, roles, worker_emails
+-- Devuelve  : Una fila por trabajador-email con full_name, role_name y flag is_primary_email
+-- ============================================================
 CREATE OR REPLACE VIEW vw_worker_full AS
 SELECT
     w.worker_id,
@@ -189,8 +229,12 @@ FROM workers w
 LEFT JOIN roles r ON w.role_id = r.role_id
 LEFT JOIN worker_emails we ON we.worker_id = w.worker_id;
 
-
--- Vista 11: define el esquema completo con joins (reutilizable)
+-- ============================================================
+-- [8] v_patient_vaccination_scheme_base
+-- Función   : Define el esquema vacunal completo del paciente con todos los joins reutilizables para reportes y SPs
+-- Recibe    : patient_vaccine_schedule, patients, scheme_doses, vaccines, vaccination_records, workers, application_sites
+-- Devuelve  : Una fila por dosis programada de paciente activo con estado (Aplicada/Atrasada/Pendiente), días de retraso y próxima dosis
+-- ============================================================
 CREATE OR REPLACE VIEW v_patient_vaccination_scheme_base AS
 
 SELECT
@@ -234,7 +278,7 @@ SELECT
         '—'
     ) AS doctor,
 
-    
+
     COALESCE(
         aps.application_site,
         '—'
@@ -291,17 +335,17 @@ LEFT JOIN workers w ON w.worker_id = vr.worker_id
 LEFT JOIN application_sites aps ON aps.application_site_id = vr.application_site_id
 WHERE p.is_active = TRUE;
 
-
 -- ============================================================
--- [NUEVO] Vista 12: Alertas de esquema enriquecidas
--- Reemplaza la lectura directa de scheme_completion_alerts en el backend.
+-- [9] v_scheme_alerts_full
+-- Función   : Alertas de esquema vacunal enriquecidas con datos de paciente, dosis y vacuna
+-- Recibe    : scheme_completion_alerts, patient_vaccine_schedule, patients, scheme_doses, vaccines
+-- Devuelve  : Una fila por alerta con patient_name, dose_label, vaccine_name, due_date y estados
 -- ============================================================
 CREATE OR REPLACE VIEW v_scheme_alerts_full AS
 SELECT
     sca.alert_id,
     sca.schedule_id,
     sca.alert_type,
-    sca.message,
     sca.status                                              AS alert_status,
     sca.read_at,
     sca.created_at,
@@ -317,11 +361,11 @@ JOIN patients p                   ON p.patient_id    = pvs.patient_id
 JOIN scheme_doses sd               ON sd.dose_id     = pvs.scheme_dose_id
 JOIN vaccines v                    ON v.vaccine_id   = sd.vaccine_id;
 
-
 -- ============================================================
--- [REFACTORED] Vista 13: KPIs del dashboard clínico
--- ANTES: usaba CROSS JOIN patients × scheme_doses (explota en prod).
--- AHORA: usa patient_vaccine_schedule como fuente de verdad directa.
+-- [10] vw_dashboard_kpis
+-- Función   : KPIs del dashboard clínico: pacientes activos, vacunaciones hoy, dosis atrasadas, citas hoy, lotes con bajo stock y lotes próximos a vencer
+-- Recibe    : patients, vaccination_records, patient_vaccine_schedule, appointments, vaccine_lots
+-- Devuelve  : Una sola fila con todos los conteos del día actual
 -- ============================================================
 CREATE OR REPLACE VIEW vw_dashboard_kpis AS
 SELECT
@@ -367,3 +411,83 @@ SELECT
     p.curp,
     p.nfc_id
 FROM patients p;
+
+-- ============================================================
+-- [11] nfc_relations
+-- Función   : Vista de relaciones NFC-paciente: mapea cada tarjeta NFC a su paciente con fecha de emisión y último escaneo
+-- Recibe    : nfc_cards (uid, patient_id, issued_date, last_scanned_at, status)
+-- Devuelve  : Una fila por tarjeta NFC con nfc_id, patient_id, issued_date, last_scanned_at y status
+-- ============================================================
+CREATE OR REPLACE VIEW nfc_relations AS
+SELECT
+    uid        AS nfc_id,
+    patient_id,
+    issued_date,
+    last_scanned_at,
+    status
+FROM nfc_cards;
+
+-- ============================================================
+-- [12] v_reportes_vaccination_geo
+-- Función   : Registros de vacunación enriquecidos con datos geográficos (municipio, colonia) y worker_id para reportes públicos
+-- Recibe    : vaccination_records, vaccines, clinics, addresses, neighborhoods, municipalities
+-- Devuelve  : Una fila por registro de vacunación con datos geográficos completos para agregaciones de reportes
+-- ============================================================
+CREATE OR REPLACE VIEW v_reportes_vaccination_geo AS
+SELECT
+    vr.record_id,
+    vr.patient_id,
+    vr.worker_id,
+    vr.vaccine_id,
+    vr.clinic_id,
+    vr.applied_date,
+    vr.patient_temp_c,
+    vr.had_reaction,
+    v.name         AS vaccine_name,
+    c.name         AS clinic_name,
+    a.neighborhood_id,
+    n.municipality_id,
+    m.name         AS municipality_name
+FROM vaccination_records vr
+JOIN vaccines       v ON v.vaccine_id      = vr.vaccine_id
+JOIN clinics        c ON c.clinic_id       = vr.clinic_id
+JOIN addresses      a ON a.address_id      = c.address_id
+JOIN neighborhoods  n ON n.neighborhood_id = a.neighborhood_id
+JOIN municipalities m ON m.municipality_id = n.municipality_id;
+
+-- ============================================================
+-- [13] v_vaccine_lots_detail
+-- Función   : Lotes de vacunas con flags de bajo stock (≤10 unidades) y próximo vencimiento (≤30 días) para alertas y reportes
+-- Recibe    : vaccine_lots, vaccines, clinics
+-- Devuelve  : Una fila por lote con quantity_available, expiration_date y flags derivados is_low_stock / is_expiring_soon
+-- ============================================================
+CREATE OR REPLACE VIEW v_vaccine_lots_detail AS
+SELECT
+    vl.lot_id,
+    vl.vaccine_id,
+    vl.clinic_id,
+    vl.quantity_available,
+    vl.expiration_date,
+    (vl.quantity_available <= 10)                                    AS is_low_stock,
+    (vl.expiration_date BETWEEN CURRENT_DATE AND CURRENT_DATE + 30) AS is_expiring_soon,
+    v.name AS vaccine_name,
+    c.name AS clinic_name
+FROM vaccine_lots vl
+JOIN vaccines v ON v.vaccine_id = vl.vaccine_id
+JOIN clinics  c ON c.clinic_id  = vl.clinic_id;
+
+-- ============================================================
+-- [14] v_reportes_scheme_delay
+-- Función   : Pares registro-dosis aplicados con retraso respecto a due_date para cálculo de demora promedio en reportes
+-- Recibe    : v_patient_vaccination_scheme_base, patient_vaccine_schedule
+-- Devuelve  : Una fila por dosis aplicada fuera de fecha con patient_id, applied_date y due_date
+-- ============================================================
+CREATE OR REPLACE VIEW v_reportes_scheme_delay AS
+SELECT
+    base.patient_id,
+    base.applied_date,
+    pvs.due_date
+FROM v_patient_vaccination_scheme_base base
+JOIN patient_vaccine_schedule pvs ON pvs.schedule_id = base.schedule_id
+WHERE base.applied_date IS NOT NULL
+  AND base.applied_date > pvs.due_date;

@@ -1,3 +1,8 @@
+-- ============================================================
+-- ARCHIVO: sp.sql
+-- Total de objetos: 90
+-- ============================================================
+
 SET client_encoding = 'UTF8';
 
 -- VER SPs EN POSTGRES
@@ -8,11 +13,16 @@ WHERE routine_type = 'PROCEDURE'
 AND routine_schema = 'public';
 */
 
--- =====================================
--- WRAPPERS DE VISTAS
--- =====================================
+-- ============================================================
+-- MÓDULO: WRAPPERS DE VISTAS
+-- ============================================================
 
--- Pacientes completos — sin depender de vw_patients
+-- ============================================================
+-- [1] sp_get_patients_full
+-- Función   : Lista pacientes completos con guardián, contacto y alergias
+-- Recibe    : p_limit INT (NULL=todos), p_results REFCURSOR
+-- Devuelve  : Filas de patients con datos enriquecidos
+-- ============================================================
 CREATE OR REPLACE PROCEDURE sp_get_patients_full(
     IN    p_limit   INT,
     INOUT p_results REFCURSOR
@@ -116,13 +126,12 @@ BEGIN
 END;
 $$;
 
-BEGIN ;
-CALL sp_get_patients_full(NULL, 'patients_cursor');
-FETCH ALL FROM patients_cursor;
-COMMIT;
-
-
--- v_appointments_full
+-- ============================================================
+-- [2] sp_get_appointments_full
+-- Función   : Devuelve todas las citas de v_appointments_full ordenadas por fecha
+-- Recibe    : p_results REFCURSOR
+-- Devuelve  : Filas de v_appointments_full DESC
+-- ============================================================
 CREATE OR REPLACE PROCEDURE sp_get_appointments_full(
     INOUT p_results REFCURSOR
 )
@@ -135,8 +144,12 @@ BEGIN
 END;
 $$;
 
-
---=========================================================================
+-- ============================================================
+-- [3] sp_dashboard_kpis
+-- Función   : KPIs del dashboard clínico con tendencias mensuales y alertas
+-- Recibe    : p_results REFCURSOR
+-- Devuelve  : Una fila con métricas de cobertura, adherencia, stock y alertas
+-- ============================================================
 CREATE OR REPLACE PROCEDURE sp_dashboard_kpis(
     INOUT p_results REFCURSOR
 )
@@ -329,11 +342,16 @@ $$;
 
 
 
--- ==============================================
--- MÓDULO: PACIENTES (CRUD y adherencia)
--- ==============================================
+-- ============================================================
+-- MÓDULO: PACIENTES
+-- ============================================================
 
--- (APPLICADO) Registrar nuevo paciente
+-- ============================================================
+-- [4] sp_register_patient
+-- Función   : Registra nuevo paciente pediátrico con tutor (crea o reutiliza guardián)
+-- Recibe    : datos del paciente y tutor
+-- Devuelve  : success, message, patient_id, guardian_id
+-- ============================================================
 CREATE OR REPLACE PROCEDURE sp_register_patient(
     IN    p_first_name       VARCHAR,
     IN    p_last_name        VARCHAR,
@@ -390,7 +408,7 @@ BEGIN
         RAISE EXCEPTION 'Tipo sanguineo inexistente';
     END IF;
 
-    -- ── Tutor: buscar o crear ─────────────────────────────────────────────
+    -- ── Tutor: buscar o crear 
 
     -- 1. Buscar por CURP (identificador unico, mas confiable)
     IF p_guardian_curp IS NOT NULL AND TRIM(p_guardian_curp) <> '' THEN
@@ -501,30 +519,17 @@ WHEN OTHERS THEN
 END;
 $$;
 
-BEGIN;
-CALL sp_register_patient(
-    'Diana',           -- first_name
-    'Ross',            -- last_name
-    'DIAR350503YGFERT06', -- curp
-    '2025-05-12',      -- birth_date
-    'F',               -- gender
-    4,                 -- blood_type_id
-    34.6,              -- weight_kg
-    FALSE,             -- premature
-    'Mike',            -- guardian_name
-    'Ross',            -- guardian_last
-    NULL,              -- guardian_curp
-    '8110000019',      -- guardian_phone
-    NULL,              -- guardian_email
-    'p_results'        -- cursor
-);
-FETCH ALL FROM p_results;
-COMMIT;
 
 
 -- Actualizar paciente (firma expandida: curp + birth_date)
 DROP PROCEDURE IF EXISTS sp_update_patient(INT, VARCHAR, VARCHAR, INT, NUMERIC, REFCURSOR);
 
+-- ============================================================
+-- [5] sp_update_patient
+-- Función   : Actualiza datos demográficos de un paciente activo
+-- Recibe    : p_patient_id y campos opcionales (nombre, CURP, peso, tipo de sangre)
+-- Devuelve  : success, message, patient_id
+-- ============================================================
 CREATE OR REPLACE PROCEDURE sp_update_patient(
     IN    p_patient_id      INT,
     IN    p_first_name      VARCHAR,
@@ -603,20 +608,12 @@ EXCEPTION WHEN OTHERS THEN
 END;
 $$;
 
-BEGIN;
-CALL sp_update_patient(
-    16,
-    'Juan',
-    'Perez',
-    2,
-    35.5,
-    'p_results'
-);
-FETCH ALL FROM p_results;
-COMMIT;
-
-
--- (CORREGIR) Eliminar paciente (cascada controlada)
+-- ============================================================
+-- [6] sp_delete_patient
+-- Función   : Desactiva (soft-delete) un paciente sin citas futuras
+-- Recibe    : p_patient_id INT
+-- Devuelve  : success, message, patient_id
+-- ============================================================
 CREATE OR REPLACE PROCEDURE sp_delete_patient(
     IN    p_patient_id  INT,
     INOUT p_results     REFCURSOR
@@ -679,13 +676,12 @@ WHEN OTHERS THEN
 END;
 $$;
 
-BEGIN ;
-CALL sp_delete_patient(16, 'p_results');
-FETCH ALL FROM p_results;
-COMMIT ;
-
-
--- Calcular adherencia del paciente al esquema
+-- ============================================================
+-- [7] sp_calculate_patient_adherence
+-- Función   : Calcula el porcentaje de adherencia al esquema vacunal del paciente
+-- Recibe    : p_patient_id INT
+-- Devuelve  : curp, nombre, dosis requeridas, aplicadas y porcentaje
+-- ============================================================
 CREATE OR REPLACE PROCEDURE sp_calculate_patient_adherence(
     IN    p_patient_id INT,
     INOUT p_results    REFCURSOR
@@ -719,6 +715,12 @@ BEGIN
 END;
 $$;
 
+-- ============================================================
+-- [8] sp_get_last_applications
+-- Función   : Últimas 10 aplicaciones de vacunas del sistema
+-- Recibe    : p_results REFCURSOR
+-- Devuelve  : 10 filas de vaccination_records con datos de paciente, vacuna y trabajador
+-- ============================================================
 CREATE OR REPLACE PROCEDURE sp_get_last_applications(   
     INOUT p_results REFCURSOR
 )
@@ -745,8 +747,12 @@ BEGIN
 END;
 $$;
 
-
-
+-- ============================================================
+-- [9] sp_get_patient_scheme
+-- Función   : Esquema vacunal completo del paciente con estado de cada dosis y cita vinculada
+-- Recibe    : p_patient_id INT
+-- Devuelve  : Filas por dosis con estado, cita, alerta de retraso y próxima dosis
+-- ============================================================
 CREATE OR REPLACE PROCEDURE sp_get_patient_scheme(
     IN    p_patient_id INT,
     INOUT p_results    REFCURSOR
@@ -950,18 +956,12 @@ BEGIN
 
 END;
 $$;
- 
-
-BEGIN;
-CALL sp_get_patient_scheme(11, 'cur_esquema');
-FETCH ALL FROM cur_esquema;
-COMMIT;
-
 
 -- ============================================================
--- sp_get_vaccination_record
--- Devuelve los datos completos de un registro de vacunación
--- para generar el comprobante PDF del portal tutor.
+-- [10] sp_get_vaccination_record
+-- Función   : Datos completos de un registro de vacunación para generar comprobante PDF
+-- Recibe    : p_record_id INT
+-- Devuelve  : Una fila con datos del paciente, vacuna, trabajador, lote y clínica
 -- ============================================================
 CREATE OR REPLACE PROCEDURE sp_get_vaccination_record(
     IN    p_record_id INT,
@@ -1000,12 +1000,11 @@ BEGIN
 END;
 $$;
 
-
 -- ============================================================
--- sp_get_tutor_children
--- Lista de pacientes vinculados a un tutor con KPIs de
--- vacunación. Una fila por paciente, ordenada por fecha de
--- vinculación (primero el hijo añadido antes).
+-- [13] sp_get_tutor_children
+-- Función   : Lista de hijos vinculados a un tutor con KPIs de vacunación
+-- Recibe    : p_guardian_id INT
+-- Devuelve  : Una fila por paciente activo con métricas de adherencia
 -- ============================================================
 CREATE OR REPLACE PROCEDURE sp_get_tutor_children(
     IN    p_guardian_id INT,
@@ -1059,13 +1058,11 @@ BEGIN
 END;
 $$;
 
-
 -- ============================================================
--- sp_tutor_register_child
--- Registra un nuevo paciente y lo vincula al tutor autenticado.
--- No crea guardián (el tutor ya existe como guardián en sesión).
--- El trigger trg_generate_expected_vaccination_scheme genera el
--- esquema de vacunación automáticamente tras el INSERT.
+-- [14] sp_tutor_register_child
+-- Función   : Registra un nuevo hijo y lo vincula al tutor autenticado
+-- Recibe    : p_guardian_id y datos del paciente
+-- Devuelve  : success, message, patient_id
 -- ============================================================
 CREATE OR REPLACE PROCEDURE sp_tutor_register_child(
     IN    p_guardian_id   INT,
@@ -1154,14 +1151,16 @@ WHEN OTHERS THEN
 END;
 $$;
 
+-- ============================================================
+-- MÓDULO: VACUNAS
+-- ============================================================
 
-
--- ==============================================
-
--- MÓDULO: VACUNAS (CRUD)
-
--- ==============================================
-
+-- ============================================================
+-- [17] sp_register_vaccine
+-- Función   : Registra una nueva vacuna en el catálogo
+-- Recibe    : nombre, fabricante, vía, edad ideal, enfermedad
+-- Devuelve  : vaccine_id
+-- ============================================================
 CREATE OR REPLACE PROCEDURE sp_register_vaccine(
     IN    p_name              VARCHAR,
     IN    p_commercial_name   VARCHAR,
@@ -1206,15 +1205,12 @@ $$;
 -- sp_get_tutor_pending_citas  → DEPRECATED (usaba tutor_accepted IS NULL)
 -- sp_get_tutor_citas_history  → DEPRECATED (usaba tutor_accepted)
 
--- =====================================
--- [DEPRECADO] CITAS — VISTA ADMIN (flujo tutor_accepted)
--- Movidos al fondo del archivo. Ver sección DEPRECATED.
--- Reemplazados por: sp_dashboard_clinica
--- =====================================
--- sp_get_admin_pending_confirmation → DEPRECATED (usaba tutor_accepted IS NULL)
--- sp_get_admin_upcoming_citas       → DEPRECATED (usaba tutor_accepted)
-
-
+-- ============================================================
+-- [19] sp_create_vaccine_lot
+-- Función   : Crea un nuevo lote de vacunas para una clínica
+-- Recibe    : vaccine_id, clinic_id, lot_number, cantidad, fecha de vencimiento
+-- Devuelve  : lot_id
+-- ============================================================
 CREATE OR REPLACE PROCEDURE sp_create_vaccine_lot(
     IN    p_vaccine_id           INT,
     IN    p_clinic_id            INT,
@@ -1243,9 +1239,12 @@ BEGIN
 END;
 $$;
 
-
--- Editar datos de un lote existente.
--- Si la nueva fecha de vencimiento es futura, reactiva el lote automáticamente.
+-- ============================================================
+-- [20] sp_edit_vaccine_lot
+-- Función   : Edita datos de un lote existente (número, cantidad, vencimiento, clínica)
+-- Recibe    : p_lot_id y campos del lote
+-- Devuelve  : success boolean
+-- ============================================================
 CREATE OR REPLACE PROCEDURE sp_edit_vaccine_lot(
     IN    p_lot_id            INT,
     IN    p_clinic_id         INT,
@@ -1273,8 +1272,12 @@ BEGIN
 END;
 $$;
 
-
--- Desactivar (soft-delete) un lote vencido. No elimina el registro.
+-- ============================================================
+-- [21] sp_deactivate_vaccine_lot
+-- Función   : Desactiva un lote vencido (soft-delete)
+-- Recibe    : p_lot_id INT
+-- Devuelve  : success boolean
+-- ============================================================
 CREATE OR REPLACE PROCEDURE sp_deactivate_vaccine_lot(
     IN    p_lot_id   INT,
     INOUT p_results  REFCURSOR
@@ -1295,6 +1298,12 @@ BEGIN
 END;
 $$;
 
+-- ============================================================
+-- [22] sp_update_vaccine_lot_stock
+-- Función   : Actualiza manualmente la cantidad disponible de un lote
+-- Recibe    : p_lot_id INT, p_quantity_available INT
+-- Devuelve  : success (FOUND)
+-- ============================================================
 CREATE OR REPLACE PROCEDURE sp_update_vaccine_lot_stock(
     IN    p_lot_id              INT,
     IN    p_quantity_available  INT,
@@ -1312,13 +1321,16 @@ BEGIN
 END;
 $$;
 
+-- ============================================================
+-- MÓDULO: VACUNACIÓN
+-- ============================================================
 
--- ==============================================
-
--- MÓDULO: VACUNACIÓN (REGISTROS Y REACCIONES)
-
--- ==============================================
-
+-- ============================================================
+-- [24] sp_register_vaccination_record
+-- Función   : Registra la aplicación de una vacuna con todas las validaciones clínicas
+-- Recibe    : patient_id, vaccine_id, worker_id, clinic_id, lot_id, scheme_dose_id, applied_date, site, temp, reaction
+-- Devuelve  : success, message, record_id
+-- ============================================================
 CREATE OR REPLACE PROCEDURE sp_register_vaccination_record(
 
     IN    p_patient_id           INT,
@@ -1645,23 +1657,6 @@ BEGIN
 END;
 $$;
 
-BEGIN;
-CALL sp_register_vaccination_record(
-    1,
-    3,
-    2,
-    1,
-    3,
-    3,
-    CURRENT_DATE,
-    1,
-    36.5,
-    FALSE,
-    'p_results'
-
-);
-FETCH ALL FROM p_results;
-COMMIT;
 
 
 -- ============================================================
@@ -1672,20 +1667,15 @@ COMMIT;
 -- ============================================================
 
 
--- ================================================================================
-
--- MÓDULO: CITAS (CRUD)
-
--- ===============================================================================
+-- ============================================================
+-- MÓDULO: CITAS
+-- ============================================================
 
 -- ============================================================
--- [REESCRITO] sp_create_appointment
--- CAMBIOS:
---   - Eliminado p_requires_tutor y lógica de 'Pendiente confirmación'
---   - Agregado p_patient_id directo (no solo via schedule)
---   - Agregado p_created_by_role, p_created_by_worker_id, p_created_by_guardian_id
---   - p_patient_schedule_id ahora es OPCIONAL (NULL para citas generales)
---   - Validaciones mejoradas: worker + área + dosis duplicada
+-- [26] sp_create_appointment
+-- Función   : Crea una nueva cita con validaciones de horario, solapamiento y disponibilidad del área
+-- Recibe    : patient_id, clinic_id, area_id, worker_id, scheduled_at, reason, patient_schedule_id, campos created_by
+-- Devuelve  : success, appointment_id, message
 -- ============================================================
     CREATE OR REPLACE PROCEDURE sp_create_appointment(
         IN    p_patient_id            INT,
@@ -1871,9 +1861,10 @@ COMMIT;
 -- ============================================================
 
 -- ============================================================
--- [REESCRITO] sp_cancel_appointment
--- CAMBIOS: validaciones completas, manejo correcto de estados finales,
---          ya no depende de tutor_accepted.
+-- [27] sp_cancel_appointment
+-- Función   : Cancela una cita activa registrando el motivo
+-- Recibe    : p_appointment_id INT, p_reason TEXT
+-- Devuelve  : success, message, appointment_id
 -- ============================================================
 CREATE OR REPLACE PROCEDURE sp_cancel_appointment(
     IN    p_appointment_id INT,
@@ -1916,14 +1907,11 @@ EXCEPTION WHEN OTHERS THEN
 END;
 $$;
 
-
 -- ============================================================
--- [REESCRITO] sp_reschedule_appointment
--- CAMBIOS:
---   - La nueva cita arranca en 'Programada' (no 'Pendiente confirmación')
---   - Hereda patient_id directamente de la cita original
---   - Agregado p_reschedule_reason para trazabilidad
---   - Validaciones correctas de estado
+-- [28] sp_reschedule_appointment
+-- Función   : Reagenda una cita marcando la original como Reagendada y creando una nueva
+-- Recibe    : p_appointment_id INT, p_new_scheduled_at TIMESTAMP, p_reschedule_reason TEXT
+-- Devuelve  : success, new_appointment_id, old_appointment_id, message
 -- ============================================================
 CREATE OR REPLACE PROCEDURE sp_reschedule_appointment(
     IN    p_appointment_id    INT,
@@ -1991,8 +1979,12 @@ EXCEPTION WHEN OTHERS THEN
 END;
 $$;
 
-
--- SP: se hizo la cita pero el paciente no fue
+-- ============================================================
+-- [29] sp_mark_no_show
+-- Función   : Marca una cita como No Show si el paciente no asistió
+-- Recibe    : p_appointment_id INT
+-- Devuelve  : success, message
+-- ============================================================
 CREATE OR REPLACE PROCEDURE sp_mark_no_show(
     IN p_appointment_id INT,
     INOUT p_results REFCURSOR
@@ -2032,16 +2024,16 @@ $$;
 -- ============================================================
 
 
--- ==============================================
-
+-- ============================================================
 -- MÓDULO: REPORTERÍA, ALERTAS Y BÚSQUEDA
+-- ============================================================
 
--- (no son wrappers dedicados de una sola vista)
-
--- ==============================================
-
-
-
+-- ============================================================
+-- [73] sp_get_pending_alerts
+-- Función   : Alertas pendientes del sistema (dosis atrasadas, stock bajo) para el panel de alertas
+-- Recibe    : p_results REFCURSOR
+-- Devuelve  : Filas de alertas con tipo, mensaje y patient_id
+-- ============================================================
 CREATE OR REPLACE PROCEDURE sp_get_pending_alerts(
 
     INOUT p_results REFCURSOR
@@ -2064,9 +2056,12 @@ END;
 
 $$;
 
-
-
--- Asigna o actualiza el nfc_id de un paciente (valida UNIQUE)
+-- ============================================================
+-- [39] sp_update_patient_nfc_id
+-- Función   : Actualiza el nfc_card_id interno del paciente al asignarle una tarjeta
+-- Recibe    : p_patient_id INT, p_nfc_card_id INT
+-- Devuelve  : success, message
+-- ============================================================
 CREATE OR REPLACE PROCEDURE sp_update_patient_nfc_id(
     IN p_patient_id INT,
     IN p_new_nfc_id VARCHAR(50)
@@ -2087,8 +2082,12 @@ BEGIN
 END;
 $$;
 
-
--- Limpia el nfc_id de un paciente (lo pone en NULL)
+-- ============================================================
+-- [40] sp_clear_patient_nfc_id
+-- Función   : Desvincula la tarjeta NFC de un paciente limpiando su nfc_card_id
+-- Recibe    : p_patient_id INT
+-- Devuelve  : success, message
+-- ============================================================
 CREATE OR REPLACE PROCEDURE sp_clear_patient_nfc_id(
     IN p_patient_id INT
 )
@@ -2101,7 +2100,12 @@ BEGIN
 END;
 $$;
 
-
+-- ============================================================
+-- [87] sp_global_search
+-- Función   : Búsqueda global de pacientes, trabajadores y vacunas por texto libre
+-- Recibe    : p_query TEXT, p_results REFCURSOR
+-- Devuelve  : Filas de resultados con tipo y datos básicos
+-- ============================================================
 CREATE OR REPLACE PROCEDURE sp_global_search(
 
     IN    p_query   VARCHAR,
@@ -2214,18 +2218,16 @@ END;
 
 $$;
 
+-- ============================================================
+-- MÓDULO: CATÁLOGOS
+-- ============================================================
 
-
-
-
--- ==============================================
-
--- MÓDULO: CATÁLOGOS Y DATOS PARA FORMULARIOS
-
--- ==============================================
-
-
-
+-- ============================================================
+-- [76] sp_get_blood_types
+-- Función   : Devuelve el catálogo de tipos de sangre
+-- Recibe    : p_results REFCURSOR
+-- Devuelve  : Filas de blood_types
+-- ============================================================
 CREATE OR REPLACE PROCEDURE sp_get_blood_types(
 
     INOUT p_results REFCURSOR
@@ -2244,8 +2246,12 @@ END;
 
 $$;
 
-
-
+-- ============================================================
+-- [77] sp_get_manufacturers
+-- Función   : Devuelve el catálogo de fabricantes de vacunas
+-- Recibe    : p_results REFCURSOR
+-- Devuelve  : Filas de manufacturers
+-- ============================================================
 CREATE OR REPLACE PROCEDURE sp_get_manufacturers(
 
     INOUT p_results REFCURSOR
@@ -2264,8 +2270,12 @@ END;
 
 $$;
 
-
-
+-- ============================================================
+-- [78] sp_get_vaccine_vias
+-- Función   : Devuelve el catálogo de vías de administración de vacunas
+-- Recibe    : p_results REFCURSOR
+-- Devuelve  : Filas de vaccine_vias
+-- ============================================================
 CREATE OR REPLACE PROCEDURE sp_get_vaccine_vias(
 
     INOUT p_results REFCURSOR
@@ -2284,8 +2294,12 @@ END;
 
 $$;
 
-
-
+-- ============================================================
+-- [79] sp_get_roles
+-- Función   : Devuelve el catálogo de roles del sistema
+-- Recibe    : p_results REFCURSOR
+-- Devuelve  : Filas de roles
+-- ============================================================
 CREATE OR REPLACE PROCEDURE sp_get_roles(
 
     INOUT p_results REFCURSOR
@@ -2304,8 +2318,12 @@ END;
 
 $$;
 
-
-
+-- ============================================================
+-- [80] sp_get_clinics
+-- Función   : Devuelve clínicas activas simplificadas para selectores
+-- Recibe    : p_results REFCURSOR
+-- Devuelve  : clinic_id y name de clinics activas
+-- ============================================================
 CREATE OR REPLACE PROCEDURE sp_get_clinics(
     INOUT p_results REFCURSOR
 )
@@ -2316,8 +2334,12 @@ BEGIN
 END;
 $$;
 
-
-
+-- ============================================================
+-- [68] sp_get_workers_for_dropdown
+-- Función   : Lista simplificada de trabajadores activos para selectores de formularios
+-- Recibe    : p_clinic_id INT opcional, p_role_name VARCHAR opcional
+-- Devuelve  : worker_id y full_name filtrados
+-- ============================================================
 CREATE OR REPLACE PROCEDURE sp_get_workers_for_dropdown(
     INOUT p_results REFCURSOR
 )
@@ -2331,7 +2353,12 @@ BEGIN
 END;
 $$;
 
-
+-- ============================================================
+-- [82] sp_get_vaccine_lots_available
+-- Función   : Lotes disponibles con stock vigente para un selector de lotes al aplicar vacunas
+-- Recibe    : p_vaccine_id INT, p_clinic_id INT
+-- Devuelve  : Filas de vaccine_lots con stock > 0 y no vencidos
+-- ============================================================
 CREATE OR REPLACE PROCEDURE sp_get_vaccine_lots_available(
     IN    p_vaccine_id INT,
     INOUT p_results    REFCURSOR
@@ -2346,8 +2373,12 @@ BEGIN
 END;
 $$;
 
-
-
+-- ============================================================
+-- [83] sp_get_application_sites
+-- Función   : Devuelve el catálogo de sitios de aplicación de vacunas
+-- Recibe    : p_results REFCURSOR
+-- Devuelve  : Filas de application_sites
+-- ============================================================
 CREATE OR REPLACE PROCEDURE sp_get_application_sites(
     INOUT p_results REFCURSOR
 )
@@ -2358,7 +2389,12 @@ BEGIN
 END;
 $$;
 
-
+-- ============================================================
+-- [84] sp_get_countries
+-- Función   : Devuelve el catálogo de países
+-- Recibe    : p_results REFCURSOR
+-- Devuelve  : Filas de countries
+-- ============================================================
 CREATE OR REPLACE PROCEDURE sp_get_countries(
     INOUT p_results REFCURSOR
 )
@@ -2369,7 +2405,12 @@ BEGIN
 END;
 $$;
 
-
+-- ============================================================
+-- [85] sp_get_states
+-- Función   : Devuelve estados/provincias filtrados por país
+-- Recibe    : p_country_id INT opcional
+-- Devuelve  : Filas de states
+-- ============================================================
 CREATE OR REPLACE PROCEDURE sp_get_states(
     IN    p_country_id INT,
     INOUT p_results    REFCURSOR
@@ -2381,8 +2422,12 @@ BEGIN
 END;
 $$;
 
-
-
+-- ============================================================
+-- [86] sp_get_municipalities
+-- Función   : Devuelve municipios filtrados por estado
+-- Recibe    : p_state_id INT opcional
+-- Devuelve  : Filas de municipalities
+-- ============================================================
 CREATE OR REPLACE PROCEDURE sp_get_municipalities(
     IN    p_state_id INT,
     INOUT p_results  REFCURSOR
@@ -2398,20 +2443,18 @@ $$;
 
 
 
--- ==============================================
--- COLUMNAS FALTANTES EN PATIENTS
--- (ejecutar solo si la tabla ya existe sin estas columnas)
--- ==============================================
-ALTER TABLE patients ADD COLUMN IF NOT EXISTS is_active   BOOLEAN   NOT NULL DEFAULT TRUE;
-ALTER TABLE patients ADD COLUMN IF NOT EXISTS updated_at  TIMESTAMP;
-ALTER TABLE patients ADD COLUMN IF NOT EXISTS deleted_at  TIMESTAMP;
 
 
--- ==============================================
--- SPs DE LECTURA FALTANTES
--- ==============================================
+-- ============================================================
+-- MÓDULO: LECTURA GENERAL
+-- ============================================================
 
--- Vacunas completas (usada en /vacunas)
+-- ============================================================
+-- [88] sp_get_vaccines_full
+-- Función   : Lista completa de vacunas con fabricante, vía y stock total
+-- Recibe    : p_results REFCURSOR
+-- Devuelve  : Filas de vaccines con datos enriquecidos de fabricante y stock
+-- ============================================================
 CREATE OR REPLACE PROCEDURE sp_get_vaccines_full(
     INOUT p_results REFCURSOR
 )
@@ -2433,8 +2476,12 @@ BEGIN
 END;
 $$;
 
-
--- Registros de vacunación completos (usada en /historial, /aplicaciones)
+-- ============================================================
+-- [89] sp_get_vaccination_records_full
+-- Función   : Historial completo de vacunaciones del sistema
+-- Recibe    : p_results REFCURSOR
+-- Devuelve  : Filas de v_vaccination_records_full
+-- ============================================================
 CREATE OR REPLACE PROCEDURE sp_get_vaccination_records_full(
     INOUT p_results REFCURSOR
 )
@@ -2446,7 +2493,12 @@ BEGIN
 END;
 $$;
 
--- Personal completo (usada en /personal)
+-- ============================================================
+-- [69] sp_get_workers_full
+-- Función   : Lista completa de trabajadores con rol, emails y clínica
+-- Recibe    : p_results REFCURSOR
+-- Devuelve  : Filas de vw_worker_full con datos completos
+-- ============================================================
 CREATE OR REPLACE PROCEDURE sp_get_workers_full(
     INOUT p_results REFCURSOR
 )
@@ -2472,7 +2524,12 @@ BEGIN
 END;
 $$;
 
--- Esquema general de vacunación (todas las vacunas × dosis)
+-- ============================================================
+-- [23] sp_get_esquema_vacunacion
+-- Función   : Devuelve el catálogo de vacunas con sus dosis del esquema nacional
+-- Recibe    : p_results REFCURSOR
+-- Devuelve  : Filas de vaccines + scheme_doses ordenadas
+-- ============================================================
 CREATE OR REPLACE PROCEDURE sp_get_esquema_vacunacion(
     INOUT p_results REFCURSOR
 )
@@ -2494,7 +2551,12 @@ BEGIN
 END;
 $$;
 
--- Dosis pendientes de un paciente (usada en /historial)
+-- ============================================================
+-- [12] sp_get_pending_scheme_doses
+-- Función   : Dosis pendientes y atrasadas de todos los pacientes activos para alertas masivas
+-- Recibe    : p_results REFCURSOR
+-- Devuelve  : Filas con patient_id, vaccine_name, due_date y días de retraso
+-- ============================================================
 CREATE OR REPLACE PROCEDURE sp_get_pending_scheme_doses(
     IN    p_patient_id INT,
     INOUT p_results    REFCURSOR
@@ -2521,7 +2583,12 @@ BEGIN
 END;
 $$;
 
--- Estado de inventario (usada en /inventario)
+-- ============================================================
+-- [90] sp_get_inventory_status
+-- Función   : Estado del inventario de insumos clínicos
+-- Recibe    : p_results REFCURSOR
+-- Devuelve  : Filas de v_inventory_status
+-- ============================================================
 CREATE OR REPLACE PROCEDURE sp_get_inventory_status(
     INOUT p_results REFCURSOR
 )
@@ -2533,11 +2600,16 @@ BEGIN
 END;
 $$;
 
--- ==============================================
--- MODULO NFC: CONSULTAS
--- ==============================================
+-- ============================================================
+-- MÓDULO: NFC
+-- ============================================================
 
--- Tarjetas NFC - detalle completo
+-- ============================================================
+-- [41] sp_get_nfc_cards_full
+-- Función   : Lista completa de tarjetas NFC con datos del paciente vinculado
+-- Recibe    : p_results REFCURSOR
+-- Devuelve  : Filas de nfc_cards con patient_name, status y last_scanned_at
+-- ============================================================
 CREATE OR REPLACE PROCEDURE sp_get_nfc_cards_full(
     INOUT p_results REFCURSOR
 )
@@ -2614,8 +2686,12 @@ BEGIN
 END;
 $$;
 
-
--- Eventos de escaneo NFC - detalle completo
+-- ============================================================
+-- [42] sp_get_nfc_scans_full
+-- Función   : Historial completo de escaneos NFC
+-- Recibe    : p_results REFCURSOR
+-- Devuelve  : Filas de nfc_scan_events con datos de paciente, trabajador y clínica
+-- ============================================================
 CREATE OR REPLACE PROCEDURE sp_get_nfc_scans_full(
     INOUT p_results REFCURSOR
 )
@@ -2685,8 +2761,12 @@ BEGIN
 END;
 $$;
 
-
--- Historial de escaneos de una tarjeta especifica
+-- ============================================================
+-- [43] sp_get_nfc_card_history
+-- Función   : Historial de una tarjeta NFC específica
+-- Recibe    : p_nfc_uid VARCHAR
+-- Devuelve  : Eventos de escaneo de esa tarjeta ordenados por fecha
+-- ============================================================
 CREATE OR REPLACE PROCEDURE sp_get_nfc_card_history(
     IN    p_nfc_card_id INT,
     INOUT p_results     REFCURSOR
@@ -2716,11 +2796,16 @@ END;
 $$;
 
 
--- ==============================================
--- MODULO NFC: MUTACIONES
--- ==============================================
+-- ============================================================
+-- MÓDULO: NFC
+-- ============================================================
 
--- Asignar tarjeta NFC a un paciente
+-- ============================================================
+-- [36] sp_assign_nfc_card
+-- Función   : Asigna una tarjeta NFC a un paciente o actualiza la asignación existente
+-- Recibe    : p_nfc_uid VARCHAR, p_patient_id INT
+-- Devuelve  : success, message, nfc_uid, patient_id
+-- ============================================================
 CREATE OR REPLACE PROCEDURE sp_assign_nfc_card(
     IN    p_patient_id  INT,
     IN    p_uid         VARCHAR,
@@ -2786,8 +2871,12 @@ EXCEPTION WHEN OTHERS THEN
 END;
 $$;
 
-
--- Actualizar estado de una tarjeta NFC
+-- ============================================================
+-- [37] sp_update_nfc_card_status
+-- Función   : Actualiza el status de una tarjeta NFC (Activa, Inactiva, Perdida)
+-- Recibe    : p_nfc_uid VARCHAR, p_status VARCHAR
+-- Devuelve  : success, message
+-- ============================================================
 CREATE OR REPLACE PROCEDURE sp_update_nfc_card_status(
     IN    p_nfc_card_id INT,
     IN    p_new_status  VARCHAR,
@@ -2855,8 +2944,12 @@ EXCEPTION WHEN OTHERS THEN
 END;
 $$;
 
-
--- Registrar evento de escaneo NFC
+-- ============================================================
+-- [38] sp_register_nfc_scan
+-- Función   : Registra un evento de escaneo NFC con contexto de clínica y tipo de scan
+-- Recibe    : p_nfc_uid, p_clinic_id, p_scan_type, p_worker_id
+-- Devuelve  : success, scan_id, patient_id, message
+-- ============================================================
 CREATE OR REPLACE PROCEDURE sp_register_nfc_scan(
     IN    p_uid             VARCHAR,
     IN    p_worker_id       INT,
@@ -3019,7 +3112,12 @@ EXCEPTION WHEN OTHERS THEN
 END;
 $$;
 
--- Clínicas completas (usada en /clinicas)
+-- ============================================================
+-- [81] sp_get_clinics_full
+-- Función   : Devuelve todas las clínicas con datos completos incluyendo dirección y área
+-- Recibe    : p_results REFCURSOR
+-- Devuelve  : Filas completas de clinics
+-- ============================================================
 CREATE OR REPLACE PROCEDURE sp_get_clinics_full(
     INOUT p_results REFCURSOR
 )
@@ -3046,9 +3144,10 @@ END;
 $$;
 
 -- ============================================================
--- [CORREGIDO] sp_get_schema_alerts_full
--- CAMBIOS: usa sca.schedule_id (no scheme_dose_id) para obtener
---          vacuna y dosis. Agrega alert_type y read_at.
+-- [70] sp_get_schema_alerts_full
+-- Función   : Devuelve todas las alertas de esquema vacunal desde v_scheme_alerts_full
+-- Recibe    : p_results REFCURSOR
+-- Devuelve  : Filas de v_scheme_alerts_full
 -- ============================================================
 CREATE OR REPLACE PROCEDURE sp_get_schema_alerts_full(
     INOUT p_results REFCURSOR
@@ -3078,11 +3177,12 @@ END;
 $$;
 
 
--- ==============================================
--- SPs DE MUTACIÓN FALTANTES
--- ==============================================
-
--- Eliminar vacuna (borrado lógico o físico)
+-- ============================================================
+-- [18] sp_delete_vaccine
+-- Función   : Elimina (o desactiva) una vacuna del catálogo
+-- Recibe    : p_vaccine_id INT
+-- Devuelve  : success
+-- ============================================================
 CREATE OR REPLACE PROCEDURE sp_delete_vaccine(
     IN    p_vaccine_id INT,
     INOUT p_results    REFCURSOR
@@ -3104,7 +3204,16 @@ WHEN OTHERS THEN
 END;
 $$;
 
--- Registrar trabajador
+-- ============================================================
+-- MÓDULO: TRABAJADORES
+-- ============================================================
+
+-- ============================================================
+-- [66] sp_register_worker
+-- Función   : Registra un nuevo trabajador con rol y correo electrónico
+-- Recibe    : nombre, apellido, role_id, email, password_hash, clinic_id
+-- Devuelve  : success, worker_id, message
+-- ============================================================
 CREATE OR REPLACE PROCEDURE sp_register_worker(
     IN    p_role_id      INT,
     IN    p_first_name   VARCHAR,
@@ -3143,7 +3252,12 @@ WHEN OTHERS THEN
 END;
 $$;
 
--- Actualizar trabajador
+-- ============================================================
+-- [67] sp_update_worker
+-- Función   : Actualiza datos de un trabajador existente
+-- Recibe    : p_worker_id y campos opcionales
+-- Devuelve  : success, message
+-- ============================================================
 CREATE OR REPLACE PROCEDURE sp_update_worker(
     IN    p_worker_id  INT,
     IN    p_first_name VARCHAR,
@@ -3184,8 +3298,12 @@ WHEN OTHERS THEN
 END;
 $$;
 
-
-
+-- ============================================================
+-- [15] sp_register_guardian_account
+-- Función   : Crea o actualiza la cuenta de portal de un tutor
+-- Recibe    : datos del guardián y credenciales
+-- Devuelve  : success, guardian_id, message
+-- ============================================================
 CREATE OR REPLACE PROCEDURE sp_register_guardian_account(
     IN p_guardian_id INT,
     IN p_email VARCHAR,
@@ -3251,12 +3369,11 @@ END;
 $$;
 
 -- ============================================================
--- SP: sp_reportes_resumen
--- Devuelve KPIs, vacunas por período y resumen mensual
--- para el módulo de Reportes Públicos.
--- Uso: SELECT * FROM sp_reportes_resumen('2024-01-01', '2024-12-31');
+-- [71] sp_reportes_resumen
+-- Función   : Resumen de reportes por período: vacunaciones, pacientes, coberturas
+-- Recibe    : p_start_date DATE, p_end_date DATE, p_clinic_id INT opcional
+-- Devuelve  : métricas del período
 -- ============================================================
-
 CREATE OR REPLACE PROCEDURE sp_reportes_resumen(
     IN    p_from    DATE,
     IN    p_to      DATE,
@@ -3277,7 +3394,8 @@ DECLARE
     v_low_stock         BIGINT;
     v_new_patients      BIGINT;
     v_active_workers    BIGINT;
-    v_avg_temp          NUMERIC(4,1);
+    v_expiring_lots     BIGINT;
+    v_pending_alerts    BIGINT;
     v_active_zones      BIGINT;
     v_vaccines_json     JSON;
     v_monthly_json      JSON;
@@ -3285,30 +3403,27 @@ DECLARE
 BEGIN
 
     -- ── Dosis aplicadas y pacientes únicos en el período ──────────────────────
-    SELECT
-        COUNT(*)                        INTO v_total_doses
-    FROM vaccination_records
+    SELECT COUNT(*) INTO v_total_doses
+    FROM v_reportes_vaccination_geo
     WHERE applied_date BETWEEN p_from AND p_to;
 
-    SELECT
-        COUNT(DISTINCT patient_id)      INTO v_reached
-    FROM vaccination_records
+    SELECT COUNT(DISTINCT patient_id) INTO v_reached
+    FROM v_reportes_vaccination_geo
     WHERE applied_date BETWEEN p_from AND p_to;
 
-    SELECT COUNT(*)                     INTO v_target
-    FROM patients
-    WHERE is_active = TRUE;
+    SELECT COUNT(DISTINCT patient_id) INTO v_target
+    FROM v_patient_vaccination_scheme_base;
 
     v_coverage := CASE
         WHEN v_target > 0 THEN ROUND((v_reached::NUMERIC / v_target) * 100, 1)
         ELSE 0
     END;
 
-    -- ── Temperatura promedio ──────────────────────────────────────────────────
-    SELECT ROUND(AVG(patient_temp_c), 1) INTO v_avg_temp
-    FROM vaccination_records
-    WHERE applied_date BETWEEN p_from AND p_to
-      AND patient_temp_c IS NOT NULL;
+    -- ── Lotes próximos a vencer (≤30 días con stock disponible) ─────────────
+    SELECT COUNT(*) INTO v_expiring_lots
+    FROM v_vaccine_lots_detail
+    WHERE is_expiring_soon = TRUE
+      AND quantity_available > 0;
 
     -- ── Tasa de reacciones adversas ───────────────────────────────────────────
     SELECT CASE
@@ -3316,24 +3431,22 @@ BEGIN
         THEN ROUND(COUNT(*) FILTER (WHERE had_reaction = TRUE)::NUMERIC / COUNT(*) * 100, 1)
         ELSE 0
     END INTO v_reaction_rate
-    FROM vaccination_records
+    FROM v_reportes_vaccination_geo
     WHERE applied_date BETWEEN p_from AND p_to;
 
     -- ── Pacientes con esquema completo ────────────────────────────────────────
-    -- Se considera completo quien no tiene ninguna dosis en estado 'Pendiente' o 'Atrasada'
-    SELECT COUNT(DISTINCT patient_id) INTO v_completed_scheme
-    FROM patients p
-    WHERE is_active = TRUE
-      AND NOT EXISTS (
-          SELECT 1 FROM patient_vaccine_schedule pvs
-          WHERE pvs.patient_id = p.patient_id
-            AND pvs.status IN ('Pendiente', 'Atrasada')
-      );
+    SELECT COUNT(*) INTO v_completed_scheme
+    FROM (
+        SELECT patient_id
+        FROM v_patient_vaccination_scheme_base
+        GROUP BY patient_id
+        HAVING COUNT(*) FILTER (WHERE vaccination_status IN ('Pendiente', 'Atrasada')) = 0
+    ) sub;
 
     -- ── Pacientes con vacunas atrasadas ───────────────────────────────────────
     SELECT COUNT(DISTINCT patient_id) INTO v_delayed_patients
-    FROM patient_vaccine_schedule
-    WHERE status = 'Atrasada';
+    FROM v_patient_vaccination_scheme_base
+    WHERE vaccination_status = 'Atrasada';
 
     -- ── Tasa de cumplimiento de citas ─────────────────────────────────────────
     SELECT CASE
@@ -3343,57 +3456,61 @@ BEGIN
             / COUNT(*) * 100, 1)
         ELSE NULL
     END INTO v_appt_rate
-    FROM appointments
+    FROM v_appointments_full
     WHERE scheduled_at::DATE BETWEEN p_from AND p_to;
 
     -- ── Lotes en stock bajo (≤ 10 unidades) ──────────────────────────────────
     SELECT COUNT(*) INTO v_low_stock
-    FROM vaccine_lots
-    WHERE quantity_available <= 10
+    FROM v_vaccine_lots_detail
+    WHERE is_low_stock = TRUE
       AND expiration_date >= CURRENT_DATE;
 
+    -- ── Alertas de esquema pendientes (no resueltas ni leídas) ───────────────
+    BEGIN
+        SELECT COUNT(*) INTO v_pending_alerts
+        FROM v_scheme_alerts_full
+        WHERE alert_status NOT IN ('Resuelta', 'Le' || CHR(237) || 'da');
+    EXCEPTION WHEN undefined_table THEN
+        v_pending_alerts := NULL;
+    END;
+
     -- ── Nuevos pacientes en el período ────────────────────────────────────────
-    SELECT COUNT(*) INTO v_new_patients
-    FROM patients
-    WHERE created_at::DATE BETWEEN p_from AND p_to;
+    BEGIN
+        SELECT COUNT(*) INTO v_new_patients
+        FROM vw_patients
+        WHERE created_at::DATE BETWEEN p_from AND p_to;
+    EXCEPTION WHEN undefined_column THEN
+        v_new_patients := NULL;
+    END;
 
     -- ── Trabajadores activos que aplicaron en el período ──────────────────────
     SELECT COUNT(DISTINCT worker_id) INTO v_active_workers
-    FROM vaccination_records
+    FROM v_reportes_vaccination_geo
     WHERE applied_date BETWEEN p_from AND p_to;
 
-    -- ── Retraso promedio (días entre due_date y applied_date) ──────────────────
-    SELECT ROUND(AVG(
-        EXTRACT(EPOCH FROM (vr.applied_date - pvs.due_date)) / 86400
-    ), 1) INTO v_avg_delay
-    FROM vaccination_records vr
-    JOIN patient_vaccine_schedule pvs
-      ON vr.patient_id = pvs.patient_id
-     AND vr.scheme_dose_id = pvs.scheme_dose_id
-    WHERE vr.applied_date BETWEEN p_from AND p_to
-      AND vr.applied_date > pvs.due_date;
+    -- ── Retraso promedio (días entre due_date y applied_date) ─────────────────
+    SELECT ROUND(AVG(applied_date - due_date), 1) INTO v_avg_delay
+    FROM v_reportes_scheme_delay
+    WHERE applied_date BETWEEN p_from AND p_to;
 
     -- ── Zonas activas (municipios con al menos una dosis en el período) ───────
-    SELECT COUNT(DISTINCT a.neighborhood_id) INTO v_active_zones
-    FROM vaccination_records vr
-    JOIN clinics c   ON vr.clinic_id  = c.clinic_id
-    JOIN addresses a ON c.address_id  = a.address_id
-    WHERE vr.applied_date BETWEEN p_from AND p_to;
+    SELECT COUNT(DISTINCT neighborhood_id) INTO v_active_zones
+    FROM v_reportes_vaccination_geo
+    WHERE applied_date BETWEEN p_from AND p_to;
 
     -- ── JSON: vacunas (top 50 por dosis aplicadas) ────────────────────────────
     SELECT json_agg(t) INTO v_vaccines_json FROM (
         SELECT
-            v.name                                          AS vaccine_name,
-            COUNT(vr.record_id)                             AS doses_applied,
-            COUNT(DISTINCT vr.patient_id)                   AS unique_patients,
+            vaccine_name,
+            COUNT(record_id)                AS doses_applied,
+            COUNT(DISTINCT patient_id)      AS unique_patients,
             ROUND(
-                COUNT(vr.record_id)::NUMERIC
+                COUNT(record_id)::NUMERIC
                 / NULLIF(v_total_doses, 0) * 100, 1
-            )                                               AS share_percent
-        FROM vaccination_records vr
-        JOIN vaccines v ON vr.vaccine_id = v.vaccine_id
-        WHERE vr.applied_date BETWEEN p_from AND p_to
-        GROUP BY v.vaccine_id, v.name
+            )                               AS share_percent
+        FROM v_reportes_vaccination_geo
+        WHERE applied_date BETWEEN p_from AND p_to
+        GROUP BY vaccine_id, vaccine_name
         ORDER BY doses_applied DESC
         LIMIT 50
     ) t;
@@ -3401,10 +3518,10 @@ BEGIN
     -- ── JSON: resumen mensual ─────────────────────────────────────────────────
     SELECT json_agg(t ORDER BY t.period_label) INTO v_monthly_json FROM (
         SELECT
-            TO_CHAR(applied_date, 'YYYY-MM')    AS period_label,
-            COUNT(*)                             AS doses_applied,
-            COUNT(DISTINCT patient_id)           AS unique_patients
-        FROM vaccination_records
+            TO_CHAR(applied_date, 'YYYY-MM') AS period_label,
+            COUNT(*)                          AS doses_applied,
+            COUNT(DISTINCT patient_id)        AS unique_patients
+        FROM v_reportes_vaccination_geo
         WHERE applied_date BETWEEN p_from AND p_to
         GROUP BY TO_CHAR(applied_date, 'YYYY-MM')
     ) t;
@@ -3412,26 +3529,22 @@ BEGIN
     -- ── JSON: zonas (municipios) ──────────────────────────────────────────────
     SELECT json_agg(t ORDER BY t.doses_applied DESC) INTO v_zones_json FROM (
         SELECT
-            m.name                              AS zone_name,
-            COUNT(vr.record_id)                 AS doses_applied,
-            COUNT(DISTINCT vr.patient_id)       AS unique_patients,
+            municipality_name               AS zone_name,
+            COUNT(record_id)                AS doses_applied,
+            COUNT(DISTINCT patient_id)      AS unique_patients,
             CASE
-                WHEN COUNT(DISTINCT vr.patient_id) >= 100 THEN 'low'
-                WHEN COUNT(DISTINCT vr.patient_id) >= 30  THEN 'medium'
+                WHEN COUNT(DISTINCT patient_id) >= 100 THEN 'low'
+                WHEN COUNT(DISTINCT patient_id) >= 30  THEN 'medium'
                 ELSE 'high'
-            END                                 AS risk_level,
+            END                             AS risk_level,
             CASE
-                WHEN COUNT(DISTINCT vr.patient_id) >= 100 THEN 'Bajo'
-                WHEN COUNT(DISTINCT vr.patient_id) >= 30  THEN 'Medio'
+                WHEN COUNT(DISTINCT patient_id) >= 100 THEN 'Bajo'
+                WHEN COUNT(DISTINCT patient_id) >= 30  THEN 'Medio'
                 ELSE 'Alto'
-            END                                 AS risk_label
-        FROM vaccination_records vr
-        JOIN clinics c         ON vr.clinic_id      = c.clinic_id
-        JOIN addresses a       ON c.address_id       = a.address_id
-        JOIN neighborhoods n   ON a.neighborhood_id  = n.neighborhood_id
-        JOIN municipalities m  ON n.municipality_id  = m.municipality_id
-        WHERE vr.applied_date BETWEEN p_from AND p_to
-        GROUP BY m.municipality_id, m.name
+            END                             AS risk_label
+        FROM v_reportes_vaccination_geo
+        WHERE applied_date BETWEEN p_from AND p_to
+        GROUP BY municipality_id, municipality_name
     ) t;
 
     OPEN p_results FOR SELECT
@@ -3448,7 +3561,8 @@ BEGIN
         v_low_stock                             AS low_stock_count,
         v_new_patients                          AS new_patients,
         v_active_workers                        AS active_workers,
-        v_avg_temp                              AS avg_temp_c,
+        v_expiring_lots                         AS expiring_lots,
+        v_pending_alerts                        AS pending_alerts,
         COALESCE(v_vaccines_json, '[]'::JSON)   AS vaccines,
         COALESCE(v_monthly_json,  '[]'::JSON)   AS monthly,
         COALESCE(v_zones_json,    '[]'::JSON)   AS zones;
@@ -3465,13 +3579,10 @@ $$;
 -- ============================================================
 
 -- ============================================================
--- [NUEVO] sp_apply_vaccine
--- Punto de entrada único para registrar una vacuna aplicada.
--- Reemplaza a sp_register_vaccination_record con mejor semántica:
---   - Acepta appointment_id opcional
---   - Delega actualización de schedule al trigger 12
---   - Delega marcar cita Completada al trigger 15
---   - NO descuenta stock (lo hace trigger 4)
+-- [25] sp_apply_vaccine
+-- Función   : Versión simplificada de aplicación de vacuna para el flujo NFC clínico
+-- Recibe    : patient_id, vaccine_id, worker_id, clinic_id, lot_id, scheme_dose_id y parámetros clínicos
+-- Devuelve  : success, record_id, message
 -- ============================================================
 CREATE OR REPLACE PROCEDURE sp_apply_vaccine(
     IN    p_patient_id          INT,
@@ -3594,12 +3705,11 @@ EXCEPTION WHEN OTHERS THEN
 END;
 $$;
 
-
 -- ============================================================
--- [NUEVO] sp_get_pending_doses
--- Vacunas pendientes (Pendiente + Atrasada) de un paciente,
--- con indicación de urgencia y cita activa si existe.
--- Reemplaza sp_get_pending_scheme_doses (que usaba CROSS JOIN).
+-- [11] sp_get_pending_doses
+-- Función   : Dosis pendientes o atrasadas de un paciente específico
+-- Recibe    : p_patient_id INT
+-- Devuelve  : Filas de dosis no aplicadas con días de retraso
 -- ============================================================
 CREATE OR REPLACE PROCEDURE sp_get_pending_doses(
     IN    p_patient_id INT,
@@ -3657,23 +3767,11 @@ BEGIN
 END;
 $$;
 
-
 -- ============================================================
--- [NUEVO] sp_dashboard_tutor
--- Dashboard completo para el portal del tutor:
---   - Todas las dosis pendientes/atrasadas de sus hijos
---   - Cita activa vinculada a cada dosis (si existe)
---   - action_state para el frontend (qué mostrar/qué botón)
--- ============================================================
--- [CORREGIDO] sp_dashboard_tutor
--- CAMBIOS vs version anterior:
---   1. patient_name  -> full_name        (alias que lee Flask)
---   2. cita_fecha    -> scheduled_at     (alias que lee Flask)
---   3. cita_status   -> appointment_status (alias que lee Flask)
---   4. days_overdue  -> dias_retraso     (alias que lee Flask)
---   5. KPIs por paciente via subquery escalar (total_applied, total_doses,
---      total_pending, delayed_count, pct) que Flask leia pero el SP no devolvía.
---      Se usa SUM(CASE WHEN...) en lugar de FILTER para maxima compatibilidad.
+-- [16] sp_dashboard_tutor
+-- Función   : Dashboard del portal tutor con KPIs de vacunación y próximas citas de sus hijos
+-- Recibe    : p_guardian_id INT
+-- Devuelve  : KPIs y filas de hijos con estado vacunal
 -- ============================================================
 CREATE OR REPLACE PROCEDURE sp_dashboard_tutor(
     IN    p_guardian_id INT,
@@ -3774,13 +3872,11 @@ BEGIN
 END;
 $$;
 
-
 -- ============================================================
--- [NUEVO] sp_dashboard_clinica
--- Agenda clínica real por fecha:
---   - Solo citas reales creadas manualmente
---   - Nunca muestra dosis del esquema futuras
---   - Admite filtro por clínica y fecha
+-- [33] sp_dashboard_clinica
+-- Función   : Dashboard administrativo con KPIs del día, lista de citas y gráficas semanales
+-- Recibe    : p_clinic_id INT, p_results REFCURSOR
+-- Devuelve  : conteos y filas de citas del día
 -- ============================================================
 CREATE OR REPLACE PROCEDURE sp_dashboard_clinica(
     IN    p_clinic_id INT,
@@ -3846,11 +3942,11 @@ BEGIN
 END;
 $$;
 
-
 -- ============================================================
--- [NUEVO] sp_refresh_overdue_statuses
--- Job nocturno: pasa Pendiente → Atrasada donde due_date < hoy.
--- Ejecutar vía pg_cron o apscheduler Flask cada noche.
+-- [75] sp_refresh_overdue_statuses
+-- Función   : Actualiza masivamente el status de patient_vaccine_schedule a 'Atrasada' para dosis con due_date pasado
+-- Recibe    : p_results REFCURSOR
+-- Devuelve  : count de filas actualizadas
 -- ============================================================
 CREATE OR REPLACE PROCEDURE sp_refresh_overdue_statuses(
     INOUT p_results REFCURSOR
@@ -3874,11 +3970,11 @@ BEGIN
 END;
 $$;
 
-
 -- ============================================================
--- [NUEVO] sp_generate_alerts
--- Genera alertas de proximidad (≤30 días) y de atraso
--- sin duplicar alertas ya existentes.
+-- [74] sp_generate_alerts
+-- Función   : Genera o actualiza alertas de scheme_completion_alerts para dosis atrasadas
+-- Recibe    : p_results REFCURSOR
+-- Devuelve  : count de alertas generadas
 -- ============================================================
 CREATE OR REPLACE PROCEDURE sp_generate_alerts(
     INOUT p_results REFCURSOR
@@ -3926,88 +4022,11 @@ BEGIN
 END;
 $$;
 
-
 -- ============================================================
--- ============================================================
---  DEPRECATED — SPs ELIMINADOS (referencia histórica)
---  NO ejecutar. Solo para auditoría y rollback si se necesita.
--- ============================================================
--- ============================================================
-
-/*
--- ── sp_get_tutor_pending_citas ────────────────────────────────
--- Razón de eliminación: filtraba por tutor_accepted IS NULL,
--- semántica que ya no existe en el nuevo flujo de citas.
-CREATE OR REPLACE PROCEDURE sp_get_tutor_pending_citas(
-    IN p_guardian_id INT, INOUT p_results REFCURSOR) ...
-*/
-
-/*
--- ── sp_get_tutor_citas_history ────────────────────────────────
--- Razón de eliminación: usaba tutor_accepted, ya eliminado.
-CREATE OR REPLACE PROCEDURE sp_get_tutor_citas_history(
-    IN p_guardian_id INT, INOUT p_results REFCURSOR) ...
-*/
-
-/*
--- ── sp_get_admin_pending_confirmation ────────────────────────
--- Razón de eliminación: filtraba tutor_accepted IS NULL.
--- Reemplazado por sp_dashboard_clinica.
-CREATE OR REPLACE PROCEDURE sp_get_admin_pending_confirmation(
-    INOUT p_results REFCURSOR) ...
-*/
-
-/*
--- ── sp_get_admin_upcoming_citas ──────────────────────────────
--- Razón de eliminación: mezclaba esquema médico con agenda clínica.
--- Reemplazado por sp_dashboard_clinica.
-CREATE OR REPLACE PROCEDURE sp_get_admin_upcoming_citas(
-    INOUT p_results REFCURSOR) ...
-*/
-
-/*
--- ── sp_confirm_appointment ───────────────────────────────────
--- Razón de eliminación: era para confirmar citas auto-generadas
--- via tutor_accepted. Ya no existe 'Pendiente confirmación'.
-CREATE OR REPLACE PROCEDURE sp_confirm_appointment(
-    IN p_appointment_id INT, INOUT p_results REFCURSOR) ...
-*/
-
-/*
--- ── sp_complete_appointment ──────────────────────────────────
--- Razón de eliminación: reemplazado por trigger 15
--- (trg_complete_appointment_on_vaccination).
--- Marcar una cita como Completada ocurre automáticamente al
--- insertar un vaccination_record.
-CREATE OR REPLACE PROCEDURE sp_complete_appointment(
-    IN p_appointment_id INT, INOUT p_results REFCURSOR) ...
-*/
-
-/*
--- ── sp_record_vaccine_reaction ───────────────────────────────
--- Razón de eliminación: columnas incorrectas (vaccination_record_id,
--- reaction_description, reported_at no existen en post_vaccine_reactions).
--- La tabla usa: record_id, symptom, severity, onset_hours, treatment.
-CREATE OR REPLACE PROCEDURE sp_record_vaccine_reaction(
-    IN p_vaccination_record_id INT, IN p_reaction_desc TEXT,
-    IN p_severity VARCHAR, INOUT p_results REFCURSOR) ...
-*/
-
-/*
--- ── sp_get_pending_scheme_doses ──────────────────────────────
--- Razón de eliminación: usaba CROSS JOIN patients × scheme_doses
--- ignorando patient_vaccine_schedule (tabla fuente de verdad).
--- Reemplazado por sp_get_pending_doses.
-CREATE OR REPLACE PROCEDURE sp_get_pending_scheme_doses(
-    IN p_patient_id INT, INOUT p_results REFCURSOR) ...
-*/
-
-
--- ============================================================
--- [NUEVO] sp_get_citas_admin
--- Vista de citas para el portal admin: rango de fechas, todas
--- las clinicas asignadas a la sesion. Reemplaza al uso de
--- sp_dashboard_clinica (que solo devuelve un dia) en /citas.
+-- [34] sp_get_citas_admin
+-- Función   : Lista de citas filtrable para vista administrativa
+-- Recibe    : filtros opcionales (fecha, estado, clínica)
+-- Devuelve  : Filas de citas con datos de paciente y trabajador
 -- ============================================================
 CREATE OR REPLACE PROCEDURE sp_get_citas_admin(
     IN    p_clinic_id  INT,
@@ -4071,13 +4090,11 @@ BEGIN
 END;
 $$;
 
-
 -- ============================================================
--- [NUEVO] sp_get_agenda_form_data
--- Carga todos los datos necesarios para el formulario de nueva
--- cita en el portal admin: pacientes activos, trabajadores de
--- la clinica y areas disponibles.
--- Tres REFCURSOR en una sola llamada → sin SQL embebido en Flask.
+-- [32] sp_get_agenda_form_data
+-- Función   : Datos necesarios para renderizar el formulario de nueva cita (clínicas, trabajadores, áreas, horarios)
+-- Recibe    : p_clinic_id INT opcional
+-- Devuelve  : catálogos necesarios para el formulario
 -- ============================================================
 CREATE OR REPLACE PROCEDURE sp_get_agenda_form_data(
     IN    p_clinic_id    INT,
@@ -4122,11 +4139,11 @@ BEGIN
 END;
 $$;
 
-
 -- ============================================================
--- sp_get_appointment_detail
--- Devuelve todos los campos de una cita para pre-llenar el
--- formulario de edicion en el portal admin.
+-- [31] sp_get_appointment_detail
+-- Función   : Detalle completo de una sola cita con datos de paciente, vacuna y trabajador
+-- Recibe    : p_appointment_id INT
+-- Devuelve  : Una fila enriquecida de v_appointments_full
 -- ============================================================
 CREATE OR REPLACE PROCEDURE sp_get_appointment_detail(
     IN    p_appointment_id INT,
@@ -4164,13 +4181,11 @@ BEGIN
 END;
 $$;
 
-
 -- ============================================================
--- sp_update_appointment
--- Edicion completa de una cita existente por el personal admin.
--- Campos editables: worker, area, scheduled_at, reason,
--- appointment_notes, appointment_status, duration_min.
--- Valida solapamiento de trabajador excluyendo la cita actual.
+-- [30] sp_update_appointment
+-- Función   : Actualiza campos editables de una cita existente (trabajador, área, notas)
+-- Recibe    : p_appointment_id y campos opcionales
+-- Devuelve  : success, message
 -- ============================================================
 CREATE OR REPLACE PROCEDURE sp_update_appointment(
     IN    p_appointment_id  INT,
@@ -4235,58 +4250,34 @@ EXCEPTION WHEN OTHERS THEN
 END;
 $$;
 
--- =============================================================================
--- sp_dashboard_charts — datos para las 3 gráficas del dashboard principal
--- Devuelve filas con (chart TEXT, label TEXT, value NUMERIC):
---   chart = 'coverage'  → Cobertura por grupo de edad
---   chart = 'monthly'   → Dosis aplicadas por mes (últimos 12 meses)
---   chart = 'delay'     → % retraso por vacuna (top 5)
--- =============================================================================
+-- ============================================================
+-- [72] sp_dashboard_charts
+-- Función   : Datos para gráficas del dashboard (vacunaciones por semana, por vacuna, cobertura)
+-- Recibe    : p_clinic_id INT opcional, p_results REFCURSOR
+-- Devuelve  : series de datos para Highcharts
+-- ============================================================
 CREATE OR REPLACE PROCEDURE sp_dashboard_charts(
     INOUT p_results REFCURSOR
 )
 LANGUAGE plpgsql AS $$
 BEGIN
     OPEN p_results FOR
-    WITH age_groups AS (
+    WITH coverage_by_age AS (
         SELECT
-            p.patient_id,
             CASE
-                WHEN DATE_PART('year', AGE(p.birth_date)) < 1  THEN U&'< 1 año'
-                WHEN DATE_PART('year', AGE(p.birth_date)) < 3  THEN U&'1-2 años'
-                WHEN DATE_PART('year', AGE(p.birth_date)) < 6  THEN U&'3-5 años'
-                WHEN DATE_PART('year', AGE(p.birth_date)) < 12 THEN U&'6-11 años'
-                ELSE U&'12+ años'
-            END AS age_group,
-            DATE_PART('year', AGE(p.birth_date)) AS age_years
-        FROM patients p
-        WHERE p.is_active = TRUE
-    ),
-    complete_patients AS (
-        SELECT p.patient_id
-        FROM patients p
-        WHERE p.is_active = TRUE
-          AND NOT EXISTS (
-              SELECT 1 FROM scheme_doses sd
-              WHERE NOT EXISTS (
-                  SELECT 1 FROM vaccination_records vr
-                  WHERE vr.patient_id    = p.patient_id
-                    AND vr.scheme_dose_id = sd.dose_id
-              )
-          )
-    ),
-    coverage_by_age AS (
-        SELECT
-            ag.age_group AS label,
-            ROUND(
-                COUNT(DISTINCT cp.patient_id)::NUMERIC /
-                NULLIF(COUNT(DISTINCT ag.patient_id)::NUMERIC, 0) * 100
-            , 1) AS value,
-            MIN(ag.age_years) AS row_order,
+                WHEN DATE_PART('year', AGE(p.birth_date)) < 1  THEN '< 1 a' || chr(241) || 'o'
+                WHEN DATE_PART('year', AGE(p.birth_date)) < 3  THEN '1-2 a' || chr(241) || 'os'
+                WHEN DATE_PART('year', AGE(p.birth_date)) < 6  THEN '3-5 a' || chr(241) || 'os'
+                WHEN DATE_PART('year', AGE(p.birth_date)) < 12 THEN '6-11 a' || chr(241) || 'os'
+                ELSE '12+ a' || chr(241) || 'os'
+            END AS label,
+            COUNT(vr.record_id)::NUMERIC AS value,
+            MIN(DATE_PART('year', AGE(p.birth_date))) AS row_order,
             1 AS chart_order
-        FROM age_groups ag
-        LEFT JOIN complete_patients cp ON ag.patient_id = cp.patient_id
-        GROUP BY ag.age_group
+        FROM vaccination_records vr
+        JOIN patients p ON vr.patient_id = p.patient_id
+        WHERE p.is_active = TRUE
+        GROUP BY label
     ),
     monthly_doses AS (
         SELECT
@@ -4347,11 +4338,11 @@ $$;
 -- de la clínica a través de escaneos de tarjeta NFC.
 -- ============================================================
 
-
 -- ============================================================
--- SP: sp_nfc_checkin
--- Llamado cuando recepción escanea el NFC al llegar el paciente.
--- Valida la tarjeta, crea la visita clínica, vincula cita si existe.
+-- [44] sp_nfc_checkin
+-- Función   : Registra el check-in de un paciente por escaneo NFC en recepción
+-- Recibe    : p_nfc_uid VARCHAR, p_clinic_id INT, p_worker_id INT
+-- Devuelve  : success, visit_id, patient_id, patient_name, message
 -- ============================================================
 CREATE OR REPLACE PROCEDURE sp_nfc_checkin(
     IN    p_nfc_uid    VARCHAR(30),
@@ -4542,12 +4533,11 @@ WHEN OTHERS THEN
 END;
 $$;
 
-
 -- ============================================================
--- SP: sp_visit_transition
--- Cambia el estado clínico de una visita activa.
--- Valida que la transición sea permitida por la máquina de estados.
--- Puede ser invocado por NFC o manualmente desde la UI.
+-- [45] sp_visit_transition
+-- Función   : Avanza el estado clínico de una visita (En espera → En consulta → En vacunación → Finalizado)
+-- Recibe    : p_visit_id INT, p_new_status VARCHAR, p_worker_id INT
+-- Devuelve  : success, visit_id, new_status, message
 -- ============================================================
 CREATE OR REPLACE PROCEDURE sp_visit_transition(
     IN    p_visit_id    INT,
@@ -4662,11 +4652,11 @@ EXCEPTION WHEN OTHERS THEN
 END;
 $$;
 
-
 -- ============================================================
--- SP: sp_nfc_medical_scan
--- Llamado cuando el médico o enfermero escanea el NFC en consultorio.
--- Si el paciente está En espera, lo transiciona automáticamente a En consulta.
+-- [46] sp_nfc_medical_scan
+-- Función   : Escaneo NFC en área médica que abre el expediente del paciente en visita activa
+-- Recibe    : p_nfc_uid VARCHAR, p_clinic_id INT, p_worker_id INT
+-- Devuelve  : success, patient_id y datos de la visita activa
 -- ============================================================
 CREATE OR REPLACE PROCEDURE sp_nfc_medical_scan(
     IN    p_nfc_uid    VARCHAR(30),
@@ -4801,11 +4791,11 @@ EXCEPTION WHEN OTHERS THEN
 END;
 $$;
 
-
 -- ============================================================
--- SP: sp_nfc_checkout
--- Llamado al escanear NFC para cerrar la visita.
--- Calcula duración total y registra la salida.
+-- [47] sp_nfc_checkout
+-- Función   : Registra el checkout del paciente por escaneo NFC cerrando la visita como Finalizado
+-- Recibe    : p_nfc_uid VARCHAR, p_clinic_id INT, p_worker_id INT
+-- Devuelve  : success, visit_id, message
 -- ============================================================
 CREATE OR REPLACE PROCEDURE sp_nfc_checkout(
     IN    p_nfc_uid    VARCHAR(30),
@@ -4920,11 +4910,11 @@ EXCEPTION WHEN OTHERS THEN
 END;
 $$;
 
-
 -- ============================================================
--- SP: sp_reception_realtime
--- Devuelve todos los pacientes con visita activa en la clínica.
--- Consumido por el dashboard de recepción cada 10 segundos.
+-- [48] sp_reception_realtime
+-- Función   : Estado en tiempo real de la sala de espera para el monitor de recepción
+-- Recibe    : p_clinic_id INT
+-- Devuelve  : Filas de visitas activas con estado, paciente y tiempos
 -- ============================================================
 CREATE OR REPLACE PROCEDURE sp_reception_realtime(
     IN    p_clinic_id  INT,
@@ -4994,10 +4984,11 @@ BEGIN
 END;
 $$;
 
-
 -- ============================================================
--- SP: sp_visit_patient_summary
--- Devuelve el resumen clínico completo de una visita para el médico.
+-- [49] sp_visit_patient_summary
+-- Función   : Resumen clínico del paciente en visita activa (historial, alergias, dosis pendientes)
+-- Recibe    : p_visit_id INT
+-- Devuelve  : datos del paciente, visita y últimas vacunas aplicadas
 -- ============================================================
 CREATE OR REPLACE PROCEDURE sp_visit_patient_summary(
     IN    p_visit_id  INT,
@@ -5070,11 +5061,11 @@ BEGIN
 END;
 $$;
 
-
 -- ============================================================
--- SP: sp_patient_pending_doses
--- Devuelve las dosis pendientes y atrasadas de un paciente
--- con detalle de vacuna, lote disponible y días de atraso.
+-- [50] sp_patient_pending_doses
+-- Función   : Dosis pendientes o atrasadas del paciente para mostrar durante la visita
+-- Recibe    : p_patient_id INT
+-- Devuelve  : Filas de dosis no aplicadas con vacuna y días de retraso
 -- ============================================================
 CREATE OR REPLACE PROCEDURE sp_patient_pending_doses(
     IN    p_patient_id  INT,
@@ -5134,16 +5125,11 @@ BEGIN
 END;
 $$;
 
-
 -- ============================================================
--- [NUEVO] sp_get_citas_medico
--- Devuelve las citas de un trabajador específico (Médico o
--- Enfermero) en un rango de fechas.
--- p_worker_id  → filtra por el trabajador en sesión
--- p_date_from  → fecha inicio (NULL = desde siempre)
--- p_date_to    → fecha fin    (NULL = hasta +1 año)
--- Devuelve los mismos campos que sp_get_citas_admin más
--- la columna role_label para uso futuro.
+-- [35] sp_get_citas_medico
+-- Función   : Agenda del día del médico con datos de pacientes y estado de vacunación
+-- Recibe    : p_worker_id INT, p_date DATE
+-- Devuelve  : Filas de citas del médico en esa fecha
 -- ============================================================
 CREATE OR REPLACE PROCEDURE sp_get_citas_medico(
     IN    p_worker_id  INT,
@@ -5201,11 +5187,16 @@ BEGIN
 END;
 $$;
 
+-- ============================================================
+-- MÓDULO: ALMACÉN
+-- ============================================================
 
 -- ============================================================
--- ALMACEN
+-- [51] sp_almacen_dashboard
+-- Función   : Dashboard del almacén con KPIs de lotes, stock y alertas
+-- Recibe    : p_clinic_id INT, p_results REFCURSOR
+-- Devuelve  : conteos de lotes disponibles, vencidos, con bajo stock y transferencias pendientes
 -- ============================================================
-
 CREATE OR REPLACE PROCEDURE sp_almacen_dashboard(
     IN    p_clinic_id       INT,
     INOUT p_kpis            REFCURSOR,
@@ -5297,7 +5288,12 @@ BEGIN
 END;
 $$;
 
--- sp_get_movements_full
+-- ============================================================
+-- [52] sp_get_movements_full
+-- Función   : Historial completo de movimientos de inventario
+-- Recibe    : p_clinic_id INT opcional, p_results REFCURSOR
+-- Devuelve  : Filas de inventory_movements con datos de lote y trabajador
+-- ============================================================
 CREATE OR REPLACE PROCEDURE sp_get_movements_full(
     IN    p_clinic_id    INT,
     IN    p_lot_id       INT,
@@ -5332,7 +5328,12 @@ BEGIN
 END;
 $$;
 
--- sp_register_manual_movement
+-- ============================================================
+-- [53] sp_register_manual_movement
+-- Función   : Registra un movimiento manual de entrada o ajuste de inventario
+-- Recibe    : lot_id, clinic_id, worker_id, movement_type, quantity, notes
+-- Devuelve  : success, movement_id, message
+-- ============================================================
 CREATE OR REPLACE PROCEDURE sp_register_manual_movement(
     IN    p_lot_id        INT,
     IN    p_worker_id     INT,
@@ -5406,7 +5407,12 @@ BEGIN
 END;
 $$;
 
--- sp_update_lot_status
+-- ============================================================
+-- [54] sp_update_lot_status
+-- Función   : Cambia manualmente el lot_status de un lote (Bloqueado, Retirado, Disponible)
+-- Recibe    : p_lot_id INT, p_new_status VARCHAR, p_worker_id INT
+-- Devuelve  : success, message
+-- ============================================================
 CREATE OR REPLACE PROCEDURE sp_update_lot_status(
     IN    p_lot_id      INT,
     IN    p_new_status  VARCHAR,
@@ -5445,7 +5451,12 @@ BEGIN
 END;
 $$;
 
--- sp_get_almacen_alerts
+-- ============================================================
+-- [55] sp_get_almacen_alerts
+-- Función   : Alertas de almacén: lotes con bajo stock, vencidos o próximos a vencer
+-- Recibe    : p_clinic_id INT, p_results REFCURSOR
+-- Devuelve  : Filas de alertas de vaccine_lots con tipo y mensaje
+-- ============================================================
 CREATE OR REPLACE PROCEDURE sp_get_almacen_alerts(
     IN    p_clinic_id INT,
     INOUT p_results   REFCURSOR
@@ -5486,7 +5497,12 @@ BEGIN
 END;
 $$;
 
--- sp_get_lot_detail
+-- ============================================================
+-- [56] sp_get_lot_detail
+-- Función   : Detalle completo de un lote con historial de movimientos
+-- Recibe    : p_lot_id INT
+-- Devuelve  : datos del lote y sus últimos movimientos de inventory_movements
+-- ============================================================
 CREATE OR REPLACE PROCEDURE sp_get_lot_detail(
     IN    p_lot_id  INT,
     INOUT p_lot     REFCURSOR,
@@ -5524,7 +5540,12 @@ $$;
 -- STORED PROCEDURES — Fase 2 (Transferencias)
 -- ============================================================
 
--- sp_get_transfers
+-- ============================================================
+-- [57] sp_get_transfers
+-- Función   : Lista de transferencias de lotes entre clínicas
+-- Recibe    : p_clinic_id INT opcional, p_results REFCURSOR
+-- Devuelve  : Filas de inventory_transfers con estado y clínicas origen/destino
+-- ============================================================
 CREATE OR REPLACE PROCEDURE sp_get_transfers(
     IN    p_clinic_id      INT,
     IN    p_status_filter  VARCHAR,
@@ -5558,7 +5579,12 @@ BEGIN
 END;
 $$;
 
--- sp_create_transfer
+-- ============================================================
+-- [58] sp_create_transfer
+-- Función   : Crea una solicitud de transferencia de lote entre clínicas
+-- Recibe    : lot_id, source_clinic_id, dest_clinic_id, quantity, worker_id
+-- Devuelve  : success, transfer_id, message
+-- ============================================================
 CREATE OR REPLACE PROCEDURE sp_create_transfer(
     IN    p_lot_id        INT,
     IN    p_to_clinic_id  INT,
@@ -5621,7 +5647,12 @@ BEGIN
 END;
 $$;
 
--- sp_accept_transfer
+-- ============================================================
+-- [59] sp_accept_transfer
+-- Función   : Acepta una transferencia pendiente, descuenta stock del origen y crea/actualiza lote en destino
+-- Recibe    : p_transfer_id INT, p_worker_id INT
+-- Devuelve  : success, transfer_id, message
+-- ============================================================
 CREATE OR REPLACE PROCEDURE sp_accept_transfer(
     IN    p_transfer_id  INT,
     IN    p_worker_id    INT,
@@ -5738,7 +5769,12 @@ BEGIN
 END;
 $$;
 
--- sp_reject_transfer
+-- ============================================================
+-- [60] sp_reject_transfer
+-- Función   : Rechaza una transferencia pendiente con motivo
+-- Recibe    : p_transfer_id INT, p_worker_id INT, p_reason TEXT
+-- Devuelve  : success, message
+-- ============================================================
 CREATE OR REPLACE PROCEDURE sp_reject_transfer(
     IN    p_transfer_id  INT,
     IN    p_worker_id    INT,
@@ -5774,7 +5810,12 @@ BEGIN
 END;
 $$;
 
--- sp_cancel_transfer
+-- ============================================================
+-- [61] sp_cancel_transfer
+-- Función   : Cancela una transferencia pendiente
+-- Recibe    : p_transfer_id INT, p_worker_id INT
+-- Devuelve  : success, message
+-- ============================================================
 CREATE OR REPLACE PROCEDURE sp_cancel_transfer(
     IN    p_transfer_id  INT,
     IN    p_worker_id    INT,
@@ -5809,10 +5850,16 @@ BEGIN
 END;
 $$;
 
---===========================================================
--- RECPECIONISTA
---===========================================================
+-- ============================================================
+-- MÓDULO: RECEPCIONISTA
+-- ============================================================
 
+-- ============================================================
+-- [62] sp_recepcionista_kpis
+-- Función   : KPIs del dashboard de recepcionista: citas de hoy por estado y pacientes nuevos
+-- Recibe    : p_results REFCURSOR
+-- Devuelve  : Una fila con conteos del día y de la semana
+-- ============================================================
 CREATE OR REPLACE PROCEDURE sp_recepcionista_kpis(
     INOUT p_results REFCURSOR
 )
@@ -5864,13 +5911,12 @@ BEGIN
 END;
 $$;
 
-
--- ────────────────────────────────────────────────────────────
--- 2. sp_recepcionista_citas_hoy
---    Devuelve las citas de hoy con datos de paciente, área,
---    médico y una bandera alerta_tardia (hora ya pasó y
---    la cita sigue Programada/Confirmada).
--- ────────────────────────────────────────────────────────────
+-- ============================================================
+-- [63] sp_recepcionista_citas_hoy
+-- Función   : Citas de hoy con datos de paciente, médico y alerta de tardía
+-- Recibe    : p_results REFCURSOR
+-- Devuelve  : Filas de citas del día ordenadas por hora con flag alerta_tardia
+-- ============================================================
 CREATE OR REPLACE PROCEDURE sp_recepcionista_citas_hoy(
     INOUT p_results REFCURSOR
 )
@@ -5908,12 +5954,12 @@ BEGIN
 END;
 $$;
 
-
--- ────────────────────────────────────────────────────────────
--- 3. sp_recepcionista_actividad_reciente
---    Devuelve las últimas N acciones en las últimas 24 h:
---    citas agendadas y pacientes registrados.
--- ────────────────────────────────────────────────────────────
+-- ============================================================
+-- [64] sp_recepcionista_actividad_reciente
+-- Función   : Últimas N acciones en las últimas 24 h (citas agendadas y pacientes registrados)
+-- Recibe    : p_limit INT, p_results REFCURSOR
+-- Devuelve  : Filas con tipo, descripcion y timestamp
+-- ============================================================
 CREATE OR REPLACE PROCEDURE sp_recepcionista_actividad_reciente(
     IN    p_limit   INT,
     INOUT p_results REFCURSOR
@@ -5951,12 +5997,12 @@ BEGIN
 END;
 $$;
 
-
--- ────────────────────────────────────────────────────────────
--- 4. sp_recepcionista_pacientes_semana
---    Pacientes registrados por día en la semana actual
---    (lunes a hoy), para la gráfica de Highcharts.
--- ────────────────────────────────────────────────────────────
+-- ============================================================
+-- [65] sp_recepcionista_pacientes_semana
+-- Función   : Pacientes registrados por día en la semana actual para gráfica de Highcharts
+-- Recibe    : p_results REFCURSOR
+-- Devuelve  : Filas con dia, dia_label y total por día
+-- ============================================================
 CREATE OR REPLACE PROCEDURE sp_recepcionista_pacientes_semana(
     INOUT p_results REFCURSOR
 )
@@ -5982,3 +6028,79 @@ BEGIN
         ORDER BY d.dia;
 END;
 $$;
+
+
+-- ============================================================
+-- ============================================================
+--  DEPRECATED — SPs ELIMINADOS (referencia histórica)
+--  NO ejecutar. Solo para auditoría y rollback si se necesita.
+-- ============================================================
+-- ============================================================
+
+/*
+-- ── sp_get_tutor_pending_citas ────────────────────────────────
+-- Razón de eliminación: filtraba por tutor_accepted IS NULL,
+-- semántica que ya no existe en el nuevo flujo de citas.
+CREATE OR REPLACE PROCEDURE sp_get_tutor_pending_citas(
+    IN p_guardian_id INT, INOUT p_results REFCURSOR) ...
+*/
+
+/*
+-- ── sp_get_tutor_citas_history ────────────────────────────────
+-- Razón de eliminación: usaba tutor_accepted, ya eliminado.
+CREATE OR REPLACE PROCEDURE sp_get_tutor_citas_history(
+    IN p_guardian_id INT, INOUT p_results REFCURSOR) ...
+*/
+
+/*
+-- ── sp_get_admin_pending_confirmation ────────────────────────
+-- Razón de eliminación: filtraba tutor_accepted IS NULL.
+-- Reemplazado por sp_dashboard_clinica.
+CREATE OR REPLACE PROCEDURE sp_get_admin_pending_confirmation(
+    INOUT p_results REFCURSOR) ...
+*/
+
+/*
+-- ── sp_get_admin_upcoming_citas ──────────────────────────────
+-- Razón de eliminación: mezclaba esquema médico con agenda clínica.
+-- Reemplazado por sp_dashboard_clinica.
+CREATE OR REPLACE PROCEDURE sp_get_admin_upcoming_citas(
+    INOUT p_results REFCURSOR) ...
+*/
+
+/*
+-- ── sp_confirm_appointment ───────────────────────────────────
+-- Razón de eliminación: era para confirmar citas auto-generadas
+-- via tutor_accepted. Ya no existe 'Pendiente confirmación'.
+CREATE OR REPLACE PROCEDURE sp_confirm_appointment(
+    IN p_appointment_id INT, INOUT p_results REFCURSOR) ...
+*/
+
+/*
+-- ── sp_complete_appointment ──────────────────────────────────
+-- Razón de eliminación: reemplazado por trigger 15
+-- (trg_complete_appointment_on_vaccination).
+-- Marcar una cita como Completada ocurre automáticamente al
+-- insertar un vaccination_record.
+CREATE OR REPLACE PROCEDURE sp_complete_appointment(
+    IN p_appointment_id INT, INOUT p_results REFCURSOR) ...
+*/
+
+/*
+-- ── sp_record_vaccine_reaction ───────────────────────────────
+-- Razón de eliminación: columnas incorrectas (vaccination_record_id,
+-- reaction_description, reported_at no existen en post_vaccine_reactions).
+-- La tabla usa: record_id, symptom, severity, onset_hours, treatment.
+CREATE OR REPLACE PROCEDURE sp_record_vaccine_reaction(
+    IN p_vaccination_record_id INT, IN p_reaction_desc TEXT,
+    IN p_severity VARCHAR, INOUT p_results REFCURSOR) ...
+*/
+
+/*
+-- ── sp_get_pending_scheme_doses ──────────────────────────────
+-- Razón de eliminación: usaba CROSS JOIN patients × scheme_doses
+-- ignorando patient_vaccine_schedule (tabla fuente de verdad).
+-- Reemplazado por sp_get_pending_doses.
+CREATE OR REPLACE PROCEDURE sp_get_pending_scheme_doses(
+    IN p_patient_id INT, INOUT p_results REFCURSOR) ...
+*/
