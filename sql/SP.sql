@@ -4261,45 +4261,22 @@ CREATE OR REPLACE PROCEDURE sp_dashboard_charts(
 LANGUAGE plpgsql AS $$
 BEGIN
     OPEN p_results FOR
-    WITH age_groups AS (
+    WITH coverage_by_age AS (
         SELECT
-            p.patient_id,
             CASE
-                WHEN DATE_PART('year', AGE(p.birth_date)) < 1  THEN U&'< 1 año'
-                WHEN DATE_PART('year', AGE(p.birth_date)) < 3  THEN U&'1-2 años'
-                WHEN DATE_PART('year', AGE(p.birth_date)) < 6  THEN U&'3-5 años'
-                WHEN DATE_PART('year', AGE(p.birth_date)) < 12 THEN U&'6-11 años'
-                ELSE U&'12+ años'
-            END AS age_group,
-            DATE_PART('year', AGE(p.birth_date)) AS age_years
-        FROM patients p
-        WHERE p.is_active = TRUE
-    ),
-    complete_patients AS (
-        SELECT p.patient_id
-        FROM patients p
-        WHERE p.is_active = TRUE
-          AND NOT EXISTS (
-              SELECT 1 FROM scheme_doses sd
-              WHERE NOT EXISTS (
-                  SELECT 1 FROM vaccination_records vr
-                  WHERE vr.patient_id    = p.patient_id
-                    AND vr.scheme_dose_id = sd.dose_id
-              )
-          )
-    ),
-    coverage_by_age AS (
-        SELECT
-            ag.age_group AS label,
-            ROUND(
-                COUNT(DISTINCT cp.patient_id)::NUMERIC /
-                NULLIF(COUNT(DISTINCT ag.patient_id)::NUMERIC, 0) * 100
-            , 1) AS value,
-            MIN(ag.age_years) AS row_order,
+                WHEN DATE_PART('year', AGE(p.birth_date)) < 1  THEN '< 1 a' || chr(241) || 'o'
+                WHEN DATE_PART('year', AGE(p.birth_date)) < 3  THEN '1-2 a' || chr(241) || 'os'
+                WHEN DATE_PART('year', AGE(p.birth_date)) < 6  THEN '3-5 a' || chr(241) || 'os'
+                WHEN DATE_PART('year', AGE(p.birth_date)) < 12 THEN '6-11 a' || chr(241) || 'os'
+                ELSE '12+ a' || chr(241) || 'os'
+            END AS label,
+            COUNT(vr.record_id)::NUMERIC AS value,
+            MIN(DATE_PART('year', AGE(p.birth_date))) AS row_order,
             1 AS chart_order
-        FROM age_groups ag
-        LEFT JOIN complete_patients cp ON ag.patient_id = cp.patient_id
-        GROUP BY ag.age_group
+        FROM vaccination_records vr
+        JOIN patients p ON vr.patient_id = p.patient_id
+        WHERE p.is_active = TRUE
+        GROUP BY label
     ),
     monthly_doses AS (
         SELECT
