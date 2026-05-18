@@ -1,3 +1,5 @@
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
+
 -- COUNTRIES
 INSERT INTO countries (name, iso_code) VALUES
 ('México','MX'),
