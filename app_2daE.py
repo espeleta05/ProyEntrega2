@@ -2512,7 +2512,7 @@ def historial_paciente(id):
 @app.route("/esquema_paciente/<int:id>")
 def esquema_paciente(id):
 
-    locked = _require_role("Administrador", "Medico", "Enfermero")
+    locked = _require_role("Administrador", "Medico", "Enfermero", "Recepcionista")
     if locked:
         return locked
 
@@ -2637,7 +2637,7 @@ def esquema_paciente(id):
 
 @app.route("/esquema")
 def esquema_vacunacion():
-    locked = _require_role("Administrador", "Medico", "Enfermero")
+    locked = _require_role("Administrador", "Medico", "Enfermero", "Recepcionista")
     if locked:
         return locked
 
@@ -3135,6 +3135,7 @@ def agregar_aplicacion():
                 if row and not row.get("success"):
                     error = row.get("message", "Error al registrar la aplicación")
                 elif row:
+                    _sync_record_to_mongo(row["record_id"])
                     p_name = f"{patient['first_name']} {patient['last_name']}".strip()
                     flash(f"Vacuna {vaccine['name']} registrada para {p_name}. Puedes aplicar otra vacuna en la misma cita.", "success")
                     # Redirigir de vuelta al mismo formulario con patient_id y appointment_id
@@ -3925,8 +3926,19 @@ def clinicas():
         with conn.cursor() as cur:
             cur.execute("CALL sp_get_clinics_full(%s)", ("cur_clinics_full",))
             cur.execute('FETCH ALL FROM "cur_clinics_full"')
-            clinics = [dict(r) for r in cur.fetchall()]
+            raw = [dict(r) for r in cur.fetchall()]
         conn.commit()
+        import json as _json
+        clinics = []
+        for c in raw:
+            areas = c.get("areas")
+            if isinstance(areas, str):
+                try:
+                    areas = _json.loads(areas)
+                except Exception:
+                    areas = []
+            c["areas"] = areas or []
+            clinics.append(c)
     except Exception as e:
         _safe_rollback(conn)
         logger.error(f"Error en /clinicas: {e}")
@@ -5283,6 +5295,119 @@ def api_visit_link_vaccination(visit_id):
 
 
 # =============================================================================
+# MongoDB sync helpers
+# =============================================================================
+
+def _sync_record_to_mongo(record_id: int):
+    """Sincroniza un registro de vacunación individual a MongoDB."""
+    try:
+        from mongo import HistorialRepo
+        conn, should_close = _get_conn()
+        row = None
+        try:
+            _safe_rollback(conn)
+            with conn.cursor() as cur:
+                cur.execute("""
+                    SELECT vr.record_id,
+                           vr.patient_id,
+                           vr.applied_date,
+                           vr.had_reaction,
+                           v.name  AS vaccine_name,
+                           c.name  AS clinic_name,
+                           DATE_PART('year', AGE(CURRENT_DATE, p.birth_date))::INT AS age
+                    FROM vaccination_records vr
+                    JOIN patients p ON p.patient_id = vr.patient_id
+                    JOIN vaccines v ON v.vaccine_id  = vr.vaccine_id
+                    JOIN clinics  c ON c.clinic_id   = vr.clinic_id
+                    WHERE vr.record_id = %s
+                """, (record_id,))
+                row = cur.fetchone()
+            conn.commit()
+        except Exception:
+            _safe_rollback(conn)
+        finally:
+            if should_close and not _conn_is_closed(conn):
+                conn.close()
+
+        if not row:
+            return
+        r = dict(row)
+        from datetime import datetime, date
+        applied = r["applied_date"]
+        if isinstance(applied, date) and not isinstance(applied, datetime):
+            applied = datetime(applied.year, applied.month, applied.day)
+        HistorialRepo.upsert({
+            "pg_record_id":    r["record_id"],
+            "paciente_id":     r["patient_id"],
+            "patient_id":      r["patient_id"],
+            "fecha_aplicacion": applied,
+            "anio_mes":        applied.strftime("%Y-%m") if applied else None,
+            "vacuna_nombre":   r["vaccine_name"],
+            "clinica_nombre":  r["clinic_name"],
+            "tuvo_reaccion":   bool(r.get("had_reaction")),
+            "edad":            r.get("age"),
+        })
+    except Exception as e:
+        logger.warning("MongoDB sync (record %s) omitido: %s", record_id, e)
+
+
+def _sync_all_to_mongo():
+    """Bulk-sincroniza todos los registros de vacunación a MongoDB."""
+    try:
+        from mongo import HistorialRepo
+        conn, should_close = _get_conn()
+        rows = []
+        try:
+            _safe_rollback(conn)
+            with conn.cursor() as cur:
+                cur.execute("""
+                    SELECT vr.record_id,
+                           vr.patient_id,
+                           vr.applied_date,
+                           vr.had_reaction,
+                           v.name  AS vaccine_name,
+                           c.name  AS clinic_name,
+                           DATE_PART('year', AGE(CURRENT_DATE, p.birth_date))::INT AS age
+                    FROM vaccination_records vr
+                    JOIN patients p ON p.patient_id = vr.patient_id
+                    JOIN vaccines v ON v.vaccine_id  = vr.vaccine_id
+                    JOIN clinics  c ON c.clinic_id   = vr.clinic_id
+                """)
+                rows = [dict(r) for r in cur.fetchall()]
+            conn.commit()
+        except Exception as e:
+            _safe_rollback(conn)
+            logger.error("Error leyendo registros para sync MongoDB: %s", e)
+        finally:
+            if should_close and not _conn_is_closed(conn):
+                conn.close()
+
+        from datetime import datetime, date
+        synced = 0
+        for r in rows:
+            applied = r["applied_date"]
+            if isinstance(applied, date) and not isinstance(applied, datetime):
+                applied = datetime(applied.year, applied.month, applied.day)
+            if HistorialRepo.upsert({
+                "pg_record_id":    r["record_id"],
+                "paciente_id":     r["patient_id"],
+                "patient_id":      r["patient_id"],
+                "fecha_aplicacion": applied,
+                "anio_mes":        applied.strftime("%Y-%m") if applied else None,
+                "vacuna_nombre":   r["vaccine_name"],
+                "clinica_nombre":  r["clinic_name"],
+                "tuvo_reaccion":   bool(r.get("had_reaction")),
+                "edad":            r.get("age"),
+            }):
+                synced += 1
+        logger.info("MongoDB bulk sync: %d/%d registros sincronizados.", synced, len(rows))
+        return synced
+    except Exception as e:
+        logger.warning("MongoDB bulk sync omitido: %s", e)
+        return 0
+
+
+# =============================================================================
 # CLI
 # =============================================================================
 
@@ -5291,6 +5416,8 @@ def cli_init_database():
     """Inicializa la base de datos. Usar antes de `flask run` si aplica."""
     from db_init import init_database
     init_database()
+    n = _sync_all_to_mongo()
+    print(f"MongoDB: {n} registro(s) de vacunación sincronizados.")
 
 
 if __name__ == "__main__":
