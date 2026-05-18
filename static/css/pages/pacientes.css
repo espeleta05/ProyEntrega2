@@ -413,3 +413,33 @@
     font-size: var(--md-font-size-body-md, 0.95rem);
     margin: 0;
 }
+
+/* ── Allergy chips en modal de edición ── */
+.ep-allergy-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 4px;
+}
+.ep-allergy-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 10px;
+    border: 1px solid var(--md-outline-variant, #c4c7c5);
+    border-radius: 20px;
+    cursor: pointer;
+    font-size: .82rem;
+    color: var(--md-on-surface-variant, #49454f);
+    transition: background .15s, border-color .15s;
+    user-select: none;
+}
+.ep-allergy-chip:has(input:checked) {
+    background: var(--md-primary-container, #d0e4ff);
+    border-color: var(--md-primary, #005cbb);
+    color: var(--md-on-primary-container, #001d36);
+    font-weight: 500;
+}
+.ep-allergy-chip input[type="checkbox"] {
+    display: none;
+}

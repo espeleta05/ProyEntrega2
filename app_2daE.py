@@ -1967,6 +1967,13 @@ def api_patient_detail(id):
                 WHERE p.patient_id = %s AND p.is_active = TRUE
             """, (id,))
             row = cur.fetchone()
+            allergy_ids = []
+            if row:
+                cur.execute(
+                    "SELECT allergy_id FROM patient_allergies WHERE patient_id = %s",
+                    (id,)
+                )
+                allergy_ids = [r["allergy_id"] for r in cur.fetchall()]
         conn.commit()
     except Exception as ex:
         _safe_rollback(conn)
@@ -1982,7 +1989,29 @@ def api_patient_detail(id):
     data = dict(row)
     if data.get("birth_date"):
         data["birth_date"] = data["birth_date"].isoformat()
+    data["allergy_ids"] = allergy_ids
     return jsonify(data)
+
+
+@app.route("/api/allergies")
+def api_allergies():
+    if not _check_role("Administrador", "Recepcionista", "Medico", "Enfermero"):
+        return jsonify({"error": "Sin permisos"}), 403
+    conn, should_close = _get_conn()
+    _safe_rollback(conn)
+    try:
+        with conn.cursor() as cur:
+            cur.execute("SELECT allergy_id, name, allergy_type FROM allergies ORDER BY allergy_type, name")
+            rows = [dict(r) for r in cur.fetchall()]
+        conn.commit()
+    except Exception as ex:
+        _safe_rollback(conn)
+        logger.error("Error en /api/allergies: %s", ex)
+        return jsonify([]), 500
+    finally:
+        if should_close and not _conn_is_closed(conn):
+            conn.close()
+    return jsonify(rows)
 
 
 @app.route("/api/paciente/<int:patient_id>/dosis")
@@ -2295,6 +2324,22 @@ def update_patient(id):
                     ON CONFLICT (patient_id, guardian_id)
                     DO UPDATE SET is_primary = TRUE, has_custody = TRUE
                 """, (id, new_guardian_id))
+
+            # 4. Actualizar alergias (si se envió la clave)
+            if "allergy_ids" in payload:
+                allergy_ids = [int(x) for x in (payload.get("allergy_ids") or []) if x is not None]
+                if allergy_ids:
+                    cur.execute(
+                        "DELETE FROM patient_allergies WHERE patient_id = %s AND allergy_id != ALL(%s)",
+                        (id, allergy_ids)
+                    )
+                    for aid in allergy_ids:
+                        cur.execute(
+                            "INSERT INTO patient_allergies (patient_id, allergy_id) VALUES (%s, %s) ON CONFLICT DO NOTHING",
+                            (id, aid)
+                        )
+                else:
+                    cur.execute("DELETE FROM patient_allergies WHERE patient_id = %s", (id,))
 
         conn.commit()
     except Exception as ex:

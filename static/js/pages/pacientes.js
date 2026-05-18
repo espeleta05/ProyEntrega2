@@ -367,6 +367,34 @@ function _epShowGuardianPreview(g) {
   preview.style.display = 'flex';
 }
 
+let _allergyCatalog = null;
+
+async function _loadAllergyCatalog() {
+  if (_allergyCatalog) return _allergyCatalog;
+  try {
+    const res = await fetch('/api/allergies');
+    _allergyCatalog = res.ok ? await res.json() : [];
+  } catch { _allergyCatalog = []; }
+  return _allergyCatalog;
+}
+
+function _renderAllergyCheckboxes(selectedIds) {
+  const container = document.getElementById('ep-allergy-list');
+  if (!container) return;
+  const selSet = new Set((selectedIds || []).map(Number));
+  const allergies = _allergyCatalog || [];
+  if (!allergies.length) {
+    container.innerHTML = '<p style="font-size:.85rem;color:var(--md3-on-surface-variant)">Sin alergias en el catálogo.</p>';
+    return;
+  }
+  container.innerHTML = allergies.map(a => `
+    <label class="ep-allergy-chip">
+      <input type="checkbox" name="ep_allergy" value="${a.allergy_id}"${selSet.has(a.allergy_id) ? ' checked' : ''}>
+      <span>${a.name}</span>
+    </label>
+  `).join('');
+}
+
 async function openEditPatientModal(patientId) {
   const modal = document.getElementById('editPatientModal');
   if (!modal) return;
@@ -377,8 +405,11 @@ async function openEditPatientModal(patientId) {
 
   let patient;
   try {
-    const res = await fetch(`/api/patients/${patientId}`);
-    patient   = await res.json();
+    const [res, allergies] = await Promise.all([
+      fetch(`/api/patients/${patientId}`),
+      _loadAllergyCatalog(),
+    ]);
+    patient = await res.json();
     if (!res.ok) { alert(patient.error || 'No se pudo cargar el paciente'); closeEditPatientModal(); return; }
   } catch {
     alert('Error de conexión al cargar el paciente');
@@ -399,6 +430,9 @@ async function openEditPatientModal(patientId) {
       .find(o => o.value.toUpperCase() === (patient.blood_type || '').toUpperCase());
     bloodSel.value = opt ? opt.value : '';
   }
+
+  // Alergias
+  _renderAllergyCheckboxes(patient.allergy_ids || []);
 
   // NFC
   _epSetupNfc(patientId, patient.nfc_id || null);
@@ -483,15 +517,20 @@ document.getElementById('formEditPatient')?.addEventListener('submit', async e =
 
   const val = elId => document.getElementById(elId)?.value?.trim() || '';
 
+  const allergyIds = Array.from(
+    document.querySelectorAll('#ep-allergy-list input[name="ep_allergy"]:checked')
+  ).map(cb => parseInt(cb.value));
+
   const data = {
-    first_name:  val('ep_name')      || null,
-    last_name:   val('ep_lastname')  || null,
-    curp:        val('ep_curp')      || null,
-    birth_date:  val('ep_birthdate') || null,
-    blood_type:  val('ep_blood')     || null,
-    weight_kg:   val('ep_weight')    || null,
-    tutor_mode:  tutorMode,
-    guardian_id: guardianId,
+    first_name:   val('ep_name')      || null,
+    last_name:    val('ep_lastname')  || null,
+    curp:         val('ep_curp')      || null,
+    birth_date:   val('ep_birthdate') || null,
+    blood_type:   val('ep_blood')     || null,
+    weight_kg:    val('ep_weight')    || null,
+    allergy_ids:  allergyIds,
+    tutor_mode:   tutorMode,
+    guardian_id:  guardianId,
     tutor: tutorMode === 'new' ? {
       name:     val('ep_t_name'),
       lastname: val('ep_t_lastname'),

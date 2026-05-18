@@ -77,7 +77,7 @@ SELECT
     aps.application_site,
     c.name AS clinic_name
 FROM vaccination_records vr
-JOIN patients p ON p.patient_id = vr.patient_id
+JOIN patients p ON p.patient_id = vr.patient_id AND p.is_active = TRUE
 JOIN vaccines v ON v.vaccine_id = vr.vaccine_id
 JOIN workers w ON w.worker_id = vr.worker_id
 LEFT JOIN scheme_doses sd ON sd.dose_id = vr.scheme_dose_id
