@@ -3,6 +3,7 @@
 -- ============================================================
 CREATE DATABASE sistemavacunacion;
 CREATE USER vaccine_user WITH PASSWORD '666-999';
+\c sistemavacunacion
 
 GRANT CONNECT ON DATABASE sistemavacunacion TO vaccine_user;
 GRANT USAGE ON SCHEMA public TO vaccine_user;
@@ -230,7 +231,7 @@ CREATE TABLE workers (
     curp           CHAR(18)      UNIQUE,
     address_id     INT           REFERENCES addresses(address_id),
     birth_date     DATE,
-    hire_date      DATE,
+    hire_date      DATE
 );
 
 ALTER TABLE workers ADD COLUMN created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
@@ -367,7 +368,7 @@ CREATE TABLE appointments (
     clinic_id            INT         NOT NULL REFERENCES clinics(clinic_id),
     area_id              INT         REFERENCES clinic_areas(area_id),
     worker_id            INT         REFERENCES workers(worker_id),
-    patient_schedule_id  INT         REFERENCES patient_vaccine_schedule(schedule_id),
+    patient_schedule_id  INT,
     scheduled_at         TIMESTAMP   NOT NULL,
     duration_min         SMALLINT    DEFAULT 20,
     reason               TEXT,
@@ -409,7 +410,7 @@ CREATE TABLE patient_vaccine_schedule (
     UNIQUE (patient_id, scheme_dose_id)
 );
 
-ALTER TABLE patient_vaccine_schedule ADD COLUMN updated_at TIMESTAMP DEFAULT NOW();
+ALTER TABLE appointments ADD CONSTRAINT fk_appt_pvs FOREIGN KEY (patient_schedule_id) REFERENCES patient_vaccine_schedule(schedule_id);
 
 CREATE TABLE vaccination_records (
     record_id            SERIAL   PRIMARY KEY,
@@ -495,7 +496,6 @@ CREATE TABLE scheme_completion_alerts (
     created_at     TIMESTAMP   DEFAULT NOW()
 );
 
-ALTER TABLE scheme_completion_alerts ADD COLUMN schedule_id INT NOT NULL REFERENCES patient_vaccine_schedule(schedule_id);
 
 CREATE TABLE supply_catalog (
     supply_id  SERIAL PRIMARY KEY,

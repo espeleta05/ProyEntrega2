@@ -100,7 +100,11 @@ sudo systemctl restart postgresql
 
 sudo -u postgres psql -c "ALTER USER postgres PASSWORD 'lt9128221d24';"
 sudo -u postgres psql -c "DROP DATABASE IF EXISTS sistemavacunacion;"
-sudo -u postgres psql -c "DROP USER IF EXISTS vaccine_user;"
+# Revocar objetos de vaccine_user en todas las BDs antes de borrar el rol
+for _db in $(sudo -u postgres psql -tAc "SELECT datname FROM pg_database WHERE datistemplate = false;" 2>/dev/null); do
+    sudo -u postgres psql -d "$_db" -c "REASSIGN OWNED BY vaccine_user TO postgres; DROP OWNED BY vaccine_user;" 2>/dev/null || true
+done
+sudo -u postgres psql -c "DROP USER IF EXISTS vaccine_user;" 2>/dev/null || true
 
 export PGPASSWORD="lt9128221d24"
 PG="psql -U postgres -h localhost"
