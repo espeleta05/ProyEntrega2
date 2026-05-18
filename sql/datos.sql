@@ -106,7 +106,7 @@ INSERT INTO clinics (clinic_id, name, address_id, phone, institution_type, is_ac
 (10, 'Clínica Immunicare Obispado',        10, '81-2000-0110', 'SSA', TRUE);
 
 -- CLINIC AREA TYPES
-INSERT INTO clinic_area_types (code, area_type) VALUES
+INSERT INTO clinic_area_types (code, name) VALUES
 ('WAIT', 'Sala de Espera'),
 ('VACC', 'Área de Vacunación'),
 ('CONS', 'Consultorio'),
