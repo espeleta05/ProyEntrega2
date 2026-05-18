@@ -225,6 +225,7 @@ CREATE TABLE workers (
     address_id     INT           REFERENCES addresses(address_id),
     birth_date     DATE,
     hire_date      DATE,
+    is_active      BOOLEAN       NOT NULL DEFAULT TRUE
 );
 
 CREATE TABLE worker_professional (
