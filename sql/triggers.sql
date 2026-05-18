@@ -147,16 +147,20 @@ EXECUTE FUNCTION fn_set_updated_at();
 CREATE OR REPLACE FUNCTION fn_audit_patient_changes()
 RETURNS TRIGGER LANGUAGE plpgsql AS $$
 BEGIN
-    IF TG_OP = 'INSERT' THEN
-        INSERT INTO audit_log (table_name, action, record_id, changed_at)
-        VALUES ('patients', 'INSERT', NEW.patient_id, NOW());
-    ELSIF TG_OP = 'UPDATE' THEN
-        INSERT INTO audit_log (table_name, action, record_id, changed_at)
-        VALUES ('patients', 'UPDATE', NEW.patient_id, NOW());
-    ELSIF TG_OP = 'DELETE' THEN
-        INSERT INTO audit_log (table_name, action, record_id, changed_at)
-        VALUES ('patients', 'DELETE', OLD.patient_id, NOW());
-    END IF;
+    BEGIN
+        IF TG_OP = 'INSERT' THEN
+            INSERT INTO audit_log (table_name, action, record_id, changed_at)
+            VALUES ('patients', 'INSERT', NEW.patient_id, NOW());
+        ELSIF TG_OP = 'UPDATE' THEN
+            INSERT INTO audit_log (table_name, action, record_id, changed_at)
+            VALUES ('patients', 'UPDATE', NEW.patient_id, NOW());
+        ELSIF TG_OP = 'DELETE' THEN
+            INSERT INTO audit_log (table_name, action, record_id, changed_at)
+            VALUES ('patients', 'DELETE', OLD.patient_id, NOW());
+        END IF;
+    EXCEPTION WHEN OTHERS THEN
+        NULL;
+    END;
     RETURN COALESCE(NEW, OLD);
 END;
 $$;
@@ -172,16 +176,20 @@ EXECUTE FUNCTION fn_audit_patient_changes();
 CREATE OR REPLACE FUNCTION fn_audit_vaccination_records()
 RETURNS TRIGGER LANGUAGE plpgsql AS $$
 BEGIN
-    IF TG_OP = 'INSERT' THEN
-        INSERT INTO audit_log (table_name, action, record_id, changed_at)
-        VALUES ('vaccination_records', 'INSERT', NEW.record_id, NOW());
-    ELSIF TG_OP = 'UPDATE' THEN
-        INSERT INTO audit_log (table_name, action, record_id, changed_at)
-        VALUES ('vaccination_records', 'UPDATE', NEW.record_id, NOW());
-    ELSIF TG_OP = 'DELETE' THEN
-        INSERT INTO audit_log (table_name, action, record_id, changed_at)
-        VALUES ('vaccination_records', 'DELETE', OLD.record_id, NOW());
-    END IF;
+    BEGIN
+        IF TG_OP = 'INSERT' THEN
+            INSERT INTO audit_log (table_name, action, record_id, changed_at)
+            VALUES ('vaccination_records', 'INSERT', NEW.record_id, NOW());
+        ELSIF TG_OP = 'UPDATE' THEN
+            INSERT INTO audit_log (table_name, action, record_id, changed_at)
+            VALUES ('vaccination_records', 'UPDATE', NEW.record_id, NOW());
+        ELSIF TG_OP = 'DELETE' THEN
+            INSERT INTO audit_log (table_name, action, record_id, changed_at)
+            VALUES ('vaccination_records', 'DELETE', OLD.record_id, NOW());
+        END IF;
+    EXCEPTION WHEN OTHERS THEN
+        NULL;
+    END;
     RETURN COALESCE(NEW, OLD);
 END;
 $$;
@@ -197,16 +205,20 @@ EXECUTE FUNCTION fn_audit_vaccination_records();
 CREATE OR REPLACE FUNCTION fn_audit_worker_changes()
 RETURNS TRIGGER LANGUAGE plpgsql AS $$
 BEGIN
-    IF TG_OP = 'INSERT' THEN
-        INSERT INTO audit_log (table_name, action, record_id, changed_at)
-        VALUES ('workers', 'INSERT', NEW.worker_id, NOW());
-    ELSIF TG_OP = 'UPDATE' THEN
-        INSERT INTO audit_log (table_name, action, record_id, changed_at)
-        VALUES ('workers', 'UPDATE', NEW.worker_id, NOW());
-    ELSIF TG_OP = 'DELETE' THEN
-        INSERT INTO audit_log (table_name, action, record_id, changed_at)
-        VALUES ('workers', 'DELETE', OLD.worker_id, NOW());
-    END IF;
+    BEGIN
+        IF TG_OP = 'INSERT' THEN
+            INSERT INTO audit_log (table_name, action, record_id, changed_at)
+            VALUES ('workers', 'INSERT', NEW.worker_id, NOW());
+        ELSIF TG_OP = 'UPDATE' THEN
+            INSERT INTO audit_log (table_name, action, record_id, changed_at)
+            VALUES ('workers', 'UPDATE', NEW.worker_id, NOW());
+        ELSIF TG_OP = 'DELETE' THEN
+            INSERT INTO audit_log (table_name, action, record_id, changed_at)
+            VALUES ('workers', 'DELETE', OLD.worker_id, NOW());
+        END IF;
+    EXCEPTION WHEN OTHERS THEN
+        NULL;
+    END;
     RETURN COALESCE(NEW, OLD);
 END;
 $$;
