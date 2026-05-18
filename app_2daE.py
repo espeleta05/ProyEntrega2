@@ -3935,7 +3935,8 @@ def clinicas():
                     COALESCE(mu.name || ', ' || st.name, '—') AS address_str
                 FROM clinics c
                 LEFT JOIN addresses      ad  ON ad.address_id      = c.address_id
-                LEFT JOIN municipalities mu  ON mu.municipality_id = ad.municipality_id
+                LEFT JOIN neighborhoods  nb  ON nb.neighborhood_id = ad.neighborhood_id
+                LEFT JOIN municipalities mu  ON mu.municipality_id = nb.municipality_id
                 LEFT JOIN states         st  ON st.state_id        = mu.state_id
                 WHERE c.is_active = TRUE
                 ORDER BY c.name
