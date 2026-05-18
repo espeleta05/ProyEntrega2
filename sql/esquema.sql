@@ -18,7 +18,8 @@ BEGIN
     END LOOP;
 END $$;
 
---  MÓDULO: ADDRESSES
+---- MÓDULO: ADDRESSES
+
 CREATE TABLE countries (
     country_id   SERIAL PRIMARY KEY,
     name         VARCHAR(100) NOT NULL,
@@ -61,7 +62,7 @@ CREATE TABLE addresses (
 );
 
 
---  MÓDULO: CLINICS
+---- MÓDULO: CLINICS
 CREATE TABLE clinics (
     clinic_id         SERIAL PRIMARY KEY,
     name              VARCHAR(200) NOT NULL,
@@ -107,7 +108,7 @@ CREATE TABLE area_equipment (
 );
 
 
---  MÓDULO: PATIENTS
+----  MÓDULO: PATIENTS
 CREATE TABLE blood_types (
     blood_type_id  SERIAL PRIMARY KEY,
     blood_type     VARCHAR(5) NOT NULL UNIQUE
@@ -131,14 +132,6 @@ CREATE TABLE patients (
     updated_at      TIMESTAMP
 );
 
--- Migración para BD existente:
--- ALTER TABLE patients ADD COLUMN IF NOT EXISTS photo VARCHAR(255);
--- ALTER TABLE patients ADD COLUMN IF NOT EXISTS rfc  VARCHAR(13);
--- ALTER TABLE appointments ADD COLUMN IF NOT EXISTS tutor_accepted BOOLEAN DEFAULT NULL;
--- ALTER TABLE appointments DROP CONSTRAINT IF EXISTS appointments_appointment_status_check;
--- ALTER TABLE appointments ADD CONSTRAINT appointments_appointment_status_check
---     CHECK (appointment_status IN ('Pendiente confirmación','Programada','Completada','Cancelada','No Show'));
-
 CREATE TABLE allergies (
     allergy_id    SERIAL PRIMARY KEY,
     name          VARCHAR(100) NOT NULL UNIQUE,
@@ -155,7 +148,7 @@ CREATE TABLE patient_allergies (
 );
 
 
---  MÓDULO: GUARDIANS
+----  MÓDULO: GUARDIANS
 CREATE TABLE marital_status (
     marital_status_id  SERIAL PRIMARY KEY,
     marital_status     VARCHAR(50) NOT NULL UNIQUE CHECK (marital_status IN ('Soltero','Casado','Divorciado','Viudo'))
@@ -204,7 +197,7 @@ CREATE TABLE patient_guardian_relations (
 );
 
 
---  MÓDULO: WORKERS
+----  MÓDULO: WORKERS
 CREATE TABLE roles (
     role_id      SERIAL PRIMARY KEY,
     name         VARCHAR(100) NOT NULL UNIQUE CHECK (name IN ('Administrador','Enfermero','Medico','Recepcionista','Almacen', 'Tutor')),
@@ -231,10 +224,9 @@ CREATE TABLE workers (
     address_id     INT           REFERENCES addresses(address_id),
     birth_date     DATE,
     hire_date      DATE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    is_active   BOOLEAN   NOT NULL DEFAULT TRUE
 );
-
-ALTER TABLE workers ADD COLUMN created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
-ALTER TABLE workers ADD COLUMN IF NOT EXISTS is_active   BOOLEAN   NOT NULL DEFAULT TRUE;
 
 CREATE TABLE worker_professional (
     worker_id           INT NOT NULL REFERENCES workers(worker_id),
@@ -281,7 +273,8 @@ CREATE TABLE worker_schedules (
     shift_type   VARCHAR(30)
 );
 
--- LOGIN
+
+---- LOGIN
 CREATE TABLE users (
     user_id        SERIAL PRIMARY KEY,
     worker_id      INT UNIQUE REFERENCES workers(worker_id),
@@ -302,7 +295,7 @@ CREATE TABLE guardian_accounts (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
---  MÓDULO: VACCINES
+----  MÓDULO: VACCINES / OFFICIAL SCHEME
 CREATE TABLE manufacturers (
     manufacturer_id  SERIAL PRIMARY KEY,
     name             VARCHAR(200) NOT NULL UNIQUE,
@@ -333,13 +326,37 @@ CREATE TABLE vaccine_lots (
     quantity_received   INT          NOT NULL,
     quantity_available  INT          NOT NULL,
     expiration_date     DATE         NOT NULL,
-    received_date       DATE
+    received_date       DATE,
+    is_active BOOLEAN NOT NULL DEFAULT TRUE,
+    lot_status VARCHAR(30) NOT NULL DEFAULT 'Disponible'
+    CHECK (lot_status IN ('Disponible', 'Agotado', 'Caducado', 'Bloqueado', 'Retirado'))
 );
 
-ALTER TABLE vaccine_lots ADD COLUMN is_active BOOLEAN NOT NULL DEFAULT TRUE;
+CREATE TABLE inventory_transfers (
+    transfer_id     SERIAL PRIMARY KEY,
+    lot_id          INT         NOT NULL REFERENCES vaccine_lots(lot_id),
+    vaccine_id      INT         NOT NULL REFERENCES vaccines(vaccine_id),
+    from_clinic_id  INT         NOT NULL REFERENCES clinics(clinic_id),
+    to_clinic_id    INT         NOT NULL REFERENCES clinics(clinic_id),
+    quantity        INT         NOT NULL CHECK (quantity > 0),
+    transfer_status VARCHAR(20) NOT NULL DEFAULT 'Pendiente'
+                    CHECK (transfer_status IN (
+                        'Pendiente',
+                        'En_Transito',
+                        'Recibido',
+                        'Cancelado',
+                        'Rechazado'
+                    )),
+    requested_by    INT         NOT NULL REFERENCES workers(worker_id),
+    approved_by     INT                  REFERENCES workers(worker_id),
+    reason          TEXT,
+    notes           TEXT,
+    requested_at    TIMESTAMP   NOT NULL DEFAULT NOW(),
+    resolved_at     TIMESTAMP,
+    CONSTRAINT chk_transfer_different_clinics CHECK (from_clinic_id <> to_clinic_id)
+);
 
 
---  MÓDULO: OFFICIAL SCHEME
 CREATE TABLE vaccination_scheme (
     scheme_id     SERIAL PRIMARY KEY,
     name          VARCHAR(200) NOT NULL,
@@ -360,7 +377,39 @@ CREATE TABLE scheme_doses (
 );
 
 
---  MÓDULO: APPOINTMENTS
+
+----  MÓDULO: CLINICAL RECORDS
+CREATE TABLE vaccination_records (
+    record_id            SERIAL   PRIMARY KEY,
+    patient_id           INT      NOT NULL REFERENCES patients(patient_id),
+    vaccine_id           INT      NOT NULL REFERENCES vaccines(vaccine_id),
+    worker_id            INT      NOT NULL REFERENCES workers(worker_id),
+    clinic_id            INT      NOT NULL REFERENCES clinics(clinic_id),
+    lot_id               INT      REFERENCES vaccine_lots(lot_id),
+    scheme_dose_id       INT      REFERENCES scheme_doses(dose_id),
+    applied_date         DATE     NOT NULL,
+    application_site_id  INT      REFERENCES application_sites(application_site_id),
+    appointment_id       INT      REFERENCES appointments(appointment_id),
+    -- Una cita puede tener múltiples registros de vacunación (varias vacunas por cita)
+    patient_temp_c       NUMERIC(4,1),
+    had_reaction         BOOLEAN  NOT NULL DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    patient_schedule_id INT REFERENCES patient_vaccine_schedule(schedule_id),
+    visit_id INT REFERENCES clinic_visits(visit_id)
+);
+
+
+CREATE TABLE post_vaccine_reactions (
+    reaction_id         SERIAL   PRIMARY KEY,
+    record_id           INT      NOT NULL REFERENCES vaccination_records(record_id),
+    reported_by         INT      REFERENCES workers(worker_id),
+    symptom             TEXT,
+    severity            VARCHAR(30),
+    onset_hours         SMALLINT,
+    treatment           TEXT,
+    notified_authority  BOOLEAN  NOT NULL DEFAULT FALSE
+);
+
 CREATE TABLE appointments (
     appointment_id       SERIAL      PRIMARY KEY,
     patient_id           INT         NOT NULL REFERENCES patients(patient_id),
@@ -391,7 +440,6 @@ CREATE TABLE appointments (
 );
 
 
---  MÓDULO: VACCINATION RECORD
 CREATE TABLE application_sites (
     application_site_id  SERIAL PRIMARY KEY,
     application_site     VARCHAR(50) NOT NULL UNIQUE
@@ -409,43 +457,36 @@ CREATE TABLE patient_vaccine_schedule (
     UNIQUE (patient_id, scheme_dose_id)
 );
 
-ALTER TABLE patient_vaccine_schedule ADD COLUMN updated_at TIMESTAMP DEFAULT NOW();
+CREATE TABLE patient_clinic_visits (
+    visit_id                SERIAL          PRIMARY KEY,
+    patient_id              INT             NOT NULL REFERENCES patients(patient_id),
+    clinic_id               INT             NOT NULL REFERENCES clinics(clinic_id),
+    appointment_id          INT             UNIQUE REFERENCES appointments(appointment_id),
 
-CREATE TABLE vaccination_records (
-    record_id            SERIAL   PRIMARY KEY,
-    patient_id           INT      NOT NULL REFERENCES patients(patient_id),
-    vaccine_id           INT      NOT NULL REFERENCES vaccines(vaccine_id),
-    worker_id            INT      NOT NULL REFERENCES workers(worker_id),
-    clinic_id            INT      NOT NULL REFERENCES clinics(clinic_id),
-    lot_id               INT      REFERENCES vaccine_lots(lot_id),
-    scheme_dose_id       INT      REFERENCES scheme_doses(dose_id),
-    applied_date         DATE     NOT NULL,
-    application_site_id  INT      REFERENCES application_sites(application_site_id),
-    appointment_id       INT      REFERENCES appointments(appointment_id),
-    -- Una cita puede tener múltiples registros de vacunación (varias vacunas por cita)
-    patient_temp_c       NUMERIC(4,1),
-    had_reaction         BOOLEAN  NOT NULL DEFAULT FALSE
+    visit_status            visit_status    NOT NULL DEFAULT 'En recepcion',
+    current_area_id         INT             REFERENCES clinic_areas(area_id),
+    assigned_worker_id      INT             REFERENCES workers(worker_id),
+
+    checked_in_at           TIMESTAMP       NOT NULL DEFAULT NOW(),
+    waiting_since           TIMESTAMP,
+    consultation_start      TIMESTAMP,
+    vaccination_start       TIMESTAMP,
+    checked_out_at          TIMESTAMP,
+
+    checkin_by_worker_id    INT             NOT NULL REFERENCES workers(worker_id),
+    checkout_by_worker_id   INT             REFERENCES workers(worker_id),
+    checkin_nfc_scan_id     INT             REFERENCES nfc_scan_events(scan_event_id),
+    checkout_nfc_scan_id    INT             REFERENCES nfc_scan_events(scan_event_id),
+
+    visit_type              VARCHAR(20)     NOT NULL DEFAULT 'Programada'
+                                            CHECK (visit_type IN ('Programada','Espontanea','Urgencia')),
+    visit_notes             TEXT,
+    created_at              TIMESTAMP       NOT NULL DEFAULT NOW(),
+    updated_at              TIMESTAMP       NOT NULL DEFAULT NOW()
 );
 
 
-ALTER TABLE vaccination_records ADD COLUMN created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
-
-ALTER TABLE vaccination_records ADD COLUMN patient_schedule_id INT REFERENCES patient_vaccine_schedule(schedule_id);
-
-
-CREATE TABLE post_vaccine_reactions (
-    reaction_id         SERIAL   PRIMARY KEY,
-    record_id           INT      NOT NULL REFERENCES vaccination_records(record_id),
-    reported_by         INT      REFERENCES workers(worker_id),
-    symptom             TEXT,
-    severity            VARCHAR(30),
-    onset_hours         SMALLINT,
-    treatment           TEXT,
-    notified_authority  BOOLEAN  NOT NULL DEFAULT FALSE
-);
-
-
---  MÓDULO: NFC
+---- MÓDULO: NFC
 CREATE TABLE nfc_cards (
     nfc_card_id      SERIAL PRIMARY KEY,
     patient_id       INT          NOT NULL REFERENCES patients(patient_id),
@@ -478,8 +519,17 @@ CREATE TABLE nfc_scan_events (
     scanned_at        TIMESTAMP    NOT NULL,
     action_triggered  VARCHAR(50),
     device_id         VARCHAR(30)  REFERENCES nfc_devices(device_id),
-    nfc_scan_result   VARCHAR(100)
+    nfc_scan_result   VARCHAR(100),
+    visit_id       INT REFERENCES patient_clinic_visits(visit_id),
+    scan_context   VARCHAR(30)
+                                            CHECK (scan_context IN (
+                                                'checkin','area_change','medical_open',
+                                                'vaccination_start','checkout','info_only'
+                                            )),
+    resolved_action VARCHAR(50),
+    error_reason   TEXT
 );
+
 
 --  MÓDULO: ALERTS AND AUDITS
 CREATE TABLE scheme_completion_alerts (
@@ -492,10 +542,9 @@ CREATE TABLE scheme_completion_alerts (
                                CHECK (status IN ('Pendiente','Enviada','Leida', 'Ignorada')),
     notified_at    TIMESTAMP,
     read_at        TIMESTAMP,
-    created_at     TIMESTAMP   DEFAULT NOW()
+    created_at     TIMESTAMP   DEFAULT NOW(),
+    schedule_id INT NOT NULL REFERENCES patient_vaccine_schedule(schedule_id)
 );
-
-ALTER TABLE scheme_completion_alerts ADD COLUMN schedule_id INT NOT NULL REFERENCES patient_vaccine_schedule(schedule_id);
 
 CREATE TABLE supply_catalog (
     supply_id  SERIAL PRIMARY KEY,
@@ -512,6 +561,32 @@ CREATE TABLE clinic_inventory (
     min_stock     INT     NOT NULL DEFAULT 0,
     last_updated  DATE,
     UNIQUE(clinic_id, supply_id)
+);
+
+CREATE TABLE IF NOT EXISTS inventory_movements (
+    movement_id     SERIAL PRIMARY KEY,
+    lot_id          INT          NOT NULL REFERENCES vaccine_lots(lot_id),
+    vaccine_id      INT          NOT NULL REFERENCES vaccines(vaccine_id),
+    clinic_id       INT          NOT NULL REFERENCES clinics(clinic_id),
+    worker_id       INT          REFERENCES workers(worker_id),
+    movement_type   VARCHAR(30)  NOT NULL
+                    CHECK (movement_type IN (
+                        'Entrada',
+                        'Salida_Aplicacion',
+                        'Salida_Merma',
+                        'Salida_Caducidad',
+                        'Ajuste_Positivo',
+                        'Ajuste_Negativo',
+                        'Transferencia_Salida',
+                        'Transferencia_Entrada'
+                    )),
+    quantity        INT          NOT NULL CHECK (quantity > 0),
+    quantity_before INT          NOT NULL,
+    quantity_after  INT          NOT NULL,
+    reference_id    INT,
+    reference_type  VARCHAR(30)  CHECK (reference_type IN ('vaccination_record', 'transfer', 'manual')),
+    reason          TEXT,
+    created_at      TIMESTAMP    NOT NULL DEFAULT NOW()
 );
 
 
@@ -542,77 +617,13 @@ CREATE INDEX idx_appointments_patient      ON appointments(patient_id, scheduled
 CREATE INDEX idx_appointments_status_date  ON appointments(appointment_status, scheduled_at) WHERE appointment_status NOT IN ('Cancelada','No Show','Completada');
 CREATE INDEX idx_appointments_worker_date  ON appointments(worker_id, scheduled_at);
 CREATE INDEX idx_appointments_clinic_date  ON appointments(clinic_id, scheduled_at::DATE);
-
 CREATE INDEX idx_alerts_patient_status     ON scheme_completion_alerts(patient_id, status);
 CREATE INDEX idx_alerts_due_date           ON scheme_completion_alerts(due_date, status) WHERE status = 'Pendiente';
-
 CREATE INDEX idx_vaccination_records_schedule ON vaccination_records(patient_schedule_id);
 CREATE INDEX idx_patients_active           ON patients(patient_id) WHERE is_active = TRUE;
-
--- ============================================================
---  MIGRACIÓN: eliminar beacons/scan_logs, nfc_token → nfc_id
--- ============================================================
-DROP TABLE IF EXISTS scan_logs;
-DROP TABLE IF EXISTS beacons;
-
--- ============================================================
--- MIGRACIÓN: eliminar UNIQUE de appointment_id en vaccination_records
--- Permite múltiples vacunas por cita (flujo correcto)
--- ============================================================
-DO $$
-BEGIN
-    IF EXISTS (
-        SELECT 1 FROM pg_constraint
-        WHERE conrelid = 'vaccination_records'::regclass
-          AND contype = 'u'
-          AND conname ILIKE '%appointment%'
-    ) THEN
-        EXECUTE (
-            SELECT 'ALTER TABLE vaccination_records DROP CONSTRAINT ' || conname
-            FROM pg_constraint
-            WHERE conrelid = 'vaccination_records'::regclass
-              AND contype = 'u'
-              AND conname ILIKE '%appointment%'
-            LIMIT 1
-        );
-    END IF;
-END;
-$$;
-
--- ============================================================
--- FASE 2 — Transferencias entre clínicas
--- ============================================================
-
-CREATE TABLE IF NOT EXISTS inventory_transfers (
-    transfer_id     SERIAL PRIMARY KEY,
-    lot_id          INT         NOT NULL REFERENCES vaccine_lots(lot_id),
-    vaccine_id      INT         NOT NULL REFERENCES vaccines(vaccine_id),
-    from_clinic_id  INT         NOT NULL REFERENCES clinics(clinic_id),
-    to_clinic_id    INT         NOT NULL REFERENCES clinics(clinic_id),
-    quantity        INT         NOT NULL CHECK (quantity > 0),
-    transfer_status VARCHAR(20) NOT NULL DEFAULT 'Pendiente'
-                    CHECK (transfer_status IN (
-                        'Pendiente',
-                        'En_Transito',
-                        'Recibido',
-                        'Cancelado',
-                        'Rechazado'
-                    )),
-    requested_by    INT         NOT NULL REFERENCES workers(worker_id),
-    approved_by     INT                  REFERENCES workers(worker_id),
-    reason          TEXT,
-    notes           TEXT,
-    requested_at    TIMESTAMP   NOT NULL DEFAULT NOW(),
-    resolved_at     TIMESTAMP,
-    CONSTRAINT chk_transfer_different_clinics CHECK (from_clinic_id <> to_clinic_id)
-);
-
--- Índices de rendimiento para inventory_transfers
 CREATE INDEX IF NOT EXISTS idx_transfers_lot        ON inventory_transfers(lot_id);
 CREATE INDEX IF NOT EXISTS idx_transfers_from       ON inventory_transfers(from_clinic_id);
 CREATE INDEX IF NOT EXISTS idx_transfers_to         ON inventory_transfers(to_clinic_id);
 CREATE INDEX IF NOT EXISTS idx_transfers_status     ON inventory_transfers(transfer_status);
 CREATE INDEX IF NOT EXISTS idx_transfers_requested  ON inventory_transfers(requested_at DESC);
 CREATE INDEX IF NOT EXISTS idx_transfers_requester  ON inventory_transfers(requested_by);
-
--- nfc_id ya definido en CREATE TABLE patients (migración: renombrado de nfc_token)
