@@ -833,7 +833,53 @@ INSERT INTO post_vaccine_reactions (reaction_id, record_id, reported_by, symptom
     (11,11, 6, 2, 6, '2025-03-12 08:58', 'Registrar_Llegada', 'TABLET-REC-02',  'OK'),
     (12,12, 6, 2, 6, '2025-03-08 10:15', 'Registrar_Llegada', 'TABLET-REC-02',  'OK');
 
--- scheme_completion_alerts se genera dinámicamente por el sistema; omitido en datos semilla.
+-- PATIENT VACCINE SCHEDULE
+-- Genera una fila por cada paciente×dosis; el status se deriva de vaccination_records
+INSERT INTO patient_vaccine_schedule (patient_id, scheme_dose_id, due_date, status)
+SELECT
+    p.patient_id,
+    sd.dose_id,
+    (p.birth_date + (sd.ideal_age_months || ' months')::INTERVAL)::DATE AS due_date,
+    CASE
+        WHEN EXISTS (
+            SELECT 1 FROM vaccination_records vr
+            WHERE vr.patient_id = p.patient_id AND vr.scheme_dose_id = sd.dose_id
+        ) THEN 'Aplicada'
+        WHEN (p.birth_date + (sd.ideal_age_months || ' months')::INTERVAL)::DATE < CURRENT_DATE
+        THEN 'Atrasada'
+        ELSE 'Pendiente'
+    END
+FROM patients p
+CROSS JOIN scheme_doses sd
+WHERE p.is_active != FALSE
+ON CONFLICT DO NOTHING;
+
+-- CITAS PROGRAMADAS (hoy y próximos días para demostración del dashboard)
+-- Worker 3 (Mario, área 3) y Worker 2 (Lucía, área 2) — timestamps distintos para no violar UNIQUE
+INSERT INTO appointments
+(appointment_id, patient_id, clinic_id, area_id, worker_id,
+ patient_schedule_id, scheduled_at, duration_min, reason,
+ appointment_status, created_by_role, created_by_worker_id)
+VALUES
+(16, 1,  1, 3, 3, NULL, CURRENT_DATE + INTERVAL '10 hours',          20, 'Influenza anual',          'Programada', 'Administrador', 1),
+(17, 5,  1, 2, 2, NULL, CURRENT_DATE + INTERVAL '10 hours 30 minutes',20, 'Pentavalente 2da dosis',  'Programada', 'Administrador', 1),
+(18, 10, 1, 3, 3, NULL, CURRENT_DATE + INTERVAL '11 hours',          20, 'Neumococo 1ra dosis',      'Confirmada', 'Administrador', 1),
+(19, 3,  1, 2, 2, NULL, CURRENT_DATE + INTERVAL '11 hours 30 minutes',20, 'Rotavirus 3ra dosis',     'Programada', 'Administrador', 1),
+(20, 6,  1, 3, 3, NULL, CURRENT_DATE + INTERVAL '12 hours',          20, 'SRP 1ra dosis',            'Programada', 'Administrador', 1),
+(21, 11, 1, 3, 3, NULL, CURRENT_DATE + INTERVAL '1 day 9 hours',     20, 'Pentavalente 3ra dosis',   'Programada', 'Administrador', 1),
+(22, 7,  1, 2, 2, NULL, CURRENT_DATE + INTERVAL '1 day 10 hours',    20, 'Hep B 2da dosis',          'Confirmada', 'Administrador', 1),
+(23, 14, 1, 3, 3, NULL, CURRENT_DATE + INTERVAL '2 days 9 hours',    20, 'SRP refuerzo 6 años',      'Programada', 'Administrador', 1);
+
+-- Corregir secuencias tras inserts con IDs explícitos
+SELECT SETVAL('appointments_appointment_id_seq',
+              (SELECT MAX(appointment_id) FROM appointments));
+SELECT SETVAL('vaccination_records_record_id_seq',
+              (SELECT MAX(record_id) FROM vaccination_records));
+
+-- ALERTAS: generar alertas de dosis atrasadas y próximas (requiere patient_vaccine_schedule)
+BEGIN;
+CALL sp_generate_alerts('cur_seed_alerts');
+COMMIT;
 
     INSERT INTO supply_catalog (supply_id, name, unit, category) VALUES
     (1,  'Jeringa 0.5ml 25Gx1"',               'Pieza',  'Jeringa'),
