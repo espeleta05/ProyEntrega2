@@ -13,6 +13,6 @@ export FLASK_DEBUG="${FLASK_DEBUG:-1}"
 echo "[1/2] Inicializando base de datos (flask init-db)..."
 .venv/bin/python -m flask init-db
 
-echo "[2/2] Servidor Flask (flask run) en http://127.0.0.1:5000"
-xdg-open http://127.0.0.1:5000 2>/dev/null &
-.venv/bin/python -m flask run --host=127.0.0.1 --port=5000
+echo "[2/2] Servidor Flask en http://0.0.0.0:5000"
+echo "      Accede desde tu PC en: http://$(hostname -I | awk '{print $1}'):5000"
+.venv/bin/python -m flask run --host=0.0.0.0 --port=5000

@@ -9,7 +9,8 @@
       "PowerShell(& \"c:\\\\Users\\\\eugenio\\\\OneDrive\\\\Documentos\\\\C++\\\\segunda_entrega\\\\.venv\\\\Scripts\\\\pip.exe\" list 2>&1)",
       "PowerShell(& \"c:\\\\Users\\\\eugenio\\\\OneDrive\\\\Documentos\\\\C++\\\\segunda_entrega\\\\.venv\\\\Scripts\\\\pip.exe\" install \"psycopg[binary]==3.2.13\" 2>&1)",
       "PowerShell(& \"c:\\\\Users\\\\eugenio\\\\OneDrive\\\\Documentos\\\\C++\\\\segunda_entrega\\\\.venv\\\\Scripts\\\\python.exe\" -c \"import psycopg; print\\('psycopg OK:', psycopg.__version__\\)\" 2>&1)",
-      "PowerShell($env:PGPASSWORD = \"lt9128221d24\"; & \"C:\\\\Program Files\\\\PostgreSQL\\\\17\\\\bin\\\\psql.exe\" -h localhost -p 5432 -U postgres -d sistemavacunacion -c \"SELECT table_name FROM information_schema.tables WHERE table_schema='public' ORDER BY table_name;\" 2>&1)"
+      "PowerShell($env:PGPASSWORD = \"lt9128221d24\"; & \"C:\\\\Program Files\\\\PostgreSQL\\\\17\\\\bin\\\\psql.exe\" -h localhost -p 5432 -U postgres -d sistemavacunacion -c \"SELECT table_name FROM information_schema.tables WHERE table_schema='public' ORDER BY table_name;\" 2>&1)",
+      "Bash(python -c ' *)"
     ]
   }
 }

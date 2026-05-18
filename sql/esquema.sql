@@ -3,6 +3,7 @@
 -- ============================================================
 CREATE DATABASE sistemavacunacion;
 CREATE USER vaccine_user WITH PASSWORD '666-999';
+\c sistemavacunacion
 
 GRANT CONNECT ON DATABASE sistemavacunacion TO vaccine_user;
 GRANT USAGE ON SCHEMA public TO vaccine_user;
@@ -224,8 +225,6 @@ CREATE TABLE workers (
     address_id     INT           REFERENCES addresses(address_id),
     birth_date     DATE,
     hire_date      DATE,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    is_active   BOOLEAN   NOT NULL DEFAULT TRUE
 );
 
 CREATE TABLE worker_professional (
@@ -416,7 +415,7 @@ CREATE TABLE appointments (
     clinic_id            INT         NOT NULL REFERENCES clinics(clinic_id),
     area_id              INT         REFERENCES clinic_areas(area_id),
     worker_id            INT         REFERENCES workers(worker_id),
-    patient_schedule_id  INT         REFERENCES patient_vaccine_schedule(schedule_id),
+    patient_schedule_id  INT,
     scheduled_at         TIMESTAMP   NOT NULL,
     duration_min         SMALLINT    DEFAULT 20,
     reason               TEXT,
@@ -457,32 +456,39 @@ CREATE TABLE patient_vaccine_schedule (
     UNIQUE (patient_id, scheme_dose_id)
 );
 
-CREATE TABLE patient_clinic_visits (
-    visit_id                SERIAL          PRIMARY KEY,
-    patient_id              INT             NOT NULL REFERENCES patients(patient_id),
-    clinic_id               INT             NOT NULL REFERENCES clinics(clinic_id),
-    appointment_id          INT             UNIQUE REFERENCES appointments(appointment_id),
+ALTER TABLE patient_vaccine_schedule ADD COLUMN updated_at TIMESTAMP DEFAULT NOW();
 
-    visit_status            visit_status    NOT NULL DEFAULT 'En recepcion',
-    current_area_id         INT             REFERENCES clinic_areas(area_id),
-    assigned_worker_id      INT             REFERENCES workers(worker_id),
+CREATE TABLE vaccination_records (
+    record_id            SERIAL   PRIMARY KEY,
+    patient_id           INT      NOT NULL REFERENCES patients(patient_id),
+    vaccine_id           INT      NOT NULL REFERENCES vaccines(vaccine_id),
+    worker_id            INT      NOT NULL REFERENCES workers(worker_id),
+    clinic_id            INT      NOT NULL REFERENCES clinics(clinic_id),
+    lot_id               INT      REFERENCES vaccine_lots(lot_id),
+    scheme_dose_id       INT      REFERENCES scheme_doses(dose_id),
+    applied_date         DATE     NOT NULL,
+    application_site_id  INT      REFERENCES application_sites(application_site_id),
+    appointment_id       INT      REFERENCES appointments(appointment_id),
+    -- Una cita puede tener múltiples registros de vacunación (varias vacunas por cita)
+    patient_temp_c       NUMERIC(4,1),
+    had_reaction         BOOLEAN  NOT NULL DEFAULT FALSE
+);
 
-    checked_in_at           TIMESTAMP       NOT NULL DEFAULT NOW(),
-    waiting_since           TIMESTAMP,
-    consultation_start      TIMESTAMP,
-    vaccination_start       TIMESTAMP,
-    checked_out_at          TIMESTAMP,
 
-    checkin_by_worker_id    INT             NOT NULL REFERENCES workers(worker_id),
-    checkout_by_worker_id   INT             REFERENCES workers(worker_id),
-    checkin_nfc_scan_id     INT             REFERENCES nfc_scan_events(scan_event_id),
-    checkout_nfc_scan_id    INT             REFERENCES nfc_scan_events(scan_event_id),
+ALTER TABLE vaccination_records ADD COLUMN created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
 
-    visit_type              VARCHAR(20)     NOT NULL DEFAULT 'Programada'
-                                            CHECK (visit_type IN ('Programada','Espontanea','Urgencia')),
-    visit_notes             TEXT,
-    created_at              TIMESTAMP       NOT NULL DEFAULT NOW(),
-    updated_at              TIMESTAMP       NOT NULL DEFAULT NOW()
+ALTER TABLE vaccination_records ADD COLUMN patient_schedule_id INT REFERENCES patient_vaccine_schedule(schedule_id);
+
+
+CREATE TABLE post_vaccine_reactions (
+    reaction_id         SERIAL   PRIMARY KEY,
+    record_id           INT      NOT NULL REFERENCES vaccination_records(record_id),
+    reported_by         INT      REFERENCES workers(worker_id),
+    symptom             TEXT,
+    severity            VARCHAR(30),
+    onset_hours         SMALLINT,
+    treatment           TEXT,
+    notified_authority  BOOLEAN  NOT NULL DEFAULT FALSE
 );
 
 
@@ -545,6 +551,8 @@ CREATE TABLE scheme_completion_alerts (
     created_at     TIMESTAMP   DEFAULT NOW(),
     schedule_id INT NOT NULL REFERENCES patient_vaccine_schedule(schedule_id)
 );
+
+ALTER TABLE scheme_completion_alerts ADD COLUMN schedule_id INT NOT NULL REFERENCES patient_vaccine_schedule(schedule_id);
 
 CREATE TABLE supply_catalog (
     supply_id  SERIAL PRIMARY KEY,

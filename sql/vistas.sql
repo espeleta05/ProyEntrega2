@@ -357,3 +357,13 @@ SELECT
      FROM vaccine_lots
      WHERE expiration_date BETWEEN CURRENT_DATE AND CURRENT_DATE + 30
        AND quantity_available > 0)::INT                                   AS expiring_lots;
+
+-- Vista: pacientes con nfc_id — usada por sp_global_search
+CREATE OR REPLACE VIEW v_patients_full AS
+SELECT
+    p.patient_id,
+    TRIM(p.first_name || ' ' || p.last_name) AS full_name,
+    p.birth_date,
+    p.curp,
+    p.nfc_id
+FROM patients p;

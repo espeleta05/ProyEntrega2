@@ -3760,7 +3760,8 @@ BEGIN
     LEFT JOIN LATERAL (
         SELECT appointment_id, scheduled_at, appointment_status
         FROM   appointments
-        WHERE  patient_schedule_id = pvs.schedule_id
+        WHERE  patient_id     = pvs.patient_id
+          AND  scheme_dose_id = pvs.scheme_dose_id
           AND  appointment_status NOT IN ('Cancelada', 'No Show', 'Completada', 'Reagendada', 'Pendiente confirmacion')
         ORDER  BY scheduled_at DESC
         LIMIT  1

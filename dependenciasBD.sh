@@ -30,13 +30,36 @@ EOF
 
 # ──────────────────────────────────────────────
 # 2. INSTALAR DEPENDENCIAS DEL SISTEMA
+# Detecta el gestor de paquetes (apt/dnf/yum)
 # ──────────────────────────────────────────────
 echo "[2/5] Instalando dependencias del sistema..."
-sudo apt-get update -qq
-sudo apt-get install -y -qq \
-    python3 python3-venv python3-pip \
-    postgresql postgresql-contrib \
-    libpq-dev
+if command -v apt-get &>/dev/null; then
+    sudo apt-get update -qq
+    sudo apt-get install -y -qq \
+        python3 python3-venv python3-pip \
+        postgresql postgresql-contrib libpq-dev
+elif command -v dnf &>/dev/null; then
+    sudo dnf install -y -q \
+        python3 python3-pip \
+        postgresql-server postgresql-contrib libpq-devel
+    # Inicializar clúster postgres solo si aún no existe
+    if ! sudo -u postgres test -f "/var/lib/pgsql/data/PG_VERSION" 2>/dev/null; then
+        sudo postgresql-setup --initdb || true
+    fi
+elif command -v yum &>/dev/null; then
+    sudo yum install -y -q \
+        python3 python3-pip \
+        postgresql-server postgresql-contrib libpq-devel
+    if ! sudo -u postgres test -f "/var/lib/pgsql/data/PG_VERSION" 2>/dev/null; then
+        sudo postgresql-setup initdb || true
+    fi
+else
+    echo "[ERROR] No se encontró apt-get, dnf ni yum."
+    exit 1
+fi
+
+# python3-venv viene incluido en dnf/yum con python3, pero pip install venv cubre el resto
+python3 -m ensurepip --upgrade 2>/dev/null || true
 
 # ──────────────────────────────────────────────
 # 3. INSTALAR DEPENDENCIAS PYTHON
@@ -69,9 +92,19 @@ echo "[4/5] Configurando PostgreSQL..."
 sudo systemctl start postgresql
 sudo systemctl enable postgresql
 
+# Cambiar autenticación de ident a md5 para conexiones TCP (necesario en RHEL/CentOS)
+PG_HBA=$(sudo -u postgres psql -tAc "SHOW hba_file;" 2>/dev/null || echo "/var/lib/pgsql/data/pg_hba.conf")
+sudo sed -i '/^host/s/ident/md5/g'           "$PG_HBA"
+sudo sed -i '/^host/s/scram-sha-256/md5/g'   "$PG_HBA"
+sudo systemctl restart postgresql
+
 sudo -u postgres psql -c "ALTER USER postgres PASSWORD 'lt9128221d24';"
 sudo -u postgres psql -c "DROP DATABASE IF EXISTS sistemavacunacion;"
-sudo -u postgres psql -c "DROP USER IF EXISTS vaccine_user;"
+# Revocar objetos de vaccine_user en todas las BDs antes de borrar el rol
+for _db in $(sudo -u postgres psql -tAc "SELECT datname FROM pg_database WHERE datistemplate = false;" 2>/dev/null); do
+    sudo -u postgres psql -d "$_db" -c "REASSIGN OWNED BY vaccine_user TO postgres; DROP OWNED BY vaccine_user;" 2>/dev/null || true
+done
+sudo -u postgres psql -c "DROP USER IF EXISTS vaccine_user;" 2>/dev/null || true
 
 export PGPASSWORD="lt9128221d24"
 PG="psql -U postgres -h localhost"
@@ -83,6 +116,9 @@ if [ -f "sql/esquema.sql" ]; then
 
     echo "  → esquema.sql..."
     $PG -f sql/esquema.sql
+
+    echo "  → vistas.sql..."
+    $PG -d sistemavacunacion -f sql/vistas.sql
 
     echo "  → SP.sql..."
     $PG -d sistemavacunacion -f sql/SP.sql
