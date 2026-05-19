@@ -3134,19 +3134,18 @@ BEGIN
             COALESCE(areas_sub.areas, '[]'::json)      AS areas
         FROM clinics c
         LEFT JOIN addresses      ad  ON ad.address_id      = c.address_id
-        LEFT JOIN municipalities mu  ON mu.municipality_id = ad.municipality_id
+        LEFT JOIN neighborhoods  nb  ON nb.neighborhood_id = ad.neighborhood_id
+        LEFT JOIN municipalities mu  ON mu.municipality_id = nb.municipality_id
         LEFT JOIN states         st  ON st.state_id        = mu.state_id
         LEFT JOIN LATERAL (
             SELECT json_agg(
                 json_build_object(
                     'name',      ca.name,
-                    'area_type', COALESCE(cat.name, '—'),
                     'floor',     ca.floor,
                     'capacity',  ca.capacity
                 ) ORDER BY ca.name
             ) AS areas
             FROM clinic_areas ca
-            LEFT JOIN clinic_area_types cat ON cat.area_type_id = ca.area_type_id
             WHERE ca.clinic_id = c.clinic_id
         ) areas_sub ON TRUE
         WHERE c.is_active = TRUE
