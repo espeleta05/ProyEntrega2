@@ -231,13 +231,13 @@ El archivo de respaldo `sistemavacunacionBACKUP4.sql` **debe estar incluido en e
 Para restaurar el esquema completo, datos de prueba, stored procedures, triggers y vistas, ejecuta:
 
 ```bash
-sudo -u postgres psql -d sistemavacunacion -f sistemavacunacionBACKUP3.sql
+sudo -u postgres psql -d sistemavacunacion -f sistemavacunacionBACKUP4.sql
 ```
 
 Si el archivo se encuentra en otro directorio, proporciona la ruta absoluta:
 
 ```bash
-sudo -u postgres psql -d sistemavacunacion -f /ruta/completa/sistemavacunacionBACKUP3.sql
+sudo -u postgres psql -d sistemavacunacion -f /ruta/completa/sistemavacunacionBACKUP4.sql
 ```
 
 > Espera a que el proceso finalice sin errores antes de continuar. Cualquier error en esta etapa afectará el funcionamiento del sistema.
