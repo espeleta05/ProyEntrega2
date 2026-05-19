@@ -79,11 +79,19 @@
                         onchange="filterLotsByVaccine()">
                     <option value="" disabled {{ 'selected' if not form.get('vaccine_id') }}>Seleccionar vacuna</option>
                     {% for v in vaccines %}
-                    <option value="{{ v.vaccine_id }}" {{ 'selected' if form.get('vaccine_id')|string == v.vaccine_id|string }}>
+                    <option value="{{ v.vaccine_id }}"
+                            data-name="{{ v.name }}"
+                            {{ 'selected' if form.get('vaccine_id')|string == v.vaccine_id|string }}>
                         {{ v.name }}
                     </option>
                     {% endfor %}
                 </select>
+                <small id="ap_vaccine_hint" style="font-size:12px;color:var(--md-on-surface-variant);margin-top:4px;display:block;">
+                    Mostrando vacunas pendientes y atrasadas del paciente.
+                </small>
+                <label style="font-size:12px;margin-top:4px;display:flex;align-items:center;gap:6px;cursor:pointer;">
+                    <input type="checkbox" id="ap_show_all_vaccines"> Mostrar todas las vacunas
+                </label>
             </div>
         </div>
 
@@ -207,20 +215,87 @@
 (function () {
   'use strict';
 
-  var vaccineSelect = document.getElementById('ap_vaccine');
-  var lotSelect     = document.getElementById('ap_lot');
-  var lotHint       = document.getElementById('ap_lot_hint');
+  var vaccineSelect   = document.getElementById('ap_vaccine');
+  var lotSelect       = document.getElementById('ap_lot');
+  var lotHint         = document.getElementById('ap_lot_hint');
+  var vaccineHint     = document.getElementById('ap_vaccine_hint');
+  var showAllCheckbox = document.getElementById('ap_show_all_vaccines');
+  var patientSelect   = document.getElementById('ap_patient');
 
+  // Todas las opciones de vacunas (la primera es el placeholder)
+  var allVaccineOptions = Array.from(vaccineSelect.options);
   // Guardar todas las opciones originales del selector de lotes
   var allLotOptions = Array.from(lotSelect.options);
+
+  // IDs de vacunas pendientes/atrasadas del paciente actual
+  var pendingVaccineIds = new Set();
+
+  function rebuildVaccineSelect(idsToShow, showAll) {
+    var prevValue = vaccineSelect.value;
+    while (vaccineSelect.options.length > 0) vaccineSelect.remove(0);
+
+    allVaccineOptions.forEach(function (o) {
+      if (!o.value) {
+        vaccineSelect.appendChild(o.cloneNode(true));
+        return;
+      }
+      if (showAll || idsToShow.has(o.value)) {
+        vaccineSelect.appendChild(o.cloneNode(true));
+      }
+    });
+
+    // Restaurar selección previa si sigue disponible
+    for (var i = 0; i < vaccineSelect.options.length; i++) {
+      if (vaccineSelect.options[i].value === prevValue) {
+        vaccineSelect.selectedIndex = i;
+        break;
+      }
+    }
+
+    filterLotsByVaccine();
+  }
+
+  function updateVaccineHint(total, pending) {
+    if (!vaccineHint) return;
+    if (pending === null) {
+      vaccineHint.textContent = 'Selecciona un paciente para filtrar vacunas pendientes.';
+    } else if (showAllCheckbox && showAllCheckbox.checked) {
+      vaccineHint.textContent = 'Mostrando todas las vacunas (' + total + ').';
+    } else {
+      vaccineHint.textContent = pending === 0
+        ? 'El paciente no tiene vacunas pendientes ni atrasadas.'
+        : pending + ' vacuna(s) pendiente(s) o atrasada(s) para este paciente.';
+    }
+  }
+
+  function fetchPendingVaccines(patientId) {
+    if (!patientId) {
+      pendingVaccineIds = new Set();
+      rebuildVaccineSelect(pendingVaccineIds, true);
+      updateVaccineHint(allVaccineOptions.filter(function(o){ return o.value; }).length, null);
+      return;
+    }
+
+    fetch('/api/paciente_vacunas_pendientes/' + patientId)
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        pendingVaccineIds = new Set(data.map(function (v) { return String(v.vaccine_id); }));
+        var showAll = showAllCheckbox && showAllCheckbox.checked;
+        rebuildVaccineSelect(pendingVaccineIds, showAll);
+        var total = allVaccineOptions.filter(function(o){ return o.value; }).length;
+        updateVaccineHint(total, pendingVaccineIds.size);
+      })
+      .catch(function () {
+        // Si falla el fetch, mostrar todas
+        rebuildVaccineSelect(pendingVaccineIds, true);
+      });
+  }
 
   window.filterLotsByVaccine = function () {
     var vaccineId = vaccineSelect ? vaccineSelect.value : '';
 
-    // Limpiar selector de lotes
     while (lotSelect.options.length > 0) lotSelect.remove(0);
 
-    // Opción vacía
     var emptyOpt = document.createElement('option');
     emptyOpt.value = '';
     emptyOpt.textContent = vaccineId ? 'Seleccionar lote…' : 'Selecciona primero la vacuna';
@@ -244,10 +319,38 @@
     }
   };
 
-  // Aplicar filtro al cargar si la vacuna ya viene seleccionada
+  // Cuando cambia el paciente (dropdown)
+  if (patientSelect) {
+    patientSelect.addEventListener('change', function () {
+      vaccineSelect.value = '';
+      fetchPendingVaccines(this.value);
+    });
+  }
+
+  // Checkbox "Mostrar todas"
+  if (showAllCheckbox) {
+    showAllCheckbox.addEventListener('change', function () {
+      var showAll = this.checked;
+      rebuildVaccineSelect(pendingVaccineIds, showAll);
+      var total = allVaccineOptions.filter(function(o){ return o.value; }).length;
+      var patId = patientSelect ? patientSelect.value : '{{ prefilled_patient.patient_id if prefilled_patient else "" }}';
+      updateVaccineHint(total, patId ? pendingVaccineIds.size : null);
+    });
+  }
+
+  // Al cargar: si hay paciente pre-llenado, obtener sus vacunas pendientes
+  var prefilledPatientId = '{{ prefilled_patient.patient_id if prefilled_patient else "" }}';
+  if (prefilledPatientId) {
+    fetchPendingVaccines(prefilledPatientId);
+  } else if (patientSelect && patientSelect.value) {
+    fetchPendingVaccines(patientSelect.value);
+  } else {
+    updateVaccineHint(allVaccineOptions.filter(function(o){ return o.value; }).length, null);
+  }
+
+  // Aplicar filtro de lotes si la vacuna ya viene seleccionada (tras POST con error)
   if (vaccineSelect && vaccineSelect.value) {
     filterLotsByVaccine();
-    // Re-seleccionar lote previo si había uno
     var prevLot = '{{ form.get("lot_id", "") }}';
     if (prevLot) {
       for (var i = 0; i < lotSelect.options.length; i++) {

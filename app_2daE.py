@@ -2969,6 +2969,37 @@ def aplicaciones():
     )
 
 
+@app.route("/api/paciente_vacunas_pendientes/<int:patient_id>")
+def api_paciente_vacunas_pendientes(patient_id):
+    locked = _require_role("Administrador", "Medico", "Enfermero")
+    if locked:
+        return jsonify([])
+    conn, sc = _get_conn()
+    _safe_rollback(conn)
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                """SELECT DISTINCT v.vaccine_id, v.name,
+                          pvs.status
+                   FROM patient_vaccine_schedule pvs
+                   JOIN scheme_doses sd ON sd.dose_id = pvs.scheme_dose_id
+                   JOIN vaccines v ON v.vaccine_id = sd.vaccine_id
+                   WHERE pvs.patient_id = %s
+                     AND pvs.status IN ('Pendiente', 'Atrasada')
+                   ORDER BY v.name""",
+                (patient_id,),
+            )
+            vaccines = [dict(r) for r in cur.fetchall()]
+        conn.commit()
+        return jsonify(vaccines)
+    except Exception:
+        _safe_rollback(conn)
+        return jsonify([])
+    finally:
+        if sc and not _conn_is_closed(conn):
+            conn.close()
+
+
 @app.route("/agregar_aplicacion", methods=["GET", "POST"])
 def agregar_aplicacion():
     # [REFACTORED] Reemplaza sp_register_vaccination_record por sp_apply_vaccine.
