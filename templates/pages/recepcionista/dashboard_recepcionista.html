@@ -101,14 +101,7 @@
       <span class="chart-badge">{{ pacientes_semana }} total</span>
     </div>
     <div class="chart-wrap">
-      {% if chart_data %}
-        <div id="chartPacientesSemana"></div>
-      {% else %}
-        <p style="text-align:center;padding:32px 0;color:var(--md-on-surface-variant);font-size:14px;">
-          <i class="fa-solid fa-chart-bar" style="font-size:24px;display:block;margin-bottom:8px;"></i>
-          Sin datos de pacientes esta semana
-        </p>
-      {% endif %}
+      <div id="chartPacientesSemana"></div>
     </div>
   </div>
 
@@ -121,15 +114,20 @@
     <div class="alerts-list">
       {% if actividad %}
         {% for item in actividad %}
-          {{ alert(
-              item.descripcion ~ ' — ' ~ item.ts,
-              type='info'    if item.tipo == 'Cita agendada'    else 'success',
-              icon='fa-calendar-plus' if item.tipo == 'Cita agendada' else 'fa-user-plus',
-              compact=True
-          ) }}
+          <div style="display:flex;align-items:flex-start;gap:10px;padding:8px 0;border-bottom:1px solid var(--md-outline-variant);">
+            <i class="fa-solid {{ 'fa-calendar-plus' if item.tipo == 'Cita agendada' else 'fa-user-plus' }}"
+               style="color:{{ 'var(--md-primary)' if item.tipo == 'Cita agendada' else 'var(--md-tertiary, #386a20)' }};margin-top:2px;flex-shrink:0;"></i>
+            <div style="flex:1;min-width:0;">
+              <p style="margin:0;font-size:13px;color:var(--md-on-surface);">{{ item.descripcion }}</p>
+              <p style="margin:0;font-size:11px;color:var(--md-on-surface-variant);">{{ item.ts }}</p>
+            </div>
+          </div>
         {% endfor %}
       {% else %}
-        {{ alert('Sin actividad en las últimas 24 horas.', type='neutral', compact=True) }}
+        <div style="padding:24px 0;text-align:center;color:var(--md-on-surface-variant);font-size:13px;">
+          <i class="fa-solid fa-bolt" style="font-size:20px;display:block;margin-bottom:8px;opacity:.4;"></i>
+          Sin actividad en las últimas 24 horas
+        </div>
       {% endif %}
     </div>
   </div>
@@ -207,7 +205,6 @@
   {% endcall %}
 </div>
 
-<!-- Datos para Chart.js (sin JS inline) -->
 <div id="rec-chart-data" hidden
      data-semana="{{ chart_data | tojson | e }}"></div>
 
