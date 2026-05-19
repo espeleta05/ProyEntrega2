@@ -1,0 +1,910 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>ERD — Sistema de Vacunación</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#EEF2F7;font-family:'Inter',system-ui,sans-serif;overflow:hidden;color:#1E293B}
+
+/* ── Toolbar ── */
+#toolbar{
+  position:absolute;top:0;left:0;right:0;height:48px;
+  background:#FFFFFF;border-bottom:1px solid #E2E8F0;
+  display:flex;align-items:center;gap:8px;padding:0 20px;
+  z-index:200;user-select:none;box-shadow:0 1px 3px rgba(0,0,0,.06)
+}
+#toolbar .logo{
+  font-size:13px;font-weight:700;color:#0F172A;
+  letter-spacing:-.2px;margin-right:8px;display:flex;align-items:center;gap:6px
+}
+#toolbar .logo .db-icon{
+  width:26px;height:26px;background:#2563EB;border-radius:6px;
+  display:flex;align-items:center;justify-content:center;color:#fff;font-size:13px
+}
+#toolbar .logo .sub{font-size:11px;font-weight:400;color:#64748B;margin-top:1px}
+.sep{width:1px;height:24px;background:#E2E8F0;margin:0 2px}
+.tb-btn{
+  background:transparent;border:1px solid #E2E8F0;color:#475569;
+  padding:5px 11px;border-radius:6px;font-size:11.5px;font-weight:500;
+  cursor:pointer;transition:all .15s;white-space:nowrap;font-family:inherit
+}
+.tb-btn:hover{background:#F8FAFC;border-color:#CBD5E1;color:#0F172A}
+.tb-btn.primary{background:#2563EB;border-color:#2563EB;color:#fff}
+.tb-btn.primary:hover{background:#1D4ED8}
+#search{
+  background:#F8FAFC;border:1px solid #E2E8F0;color:#334155;
+  padding:5px 10px 5px 30px;border-radius:6px;font-size:11.5px;
+  width:180px;outline:none;font-family:inherit;transition:border .15s
+}
+#search:focus{border-color:#2563EB;background:#fff}
+.search-wrap{position:relative}
+.search-wrap::before{
+  content:'';position:absolute;left:9px;top:50%;transform:translateY(-50%);
+  width:12px;height:12px;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2394A3B8' stroke-width='2'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cpath d='m21 21-4.35-4.35'/%3E%3C/svg%3E") center/contain no-repeat
+}
+#stats{font-size:11px;color:#94A3B8;margin-left:auto;white-space:nowrap}
+
+/* ── Legend ── */
+#legend{
+  position:absolute;bottom:20px;left:20px;background:#fff;
+  border:1px solid #E2E8F0;border-radius:10px;padding:14px 16px;
+  z-index:100;min-width:168px;box-shadow:0 2px 8px rgba(0,0,0,.06)
+}
+#legend .leg-title{
+  font-size:10px;font-weight:600;color:#94A3B8;text-transform:uppercase;
+  letter-spacing:.8px;margin-bottom:10px
+}
+.leg-item{
+  display:flex;align-items:center;gap:8px;margin-bottom:6px;
+  font-size:11.5px;color:#475569;cursor:pointer;transition:opacity .15s;
+  user-select:none
+}
+.leg-item:hover{color:#0F172A}
+.leg-swatch{width:10px;height:10px;border-radius:2px;flex-shrink:0}
+.leg-item.off{opacity:.35}
+
+/* ── Minimap ── */
+#minimap{
+  position:absolute;bottom:20px;right:20px;background:#fff;
+  border:1px solid #E2E8F0;border-radius:8px;overflow:hidden;
+  z-index:100;box-shadow:0 2px 8px rgba(0,0,0,.06);cursor:pointer
+}
+
+/* ── Zoom badge ── */
+#zoom-badge{
+  position:absolute;bottom:20px;right:190px;background:#fff;
+  border:1px solid #E2E8F0;border-radius:6px;padding:5px 10px;
+  font-size:11px;color:#64748B;z-index:100;font-weight:500;
+  box-shadow:0 1px 4px rgba(0,0,0,.05)
+}
+
+/* ── Info panel ── */
+#info-panel{
+  position:absolute;top:60px;right:20px;background:#fff;
+  border:1px solid #E2E8F0;border-radius:10px;padding:16px;
+  z-index:100;width:240px;display:none;
+  box-shadow:0 4px 16px rgba(0,0,0,.08)
+}
+#info-panel .ip-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px}
+#info-panel h3{font-size:13px;font-weight:700;color:#0F172A;word-break:break-all}
+#info-close{
+  background:none;border:none;color:#94A3B8;cursor:pointer;
+  font-size:16px;line-height:1;padding:2px;flex-shrink:0
+}
+#info-close:hover{color:#475569}
+.ip-badge{
+  display:inline-block;font-size:10px;font-weight:600;padding:2px 6px;
+  border-radius:4px;margin-bottom:10px
+}
+.ip-stat{font-size:11.5px;color:#64748B;margin-bottom:4px;display:flex;justify-content:space-between}
+.ip-stat span{color:#0F172A;font-weight:500}
+.ip-divider{border:none;border-top:1px solid #F1F5F9;margin:10px 0}
+.ip-rel-list{max-height:200px;overflow-y:auto;font-size:11px}
+.ip-rel{
+  display:flex;align-items:center;gap:5px;padding:4px 0;
+  border-bottom:1px solid #F8FAFC;color:#64748B
+}
+.ip-rel .arrow{color:#CBD5E1;font-size:10px}
+.ip-rel .tname{font-weight:500;color:#334155}
+.ip-rel .cname{color:#94A3B8}
+
+/* ── Viewport ── */
+#viewport{
+  position:absolute;top:48px;left:0;right:0;bottom:0;
+  overflow:hidden;cursor:grab
+}
+#viewport.grabbing{cursor:grabbing}
+#canvas{position:absolute;transform-origin:0 0}
+
+/* ── SVG layer ── */
+#svg-layer{position:absolute;top:0;left:0;pointer-events:none;overflow:visible}
+
+/* ── Module group backgrounds ── */
+.mod-group{
+  position:absolute;border-radius:12px;border:1.5px solid transparent;
+  pointer-events:none;transition:opacity .2s
+}
+
+/* ── Table cards ── */
+.tcard{
+  position:absolute;width:220px;background:#FFFFFF;border-radius:8px;
+  border:1px solid #E2E8F0;box-shadow:0 1px 4px rgba(0,0,0,.06);
+  transition:box-shadow .15s,border-color .15s,opacity .2s;
+  overflow:hidden;cursor:default
+}
+.tcard:hover{border-color:#CBD5E1;box-shadow:0 4px 12px rgba(0,0,0,.1);z-index:10}
+.tcard.selected{border-color:#2563EB;box-shadow:0 0 0 3px rgba(37,99,235,.12);z-index:20}
+.tcard.dimmed{opacity:.2}
+.tcard.related{border-color:#93C5FD;z-index:15}
+
+/* card header: color accent bar + name */
+.tc-accent{height:4px;flex-shrink:0}
+.tc-name{
+  padding:8px 10px 6px;display:flex;align-items:center;gap:6px;
+  border-bottom:1px solid #F1F5F9;cursor:move
+}
+.tc-name-text{
+  font-size:12.5px;font-weight:700;color:#0F172A;
+  flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap
+}
+.tc-count{font-size:10px;color:#94A3B8;background:#F8FAFC;
+  padding:1px 5px;border-radius:10px;border:1px solid #E2E8F0;flex-shrink:0}
+
+/* columns */
+.tc-col{
+  display:flex;align-items:center;gap:4px;padding:3px 10px;
+  min-height:21px;border-top:1px solid #F8FAFC
+}
+.tc-col:hover{background:#F8FAFC}
+.tc-col-badges{display:flex;gap:2px;flex-shrink:0;min-width:32px}
+.badge{
+  font-size:8.5px;font-weight:700;padding:1px 4px;border-radius:3px;
+  text-transform:uppercase;letter-spacing:.2px;line-height:1.4
+}
+.bpk{background:#FEF3C7;color:#92400E;border:1px solid #FDE68A}
+.bfk{background:#DBEAFE;color:#1E40AF;border:1px solid #BFDBFE}
+.buk{background:#EDE9FE;color:#5B21B6;border:1px solid #DDD6FE}
+.tc-col-name{
+  flex:1;font-size:11px;color:#334155;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap
+}
+.tc-col-name.is-pk{font-weight:600;color:#0F172A}
+.tc-col-type{font-size:10px;color:#94A3B8;flex-shrink:0;font-style:italic}
+
+/* ── Tooltip ── */
+#tooltip{
+  position:fixed;background:#1E293B;color:#F8FAFC;font-size:11px;
+  padding:5px 9px;border-radius:5px;pointer-events:none;z-index:999;
+  display:none;white-space:nowrap;box-shadow:0 2px 8px rgba(0,0,0,.3)
+}
+</style>
+</head>
+<body>
+
+<!-- Toolbar -->
+<div id="toolbar">
+  <div class="logo">
+    <div class="db-icon">⊡</div>
+    <div>
+      <div>Sistema de Vacunación</div>
+      <div class="sub">Diagrama Entidad-Relación · PostgreSQL</div>
+    </div>
+  </div>
+  <div class="sep"></div>
+  <button class="tb-btn" onclick="fitAll()">Ajustar vista</button>
+  <button class="tb-btn" onclick="resetView()">Restablecer</button>
+  <button class="tb-btn" onclick="zoomBy(1.2)">+ Zoom</button>
+  <button class="tb-btn" onclick="zoomBy(0.83)">− Zoom</button>
+  <div class="sep"></div>
+  <button class="tb-btn" id="btn-rel" onclick="toggleLines()">Ocultar relaciones</button>
+  <div class="sep"></div>
+  <div class="search-wrap">
+    <input id="search" placeholder="Buscar tabla…" oninput="filterSearch(this.value)">
+  </div>
+  <span id="stats"></span>
+</div>
+
+<!-- Viewport -->
+<div id="viewport">
+  <div id="canvas">
+    <svg id="svg-layer" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <marker id="mk-n" viewBox="0 0 10 10" markerWidth="7" markerHeight="7" refX="9" refY="5" orient="auto">
+          <path d="M0,2 L9,5 L0,8" fill="none" stroke="#CBD5E1" stroke-width="1.5" stroke-linejoin="round"/>
+        </marker>
+        <marker id="mk-h" viewBox="0 0 10 10" markerWidth="7" markerHeight="7" refX="9" refY="5" orient="auto">
+          <path d="M0,2 L9,5 L0,8" fill="none" stroke="#2563EB" stroke-width="1.5" stroke-linejoin="round"/>
+        </marker>
+        <marker id="mk-r" viewBox="0 0 10 10" markerWidth="7" markerHeight="7" refX="9" refY="5" orient="auto">
+          <path d="M0,2 L9,5 L0,8" fill="none" stroke="#93C5FD" stroke-width="1.5" stroke-linejoin="round"/>
+        </marker>
+      </defs>
+    </svg>
+  </div>
+</div>
+
+<!-- Legend -->
+<div id="legend">
+  <div class="leg-title">Módulos</div>
+</div>
+
+<!-- Zoom badge -->
+<div id="zoom-badge">100%</div>
+
+<!-- Info panel -->
+<div id="info-panel">
+  <div class="ip-header">
+    <h3 id="ip-name"></h3>
+    <button id="info-close" onclick="closeInfo()">✕</button>
+  </div>
+  <div id="ip-mod-badge"></div>
+  <div id="ip-stats"></div>
+  <hr class="ip-divider">
+  <div id="ip-rels" class="ip-rel-list"></div>
+</div>
+
+<!-- Tooltip -->
+<div id="tooltip"></div>
+
+<script>
+// ═══════════════════════════════════════════════════════
+//  MODULES
+// ═══════════════════════════════════════════════════════
+const MOD = {
+  ADDRESSES:   { label:'Direcciones',       color:'#0EA5E9' },
+  CLINICS:     { label:'Clínicas',          color:'#059669' },
+  PATIENTS:    { label:'Pacientes',         color:'#D97706' },
+  GUARDIANS:   { label:'Tutores / Accts',   color:'#DB2777' },
+  WORKERS:     { label:'Trabajadores',      color:'#7C3AED' },
+  VACCINES:    { label:'Vacunas',           color:'#DC2626' },
+  SCHEME:      { label:'Esquema Vacunal',   color:'#0284C7' },
+  APPTS:       { label:'Citas',             color:'#EA580C' },
+  VACCINATION: { label:'Registro Vacunal',  color:'#15803D' },
+  NFC:         { label:'NFC / IoT',         color:'#4338CA' },
+  AUDITS:      { label:'Alertas y Auditoría',color:'#475569'},
+};
+
+// ═══════════════════════════════════════════════════════
+//  TABLE DEFINITIONS  [name, type, 'pk'|'fk'|'uk'|'pk+fk'|'']
+// ═══════════════════════════════════════════════════════
+const TABLES = {
+  countries:{m:'ADDRESSES',pos:[40,50],cols:[
+    ['country_id','serial','pk'],['name','varchar(100)',''],['iso_code','char(2)','uk']
+  ]},
+  states:{m:'ADDRESSES',pos:[295,50],cols:[
+    ['state_id','serial','pk'],['country_id','int','fk'],['name','varchar(100)',''],['code','varchar(10)','']
+  ]},
+  municipalities:{m:'ADDRESSES',pos:[550,50],cols:[
+    ['municipality_id','serial','pk'],['state_id','int','fk'],['name','varchar(100)','']
+  ]},
+  neighborhoods:{m:'ADDRESSES',pos:[800,50],cols:[
+    ['neighborhood_id','serial','pk'],['municipality_id','int','fk'],
+    ['name','varchar(100)',''],['zip_code','varchar(10)','']
+  ]},
+  addresses:{m:'ADDRESSES',pos:[1060,50],cols:[
+    ['address_id','serial','pk'],['neighborhood_id','int','fk'],['street','varchar(200)',''],
+    ['ext_number','varchar(20)',''],['cross_street_1','varchar(200)',''],
+    ['latitude','numeric(9,4)',''],['longitude','numeric(9,4)','']
+  ]},
+
+  clinics:{m:'CLINICS',pos:[1600,50],cols:[
+    ['clinic_id','serial','pk'],['name','varchar(200)',''],['address_id','int','fk'],
+    ['phone','varchar(20)',''],['institution_type','varchar(50)',''],['is_active','boolean','']
+  ]},
+  clinic_area_types:{m:'CLINICS',pos:[1855,50],cols:[
+    ['area_type_id','serial','pk'],['code','varchar(20)','uk'],['name','varchar(50)','uk']
+  ]},
+  clinic_areas:{m:'CLINICS',pos:[1600,260],cols:[
+    ['area_id','serial','pk'],['clinic_id','int','fk'],['name','varchar(200)',''],
+    ['area_type_id','int','fk'],['code','varchar(20)',''],['floor','smallint',''],['capacity','smallint','']
+  ]},
+  equipment_catalog:{m:'CLINICS',pos:[1855,260],cols:[
+    ['equipment_id','serial','pk'],['name','varchar(200)','uk'],
+    ['category','varchar(100)',''],['requires_calibration','boolean','']
+  ]},
+  area_equipment:{m:'CLINICS',pos:[1727,475],cols:[
+    ['area_equipment_id','serial','pk'],['area_id','int','fk'],['equipment_id','int','fk'],
+    ['quantity','smallint',''],['serial_number','varchar(50)',''],['condition','varchar(50)','']
+  ]},
+
+  blood_types:{m:'PATIENTS',pos:[40,325],cols:[
+    ['blood_type_id','serial','pk'],['blood_type','varchar(5)','uk']
+  ]},
+  patients:{m:'PATIENTS',pos:[265,290],cols:[
+    ['patient_id','serial','pk'],['first_name','varchar(100)',''],['last_name','varchar(100)',''],
+    ['birth_date','date',''],['blood_type_id','int','fk'],['gender','char(1)',''],
+    ['nfc_id','varchar(50)','uk'],['curp','varchar(18)','uk'],['weight_kg','numeric(5,2)',''],
+    ['premature','boolean',''],['photo','varchar(255)',''],['created_at','timestamp',''],
+    ['is_active','boolean',''],['deleted_at','timestamp','']
+  ]},
+  allergies:{m:'PATIENTS',pos:[720,325],cols:[
+    ['allergy_id','serial','pk'],['name','varchar(100)','uk'],['allergy_type','varchar(50)','']
+  ]},
+  patient_allergies:{m:'PATIENTS',pos:[510,325],cols:[
+    ['patient_allergy_id','serial','pk'],['patient_id','int','fk'],['allergy_id','int','fk'],
+    ['severity','varchar(50)',''],['reaction_desc','text','']
+  ]},
+
+  marital_status:{m:'GUARDIANS',pos:[1330,290],cols:[
+    ['marital_status_id','serial','pk'],['marital_status','varchar(50)','uk']
+  ]},
+  occupations:{m:'GUARDIANS',pos:[1585,290],cols:[  // overlap with clinics - move
+    ['occupation_id','serial','pk'],['occupation_name','varchar(100)','uk']
+  ]},
+  guardians:{m:'GUARDIANS',pos:[1110,290],cols:[
+    ['guardian_id','serial','pk'],['first_name','varchar(100)',''],['last_name','varchar(100)',''],
+    ['curp','char(18)','uk'],['address_id','int','fk'],
+    ['marital_status_id','int','fk'],['occupation','int','fk']
+  ]},
+  guardian_phones:{m:'GUARDIANS',pos:[1110,520],cols:[
+    ['phone_id','serial','pk'],['guardian_id','int','fk'],['phone','varchar(20)',''],
+    ['phone_type','varchar(30)',''],['is_primary','boolean','']
+  ]},
+  guardian_emails:{m:'GUARDIANS',pos:[1110,710],cols:[
+    ['email_id','serial','pk'],['guardian_id','int','fk'],['email','varchar(150)',''],['is_primary','boolean','']
+  ]},
+  patient_guardian_relations:{m:'GUARDIANS',pos:[880,520],cols:[
+    ['relation_id','serial','pk'],['patient_id','int','fk'],['guardian_id','int','fk'],
+    ['relation_type','varchar(50)',''],['is_primary','boolean',''],['has_custody','boolean','']
+  ]},
+  guardian_accounts:{m:'GUARDIANS',pos:[1355,510],cols:[
+    ['guardian_account_id','serial','pk'],['guardian_id','int','fk+uk'],['email','varchar(120)','uk'],
+    ['password_hash','varchar(255)',''],['is_active','boolean',''],
+    ['email_verified','boolean',''],['last_login','timestamp',''],['created_at','timestamp','']
+  ]},
+
+  roles:{m:'WORKERS',pos:[40,870],cols:[
+    ['role_id','serial','pk'],['name','varchar(100)','uk'],['description','text','']
+  ]},
+  specialties:{m:'WORKERS',pos:[295,870],cols:[
+    ['specialty_id','serial','pk'],['name','varchar(100)','uk']
+  ]},
+  institutions:{m:'WORKERS',pos:[545,870],cols:[
+    ['institution_id','serial','pk'],['institution_name','varchar(200)','uk'],['address_id','int','fk']
+  ]},
+  workers:{m:'WORKERS',pos:[150,1055],cols:[
+    ['worker_id','serial','pk'],['role_id','int','fk'],['first_name','varchar(100)',''],
+    ['last_name','varchar(100)',''],['curp','char(18)','uk'],['address_id','int','fk'],
+    ['birth_date','date',''],['hire_date','date',''],['created_at','timestamp',''],['is_active','boolean','']
+  ]},
+  worker_professional:{m:'WORKERS',pos:[40,1330],cols:[
+    ['worker_id','int','pk+fk'],['cedula_profesional','varchar(20)',''],
+    ['specialty_id','int','pk+fk'],['institution_id','int','fk']
+  ]},
+  worker_phones:{m:'WORKERS',pos:[295,1285],cols:[
+    ['phone_id','serial','pk'],['worker_id','int','fk'],['phone','varchar(20)',''],
+    ['phone_type','varchar(30)',''],['is_primary','boolean','']
+  ]},
+  worker_emails:{m:'WORKERS',pos:[295,1490],cols:[
+    ['email_id','serial','pk'],['worker_id','int','fk'],['email','varchar(150)',''],['is_primary','boolean','']
+  ]},
+  worker_clinic_assignment:{m:'WORKERS',pos:[545,1170],cols:[
+    ['assignment_id','serial','pk'],['worker_id','int','fk'],['clinic_id','int','fk'],
+    ['area_id','int','fk'],['start_date','date',''],['end_date','date',''],['is_active','boolean','']
+  ]},
+  worker_schedules:{m:'WORKERS',pos:[545,1400],cols:[
+    ['schedule_id','serial','pk'],['worker_id','int','fk'],['clinic_id','int','fk'],
+    ['day_of_week','smallint',''],['entry_time','time',''],['exit_time','time',''],['shift_type','varchar(30)','']
+  ]},
+  users:{m:'WORKERS',pos:[40,1565],cols:[
+    ['user_id','serial','pk'],['worker_id','int','fk+uk'],['username','varchar(50)','uk'],
+    ['password_hash','varchar(255)',''],['is_active','boolean',''],['created_at','timestamp','']
+  ]},
+
+  manufacturers:{m:'VACCINES',pos:[2130,50],cols:[
+    ['manufacturer_id','serial','pk'],['name','varchar(200)','uk'],
+    ['country_id','int','fk'],['contact_email','varchar(150)','']
+  ]},
+  vaccine_vias:{m:'VACCINES',pos:[2390,50],cols:[
+    ['via_id','serial','pk'],['via','varchar(50)','uk']
+  ]},
+  vaccines:{m:'VACCINES',pos:[2130,240],cols:[
+    ['vaccine_id','serial','pk'],['name','varchar(100)','uk'],['commercial_name','varchar(100)','uk'],
+    ['manufacturer_id','int','fk'],['via_id','int','fk'],
+    ['ideal_age_months','smallint',''],['disease_prevented','text','']
+  ]},
+  vaccine_lots:{m:'VACCINES',pos:[2130,470],cols:[
+    ['lot_id','serial','pk'],['vaccine_id','int','fk'],['clinic_id','int','fk'],
+    ['lot_number','varchar(50)','uk'],['quantity_received','int',''],
+    ['quantity_available','int',''],['expiration_date','date',''],
+    ['received_date','date',''],['is_active','boolean','']
+  ]},
+
+  vaccination_scheme:{m:'SCHEME',pos:[2390,240],cols:[
+    ['scheme_id','serial','pk'],['name','varchar(200)',''],['issuing_body','varchar(100)',''],
+    ['year','smallint',''],['is_current','boolean','']
+  ]},
+  scheme_doses:{m:'SCHEME',pos:[2390,465],cols:[
+    ['dose_id','serial','pk'],['scheme_id','int','fk'],['vaccine_id','int','fk'],
+    ['dose_number','smallint',''],['dose_label','varchar(100)',''],
+    ['ideal_age_months','smallint',''],['min_interval_days','smallint','']
+  ]},
+  application_sites:{m:'SCHEME',pos:[2390,730],cols:[
+    ['application_site_id','serial','pk'],['application_site','varchar(50)','uk']
+  ]},
+  patient_vaccine_schedule:{m:'SCHEME',pos:[2130,740],cols:[
+    ['schedule_id','serial','pk'],['patient_id','int','fk'],['scheme_dose_id','int','fk'],
+    ['due_date','date',''],['status','varchar(20)',''],['updated_at','timestamp','']
+  ]},
+
+  appointments:{m:'APPTS',pos:[1600,740],cols:[
+    ['appointment_id','serial','pk'],['patient_id','int','fk'],['clinic_id','int','fk'],
+    ['area_id','int','fk'],['worker_id','int','fk'],['patient_schedule_id','int','fk'],
+    ['scheduled_at','timestamp',''],['duration_min','smallint',''],['reason','text',''],
+    ['appointment_status','varchar(30)',''],['appointment_notes','text',''],
+    ['rescheduled_from_id','int','fk'],['created_by_role','varchar(20)',''],
+    ['created_by_worker_id','int','fk'],['created_by_guardian_id','int','fk'],
+    ['created_at','timestamp','']
+  ]},
+
+  vaccination_records:{m:'VACCINATION',pos:[1855,1030],cols:[
+    ['record_id','serial','pk'],['patient_id','int','fk'],['vaccine_id','int','fk'],
+    ['worker_id','int','fk'],['clinic_id','int','fk'],['lot_id','int','fk'],
+    ['scheme_dose_id','int','fk'],['applied_date','date',''],
+    ['application_site_id','int','fk'],['appointment_id','int','fk+uk'],
+    ['patient_temp_c','numeric(4,1)',''],['had_reaction','boolean',''],
+    ['created_at','timestamp',''],['patient_schedule_id','int','fk']
+  ]},
+  post_vaccine_reactions:{m:'VACCINATION',pos:[1855,1365],cols:[
+    ['reaction_id','serial','pk'],['record_id','int','fk'],['reported_by','int','fk'],
+    ['symptom','text',''],['severity','varchar(30)',''],['onset_hours','smallint',''],
+    ['treatment','text',''],['notified_authority','boolean','']
+  ]},
+
+  nfc_cards:{m:'NFC',pos:[2130,1030],cols:[
+    ['nfc_card_id','serial','pk'],['patient_id','int','fk'],['uid','varchar(30)','uk'],
+    ['card_type','varchar(30)',''],['issued_date','date',''],['issued_by','int','fk'],
+    ['status','varchar(20)',''],['last_scanned_at','timestamp',''],['nfc_card_notes','text','']
+  ]},
+  nfc_devices:{m:'NFC',pos:[2390,1030],cols:[
+    ['device_id','varchar(30)','pk'],['clinic_id','int','fk'],['area_id','int','fk'],
+    ['device_name','varchar(100)',''],['model','varchar(50)',''],
+    ['serial_number','varchar(50)',''],['nfc_device_status','varchar(20)',''],['registered_at','date','']
+  ]},
+  nfc_scan_events:{m:'NFC',pos:[2260,1285],cols:[
+    ['scan_event_id','serial','pk'],['nfc_card_id','int','fk'],['scanned_by','int','fk'],
+    ['clinic_id','int','fk'],['area_id','int','fk'],['scanned_at','timestamp',''],
+    ['action_triggered','varchar(50)',''],['device_id','varchar(30)','fk'],['nfc_scan_result','varchar(100)','']
+  ]},
+
+  scheme_completion_alerts:{m:'AUDITS',pos:[1600,1100],cols:[
+    ['alert_id','serial','pk'],['patient_id','int','fk'],['schedule_id','int','fk'],
+    ['alert_type','varchar(30)',''],['due_date','date',''],['status','varchar(20)',''],
+    ['notified_at','timestamp',''],['read_at','timestamp',''],['created_at','timestamp','']
+  ]},
+  supply_catalog:{m:'AUDITS',pos:[2130,1530],cols:[
+    ['supply_id','serial','pk'],['name','varchar(200)','uk'],['unit','varchar(30)',''],['category','varchar(50)','']
+  ]},
+  clinic_inventory:{m:'AUDITS',pos:[2390,1530],cols:[
+    ['inventory_id','serial','pk'],['clinic_id','int','fk'],['supply_id','int','fk'],
+    ['quantity','int',''],['min_stock','int',''],['last_updated','date','']
+  ]},
+  inventory_transfers:{m:'AUDITS',pos:[1600,1395],cols:[
+    ['transfer_id','serial','pk'],['lot_id','int','fk'],['vaccine_id','int','fk'],
+    ['from_clinic_id','int','fk'],['to_clinic_id','int','fk'],['quantity','int',''],
+    ['transfer_status','varchar(20)',''],['requested_by','int','fk'],['approved_by','int','fk'],
+    ['reason','text',''],['notes','text',''],['requested_at','timestamp',''],['resolved_at','timestamp','']
+  ]},
+  audit_log:{m:'AUDITS',pos:[1855,1620],cols:[
+    ['audit_id','serial','pk'],['table_name','varchar(100)',''],['record_id','int',''],
+    ['action','varchar(20)',''],['changed_data','jsonb',''],['worker_id','int','fk'],
+    ['changed_at','timestamp',''],['ip_address','varchar(45)','']
+  ]},
+};
+
+// ═══════════════════════════════════════════════════════
+//  RELATIONS [from_table, from_col, to_table, to_col]
+// ═══════════════════════════════════════════════════════
+const RELS = [
+  ['states','country_id','countries','country_id'],
+  ['municipalities','state_id','states','state_id'],
+  ['neighborhoods','municipality_id','municipalities','municipality_id'],
+  ['addresses','neighborhood_id','neighborhoods','neighborhood_id'],
+  ['clinics','address_id','addresses','address_id'],
+  ['clinic_areas','clinic_id','clinics','clinic_id'],
+  ['clinic_areas','area_type_id','clinic_area_types','area_type_id'],
+  ['area_equipment','area_id','clinic_areas','area_id'],
+  ['area_equipment','equipment_id','equipment_catalog','equipment_id'],
+  ['patients','blood_type_id','blood_types','blood_type_id'],
+  ['patient_allergies','patient_id','patients','patient_id'],
+  ['patient_allergies','allergy_id','allergies','allergy_id'],
+  ['guardians','address_id','addresses','address_id'],
+  ['guardians','marital_status_id','marital_status','marital_status_id'],
+  ['guardians','occupation','occupations','occupation_id'],
+  ['guardian_phones','guardian_id','guardians','guardian_id'],
+  ['guardian_emails','guardian_id','guardians','guardian_id'],
+  ['patient_guardian_relations','patient_id','patients','patient_id'],
+  ['patient_guardian_relations','guardian_id','guardians','guardian_id'],
+  ['guardian_accounts','guardian_id','guardians','guardian_id'],
+  ['manufacturers','country_id','countries','country_id'],
+  ['vaccines','manufacturer_id','manufacturers','manufacturer_id'],
+  ['vaccines','via_id','vaccine_vias','via_id'],
+  ['vaccine_lots','vaccine_id','vaccines','vaccine_id'],
+  ['vaccine_lots','clinic_id','clinics','clinic_id'],
+  ['workers','role_id','roles','role_id'],
+  ['workers','address_id','addresses','address_id'],
+  ['institutions','address_id','addresses','address_id'],
+  ['worker_professional','worker_id','workers','worker_id'],
+  ['worker_professional','specialty_id','specialties','specialty_id'],
+  ['worker_professional','institution_id','institutions','institution_id'],
+  ['worker_phones','worker_id','workers','worker_id'],
+  ['worker_emails','worker_id','workers','worker_id'],
+  ['worker_clinic_assignment','worker_id','workers','worker_id'],
+  ['worker_clinic_assignment','clinic_id','clinics','clinic_id'],
+  ['worker_clinic_assignment','area_id','clinic_areas','area_id'],
+  ['worker_schedules','worker_id','workers','worker_id'],
+  ['worker_schedules','clinic_id','clinics','clinic_id'],
+  ['users','worker_id','workers','worker_id'],
+  ['scheme_doses','scheme_id','vaccination_scheme','scheme_id'],
+  ['scheme_doses','vaccine_id','vaccines','vaccine_id'],
+  ['patient_vaccine_schedule','patient_id','patients','patient_id'],
+  ['patient_vaccine_schedule','scheme_dose_id','scheme_doses','dose_id'],
+  ['appointments','patient_id','patients','patient_id'],
+  ['appointments','clinic_id','clinics','clinic_id'],
+  ['appointments','area_id','clinic_areas','area_id'],
+  ['appointments','worker_id','workers','worker_id'],
+  ['appointments','patient_schedule_id','patient_vaccine_schedule','schedule_id'],
+  ['appointments','rescheduled_from_id','appointments','appointment_id'],
+  ['appointments','created_by_worker_id','workers','worker_id'],
+  ['appointments','created_by_guardian_id','guardians','guardian_id'],
+  ['vaccination_records','patient_id','patients','patient_id'],
+  ['vaccination_records','vaccine_id','vaccines','vaccine_id'],
+  ['vaccination_records','worker_id','workers','worker_id'],
+  ['vaccination_records','clinic_id','clinics','clinic_id'],
+  ['vaccination_records','lot_id','vaccine_lots','lot_id'],
+  ['vaccination_records','scheme_dose_id','scheme_doses','dose_id'],
+  ['vaccination_records','application_site_id','application_sites','application_site_id'],
+  ['vaccination_records','appointment_id','appointments','appointment_id'],
+  ['vaccination_records','patient_schedule_id','patient_vaccine_schedule','schedule_id'],
+  ['post_vaccine_reactions','record_id','vaccination_records','record_id'],
+  ['post_vaccine_reactions','reported_by','workers','worker_id'],
+  ['nfc_cards','patient_id','patients','patient_id'],
+  ['nfc_cards','issued_by','workers','worker_id'],
+  ['nfc_devices','clinic_id','clinics','clinic_id'],
+  ['nfc_devices','area_id','clinic_areas','area_id'],
+  ['nfc_scan_events','nfc_card_id','nfc_cards','nfc_card_id'],
+  ['nfc_scan_events','scanned_by','workers','worker_id'],
+  ['nfc_scan_events','clinic_id','clinics','clinic_id'],
+  ['nfc_scan_events','area_id','clinic_areas','area_id'],
+  ['nfc_scan_events','device_id','nfc_devices','device_id'],
+  ['scheme_completion_alerts','patient_id','patients','patient_id'],
+  ['scheme_completion_alerts','schedule_id','patient_vaccine_schedule','schedule_id'],
+  ['clinic_inventory','clinic_id','clinics','clinic_id'],
+  ['clinic_inventory','supply_id','supply_catalog','supply_id'],
+  ['inventory_transfers','lot_id','vaccine_lots','lot_id'],
+  ['inventory_transfers','vaccine_id','vaccines','vaccine_id'],
+  ['inventory_transfers','from_clinic_id','clinics','clinic_id'],
+  ['inventory_transfers','to_clinic_id','clinics','clinic_id'],
+  ['inventory_transfers','requested_by','workers','worker_id'],
+  ['inventory_transfers','approved_by','workers','worker_id'],
+  ['audit_log','worker_id','workers','worker_id'],
+];
+
+// ═══════════════════════════════════════════════════════
+//  State
+// ═══════════════════════════════════════════════════════
+const CARD_W=220, ROW_H=21, HDR_H=40, PAD_B=6;
+let scale=0.52, panX=24, panY=24;
+let isPanning=false, startX, startY, sPX, sPY;
+let selected=null, showRels=true;
+let hiddenMods=new Set();
+const cardEls={}, rects={};
+const svg=document.getElementById('svg-layer');
+
+// ═══════════════════════════════════════════════════════
+//  Build cards
+// ═══════════════════════════════════════════════════════
+function buildCards(){
+  const canvas=document.getElementById('canvas');
+  for(const [tn,td] of Object.entries(TABLES)){
+    const mod=MOD[td.m];
+    const [cx,cy]=td.pos;
+    const h=HDR_H + td.cols.length*ROW_H + PAD_B;
+    rects[tn]={x:cx,y:cy,w:CARD_W,h};
+
+    const el=document.createElement('div');
+    el.className='tcard'; el.id='tc-'+tn;
+    el.style.left=cx+'px'; el.style.top=cy+'px';
+
+    // Accent bar
+    const accent=document.createElement('div');
+    accent.className='tc-accent';
+    accent.style.background=mod.color;
+    el.appendChild(accent);
+
+    // Name row
+    const nameRow=document.createElement('div');
+    nameRow.className='tc-name';
+    nameRow.innerHTML=`<span class="tc-name-text">${tn}</span>
+      <span class="tc-count">${td.cols.length}</span>`;
+    el.appendChild(nameRow);
+    makeDraggable(nameRow,tn);
+
+    // Columns
+    for(const [cn,ct,fl] of td.cols){
+      const row=document.createElement('div');
+      row.className='tc-col'; row.id=`tcr-${tn}-${cn}`;
+      const isPK=fl.includes('pk');
+      let badges='';
+      if(fl==='pk+fk') badges='<span class="badge bpk">PK</span><span class="badge bfk">FK</span>';
+      else if(fl==='fk+uk') badges='<span class="badge bfk">FK</span><span class="badge buk">UK</span>';
+      else if(fl==='pk')    badges='<span class="badge bpk">PK</span>';
+      else if(fl==='fk')    badges='<span class="badge bfk">FK</span>';
+      else if(fl==='uk')    badges='<span class="badge buk">UK</span>';
+      else                  badges='<span style="display:inline-block;width:22px"></span>';
+      row.innerHTML=`<div class="tc-col-badges">${badges}</div>
+        <span class="tc-col-name${isPK?' is-pk':''}">${cn}</span>
+        <span class="tc-col-type">${ct}</span>`;
+      el.appendChild(row);
+    }
+    canvas.appendChild(el);
+    cardEls[tn]=el;
+    el.addEventListener('click',e=>{e.stopPropagation();selectTable(tn);});
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+//  Draggable cards
+// ═══════════════════════════════════════════════════════
+function makeDraggable(handle,tn){
+  let drag=false,ox,oy,cx0,cy0;
+  handle.style.cursor='move';
+  handle.addEventListener('mousedown',e=>{
+    if(e.button!==0) return; e.stopPropagation();
+    drag=true; ox=e.clientX; oy=e.clientY;
+    cx0=rects[tn].x; cy0=rects[tn].y;
+    document.addEventListener('mousemove',mv);
+    document.addEventListener('mouseup',up);
+  });
+  function mv(e){
+    if(!drag) return;
+    const nx=cx0+(e.clientX-ox)/scale, ny=cy0+(e.clientY-oy)/scale;
+    rects[tn].x=nx; rects[tn].y=ny;
+    cardEls[tn].style.left=nx+'px'; cardEls[tn].style.top=ny+'px';
+    drawRels();
+  }
+  function up(){ drag=false; document.removeEventListener('mousemove',mv); document.removeEventListener('mouseup',up); }
+}
+
+// ═══════════════════════════════════════════════════════
+//  Relationships drawing
+// ═══════════════════════════════════════════════════════
+function colPt(tn,cn,side='right'){
+  const r=rects[tn]; if(!r) return{x:0,y:0};
+  const idx=TABLES[tn].cols.findIndex(c=>c[0]===cn);
+  const y=r.y+HDR_H+(idx<0?0:idx)*ROW_H+ROW_H/2;
+  return side==='right'?{x:r.x+CARD_W,y}:{x:r.x,y};
+}
+
+function drawRels(){
+  svg.querySelectorAll('path').forEach(p=>p.remove());
+  if(!showRels) return;
+
+  const relMap=new Set();
+  if(selected){
+    for(const [ft,,tt] of RELS){
+      if(ft===selected||tt===selected) relMap.add(`${ft}||${tt}`);
+    }
+  }
+
+  for(const [ft,fc,tt,tc] of RELS){
+    if(!rects[ft]||!rects[tt]) continue;
+    const fm=TABLES[ft].m, tm=TABLES[tt].m;
+    if(hiddenMods.has(fm)&&hiddenMods.has(tm)) continue;
+
+    const rf=rects[ft], rt=rects[tt];
+    const fcx=rf.x+CARD_W/2, tcx=rt.x+CARD_W/2;
+    let p1,p2;
+    if(Math.abs(fcx-tcx)<30){
+      // Stacked vertically — exit bottom/top or sides
+      p1=colPt(ft,fc,'right'); p2=colPt(tt,tc,'right');
+    } else if(fcx<tcx){
+      p1=colPt(ft,fc,'right'); p2=colPt(tt,tc,'left');
+    } else {
+      p1=colPt(ft,fc,'left'); p2=colPt(tt,tc,'right');
+    }
+
+    const isSelf=ft===tt;
+    const key=`${ft}||${tt}`;
+    const isSelected=selected&&relMap.has(key);
+    const isFocusOut=selected&&ft===selected;
+    const isFocusIn=selected&&tt===selected;
+
+    let stroke,marker,sw,dash='';
+    if(!selected){stroke='#CBD5E1';marker='url(#mk-n)';sw=1.2;}
+    else if(isFocusOut){stroke='#2563EB';marker='url(#mk-h)';sw=1.8;}
+    else if(isFocusIn){stroke='#93C5FD';marker='url(#mk-r)';sw=1.4;}
+    else{stroke='rgba(203,213,225,0.2)';marker='url(#mk-n)';sw=1;}
+
+    const p=document.createElementNS('http://www.w3.org/2000/svg','path');
+    let d;
+    if(isSelf){
+      const lx=rf.x+CARD_W+30;
+      const y1=rf.y+HDR_H+ROW_H; const y2=rf.y+HDR_H+3*ROW_H;
+      d=`M${p1.x},${y1} C${lx+40},${y1} ${lx+40},${y2} ${p2.x},${y2}`;
+    } else {
+      const dx=Math.abs(p2.x-p1.x);
+      const bend=Math.max(dx*0.38,36);
+      const cx1=p1.x+(fcx<tcx?bend:-bend);
+      const cx2=p2.x-(fcx<tcx?bend:-bend);
+      d=`M${p1.x},${p1.y} C${cx1},${p1.y} ${cx2},${p2.y} ${p2.x},${p2.y}`;
+    }
+    p.setAttribute('d',d);
+    p.setAttribute('fill','none');
+    p.setAttribute('stroke',stroke);
+    p.setAttribute('stroke-width',sw);
+    p.setAttribute('marker-end',marker);
+    if(dash) p.setAttribute('stroke-dasharray',dash);
+    svg.appendChild(p);
+  }
+  updateSVGSize();
+}
+
+// ═══════════════════════════════════════════════════════
+//  Selection
+// ═══════════════════════════════════════════════════════
+function selectTable(tn){
+  selected=(selected===tn)?null:tn;
+  applySelection();
+}
+function applySelection(){
+  const rel=new Set();
+  if(selected) for(const [ft,,tt] of RELS){
+    if(ft===selected) rel.add(tt);
+    if(tt===selected) rel.add(ft);
+  }
+  for(const [tn,el] of Object.entries(cardEls)){
+    el.classList.remove('selected','dimmed','related');
+    if(!selected) continue;
+    if(tn===selected) el.classList.add('selected');
+    else if(rel.has(tn)) el.classList.add('related');
+    else el.classList.add('dimmed');
+  }
+  drawRels();
+  selected?showInfoPanel(selected,rel):closeInfo();
+}
+
+function showInfoPanel(tn,rel){
+  const td=TABLES[tn], mod=MOD[td.m];
+  const rels=RELS.filter(r=>r[0]===tn||r[2]===tn);
+  document.getElementById('ip-name').textContent=tn;
+  document.getElementById('ip-mod-badge').innerHTML=
+    `<span class="ip-badge" style="background:${mod.color}18;color:${mod.color};border:1px solid ${mod.color}30">${mod.label}</span>`;
+  document.getElementById('ip-stats').innerHTML=
+    `<div class="ip-stat">Columnas <span>${td.cols.length}</span></div>
+     <div class="ip-stat">Relaciones FK <span>${rels.length}</span></div>`;
+  document.getElementById('ip-rels').innerHTML=rels.map(r=>{
+    const out=r[0]===tn;
+    const other=out?r[2]:r[0];
+    const myCol=out?r[1]:r[3];
+    const theirCol=out?r[3]:r[1];
+    const c=MOD[TABLES[other]?.m]?.color||'#64748B';
+    return `<div class="ip-rel">
+      <span class="cname">${myCol}</span>
+      <span class="arrow">${out?'→':'←'}</span>
+      <span class="tname" style="color:${c}">${other}</span>
+      <span class="cname">.${theirCol}</span>
+    </div>`;
+  }).join('');
+  document.getElementById('info-panel').style.display='block';
+}
+function closeInfo(){
+  selected=null; applySelection();
+  document.getElementById('info-panel').style.display='none';
+}
+
+// ═══════════════════════════════════════════════════════
+//  Legend
+// ═══════════════════════════════════════════════════════
+function buildLegend(){
+  const leg=document.getElementById('legend');
+  for(const [mk,md] of Object.entries(MOD)){
+    const item=document.createElement('div');
+    item.className='leg-item';
+    item.innerHTML=`<div class="leg-swatch" style="background:${md.color}"></div>${md.label}`;
+    item.addEventListener('click',()=>{
+      if(hiddenMods.has(mk)){hiddenMods.delete(mk);item.classList.remove('off');}
+      else{hiddenMods.add(mk);item.classList.add('off');}
+      for(const [tn,el] of Object.entries(cardEls))
+        if(TABLES[tn].m===mk) el.style.opacity=hiddenMods.has(mk)?'0':'';
+      drawRels();
+    });
+    leg.appendChild(item);
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+//  Pan / Zoom
+// ═══════════════════════════════════════════════════════
+function applyT(){
+  document.getElementById('canvas').style.transform=
+    `translate(${panX}px,${panY}px) scale(${scale})`;
+  document.getElementById('zoom-badge').textContent=Math.round(scale*100)+'%';
+}
+function zoomBy(f,cx,cy){
+  const vp=document.getElementById('viewport').getBoundingClientRect();
+  const px=(cx??vp.width/2)-panX, py=(cy??vp.height/2)-panY;
+  const ns=Math.min(Math.max(scale*f,0.1),3);
+  panX-=px*(ns-scale); panY-=py*(ns-scale); scale=ns; applyT();
+}
+function resetView(){scale=0.52;panX=24;panY=24;applyT();}
+function fitAll(){
+  const xs=Object.values(rects).map(r=>r.x);
+  const ys=Object.values(rects).map(r=>r.y);
+  const xe=Object.values(rects).map(r=>r.x+r.w);
+  const ye=Object.values(rects).map(r=>r.y+r.h);
+  const vp=document.getElementById('viewport');
+  const vw=vp.offsetWidth,vh=vp.offsetHeight,pad=40;
+  const minX=Math.min(...xs),minY=Math.min(...ys);
+  const maxX=Math.max(...xe),maxY=Math.max(...ye);
+  scale=Math.min((vw-pad*2)/(maxX-minX),(vh-pad*2)/(maxY-minY),2);
+  panX=pad-minX*scale; panY=pad-minY*scale; applyT();
+}
+function toggleLines(){
+  showRels=!showRels;
+  document.getElementById('btn-rel').textContent=showRels?'Ocultar relaciones':'Mostrar relaciones';
+  drawRels();
+}
+function filterSearch(q){
+  q=q.toLowerCase();
+  let n=0;
+  for(const [tn,el] of Object.entries(cardEls)){
+    const vis=!q||tn.includes(q);
+    el.style.display=vis?'':'none';
+    if(vis) n++;
+  }
+  document.getElementById('stats').textContent=
+    q?`${n} / ${Object.keys(TABLES).length} tablas`:`${Object.keys(TABLES).length} tablas · ${RELS.length} FK`;
+  drawRels();
+}
+function updateSVGSize(){
+  const w=Math.max(...Object.values(rects).map(r=>r.x+r.w+120),2800);
+  const h=Math.max(...Object.values(rects).map(r=>r.y+r.h+120),2000);
+  svg.setAttribute('width',w); svg.setAttribute('height',h);
+}
+
+// ── Pan events ──
+const vp=document.getElementById('viewport');
+vp.addEventListener('mousedown',e=>{
+  if(e.button!==0) return;
+  isPanning=true; startX=e.clientX; startY=e.clientY; sPX=panX; sPY=panY;
+  vp.classList.add('grabbing');
+  selected=null; applySelection();
+});
+document.addEventListener('mousemove',e=>{
+  if(!isPanning) return;
+  panX=sPX+(e.clientX-startX); panY=sPY+(e.clientY-startY); applyT();
+});
+document.addEventListener('mouseup',()=>{isPanning=false;vp.classList.remove('grabbing');});
+vp.addEventListener('wheel',e=>{
+  e.preventDefault();
+  const r=vp.getBoundingClientRect();
+  zoomBy(e.deltaY<0?1.1:1/1.1,e.clientX-r.left,e.clientY-r.top);
+},{passive:false});
+
+// ── Keyboard ──
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape'){selected=null;applySelection();}
+  if((e.key==='f'||e.key==='F')&&!e.target.matches('input')) fitAll();
+  if((e.key==='r'||e.key==='R')&&!e.target.matches('input')) resetView();
+});
+vp.addEventListener('click',e=>{
+  if(e.target===vp||e.target.id==='canvas'||e.target===svg){selected=null;applySelection();}
+});
+window.addEventListener('resize',()=>{updateSVGSize();drawRels();});
+
+// ═══════════════════════════════════════════════════════
+//  INIT
+// ═══════════════════════════════════════════════════════
+buildCards();
+buildLegend();
+for(const [tn,td] of Object.entries(TABLES)) rects[tn].h=HDR_H+td.cols.length*ROW_H+PAD_B;
+updateSVGSize();
+applyT();
+drawRels();
+document.getElementById('stats').textContent=`${Object.keys(TABLES).length} tablas · ${RELS.length} FK`;
+</script>
+</body>
+</html>

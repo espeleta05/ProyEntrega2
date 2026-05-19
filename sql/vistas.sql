@@ -126,10 +126,6 @@ GROUP BY v.vaccine_id, v.name, v.commercial_name, m.name, vv.via;
 -- Recibe    : appointments, patients, patient_vaccine_schedule, scheme_doses, vaccines, workers, clinics, clinic_areas
 -- Devuelve  : Una fila por cita con todos los detalles y datos de auditoría de origen
 -- ============================================================
--- [REFACTORED] Ahora usa a.patient_id directamente (campo añadido a appointments).
---              Eliminado a.tutor_accepted (flujo deprecado).
---              patient_schedule_id sigue presente para citas vinculadas a dosis del esquema (opcional).
---              Añadidos campos de auditoría de origen: created_by_role, created_by_worker_id, created_by_guardian_id.
 CREATE OR REPLACE VIEW v_appointments_full AS
 SELECT
     a.appointment_id,
