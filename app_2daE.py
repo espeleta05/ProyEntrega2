@@ -530,8 +530,6 @@ def login():
     error = None
     if "user_name" in session:
         return redirect(_home_url_for_role(session.get("role", "")))
-    if "tutor_id" in session:
-        return redirect(url_for("tutor_dashboard"))
     if request.method == "POST":
         mail     = (request.form.get("mail") or "").strip()
         password = request.form.get("password") or ""
@@ -541,20 +539,9 @@ def login():
             session["user_lastname"] = user["lastname"]
             session["role"]          = user["role"]
             session["worker_id"]     = user["worker_id"]
-            session["clinic_id"]     = user.get("clinic_id")
+            session["clinic_id"]     = user.get("clinic_id")  # None si sin horario registrado
             flash(f"Bienvenido, {user['name']}.", "success")
             return redirect(_home_url_for_role(user["role"]))
-        # Si las credenciales de worker fallan, intentar como tutor
-        tutor = _authenticate_tutor(mail, password)
-        if tutor:
-            for key in ("tutor_id", "guardian_id", "tutor_name", "tutor_lastname"):
-                session.pop(key, None)
-            session["tutor_id"]       = tutor["guardian_account_id"]
-            session["guardian_id"]    = tutor["guardian_id"]
-            session["tutor_name"]     = tutor["name"]
-            session["tutor_lastname"] = tutor["lastname"]
-            flash(f"Bienvenido/a, {tutor['name']}.", "success")
-            return redirect(url_for("tutor_dashboard"))
         error = "Credenciales inválidas."
         flash(error, "danger")
     return render_template("pages/login_2daE.html", error=error)
@@ -2199,9 +2186,6 @@ def update_patient(id):
     first_name     = (payload.get("first_name")  or "").strip() or None
     last_name      = (payload.get("last_name")   or "").strip() or None
     curp           = (payload.get("curp")        or "").strip().upper() or None
-    # Normalize CURP: remove spaces and dashes
-    if curp:
-        curp = curp.replace(" ", "").replace("-", "")
     birth_date_raw = (payload.get("birth_date")  or "").strip() or None
 
     weight_kg = None
@@ -2235,9 +2219,6 @@ def update_patient(id):
     guardian_name  = (tutor.get("name")     or "").strip() or None
     guardian_last  = (tutor.get("lastname") or "").strip() or None
     guardian_curp  = (tutor.get("curp")     or "").strip().upper() or None
-    # Normalize CURP: remove spaces and dashes
-    if guardian_curp:
-        guardian_curp = guardian_curp.replace(" ", "").replace("-", "")
     guardian_phone = (tutor.get("number")   or "").strip() or None
     guardian_email = (tutor.get("mail")     or "").strip() or None
 
@@ -2246,7 +2227,6 @@ def update_patient(id):
     try:
         with conn.cursor() as cur:
             # 1. Actualizar datos del paciente via SP
-            logger.info(f"[UPDATE_PATIENT] Llamando sp_update_patient(id={id}, first_name={first_name}, last_name={last_name}, curp={curp})")
             cur.execute(
                 "CALL sp_update_patient(%s::int, %s, %s, %s, %s::date, %s::int, %s::numeric, %s)",
                 (id, first_name, last_name, curp, birth_date_raw,
@@ -2254,18 +2234,14 @@ def update_patient(id):
             )
             cur.execute('FETCH ALL FROM "cur_upd_patient"')
             result = cur.fetchone()
-            logger.info(f"[UPDATE_PATIENT] SP result: {result}")
 
             if result and not result.get("success"):
                 _safe_rollback(conn)
                 raw = (result.get("message") or "Error al actualizar.").split("\n")[0].strip()
-                logger.error(f"[UPDATE_PATIENT] SP error: {raw}")
                 return jsonify({"error": _translate_patient_error(raw)}), 400
 
             # 2. Vincular tutor existente
-            logger.info(f"[UPDATE_PATIENT] tutor_mode={tutor_mode}, guardian_id_existing={guardian_id_existing}")
             if tutor_mode == "existing" and guardian_id_existing:
-                logger.info(f"[UPDATE_PATIENT] Vinculando tutor existente: guardian_id={guardian_id_existing}")
                 cur.execute("""
                     UPDATE patient_guardian_relations SET is_primary = FALSE
                     WHERE patient_id = %s
@@ -2280,14 +2256,9 @@ def update_patient(id):
 
             # 3. Crear / actualizar tutor nuevo y vincularlo
             elif tutor_mode == "new" and guardian_name:
-                logger.info(f"[UPDATE_PATIENT] Modo tutor nuevo: nombre={guardian_name}, apellido={guardian_last}, curp={guardian_curp}")
                 new_guardian_id = None
 
-                # Solo crear un nuevo guardián, no buscar por CURP o nombre
-                # Para evitar conflictos de UNIQUE constraints
                 if guardian_curp:
-                    # Verificar si ese CURP ya existe
-                    logger.info(f"[UPDATE_PATIENT] Buscando guardián con CURP={guardian_curp}")
                     cur.execute(
                         "SELECT guardian_id FROM guardians WHERE curp = %s LIMIT 1",
                         (guardian_curp,)
@@ -2295,17 +2266,22 @@ def update_patient(id):
                     row = cur.fetchone()
                     if row:
                         new_guardian_id = row["guardian_id"]
-                        logger.info(f"[UPDATE_PATIENT] Guardián encontrado: id={new_guardian_id}")
 
-                # Si no encontramos por CURP, crear uno nuevo
+                if new_guardian_id is None and guardian_name and guardian_last:
+                    cur.execute(
+                        "SELECT guardian_id FROM guardians WHERE first_name = %s AND last_name = %s LIMIT 1",
+                        (guardian_name, guardian_last)
+                    )
+                    row = cur.fetchone()
+                    if row:
+                        new_guardian_id = row["guardian_id"]
+
                 if new_guardian_id is None:
-                    logger.info(f"[UPDATE_PATIENT] Creando nuevo guardián")
                     cur.execute(
                         "INSERT INTO guardians (first_name, last_name, curp) VALUES (%s, %s, %s) RETURNING guardian_id",
-                        (guardian_name, guardian_last or "", guardian_curp or None)
+                        (guardian_name, guardian_last or "", guardian_curp)
                     )
                     new_guardian_id = cur.fetchone()["guardian_id"]
-                    logger.info(f"[UPDATE_PATIENT] Guardián creado: id={new_guardian_id}")
                     if guardian_phone:
                         cur.execute(
                             "INSERT INTO guardian_phones (guardian_id, phone, phone_type, is_primary) VALUES (%s, %s, 'Movil', TRUE)",
@@ -2316,8 +2292,27 @@ def update_patient(id):
                             "INSERT INTO guardian_emails (guardian_id, email, is_primary) VALUES (%s, %s, TRUE)",
                             (new_guardian_id, guardian_email)
                         )
+                else:
+                    cur.execute("""
+                        UPDATE guardians SET
+                            first_name = COALESCE(NULLIF(%s, ''), first_name),
+                            last_name  = COALESCE(NULLIF(%s, ''), last_name),
+                            curp       = COALESCE(NULLIF(%s, ''), curp)
+                        WHERE guardian_id = %s
+                    """, (guardian_name, guardian_last or "", guardian_curp or "", new_guardian_id))
+                    if guardian_phone:
+                        cur.execute("""
+                            INSERT INTO guardian_phones (guardian_id, phone, phone_type, is_primary)
+                            VALUES (%s, %s, 'Movil', TRUE)
+                            ON CONFLICT DO NOTHING
+                        """, (new_guardian_id, guardian_phone))
+                    if guardian_email:
+                        cur.execute("""
+                            INSERT INTO guardian_emails (guardian_id, email, is_primary)
+                            VALUES (%s, %s, TRUE)
+                            ON CONFLICT DO NOTHING
+                        """, (new_guardian_id, guardian_email))
 
-                logger.info(f"[UPDATE_PATIENT] Vinculando paciente a guardián: guardian_id={new_guardian_id}")
                 cur.execute("""
                     UPDATE patient_guardian_relations SET is_primary = FALSE
                     WHERE patient_id = %s
@@ -2331,7 +2326,6 @@ def update_patient(id):
                 """, (id, new_guardian_id))
 
             # 4. Actualizar alergias (si se envió la clave)
-            logger.info(f"[UPDATE_PATIENT] Actualizando alergias")
             if "allergy_ids" in payload:
                 allergy_ids = [int(x) for x in (payload.get("allergy_ids") or []) if x is not None]
                 if allergy_ids:
@@ -2347,14 +2341,10 @@ def update_patient(id):
                 else:
                     cur.execute("DELETE FROM patient_allergies WHERE patient_id = %s", (id,))
 
-        logger.info(f"[UPDATE_PATIENT] Committing transaction...")
         conn.commit()
-        logger.info(f"[UPDATE_PATIENT] Success!")
     except Exception as ex:
         _safe_rollback(conn)
-        logger.error(f"[UPDATE_PATIENT] Error: {type(ex).__name__}: {ex}")
-        import traceback
-        logger.error(traceback.format_exc())
+        logger.error(f"Error en /update_patient/{id}: {ex}")
         return jsonify({"error": _translate_patient_error(str(ex))}), 400
     finally:
         if should_close and not _conn_is_closed(conn):
@@ -3500,7 +3490,7 @@ def inventario():
 @app.route("/citas")
 def citas():
     # Usa sp_get_citas_admin: rango de fechas, todas las columnas de v_appointments_full
-    # + tutor principal. Sin SQL embebido.
+    # + tutor principal.
     locked = _require_role("Administrador", "Recepcionista", "Medico", "Enfermero")
     if locked:
         return locked
@@ -3890,7 +3880,6 @@ def assign_nfc_card():
     uid        = (body.get("uid") or "").strip()
     card_type  = (body.get("card_type") or "").strip()
     notes      = (body.get("notes") or "").strip()
-    force      = bool(body.get("force"))
     worker_id  = session.get("worker_id")
 
     if not patient_id or not uid:
@@ -3901,8 +3890,8 @@ def assign_nfc_card():
     try:
         with conn.cursor() as cur:
             cur.execute(
-                "CALL sp_assign_nfc_card(%s, %s, %s, %s, %s, %s, %s)",
-                (patient_id, uid, card_type or None, worker_id, force, notes or None, "cur_assign_nfc"),
+                "CALL sp_assign_nfc_card(%s, %s, %s, %s, %s, %s)",
+                (patient_id, uid, card_type or None, worker_id, notes or None, "cur_assign_nfc"),
             )
             cur.execute('FETCH ALL FROM "cur_assign_nfc"')
             row = dict(cur.fetchone())
@@ -3929,29 +3918,10 @@ def nfc():
     _safe_rollback(conn)
     try:
         with conn.cursor() as cur:
-            # Leer directamente de nfc_cards para reflejar exactamente lo que hay en la tabla
-            cur.execute("""
-                SELECT
-                    nc.nfc_card_id,
-                    nc.uid,
-                    nc.card_type,
-                    nc.issued_date,
-                    nc.status,
-                    nc.last_scanned_at,
-                    nc.nfc_card_notes,
-                    nc.patient_id,
-                    TRIM(p.first_name || ' ' || p.last_name) AS patient_name
-                FROM nfc_cards nc
-                LEFT JOIN patients p ON p.patient_id = nc.patient_id
-                ORDER BY
-                    CASE WHEN nc.status = 'Activa' THEN 1
-                         WHEN nc.status = 'Inactiva' THEN 2
-                         ELSE 3 END,
-                    nc.issued_date DESC
-            """)
+            cur.execute("CALL sp_get_nfc_cards_full(%s)", ("cur_nfc_cards",))
+            cur.execute('FETCH ALL FROM "cur_nfc_cards"')
             cards = [dict(r) for r in cur.fetchall()]
 
-            # Mantener escaneos vía SP (historial detallado)
             cur.execute("CALL sp_get_nfc_scans_full(%s)", ("cur_nfc_scans",))
             cur.execute('FETCH ALL FROM "cur_nfc_scans"')
             scans = [dict(r) for r in cur.fetchall()]
@@ -3966,13 +3936,6 @@ def nfc():
             conn.close()
 
     session["last_section"] = "nfc"
-    # Version basado en mtime para bustear cache de archivos estáticos cuando cambian
-    try:
-        js_path = os.path.join(app.root_path, 'static', 'js', 'pages', 'nfc.js')
-        static_version = int(os.path.getmtime(js_path))
-    except Exception:
-        static_version = 0
-
     return render_template(
         "pages/nfc_2daE.html",
         **_session_vars(),
@@ -3980,81 +3943,7 @@ def nfc():
         scans=scans,
         total_cards=len(cards),
         active_cards=sum(1 for c in cards if c.get("status") == "Activa"),
-        static_version=static_version,
     )
-
-
-@app.route('/api/delete-nfc-card', methods=['POST'])
-def api_delete_nfc_card():
-    if not _check_role('Administrador'):
-        return jsonify({'error': 'Sin permisos'}), 403
-
-    data = request.get_json(silent=True) or {}
-    nfc_card_id = data.get('nfc_card_id')
-    uid = (data.get('uid') or '').strip() or None
-    if not nfc_card_id and not uid:
-        return jsonify({'error': 'nfc_card_id o uid requerido'}), 400
-
-    conn, should_close = _get_conn()
-    _safe_rollback(conn)
-    try:
-        with conn.cursor() as cur:
-            # Obtener patient_id asociado (si existe)
-            # Si nos dieron UID en vez de id, resolver al id
-            if not nfc_card_id and uid:
-                cur.execute('SELECT nfc_card_id, patient_id FROM nfc_cards WHERE uid = %s', (uid,))
-                row = cur.fetchone()
-                if not row:
-                    return jsonify({'error': 'Tarjeta no encontrada'}), 404
-                if hasattr(row, 'get'):
-                    nfc_card_id = row.get('nfc_card_id')
-                    patient_id = row.get('patient_id')
-                else:
-                    nfc_card_id = row[0]
-                    patient_id = row[1]
-            else:
-                cur.execute('SELECT patient_id FROM nfc_cards WHERE nfc_card_id = %s', (nfc_card_id,))
-                row = cur.fetchone()
-                if not row:
-                    return jsonify({'error': 'Tarjeta no encontrada'}), 404
-                if hasattr(row, 'get'):
-                    patient_id = row.get('patient_id')
-                else:
-                    patient_id = row[0]
-
-            # Borrar eventos y la tarjeta
-            cur.execute('DELETE FROM nfc_scan_events WHERE nfc_card_id = %s', (nfc_card_id,))
-            scans_deleted = cur.rowcount
-            cur.execute('DELETE FROM nfc_cards WHERE nfc_card_id = %s', (nfc_card_id,))
-            cards_deleted = cur.rowcount
-
-            # Limpiar campo nfc_id del paciente si existe procedimiento
-            try:
-                cur.execute('CALL sp_clear_patient_nfc_id(%s)', (patient_id,))
-            except Exception:
-                # Si el SP no existe o falla, intentar limpiar directamente
-                try:
-                    cur.execute('UPDATE patients SET nfc_id = NULL WHERE patient_id = %s', (patient_id,))
-                    patient_cleared = cur.rowcount
-                except Exception:
-                    patient_cleared = 0
-
-
-        conn.commit()
-        # Devolver detalle para depuración
-        return jsonify({
-            'message': 'Tarjeta eliminada',
-            'scans_deleted': int(scans_deleted or 0),
-            'cards_deleted': int(cards_deleted or 0),
-            'patient_cleared': int(locals().get('patient_cleared', 0) or 0),
-        }), 200
-    except Exception as e:
-        _safe_rollback(conn)
-        logger.error(f"Error en /api/delete-nfc-card: {e}")
-        return jsonify({'error': str(e)}), 500
-    finally:
-        if should_close and not _conn_is_closed(conn):
-            conn.close()
 
 @app.route("/clinicas")
 def clinicas():
@@ -5013,47 +4902,44 @@ def api_clear_nfc_id():
             card_ids = [r["nfc_card_id"] for r in cur.fetchall()]
 
             if card_ids:
-                # Ejecutar las actualizaciones desde Python en vez de usar un DO $$ block
-                #  — evita pasar parámetros dentro de bloques PL/pgSQL (provoca $1 inexistente).
-                # 1) Si existe la columna visit_id en nfc_scan_events, limpiarla.
-                cur.execute(
-                    "SELECT 1 FROM information_schema.columns "
-                    "WHERE table_name='nfc_scan_events' AND column_name='visit_id'",
-                )
-                if cur.fetchone():
-                    cur.execute(
-                        "UPDATE nfc_scan_events SET visit_id = NULL WHERE nfc_card_id = ANY(%s)",
-                        (card_ids,),
-                    )
+                # Usar DO block para manejar tablas opcionales (migración clínica puede no haberse corrido)
+                cur.execute("""
+                    DO $$
+                    DECLARE v_ids INT[] := %s;
+                    BEGIN
+                        -- nfc_scan_events.visit_id (columna del flujo clínico, opcional)
+                        IF EXISTS (
+                            SELECT 1 FROM information_schema.columns
+                            WHERE table_name='nfc_scan_events' AND column_name='visit_id'
+                        ) THEN
+                            UPDATE nfc_scan_events SET visit_id = NULL WHERE nfc_card_id = ANY(v_ids);
+                        END IF;
 
-                # 2) Si existe la tabla patient_clinic_visits, limpiar referencias a scans
-                cur.execute(
-                    "SELECT 1 FROM information_schema.tables WHERE table_name='patient_clinic_visits'",
-                )
-                if cur.fetchone():
-                    cur.execute(
-                        "UPDATE patient_clinic_visits SET checkin_nfc_scan_id = NULL "
-                        "WHERE checkin_nfc_scan_id IN (SELECT scan_event_id FROM nfc_scan_events WHERE nfc_card_id = ANY(%s))",
-                        (card_ids,),
-                    )
-                    cur.execute(
-                        "UPDATE patient_clinic_visits SET checkout_nfc_scan_id = NULL "
-                        "WHERE checkout_nfc_scan_id IN (SELECT scan_event_id FROM nfc_scan_events WHERE nfc_card_id = ANY(%s))",
-                        (card_ids,),
-                    )
+                        -- patient_clinic_visits (tabla opcional)
+                        IF EXISTS (
+                            SELECT 1 FROM information_schema.tables WHERE table_name='patient_clinic_visits'
+                        ) THEN
+                            UPDATE patient_clinic_visits
+                               SET checkin_nfc_scan_id = NULL
+                             WHERE checkin_nfc_scan_id IN (
+                                   SELECT scan_event_id FROM nfc_scan_events WHERE nfc_card_id = ANY(v_ids));
+                            UPDATE patient_clinic_visits
+                               SET checkout_nfc_scan_id = NULL
+                             WHERE checkout_nfc_scan_id IN (
+                                   SELECT scan_event_id FROM nfc_scan_events WHERE nfc_card_id = ANY(v_ids));
+                        END IF;
 
-                # 3) Si existe visit_area_movements, limpiar nfc_scan_id
-                cur.execute(
-                    "SELECT 1 FROM information_schema.tables WHERE table_name='visit_area_movements'",
-                )
-                if cur.fetchone():
-                    cur.execute(
-                        "UPDATE visit_area_movements SET nfc_scan_id = NULL "
-                        "WHERE nfc_scan_id IN (SELECT scan_event_id FROM nfc_scan_events WHERE nfc_card_id = ANY(%s))",
-                        (card_ids,),
-                    )
-
-                # 4) Borrar los eventos y las tarjetas
+                        -- visit_area_movements (tabla opcional)
+                        IF EXISTS (
+                            SELECT 1 FROM information_schema.tables WHERE table_name='visit_area_movements'
+                        ) THEN
+                            UPDATE visit_area_movements
+                               SET nfc_scan_id = NULL
+                             WHERE nfc_scan_id IN (
+                                   SELECT scan_event_id FROM nfc_scan_events WHERE nfc_card_id = ANY(v_ids));
+                        END IF;
+                    END$$;
+                """, (card_ids,))
                 cur.execute("DELETE FROM nfc_scan_events WHERE nfc_card_id = ANY(%s)", (card_ids,))
                 cur.execute("DELETE FROM nfc_cards WHERE patient_id = %s", (patient_id,))
 
@@ -5290,22 +5176,8 @@ def api_visits_realtime():
                     if isinstance(v, (datetime, date)):
                         row[k] = _temporal_text(v)
                 visits.append(row)
-            cur.execute(
-                """
-                SELECT COUNT(*) FROM patient_clinic_visits
-                WHERE clinic_id   = %s
-                  AND visit_status = 'Finalizado'
-                  AND DATE(COALESCE(checked_out_at, updated_at)) = CURRENT_DATE
-                """,
-                (clinic_id,),
-            )
-            finalizados_hoy = (cur.fetchone() or {}).get("count", 0)
         conn.commit()
-        return jsonify({
-            "visits": visits,
-            "finalizados_hoy": finalizados_hoy,
-            "ts": datetime.now().isoformat(),
-        }), 200
+        return jsonify({"visits": visits, "ts": datetime.now().isoformat()}), 200
     except Exception as e:
         _safe_rollback(conn)
         logger.error("Error en /api/visits/realtime: %s", e)
@@ -5600,4 +5472,5 @@ if __name__ == "__main__":
         raise
 
     logger.info("✓ Flask iniciando en http://127.0.0.1:5000")
-    app.run(debug=True) 
+    app.run(debug=True)
+    app.run(threaded=True)
