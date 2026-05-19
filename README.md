@@ -383,8 +383,6 @@ ProyEntrega2/
 │   ├── js/
 │   └── img/
 ├── sql/                            # Scripts SQL auxiliares (opcional)
-├── controllers/                    # Lógica de negocio por módulo
-├── models/                         # Acceso y consulta a las bases de datos
 └── ...
 ```
 
@@ -405,8 +403,8 @@ sudo -u postgres psql -d sistemavacunacion
 -- Listar triggers
 SELECT trigger_name, event_object_table FROM information_schema.triggers;
 
--- Listar funciones/SPs
-SELECT routine_name FROM information_schema.routines WHERE routine_type = 'FUNCTION';
+-- Listar SPs
+SELECT routine_name FROM information_schema.routines WHERE routine_type = 'PROECDURE';
 
 -- Listar vistas
 SELECT table_name FROM information_schema.views WHERE table_schema = 'public';
