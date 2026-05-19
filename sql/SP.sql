@@ -4973,11 +4973,11 @@ BEGIN
                 ELSE NULL
             END                                                              AS minutes_waiting,
             p.patient_id,
-            TRIM(p.first_name || ' ' || p.last_name)                        AS full_name,
+            NULLIF(TRIM(COALESCE(p.first_name,'') || ' ' || COALESCE(p.last_name,'')), '') AS full_name,
             DATE_PART('year', AGE(CURRENT_DATE, p.birth_date))::INT         AS age,
             p.photo,
             COALESCE(ca.name, 'Sin área')                                   AS current_area,
-            COALESCE(TRIM(w.first_name || ' ' || w.last_name), 'Sin asignar') AS assigned_worker,
+            COALESCE(NULLIF(TRIM(COALESCE(w.first_name,'') || ' ' || COALESCE(w.last_name,'')), ''), 'Sin asignar') AS assigned_worker,
             pcv.appointment_id,
             a.scheduled_at,
             a.appointment_status,

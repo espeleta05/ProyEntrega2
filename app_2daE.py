@@ -5290,8 +5290,22 @@ def api_visits_realtime():
                     if isinstance(v, (datetime, date)):
                         row[k] = _temporal_text(v)
                 visits.append(row)
+            cur.execute(
+                """
+                SELECT COUNT(*) FROM patient_clinic_visits
+                WHERE clinic_id   = %s
+                  AND visit_status = 'Finalizado'
+                  AND DATE(COALESCE(checked_out_at, updated_at)) = CURRENT_DATE
+                """,
+                (clinic_id,),
+            )
+            finalizados_hoy = (cur.fetchone() or {}).get("count", 0)
         conn.commit()
-        return jsonify({"visits": visits, "ts": datetime.now().isoformat()}), 200
+        return jsonify({
+            "visits": visits,
+            "finalizados_hoy": finalizados_hoy,
+            "ts": datetime.now().isoformat(),
+        }), 200
     except Exception as e:
         _safe_rollback(conn)
         logger.error("Error en /api/visits/realtime: %s", e)

@@ -8,7 +8,7 @@
 const POLL_MS   = 10_000;
 const cfg       = document.getElementById('sala-config');
 const WORKER_ID = cfg?.dataset.workerId  || '';
-const DEVICE_ID = 'monitor-sala';
+const DEVICE_ID = null;
 
 let pollTimer        = null;
 let pendingCheckout  = null;   // { visitId, patientName }
@@ -57,7 +57,7 @@ function buildCard(v, colType) {
   const tClass   = timerClass(mins, colType);
   const tLabel   = timerLabel(mins, colType);
   const avClass  = colType === 'espera' ? 'pc-avatar--espera' : 'pc-avatar--consulta';
-  const ini      = initials(v.patient_name);
+  const ini      = initials(v.full_name);
   const age      = v.age != null ? `${v.age} años` : '';
 
   let badges = '';
@@ -74,7 +74,7 @@ function buildCard(v, colType) {
     <div class="pc-top">
       <div class="pc-avatar ${avClass}">${ini}</div>
       <div class="pc-info">
-        <div class="pc-name">${v.patient_name || '—'}</div>
+        <div class="pc-name">${v.full_name || '—'}</div>
         <div class="pc-meta">${age}${age && v.current_area ? ' · ' : ''}${v.current_area || ''}</div>
       </div>
       ${apptBadge}
@@ -83,7 +83,7 @@ function buildCard(v, colType) {
     ${badges ? `<div class="pc-badges">${badges}</div>` : ''}
     <div class="pc-actions">
       <button class="md3-btn md3-btn--outlined md3-btn--sm"
-              onclick="openCheckout(${v.visit_id}, '${(v.patient_name || '').replace(/'/g, '')}')"
+              onclick="openCheckout(${v.visit_id}, '${(v.full_name || '').replace(/'/g, '')}')"
               title="Dar de alta">
         <i class="fa-solid fa-right-from-bracket"></i> Alta
       </button>
