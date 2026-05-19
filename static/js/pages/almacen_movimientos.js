@@ -22,7 +22,8 @@
 
     rows.forEach(function (row) {
       if (row.style.display === 'none') return;
-      var qty  = parseInt(row.querySelector('td:nth-child(6)').textContent.trim(), 10) || 0;
+      var tdQty = row.querySelector('td:nth-child(6)');
+      var qty   = tdQty ? parseInt(tdQty.textContent.trim(), 10) || 0 : 0;
       var type = row.dataset.type || '';
 
       if (type === 'Entrada')              { entradas += qty; }
