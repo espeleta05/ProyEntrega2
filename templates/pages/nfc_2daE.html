@@ -66,7 +66,8 @@
             {'label': 'Paciente'},
             {'label': 'Estado clínico'},
             {'label': 'Fecha emisión'},
-            {'label': 'Último escaneo'}
+            {'label': 'Último escaneo'},
+            {'label': 'Acciones'}
         ],
         rows=cards,
         empty_icon='fa-credit-card',
@@ -92,6 +93,9 @@
             </td>
             <td>{{ card.issued_date }}</td>
             <td class="muted-td">{{ card.last_scanned_at.strftime('%Y-%m-%d') if card.last_scanned_at else '—' }}</td>
+            <td>
+                <button class="md3-btn md3-btn--text delete-nfc-btn" data-card-id="{{ card.nfc_card_id }}" data-uid="{{ card.uid }}">Quitar</button>
+            </td>
         </tr>
     {% endcall %}
 
@@ -162,5 +166,5 @@
 {% endblock %}
 
 {% block scripts %}
-<script src="{{ url_for('static', filename='js/pages/nfc.js') }}"></script>
+<script src="{{ url_for('static', filename='js/pages/nfc.js') }}?v={{ static_version }}"></script>
 {% endblock %}

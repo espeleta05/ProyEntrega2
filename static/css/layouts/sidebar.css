@@ -259,10 +259,8 @@
 .sidebar-user__name {
   font-weight: var(--md-font-weight-semibold);
   font-size: var(--md-font-size-body-sm);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
   margin: 0;
+  word-break: break-word;
 }
 
 .sidebar-user__role {

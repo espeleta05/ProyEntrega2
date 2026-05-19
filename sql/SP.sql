@@ -2811,6 +2811,7 @@ CREATE OR REPLACE PROCEDURE sp_assign_nfc_card(
     IN    p_uid         VARCHAR,
     IN    p_card_type   VARCHAR,
     IN    p_issued_by   INT,
+    IN    p_force       BOOLEAN,
     IN    p_notes       TEXT,
     INOUT p_results     REFCURSOR
 )
@@ -2826,15 +2827,39 @@ BEGIN
         RAISE EXCEPTION 'El UID de la tarjeta es obligatorio';
     END IF;
 
+    -- Si existe tarjeta ACTIVA con ese UID
     IF EXISTS (SELECT 1 FROM nfc_cards WHERE uid = TRIM(p_uid) AND status = 'Activa') THEN
-        RAISE EXCEPTION 'Ya existe una tarjeta activa con el UID %', p_uid;
+        IF NOT COALESCE(p_force, FALSE) THEN
+            RAISE EXCEPTION 'Ya existe una tarjeta activa con el UID %', p_uid;
+        ELSE
+            UPDATE nfc_cards
+            SET status = 'Inactiva',
+                nfc_card_notes = COALESCE(nfc_card_notes, '') || ' - Desactivada por reasignacion forzada'
+            WHERE uid = TRIM(p_uid) AND status = 'Activa';
+
+            UPDATE patients
+            SET nfc_id = NULL, updated_at = NOW()
+            WHERE nfc_id = TRIM(p_uid);
+        END IF;
     END IF;
 
+    -- Si el paciente ya tiene tarjeta activa
     IF EXISTS (
         SELECT 1 FROM nfc_cards
         WHERE patient_id = p_patient_id AND status = 'Activa'
     ) THEN
-        RAISE EXCEPTION 'El paciente ya tiene una tarjeta NFC activa. Desactivala antes de asignar una nueva.';
+        IF NOT COALESCE(p_force, FALSE) THEN
+            RAISE EXCEPTION 'El paciente ya tiene una tarjeta NFC activa. Desactívala antes de asignar una nueva.';
+        ELSE
+            UPDATE nfc_cards
+            SET status = 'Inactiva',
+                nfc_card_notes = COALESCE(nfc_card_notes, '') || ' - Desactivada por reasignacion forzada'
+            WHERE patient_id = p_patient_id AND status = 'Activa';
+
+            UPDATE patients
+            SET nfc_id = NULL, updated_at = NOW()
+            WHERE patient_id = p_patient_id;
+        END IF;
     END IF;
 
     IF p_issued_by IS NOT NULL AND NOT EXISTS (

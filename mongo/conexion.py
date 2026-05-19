@@ -17,14 +17,17 @@ MONGO_DB  = os.getenv("MONGO_DB",  "immunicare_nosql")
 
 _client = None
 _db     = None
+_unavailable = False  # True after first failed attempt; avoids repeated reconnect spam
 
 
 def get_db():
     """Devuelve la base de datos MongoDB. Crea la conexión si no existe."""
-    global _client, _db
+    global _client, _db, _unavailable
 
     if _db is not None:
         return _db
+    if _unavailable:
+        return None
 
     try:
         from pymongo import MongoClient
@@ -43,6 +46,7 @@ def get_db():
 
     except Exception as e:
         logger.warning("MongoDB no disponible: %s", e)
+        _unavailable = True
         return None
 
 

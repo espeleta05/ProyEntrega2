@@ -44,4 +44,37 @@
 
   applyCardsView();
   applyScansView();
+
+  // Handler para borrar tarjeta NFC desde la vista
+  function attachDeleteHandlers() {
+    const delBtns = Array.from(document.querySelectorAll('.delete-nfc-btn'));
+    delBtns.forEach(btn => {
+      btn.addEventListener('click', async (ev) => {
+        const cardId = btn.getAttribute('data-card-id');
+        const uid    = btn.getAttribute('data-uid');
+        if (!cardId) return;
+        if (!confirm(`¿Eliminar tarjeta NFC ${uid}? Esta acción es irreversible.`)) return;
+        try {
+          const resp = await fetch('/api/delete-nfc-card', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ nfc_card_id: cardId || null, uid: uid })
+          });
+          const payload = await resp.json();
+          if (!resp.ok) throw new Error(payload.error || 'Error al eliminar');
+          // Remover fila de la tabla
+          const row = btn.closest('tr');
+          if (row) row.remove();
+          // actualizar filtros/orden
+          applyCardsView();
+          sortCards();
+          alert(payload.message || 'Tarjeta eliminada');
+        } catch (err) {
+          alert('Error: ' + (err.message || err));
+        }
+      });
+    });
+  }
+
+  attachDeleteHandlers();
 })();
