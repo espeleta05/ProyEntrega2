@@ -507,8 +507,6 @@ INSERT INTO guardian_accounts (guardian_id, email, password_hash, is_active, ema
 (2,  'maria.martinez@gmail.com',   crypt('tutor2',  gen_salt('bf')), TRUE, TRUE),
 (3,  'luis.lopez@gmail.com',       crypt('tutor3',  gen_salt('bf')), TRUE, TRUE);
 
-
-
 -- MANUFACTURERS
 INSERT INTO manufacturers (manufacturer_id,name, country_id, contact_email) VALUES
 (1, 'Pfizer',1,'pfizer@gmail.com'),
@@ -610,12 +608,8 @@ INSERT INTO scheme_doses (dose_id, scheme_id, vaccine_id, dose_number, dose_labe
     (7, 'Glúteo_Izq'),
     (8, 'Glúteo_Der');
 
- -- ─────────────────────────────────────────────
-    --  APPOINTMENTS  (schema correcto: sin vaccine_id/scheme_dose_id)
-    --  15 citas — una por paciente, vinculadas al primer registro de cada uno.
-    --  Worker 3 (Médico Mario, clinic 1, area 3) y Worker 2 (Enfermera Lucía, clinic 1, area 2).
-    --  Fechas distintas → no viola UNIQUE(worker_id, scheduled_at) ni UNIQUE(clinic_id, area_id, scheduled_at).
-    -- ─────────────────────────────────────────────
+
+--  APPOINTMENTS  
 INSERT INTO appointments
 (appointment_id, patient_id, clinic_id, area_id, worker_id,
  patient_schedule_id, scheduled_at, duration_min, reason,
@@ -639,13 +633,8 @@ VALUES
 (12,12,  1, 2, 2, NULL, '2019-10-16 09:00', 20, 'BCG nacimiento',               'Completada', 'Enfermero', 2),
 (15,15,  1, 2, 2, NULL, '2021-04-11 09:00', 20, 'BCG nacimiento',               'Completada', 'Enfermero', 2);
 
-    -- ─────────────────────────────────────────────
-    --  VACCINATION RECORDS (96 registros)
-    --  15 registros vinculados a su appointment (first visit).
-    --  El resto: appointment_id = NULL (dosis extra, sin cita previa).
-    --  Paciente 9 = ESQUEMA COMPLETO hasta 24 meses.
-    -- ─────────────────────────────────────────────
 
+--  VACCINATION RECORDS (96 registros)
 INSERT INTO vaccination_records
 (record_id, patient_id, vaccine_id, worker_id, clinic_id, lot_id,
  scheme_dose_id, applied_date, application_site_id, appointment_id,
@@ -854,7 +843,6 @@ WHERE p.is_active != FALSE
 ON CONFLICT DO NOTHING;
 
 -- CITAS PROGRAMADAS (hoy y próximos días para demostración del dashboard)
--- Worker 3 (Mario, área 3) y Worker 2 (Lucía, área 2) — timestamps distintos para no violar UNIQUE
 INSERT INTO appointments
 (appointment_id, patient_id, clinic_id, area_id, worker_id,
  patient_schedule_id, scheduled_at, duration_min, reason,
@@ -924,7 +912,6 @@ COMMIT;
 
 
 -- (requiere que existan vacunas y clínicas)
-
 INSERT INTO vaccine_lots
     (vaccine_id, clinic_id, lot_number, quantity_received, quantity_available,
      expiration_date, received_date, lot_status)
@@ -982,7 +969,6 @@ WHERE NOT EXISTS (SELECT 1 FROM vaccine_lots WHERE lot_number = 'LOTE-VPH-2023-0
 
 -- ── 2. MOVIMIENTOS DE INVENTARIO ─────────────────────────────
 -- (requiere que inventory_movements exista — creada en Fase 1)
-
 INSERT INTO inventory_movements
     (lot_id, vaccine_id, clinic_id, worker_id,
      movement_type, quantity, quantity_before, quantity_after,
@@ -1080,7 +1066,6 @@ FROM vaccine_lots vl WHERE vl.lot_number = 'LOTE-VPH-2023-005';
 
 -- ── 3. TRANSFERENCIAS ────────────────────────────────────────
 -- (requiere ≥ 2 clínicas activas)
-
 INSERT INTO inventory_transfers
     (lot_id, vaccine_id, from_clinic_id, to_clinic_id,
      quantity, transfer_status, requested_by, reason, requested_at)
