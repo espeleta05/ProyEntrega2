@@ -4029,38 +4029,57 @@ def recepcionista_dashboard():
     _safe_rollback(conn)
     try:
         with conn.cursor() as cur:
-            cur.execute("CALL sp_recepcionista_kpis(%s)", ("cur_rec_kpis",))
-            cur.execute('FETCH ALL FROM "cur_rec_kpis"')
-            row = cur.fetchone()
-            kpis = dict(row) if row else {}
+            try:
+                cur.execute("CALL sp_recepcionista_kpis(%s)", ("cur_rec_kpis",))
+                cur.execute('FETCH ALL FROM "cur_rec_kpis"')
+                row = cur.fetchone()
+                kpis = dict(row) if row else {}
+                conn.commit()
+            except Exception:
+                import traceback
+                logger.error("[SP ERROR] sp_recepcionista_kpis:\n%s", traceback.format_exc())
+                _safe_rollback(conn)
 
-            cur.execute("CALL sp_recepcionista_citas_hoy(%s)", ("cur_rec_citas",))
-            cur.execute('FETCH ALL FROM "cur_rec_citas"')
-            citas_hoy = [
-                {**dict(r), "scheduled_at": _temporal_text(r.get("scheduled_at")),
-                 "hora_fin": _temporal_text(r.get("hora_fin"))}
-                for r in cur.fetchall()
-            ]
+            try:
+                cur.execute("CALL sp_recepcionista_citas_hoy(%s)", ("cur_rec_citas",))
+                cur.execute('FETCH ALL FROM "cur_rec_citas"')
+                citas_hoy = [
+                    {**dict(r), "scheduled_at": _temporal_text(r.get("scheduled_at")),
+                     "hora_fin": _temporal_text(r.get("hora_fin"))}
+                    for r in cur.fetchall()
+                ]
+                conn.commit()
+            except Exception:
+                import traceback
+                logger.error("[SP ERROR] sp_recepcionista_citas_hoy:\n%s", traceback.format_exc())
+                _safe_rollback(conn)
 
-            cur.execute("CALL sp_recepcionista_actividad_reciente(%s, %s)", (15, "cur_rec_actividad"))
-            cur.execute('FETCH ALL FROM "cur_rec_actividad"')
-            actividad = [
-                {**dict(r), "ts": _temporal_text(r.get("ts"))}
-                for r in cur.fetchall()
-            ]
+            try:
+                cur.execute("CALL sp_recepcionista_actividad_reciente(%s, %s)", (15, "cur_rec_actividad"))
+                cur.execute('FETCH ALL FROM "cur_rec_actividad"')
+                actividad = [
+                    {**dict(r), "ts": _temporal_text(r.get("ts"))}
+                    for r in cur.fetchall()
+                ]
+                conn.commit()
+            except Exception:
+                import traceback
+                logger.error("[SP ERROR] sp_recepcionista_actividad_reciente:\n%s", traceback.format_exc())
+                _safe_rollback(conn)
 
-            cur.execute("CALL sp_recepcionista_pacientes_semana(%s)", ("cur_rec_semana",))
-            cur.execute('FETCH ALL FROM "cur_rec_semana"')
-            chart_data = [
-                {"dia": str(r.get("dia")), "dia_label": r.get("dia_label"), "total": r.get("total", 0)}
-                for r in cur.fetchall()
-            ]
+            try:
+                cur.execute("CALL sp_recepcionista_pacientes_semana(%s)", ("cur_rec_semana",))
+                cur.execute('FETCH ALL FROM "cur_rec_semana"')
+                chart_data = [
+                    {"dia": str(r.get("dia")), "dia_label": r.get("dia_label"), "total": r.get("total", 0)}
+                    for r in cur.fetchall()
+                ]
+                conn.commit()
+            except Exception:
+                import traceback
+                logger.error("[SP ERROR] sp_recepcionista_pacientes_semana:\n%s", traceback.format_exc())
+                _safe_rollback(conn)
 
-        conn.commit()
-    except Exception:
-        import traceback
-        logger.error(f"[SP ERROR] recepcionista_dashboard:\n{traceback.format_exc()}")
-        _safe_rollback(conn)
     finally:
         if should_close and not _conn_is_closed(conn):
             conn.close()
