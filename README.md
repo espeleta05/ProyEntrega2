@@ -268,7 +268,7 @@ PG_CONFIG = {
 }
 ```
 
-O en formato de cadena de conexión (SQLAlchemy / psycopg2):
+O en formato de cadena de conexión (SQLAlchemy / psycopg):
 
 ```python
 POSTGRES_URL = "postgresql://postgres:tu_contraseña_segura@localhost:5432/sistemavacunacion"
@@ -312,12 +312,6 @@ MONGO_URL = "mongodb://mongouser:tu_contraseña_mongo@localhost:27017/sistemavac
 
 ```bash
 export FLASK_APP=app_2daE.py
-```
-
-### 10.2 (Opcional) Activar el modo de desarrollo
-
-```bash
-export FLASK_ENV=development
 ```
 
 ### 10.3 Iniciar el servidor
