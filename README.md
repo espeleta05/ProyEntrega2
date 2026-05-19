@@ -18,7 +18,8 @@ Sistema web de gestión clínica de vacunación infantil desarrollado con Flask,
 10. [Ejecución del Sistema](#10-ejecución-del-sistema)
 11. [Configuración de Firewall](#11-configuración-de-firewall)
 12. [Estructura del Proyecto](#12-estructura-del-proyecto)
-13. [Recomendaciones](#13-recomendaciones)
+13. [Limitaciones en la Instancia (NFC)](#13-limitaciones-en-la-instancia-nfc)
+14. [Recomendaciones](#14-recomendaciones)
 
 ---
 
@@ -188,11 +189,44 @@ exit
 
 ---
 
+## 6. Cómo Subir el ZIP a la Instancia
+
+Antes de restaurar la base de datos o ejecutar el sistema, sube el archivo `.zip` del proyecto a tu VM de Google Cloud usando una de las siguientes opciones:
+
+### Opción A — `gcloud compute scp` (recomendada)
+
+Desde tu máquina local, ejecuta:
+
+```bash
+gcloud compute scp /ruta/local/ProyEntrega2.zip NOMBRE_INSTANCIA:~/ProyEntrega2.zip --zone=ZONA_DE_TU_VM
+```
+
+Reemplaza `NOMBRE_INSTANCIA` y `ZONA_DE_TU_VM` con los valores de tu VM (visibles en **Compute Engine > Instancias de VM**).
+
+### Opción B — Consola de Google Cloud (navegador)
+
+1. Abre la terminal SSH de tu instancia desde la consola de Google Cloud.
+2. Haz clic en el ícono de engrane (⚙) → **Subir archivo**.
+3. Selecciona el `.zip` desde tu equipo.
+
+### Descomprimir el ZIP en la instancia
+
+Una vez que el archivo esté en la VM, descomprímelo:
+
+```bash
+unzip ProyEntrega2.zip -d ProyEntrega2
+cd ProyEntrega2
+```
+
+> Si `unzip` no está instalado: `sudo dnf install -y unzip`
+
+---
+
 ## 6. Restauración de la Base de Datos
 
 ### 6.1 Restaurar PostgreSQL
 
-El archivo de respaldo `sistemavacunacionBACKUP3.sql` **debe estar incluido en el proyecto** (en la raíz del directorio descomprimido).
+El archivo de respaldo `sistemavacunacionBACKUP4.sql` **debe estar incluido en el proyecto** (en la raíz del directorio descomprimido).
 
 Para restaurar el esquema completo, datos de prueba, stored procedures, triggers y vistas, ejecuta:
 
@@ -388,7 +422,32 @@ ProyEntrega2/
 
 ---
 
-## 13. Recomendaciones
+## 13. Limitaciones en la Instancia (NFC)
+
+### Funcionalidad NFC — solo disponible en local
+
+La funcionalidad de **identificación de pacientes mediante NFC** (disponible en los módulos de Recepcionista, Médicos y Enfermeros) **únicamente funciona cuando el sistema corre de forma local** en una máquina con lector NFC conectado. Esta limitación es a nivel de hardware: los navegadores solo pueden acceder a lectores NFC físicos cuando la aplicación se sirve desde `localhost`.
+
+> **En la instancia de Google Cloud esta función no estará disponible.** El resto de las funcionalidades del sistema (registro de pacientes, vacunación, citas, reportes, portal de tutores, etc.) funcionan completamente en la instancia sin ninguna restricción.
+
+| Módulo | Funciona en instancia | Funciona en local |
+|---|:---:|:---:|
+| Recepción — identificación por NFC | No | Sí |
+| Médicos — identificación por NFC | No | Sí |
+| Enfermeros — identificación por NFC | No | Sí |
+| Todas las demás funcionalidades | **Sí** | **Sí** |
+
+Para usar NFC localmente, corre el sistema con:
+
+```bash
+flask run --host=0.0.0.0
+```
+
+y accede desde `http://localhost:5000` en la misma máquina que tiene el lector NFC conectado.
+
+---
+
+## 14. Recomendaciones
 
 ### Tras restaurar PostgreSQL
 
