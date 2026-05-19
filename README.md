@@ -186,27 +186,6 @@ exit
 
 > Reemplaza `tu_contraseña_mongo` por una contraseña de tu elección. Guárdala, la necesitarás en el paso 9.
 
-### 5.4 (Opcional) Habilitar autenticación
-
-Si deseas requerir autenticación para conectarse, edita el archivo de configuración de MongoDB:
-
-```bash
-sudo nano /etc/mongod.conf
-```
-
-Busca la sección `security` y activa la autenticación:
-
-```yaml
-security:
-  authorization: enabled
-```
-
-Luego reinicia el servicio:
-
-```bash
-sudo systemctl restart mongod
-```
-
 ---
 
 ## 6. Restauración de la Base de Datos
@@ -228,22 +207,6 @@ sudo -u postgres psql -d sistemavacunacion -f /ruta/completa/sistemavacunacionBA
 ```
 
 > Espera a que el proceso finalice sin errores antes de continuar. Cualquier error en esta etapa afectará el funcionamiento del sistema.
-
-### 6.2 Restaurar MongoDB
-
-Si el proyecto incluye un respaldo de MongoDB (exportado con `mongodump`), restáuralo con:
-
-```bash
-mongorestore --db sistemavacunacion_mongo /ruta/al/respaldo/mongo/
-```
-
-Si el respaldo fue exportado en formato JSON con `mongoexport`, impórtalo colección por colección:
-
-```bash
-mongoimport --db sistemavacunacion_mongo --collection nombre_coleccion --file nombre_coleccion.json
-```
-
----
 
 ## 7. Configuración del Entorno Virtual Python
 
