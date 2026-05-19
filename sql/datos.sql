@@ -503,6 +503,9 @@ INSERT INTO users (worker_id, username, password_hash, is_active) VALUES
 (5,'raul.mora',crypt('almacen123', gen_salt('bf')),TRUE);
 
 INSERT INTO guardian_accounts (guardian_id, email, password_hash, is_active, email_verified) VALUES
+(23,  'luis.bonavena@gmail.com',   crypt('tutor4',  gen_salt('bf')), TRUE, TRUE);
+(21,  'rodrigo.figueroa@gmail.com',   crypt('tutor2',  gen_salt('bf')), TRUE, TRUE);
+(13,  'ricardo.morales@gmail.com',   crypt('tutor2',  gen_salt('bf')), TRUE, TRUE);
 (1,  'carlos.garcia@gmail.com',    crypt('tutor1',  gen_salt('bf')), TRUE, TRUE),
 (2,  'maria.martinez@gmail.com',   crypt('tutor2',  gen_salt('bf')), TRUE, TRUE),
 (3,  'luis.lopez@gmail.com',       crypt('tutor3',  gen_salt('bf')), TRUE, TRUE);
