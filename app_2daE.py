@@ -4416,7 +4416,8 @@ def almacen_movimientos():
     if locked:
         return locked
 
-    clinic_id   = session.get("clinic_id")
+    # Almacen y Administrador ven movimientos de todas las clínicas (clinic_id=None → sin filtro)
+    clinic_id   = None
     date_from   = request.args.get("date_from") or None
     date_to     = request.args.get("date_to")   or None
     type_filter = request.args.get("type")       or None
