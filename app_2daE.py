@@ -4029,6 +4029,7 @@ def recepcionista_dashboard():
     _safe_rollback(conn)
     try:
         with conn.cursor() as cur:
+            # ── KPIs ──────────────────────────────────────────────────────────
             try:
                 cur.execute("CALL sp_recepcionista_kpis(%s)", ("cur_rec_kpis",))
                 cur.execute('FETCH ALL FROM "cur_rec_kpis"')
@@ -4036,10 +4037,26 @@ def recepcionista_dashboard():
                 kpis = dict(row) if row else {}
                 conn.commit()
             except Exception:
-                import traceback
-                logger.error("[SP ERROR] sp_recepcionista_kpis:\n%s", traceback.format_exc())
                 _safe_rollback(conn)
+                cur.execute("""
+                    SELECT
+                        COUNT(*) FILTER (WHERE DATE(scheduled_at) = CURRENT_DATE)                             AS citas_hoy_total,
+                        COUNT(*) FILTER (WHERE DATE(scheduled_at) = CURRENT_DATE AND appointment_status = 'Completada')  AS citas_hoy_completadas,
+                        COUNT(*) FILTER (WHERE DATE(scheduled_at) = CURRENT_DATE AND appointment_status IN ('Programada','Confirmada')) AS citas_hoy_pendientes,
+                        COUNT(*) FILTER (WHERE DATE(scheduled_at) = CURRENT_DATE AND appointment_status = 'Cancelada')   AS citas_hoy_canceladas,
+                        COUNT(*) FILTER (WHERE DATE(scheduled_at) = CURRENT_DATE AND appointment_status = 'No Show')     AS citas_hoy_no_show,
+                        (SELECT COUNT(*) FROM patients WHERE DATE(created_at) = CURRENT_DATE AND is_active = TRUE)       AS pacientes_hoy,
+                        (SELECT COUNT(*) FROM patients
+                         WHERE created_at >= DATE_TRUNC('week', CURRENT_DATE)
+                           AND created_at <  DATE_TRUNC('week', CURRENT_DATE) + INTERVAL '7 days'
+                           AND is_active = TRUE)                                                              AS pacientes_semana
+                    FROM appointments
+                """)
+                row = cur.fetchone()
+                kpis = dict(row) if row else {}
+                conn.commit()
 
+            # ── Citas de hoy ──────────────────────────────────────────────────
             try:
                 cur.execute("CALL sp_recepcionista_citas_hoy(%s)", ("cur_rec_citas",))
                 cur.execute('FETCH ALL FROM "cur_rec_citas"')
@@ -4050,10 +4067,32 @@ def recepcionista_dashboard():
                 ]
                 conn.commit()
             except Exception:
-                import traceback
-                logger.error("[SP ERROR] sp_recepcionista_citas_hoy:\n%s", traceback.format_exc())
                 _safe_rollback(conn)
+                cur.execute("""
+                    SELECT
+                        a.appointment_id, a.scheduled_at, a.appointment_status,
+                        a.patient_id,
+                        (p.first_name || ' ' || p.last_name)        AS patient_name,
+                        COALESCE(ca.name, '—')                      AS area_name,
+                        COALESCE(w.first_name || ' ' || w.last_name, '—') AS worker_name,
+                        NULL                                         AS hora_fin,
+                        FALSE                                        AS alerta_tardia,
+                        FALSE                                        AS vacuna_programada
+                    FROM appointments a
+                    JOIN patients p   ON p.patient_id  = a.patient_id
+                    LEFT JOIN clinic_areas ca ON ca.area_id = a.area_id
+                    LEFT JOIN workers w       ON w.worker_id = a.worker_id
+                    WHERE DATE(a.scheduled_at) = CURRENT_DATE
+                    ORDER BY a.scheduled_at
+                """)
+                citas_hoy = [
+                    {**dict(r), "scheduled_at": _temporal_text(r.get("scheduled_at")),
+                     "hora_fin": _temporal_text(r.get("hora_fin"))}
+                    for r in cur.fetchall()
+                ]
+                conn.commit()
 
+            # ── Actividad reciente ────────────────────────────────────────────
             try:
                 cur.execute("CALL sp_recepcionista_actividad_reciente(%s, %s)", (15, "cur_rec_actividad"))
                 cur.execute('FETCH ALL FROM "cur_rec_actividad"')
@@ -4063,10 +4102,34 @@ def recepcionista_dashboard():
                 ]
                 conn.commit()
             except Exception:
-                import traceback
-                logger.error("[SP ERROR] sp_recepcionista_actividad_reciente:\n%s", traceback.format_exc())
                 _safe_rollback(conn)
+                cur.execute("""
+                    SELECT tipo, descripcion, ts FROM (
+                        SELECT 'Cita agendada' AS tipo,
+                               'Cita para ' || p.first_name || ' ' || p.last_name
+                               || ' a las ' || TO_CHAR(a.scheduled_at, 'HH24:MI') AS descripcion,
+                               a.created_at AS ts
+                        FROM appointments a
+                        JOIN patients p ON p.patient_id = a.patient_id
+                        WHERE a.created_at >= NOW() - INTERVAL '24 hours'
+                        UNION ALL
+                        SELECT 'Paciente registrado' AS tipo,
+                               'Nuevo paciente: ' || first_name || ' ' || last_name AS descripcion,
+                               created_at AS ts
+                        FROM patients
+                        WHERE created_at >= NOW() - INTERVAL '24 hours'
+                          AND is_active = TRUE
+                    ) act
+                    ORDER BY ts DESC
+                    LIMIT 15
+                """)
+                actividad = [
+                    {**dict(r), "ts": _temporal_text(r.get("ts"))}
+                    for r in cur.fetchall()
+                ]
+                conn.commit()
 
+            # ── Pacientes por día esta semana ─────────────────────────────────
             try:
                 cur.execute("CALL sp_recepcionista_pacientes_semana(%s)", ("cur_rec_semana",))
                 cur.execute('FETCH ALL FROM "cur_rec_semana"')
@@ -4076,9 +4139,29 @@ def recepcionista_dashboard():
                 ]
                 conn.commit()
             except Exception:
-                import traceback
-                logger.error("[SP ERROR] sp_recepcionista_pacientes_semana:\n%s", traceback.format_exc())
                 _safe_rollback(conn)
+                cur.execute("""
+                    WITH dias AS (
+                        SELECT generate_series(
+                            DATE_TRUNC('week', CURRENT_DATE),
+                            CURRENT_DATE,
+                            INTERVAL '1 day'
+                        )::DATE AS dia
+                    )
+                    SELECT d.dia,
+                           TO_CHAR(d.dia, 'Dy') AS dia_label,
+                           COUNT(p.patient_id)   AS total
+                    FROM dias d
+                    LEFT JOIN patients p
+                           ON p.created_at::DATE = d.dia AND p.is_active = TRUE
+                    GROUP BY d.dia
+                    ORDER BY d.dia
+                """)
+                chart_data = [
+                    {"dia": str(r.get("dia")), "dia_label": r.get("dia_label"), "total": r.get("total", 0)}
+                    for r in cur.fetchall()
+                ]
+                conn.commit()
 
     finally:
         if should_close and not _conn_is_closed(conn):
