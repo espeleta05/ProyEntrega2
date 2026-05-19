@@ -503,12 +503,19 @@ INSERT INTO users (worker_id, username, password_hash, is_active) VALUES
 (5,'raul.mora',crypt('almacen123', gen_salt('bf')),TRUE);
 
 INSERT INTO guardian_accounts (guardian_id, email, password_hash, is_active, email_verified) VALUES
-(23,  'luis.bonavena@gmail.com',   crypt('tutor4',  gen_salt('bf')), TRUE, TRUE);
-(21,  'rodrigo.figueroa@gmail.com',   crypt('tutor2',  gen_salt('bf')), TRUE, TRUE);
-(13,  'ricardo.morales@gmail.com',   crypt('tutor2',  gen_salt('bf')), TRUE, TRUE);
-(1,  'carlos.garcia@gmail.com',    crypt('tutor1',  gen_salt('bf')), TRUE, TRUE),
 (2,  'maria.martinez@gmail.com',   crypt('tutor2',  gen_salt('bf')), TRUE, TRUE),
-(3,  'luis.lopez@gmail.com',       crypt('tutor3',  gen_salt('bf')), TRUE, TRUE);
+(3,  'luis.lopez@gmail.com',       crypt('tutor3',  gen_salt('bf')), TRUE, TRUE),
+(4,  'ana.hernandez@gmail.com',    crypt('tutor4',  gen_salt('bf')), TRUE, TRUE),
+(5,  'jorge.ramirez@gmail.com',    crypt('tutor5',  gen_salt('bf')), TRUE, TRUE),
+(6,  'laura.torres@gmail.com',     crypt('tutor6',  gen_salt('bf')), TRUE, TRUE),
+(7,  'pedro.flores@gmail.com',     crypt('tutor7',  gen_salt('bf')), TRUE, TRUE),
+(8,  'elena.rivera@gmail.com',     crypt('tutor8',  gen_salt('bf')), TRUE, TRUE),
+(9,  'miguel.gomez@gmail.com',     crypt('tutor9',  gen_salt('bf')), TRUE, TRUE),
+(10, 'patricia.diaz@gmail.com',    crypt('tutor10', gen_salt('bf')), TRUE, TRUE),
+(11, 'fernando.castro@gmail.com',  crypt('tutor11', gen_salt('bf')), TRUE, TRUE),
+(12, 'gabriela.ortiz@gmail.com',   crypt('tutor12', gen_salt('bf')), TRUE, TRUE),
+(14, 'daniela.ruiz@gmail.com',     crypt('tutor14', gen_salt('bf')), TRUE, TRUE),
+(15, 'hugo.navarro@gmail.com',     crypt('tutor15', gen_salt('bf')), TRUE, TRUE);
 
 -- MANUFACTURERS
 INSERT INTO manufacturers (manufacturer_id,name, country_id, contact_email) VALUES
