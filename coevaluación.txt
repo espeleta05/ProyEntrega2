@@ -1,0 +1,5 @@
+COEVALUACIÓN
+
+- Andrea Escobar: 10/10 - Encargada de backend Flask, coordinación del diseño con templates y jinja. Hacer SPs, vistas y triggers y corregirlos si fallaban en el flask
+- Melissa Figueroa: 10/10 - 
+- Eugenio Espeleta: 10/10 - 
