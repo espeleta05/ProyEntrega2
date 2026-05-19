@@ -328,6 +328,21 @@ http://IP_DE_LA_INSTANCIA:5000
 
 > Puedes obtener la IP pública de tu VM desde la consola de Google Cloud, en la sección **Compute Engine > Instancias de VM**.
 
+### 10.4 Acceso al sistema — credenciales de prueba
+
+Una vez que el servidor esté corriendo, ingresa a la pantalla de login y usa alguna de las siguientes credenciales según el rol que desees probar:
+
+| Rol | Usuario | Contraseña |
+|---|---|---|
+| Administrador | `jose.perez` | `admin123` |
+| Recepción | `elisa.campos` | `recepcion123` |
+| Médico | `mario.luna` | `medico123` |
+| Enfermero | `lucia.santos` | `enfermero123` |
+| Almacén | `raul.mora` | `almacen123` |
+| Tutor | `carlos.garcia@gmail.com` | `tutor1` |
+
+> Estas credenciales son de prueba y deben existir en la base de datos restaurada desde el respaldo. Si el login falla, verifica que la restauración del paso 6 se completó sin errores.
+
 ---
 
 ## 11. Configuración de Firewall
