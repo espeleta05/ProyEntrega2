@@ -225,6 +225,7 @@ CREATE TABLE workers (
     address_id     INT           REFERENCES addresses(address_id),
     birth_date     DATE,
     hire_date      DATE,
+    is_active      BOOLEAN       NOT NULL DEFAULT TRUE
 );
 
 CREATE TABLE worker_professional (
@@ -378,36 +379,6 @@ CREATE TABLE scheme_doses (
 
 
 ----  MÓDULO: CLINICAL RECORDS
-CREATE TABLE vaccination_records (
-    record_id            SERIAL   PRIMARY KEY,
-    patient_id           INT      NOT NULL REFERENCES patients(patient_id),
-    vaccine_id           INT      NOT NULL REFERENCES vaccines(vaccine_id),
-    worker_id            INT      NOT NULL REFERENCES workers(worker_id),
-    clinic_id            INT      NOT NULL REFERENCES clinics(clinic_id),
-    lot_id               INT      REFERENCES vaccine_lots(lot_id),
-    scheme_dose_id       INT      REFERENCES scheme_doses(dose_id),
-    applied_date         DATE     NOT NULL,
-    application_site_id  INT      REFERENCES application_sites(application_site_id),
-    appointment_id       INT      REFERENCES appointments(appointment_id),
-    -- Una cita puede tener múltiples registros de vacunación (varias vacunas por cita)
-    patient_temp_c       NUMERIC(4,1),
-    had_reaction         BOOLEAN  NOT NULL DEFAULT FALSE,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    patient_schedule_id INT REFERENCES patient_vaccine_schedule(schedule_id),
-    visit_id INT REFERENCES clinic_visits(visit_id)
-);
-
-
-CREATE TABLE post_vaccine_reactions (
-    reaction_id         SERIAL   PRIMARY KEY,
-    record_id           INT      NOT NULL REFERENCES vaccination_records(record_id),
-    reported_by         INT      REFERENCES workers(worker_id),
-    symptom             TEXT,
-    severity            VARCHAR(30),
-    onset_hours         SMALLINT,
-    treatment           TEXT,
-    notified_authority  BOOLEAN  NOT NULL DEFAULT FALSE
-);
 
 CREATE TABLE appointments (
     appointment_id       SERIAL      PRIMARY KEY,
@@ -456,7 +427,7 @@ CREATE TABLE patient_vaccine_schedule (
     UNIQUE (patient_id, scheme_dose_id)
 );
 
-ALTER TABLE patient_vaccine_schedule ADD COLUMN updated_at TIMESTAMP DEFAULT NOW();
+ALTER TABLE patient_vaccine_schedule ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT NOW();
 
 CREATE TABLE vaccination_records (
     record_id            SERIAL   PRIMARY KEY,
@@ -544,15 +515,15 @@ CREATE TABLE scheme_completion_alerts (
     schedule_id    INT         NOT NULL REFERENCES patient_vaccine_schedule(schedule_id),
     alert_type     VARCHAR(30) NOT NULL CHECK (alert_type IN ('Proximidad','Atraso','Critico')),
     due_date       DATE        NOT NULL,
+    message        TEXT,
     status         VARCHAR(20) NOT NULL DEFAULT 'Pendiente'
                                CHECK (status IN ('Pendiente','Enviada','Leida', 'Ignorada')),
     notified_at    TIMESTAMP,
     read_at        TIMESTAMP,
-    created_at     TIMESTAMP   DEFAULT NOW(),
-    schedule_id INT NOT NULL REFERENCES patient_vaccine_schedule(schedule_id)
+    created_at     TIMESTAMP   DEFAULT NOW()
 );
 
-ALTER TABLE scheme_completion_alerts ADD COLUMN schedule_id INT NOT NULL REFERENCES patient_vaccine_schedule(schedule_id);
+ALTER TABLE scheme_completion_alerts ADD COLUMN IF NOT EXISTS schedule_id INT REFERENCES patient_vaccine_schedule(schedule_id);
 
 CREATE TABLE supply_catalog (
     supply_id  SERIAL PRIMARY KEY,

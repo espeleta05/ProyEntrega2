@@ -1967,6 +1967,13 @@ def api_patient_detail(id):
                 WHERE p.patient_id = %s AND p.is_active = TRUE
             """, (id,))
             row = cur.fetchone()
+            allergy_ids = []
+            if row:
+                cur.execute(
+                    "SELECT allergy_id FROM patient_allergies WHERE patient_id = %s",
+                    (id,)
+                )
+                allergy_ids = [r["allergy_id"] for r in cur.fetchall()]
         conn.commit()
     except Exception as ex:
         _safe_rollback(conn)
@@ -1982,7 +1989,29 @@ def api_patient_detail(id):
     data = dict(row)
     if data.get("birth_date"):
         data["birth_date"] = data["birth_date"].isoformat()
+    data["allergy_ids"] = allergy_ids
     return jsonify(data)
+
+
+@app.route("/api/allergies")
+def api_allergies():
+    if not _check_role("Administrador", "Recepcionista", "Medico", "Enfermero"):
+        return jsonify({"error": "Sin permisos"}), 403
+    conn, should_close = _get_conn()
+    _safe_rollback(conn)
+    try:
+        with conn.cursor() as cur:
+            cur.execute("SELECT allergy_id, name, allergy_type FROM allergies ORDER BY allergy_type, name")
+            rows = [dict(r) for r in cur.fetchall()]
+        conn.commit()
+    except Exception as ex:
+        _safe_rollback(conn)
+        logger.error("Error en /api/allergies: %s", ex)
+        return jsonify([]), 500
+    finally:
+        if should_close and not _conn_is_closed(conn):
+            conn.close()
+    return jsonify(rows)
 
 
 @app.route("/api/paciente/<int:patient_id>/dosis")
@@ -2296,6 +2325,22 @@ def update_patient(id):
                     DO UPDATE SET is_primary = TRUE, has_custody = TRUE
                 """, (id, new_guardian_id))
 
+            # 4. Actualizar alergias (si se envió la clave)
+            if "allergy_ids" in payload:
+                allergy_ids = [int(x) for x in (payload.get("allergy_ids") or []) if x is not None]
+                if allergy_ids:
+                    cur.execute(
+                        "DELETE FROM patient_allergies WHERE patient_id = %s AND allergy_id != ALL(%s)",
+                        (id, allergy_ids)
+                    )
+                    for aid in allergy_ids:
+                        cur.execute(
+                            "INSERT INTO patient_allergies (patient_id, allergy_id) VALUES (%s, %s) ON CONFLICT DO NOTHING",
+                            (id, aid)
+                        )
+                else:
+                    cur.execute("DELETE FROM patient_allergies WHERE patient_id = %s", (id,))
+
         conn.commit()
     except Exception as ex:
         _safe_rollback(conn)
@@ -2467,7 +2512,7 @@ def historial_paciente(id):
 @app.route("/esquema_paciente/<int:id>")
 def esquema_paciente(id):
 
-    locked = _require_role("Administrador", "Medico", "Enfermero")
+    locked = _require_role("Administrador", "Medico", "Enfermero", "Recepcionista")
     if locked:
         return locked
 
@@ -2592,7 +2637,7 @@ def esquema_paciente(id):
 
 @app.route("/esquema")
 def esquema_vacunacion():
-    locked = _require_role("Administrador", "Medico", "Enfermero")
+    locked = _require_role("Administrador", "Medico", "Enfermero", "Recepcionista")
     if locked:
         return locked
 
@@ -3121,6 +3166,7 @@ def agregar_aplicacion():
                 if row and not row.get("success"):
                     error = row.get("message", "Error al registrar la aplicación")
                 elif row:
+                    _sync_record_to_mongo(row["record_id"])
                     p_name = f"{patient['first_name']} {patient['last_name']}".strip()
                     flash(f"Vacuna {vaccine['name']} registrada para {p_name}. Puedes aplicar otra vacuna en la misma cita.", "success")
                     # Redirigir de vuelta al mismo formulario con patient_id y appointment_id
@@ -3907,12 +3953,46 @@ def clinicas():
 
     conn, should_close = _get_conn()
     _safe_rollback(conn)
+    clinics = []
     try:
         with conn.cursor() as cur:
-            cur.execute("CALL sp_get_clinics_full(%s)", ("cur_clinics_full",))
-            cur.execute('FETCH ALL FROM "cur_clinics_full"')
+            cur.execute("""
+                SELECT
+                    c.clinic_id,
+                    c.name,
+                    c.phone,
+                    c.institution_type,
+                    c.is_active,
+                    COALESCE(mu.name || ', ' || st.name, '—') AS address_str
+                FROM clinics c
+                LEFT JOIN addresses      ad  ON ad.address_id      = c.address_id
+                LEFT JOIN neighborhoods  nb  ON nb.neighborhood_id = ad.neighborhood_id
+                LEFT JOIN municipalities mu  ON mu.municipality_id = nb.municipality_id
+                LEFT JOIN states         st  ON st.state_id        = mu.state_id
+                WHERE c.is_active = TRUE
+                ORDER BY c.name
+            """)
             clinics = [dict(r) for r in cur.fetchall()]
+
+            cur.execute("""
+                SELECT ca.clinic_id,
+                       ca.name,
+                       COALESCE(cat.name, '—') AS area_type,
+                       ca.floor,
+                       ca.capacity
+                FROM clinic_areas ca
+                LEFT JOIN clinic_area_types cat ON cat.area_type_id = ca.area_type_id
+                ORDER BY ca.clinic_id, ca.name
+            """)
+            areas_map = {}
+            for a in cur.fetchall():
+                a = dict(a)
+                cid = a.pop("clinic_id")
+                areas_map.setdefault(cid, []).append(a)
+
         conn.commit()
+        for c in clinics:
+            c["areas"] = areas_map.get(c["clinic_id"], [])
     except Exception as e:
         _safe_rollback(conn)
         logger.error(f"Error en /clinicas: {e}")
@@ -4899,7 +4979,9 @@ def api_reportes_publicos_resumen():
 
     # SP dedicado
     conn, should_close = _get_conn()
+    sp_row = None
     try:
+        _safe_rollback(conn)  # estado limpio antes de abrir el cursor
         with conn.cursor() as cur:
             cur.execute(
                 "CALL sp_reportes_resumen(%s, %s, %s)",
@@ -4908,123 +4990,50 @@ def api_reportes_publicos_resumen():
             cur.execute('FETCH ALL FROM "cur_reportes"')
             sp_row = cur.fetchone()
         conn.commit()
-    except Exception:
+    except Exception as e:
+        logger.error("Error en sp_reportes_resumen: %s", e, exc_info=True)
         _safe_rollback(conn)
-        sp_row = None
     finally:
         if should_close and not _conn_is_closed(conn):
             conn.close()
 
-    if sp_row:
-        import json as _json
-        row = dict(sp_row)
+    if not sp_row:
+        return jsonify({"error": "No se pudo generar el reporte. Revisa los logs del servidor para ver el error exacto."}), 503
 
-        def _parse_col(val):
-            if val is None:
-                return []
-            if isinstance(val, (list, dict)):
-                return val
-            try:
-                return _json.loads(val)
-            except Exception:
-                return []
+    import json as _json
+    row = dict(sp_row)
 
-        return jsonify({
-            "kpis": {
-                "total_doses_applied":         row.get("total_doses_applied", 0),
-                "target_population":           row.get("target_population", 0),
-                "reached_population":          row.get("reached_population", 0),
-                "coverage_percent":            float(row.get("coverage_percent") or 0),
-                "avg_delay_days":              float(row.get("avg_delay_days") or 0),
-                "active_zones":                row.get("active_zones", 0),
-                "reaction_rate":               float(row.get("reaction_rate")) if row.get("reaction_rate") is not None else None,
-                "completed_scheme":            row.get("completed_scheme"),
-                "delayed_patients":            row.get("delayed_patients"),
-                "appointment_completion_rate": float(row.get("appointment_completion_rate")) if row.get("appointment_completion_rate") is not None else None,
-                "low_stock_count":             row.get("low_stock_count"),
-                "new_patients":                row.get("new_patients"),
-                "active_workers":              row.get("active_workers"),
-                "avg_temp_c":                  float(row.get("avg_temp_c")) if row.get("avg_temp_c") is not None else None,
-            },
-            "vaccines": _parse_col(row.get("vaccines")),
-            "monthly":  _parse_col(row.get("monthly")),
-            "zones":    _parse_col(row.get("zones")),
-        })
-
-    # Fallback Python
-    all_records  = _cur_fetchall("vaccination_records")
-    all_patients = _cur_fetchall("patients")
-
-    if from_date and to_date:
-        all_records = [
-            r for r in all_records
-            if from_date <= str(r.get("applied_date") or "")[:10] <= to_date
-        ]
-
-    total_doses = len(all_records)
-    reached_pop = len(set(r["patient_id"] for r in all_records))
-    target_pop  = max(len(all_patients), 1)
-    coverage    = round((reached_pop / target_pop) * 100, 1)
-
-    monthly_map = {}
-    for r in all_records:
-        key = str(r.get("applied_date") or "")[:7]
-        if key:
-            entry = monthly_map.setdefault(key, {"period_label": key, "doses_applied": 0, "unique_patients": set()})
-            entry["doses_applied"] += 1
-            entry["unique_patients"].add(r["patient_id"])
-    monthly = [
-        {**v, "unique_patients": len(v["unique_patients"])}
-        for v in sorted(monthly_map.values(), key=lambda x: x["period_label"])
-    ]
-
-    vaccine_map = {}
-    for r in all_records:
-        vid = r.get("vaccine_id")
-        if vid:
-            v     = _cur_fetchone("vaccines", "vaccine_id", vid)
-            vname = v["name"] if v else "—"
-            entry = vaccine_map.setdefault(vname, {"vaccine_name": vname, "doses_applied": 0, "unique_patients": set()})
-            entry["doses_applied"] += 1
-            entry["unique_patients"].add(r["patient_id"])
-
-    vaccines_summary = sorted(
-        [
-            {
-                "vaccine_name":    k,
-                "doses_applied":   v["doses_applied"],
-                "unique_patients": len(v["unique_patients"]),
-                "share_percent":   round(v["doses_applied"] / total_doses * 100, 1) if total_doses else 0,
-            }
-            for k, v in vaccine_map.items()
-        ],
-        key=lambda x: x["doses_applied"],
-        reverse=True,
-    )[:50]
-
-    zones_summary = [
-        {
-            "zone_name":       z.get("name"),
-            "doses_applied":   z.get("cases"),
-            "unique_patients": z.get("cases"),
-            "risk_level":      z.get("risk"),
-            "risk_label":      {"high": "Alto", "medium": "Medio", "low": "Bajo"}.get(z.get("risk"), "—"),
-        }
-        for z in _cur_fetchall("zones")
-    ]
+    def _parse_col(val):
+        if val is None:
+            return []
+        if isinstance(val, (list, dict)):
+            return val
+        try:
+            return _json.loads(val)
+        except Exception:
+            return []
 
     return jsonify({
         "kpis": {
-            "total_doses_applied": total_doses,
-            "target_population":   target_pop,
-            "reached_population":  reached_pop,
-            "coverage_percent":    coverage,
-            "avg_delay_days":      0.0,
-            "active_zones":        len(zones_summary),
+            "total_doses_applied":         row.get("total_doses_applied", 0),
+            "target_population":           row.get("target_population", 0),
+            "reached_population":          row.get("reached_population", 0),
+            "coverage_percent":            float(row.get("coverage_percent") or 0),
+            "avg_delay_days":              float(row.get("avg_delay_days") or 0),
+            "active_zones":                row.get("active_zones", 0),
+            "reaction_rate":               float(row.get("reaction_rate")) if row.get("reaction_rate") is not None else None,
+            "completed_scheme":            row.get("completed_scheme"),
+            "delayed_patients":            row.get("delayed_patients"),
+            "appointment_completion_rate": float(row.get("appointment_completion_rate")) if row.get("appointment_completion_rate") is not None else None,
+            "low_stock_count":             row.get("low_stock_count"),
+            "new_patients":                row.get("new_patients"),
+            "active_workers":              row.get("active_workers"),
+            "expiring_lots":               row.get("expiring_lots"),
+            "pending_alerts":              row.get("pending_alerts"),
         },
-        "monthly":  monthly,
-        "vaccines": vaccines_summary,
-        "zones":    zones_summary,
+        "vaccines": _parse_col(row.get("vaccines")),
+        "monthly":  _parse_col(row.get("monthly")),
+        "zones":    _parse_col(row.get("zones")),
     })
 
 
@@ -5340,6 +5349,119 @@ def api_visit_link_vaccination(visit_id):
 
 
 # =============================================================================
+# MongoDB sync helpers
+# =============================================================================
+
+def _sync_record_to_mongo(record_id: int):
+    """Sincroniza un registro de vacunación individual a MongoDB."""
+    try:
+        from mongo import HistorialRepo
+        conn, should_close = _get_conn()
+        row = None
+        try:
+            _safe_rollback(conn)
+            with conn.cursor() as cur:
+                cur.execute("""
+                    SELECT vr.record_id,
+                           vr.patient_id,
+                           vr.applied_date,
+                           vr.had_reaction,
+                           v.name  AS vaccine_name,
+                           c.name  AS clinic_name,
+                           DATE_PART('year', AGE(CURRENT_DATE, p.birth_date))::INT AS age
+                    FROM vaccination_records vr
+                    JOIN patients p ON p.patient_id = vr.patient_id
+                    JOIN vaccines v ON v.vaccine_id  = vr.vaccine_id
+                    JOIN clinics  c ON c.clinic_id   = vr.clinic_id
+                    WHERE vr.record_id = %s
+                """, (record_id,))
+                row = cur.fetchone()
+            conn.commit()
+        except Exception:
+            _safe_rollback(conn)
+        finally:
+            if should_close and not _conn_is_closed(conn):
+                conn.close()
+
+        if not row:
+            return
+        r = dict(row)
+        from datetime import datetime, date
+        applied = r["applied_date"]
+        if isinstance(applied, date) and not isinstance(applied, datetime):
+            applied = datetime(applied.year, applied.month, applied.day)
+        HistorialRepo.upsert({
+            "pg_record_id":    r["record_id"],
+            "paciente_id":     r["patient_id"],
+            "patient_id":      r["patient_id"],
+            "fecha_aplicacion": applied,
+            "anio_mes":        applied.strftime("%Y-%m") if applied else None,
+            "vacuna_nombre":   r["vaccine_name"],
+            "clinica_nombre":  r["clinic_name"],
+            "tuvo_reaccion":   bool(r.get("had_reaction")),
+            "edad":            r.get("age"),
+        })
+    except Exception as e:
+        logger.warning("MongoDB sync (record %s) omitido: %s", record_id, e)
+
+
+def _sync_all_to_mongo():
+    """Bulk-sincroniza todos los registros de vacunación a MongoDB."""
+    try:
+        from mongo import HistorialRepo
+        conn, should_close = _get_conn()
+        rows = []
+        try:
+            _safe_rollback(conn)
+            with conn.cursor() as cur:
+                cur.execute("""
+                    SELECT vr.record_id,
+                           vr.patient_id,
+                           vr.applied_date,
+                           vr.had_reaction,
+                           v.name  AS vaccine_name,
+                           c.name  AS clinic_name,
+                           DATE_PART('year', AGE(CURRENT_DATE, p.birth_date))::INT AS age
+                    FROM vaccination_records vr
+                    JOIN patients p ON p.patient_id = vr.patient_id
+                    JOIN vaccines v ON v.vaccine_id  = vr.vaccine_id
+                    JOIN clinics  c ON c.clinic_id   = vr.clinic_id
+                """)
+                rows = [dict(r) for r in cur.fetchall()]
+            conn.commit()
+        except Exception as e:
+            _safe_rollback(conn)
+            logger.error("Error leyendo registros para sync MongoDB: %s", e)
+        finally:
+            if should_close and not _conn_is_closed(conn):
+                conn.close()
+
+        from datetime import datetime, date
+        synced = 0
+        for r in rows:
+            applied = r["applied_date"]
+            if isinstance(applied, date) and not isinstance(applied, datetime):
+                applied = datetime(applied.year, applied.month, applied.day)
+            if HistorialRepo.upsert({
+                "pg_record_id":    r["record_id"],
+                "paciente_id":     r["patient_id"],
+                "patient_id":      r["patient_id"],
+                "fecha_aplicacion": applied,
+                "anio_mes":        applied.strftime("%Y-%m") if applied else None,
+                "vacuna_nombre":   r["vaccine_name"],
+                "clinica_nombre":  r["clinic_name"],
+                "tuvo_reaccion":   bool(r.get("had_reaction")),
+                "edad":            r.get("age"),
+            }):
+                synced += 1
+        logger.info("MongoDB bulk sync: %d/%d registros sincronizados.", synced, len(rows))
+        return synced
+    except Exception as e:
+        logger.warning("MongoDB bulk sync omitido: %s", e)
+        return 0
+
+
+# =============================================================================
 # CLI
 # =============================================================================
 
@@ -5348,6 +5470,8 @@ def cli_init_database():
     """Inicializa la base de datos. Usar antes de `flask run` si aplica."""
     from db_init import init_database
     init_database()
+    n = _sync_all_to_mongo()
+    print(f"MongoDB: {n} registro(s) de vacunación sincronizados.")
 
 
 if __name__ == "__main__":

@@ -26,6 +26,9 @@ MYSQL_PORT=3306
 MYSQL_USER=root
 MYSQL_PASSWORD=root
 MYSQL_DB=sistemavacunacion
+
+MONGO_URI=mongodb://localhost:27017
+MONGO_DB=immunicare_nosql
 EOF
 
 # ──────────────────────────────────────────────
@@ -162,6 +165,33 @@ fi
 
 unset PGPASSWORD
 echo "[OK] Base de datos lista."
+
+# ──────────────────────────────────────────────
+# 4b. CONFIGURAR MONGODB (deshabilitar auth)
+# ──────────────────────────────────────────────
+echo "[4b] Configurando MongoDB..."
+MONGOD_CONF="/etc/mongod.conf"
+if [ -f "$MONGOD_CONF" ]; then
+    # Deshabilitar authorization si está habilitada
+    if sudo grep -qE "^\s*authorization:\s*enabled" "$MONGOD_CONF"; then
+        sudo sed -i 's/^\(\s*\)authorization:\s*enabled/\1authorization: disabled/' "$MONGOD_CONF"
+        echo "  → authorization: disabled aplicado."
+    fi
+    # Si no existe la clave, agregar sección security
+    if ! sudo grep -q "authorization:" "$MONGOD_CONF"; then
+        if sudo grep -q "^security:" "$MONGOD_CONF"; then
+            sudo sed -i '/^security:/a\  authorization: disabled' "$MONGOD_CONF"
+        else
+            printf '\nsecurity:\n  authorization: disabled\n' | sudo tee -a "$MONGOD_CONF" >/dev/null
+        fi
+        echo "  → sección security agregada."
+    fi
+    sudo systemctl restart mongod 2>/dev/null || sudo service mongod restart 2>/dev/null || true
+    sleep 2
+    echo "[OK] MongoDB sin autenticación."
+else
+    echo "[WARN] No se encontró $MONGOD_CONF — omitiendo configuración de MongoDB."
+fi
 
 # ──────────────────────────────────────────────
 # 5. VERIFICAR CONEXIÓN (flask init-db)

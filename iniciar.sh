@@ -7,6 +7,10 @@ if [ -f ".env" ]; then
     export $(grep -v '^#' .env | grep -v '^$' | xargs)
 fi
 
+# Liberar puerto 5000 si está ocupado
+fuser -k 5000/tcp 2>/dev/null || true
+sleep 1
+
 export FLASK_APP=app_2daE:app
 export FLASK_DEBUG="${FLASK_DEBUG:-1}"
 

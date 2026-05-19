@@ -32,15 +32,13 @@
       },
       yAxis: {
         min: 0,
-        max: 100,
         title: { text: null },
-        labels: { format: '{value}%' },
+        labels: { format: '{value}' },
         gridLineColor: '#f0f0f0',
       },
       tooltip: {
-        valueSuffix: '%',
         headerFormat: '<b>{point.key}</b><br/>',
-        pointFormat:  'Cobertura: <b>{point.y}%</b>',
+        pointFormat:  'Dosis: <b>{point.y}</b>',
       },
       plotOptions: {
         column: {
@@ -49,12 +47,12 @@
           colors: ['#4CAF7D', '#5B8DD9', '#29B6C5', '#F4A84A', '#AB6BD6'],
           dataLabels: {
             enabled: true,
-            format: '{point.y}%',
+            format: '{point.y}',
             style: { fontSize: '11px', fontWeight: '600', textOutline: 'none' },
           },
         },
       },
-      series: [{ name: 'Cobertura', data: coverageData.map(function (d) { return d.value; }) }],
+      series: [{ name: 'Dosis aplicadas', data: coverageData.map(function (d) { return d.value; }) }],
     }));
   }
 

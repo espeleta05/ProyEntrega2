@@ -1164,4 +1164,4 @@ SELECT setval(pg_get_serial_sequence('nfc_cards',       'nfc_card_id'),       MA
 SELECT setval(pg_get_serial_sequence('nfc_scan_events', 'scan_event_id'),     MAX(scan_event_id))     FROM nfc_scan_events;
 SELECT setval(pg_get_serial_sequence('supply_catalog',  'supply_id'),         MAX(supply_id))         FROM supply_catalog;
 SELECT setval(pg_get_serial_sequence('clinic_inventory','inventory_id'),      MAX(inventory_id))      FROM clinic_inventory;
-SELECT setval(pg_get_serial_sequence('audit_log',       'audit_id'),          MAX(audit_id))          FROM audit_log;
+SELECT setval(pg_get_serial_sequence('audit_log', 'audit_id'), COALESCE(MAX(audit_id), 1)) FROM audit_log;
