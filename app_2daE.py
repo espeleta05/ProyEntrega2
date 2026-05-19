@@ -855,7 +855,25 @@ def tutor_mis_hijos():
                         (guardian_id, "cur_tutor_children"))
             cur.execute('FETCH ALL FROM "cur_tutor_children"')
             rows = [dict(r) for r in cur.fetchall()]
-        conn.commit()
+            conn.commit()
+
+            # Corregir total_applied con conteo real de vaccination_records
+            if rows:
+                patient_ids = [r["patient_id"] for r in rows]
+                cur.execute(
+                    "SELECT patient_id, COUNT(*) AS cnt "
+                    "FROM vaccination_records "
+                    "WHERE patient_id = ANY(%s) "
+                    "GROUP BY patient_id",
+                    (patient_ids,)
+                )
+                applied_map = {r2["patient_id"]: r2["cnt"] for r2 in cur.fetchall()}
+                for r in rows:
+                    real_applied = applied_map.get(r["patient_id"], 0)
+                    r["total_applied"] = real_applied
+                    total = r.get("total_doses", 0) or 0
+                    r["pct"] = round(real_applied / total * 100) if total > 0 else 0
+                conn.commit()
     except Exception as e:
         _safe_rollback(conn)
         logger.error("Error en tutor_mis_hijos: %s", e)
@@ -3683,10 +3701,10 @@ def admin_cancelar_cita(appointment_id):
             cur.execute('FETCH ALL FROM "cur_cancel"')
             result = dict(cur.fetchone() or {})
         conn.commit()
-        if result.get("success"):
-            flash("Cita cancelada correctamente.", "info")
+        if result.get("success") is False:
+            flash(f"No se pudo cancelar: {result.get('message', 'Error desconocido')}", "danger")
         else:
-            flash(f"No se pudo cancelar: {result.get('message')}", "danger")
+            flash("Cita cancelada correctamente.", "info")
     except Exception as e:
         _safe_rollback(conn)
         logger.error("Error en admin_cancelar_cita: %s", e)
@@ -4021,6 +4039,36 @@ def recepcionista_dashboard():
                 import traceback
                 logger.error("[SP ERROR] sp_recepcionista_citas_hoy:\n%s", traceback.format_exc())
                 _safe_rollback(conn)
+                try:
+                    cur.execute("""
+                        SELECT
+                            a.appointment_id,
+                            a.scheduled_at,
+                            a.appointment_status,
+                            a.patient_id,
+                            (p.first_name || ' ' || p.last_name)          AS patient_name,
+                            COALESCE(ca.name, '—')                        AS area_name,
+                            COALESCE(w.first_name || ' ' || w.last_name, '—') AS worker_name,
+                            FALSE AS vacuna_programada,
+                            (a.scheduled_at < NOW()
+                             AND a.appointment_status IN ('Programada','Confirmada')
+                            ) AS alerta_tardia
+                        FROM appointments a
+                        JOIN patients p  ON p.patient_id = a.patient_id
+                        LEFT JOIN clinic_areas ca ON ca.area_id  = a.area_id
+                        LEFT JOIN workers      w  ON w.worker_id = a.worker_id
+                        WHERE DATE(a.scheduled_at) = CURRENT_DATE
+                        ORDER BY a.scheduled_at ASC
+                    """)
+                    citas_hoy = [
+                        {**dict(r), "scheduled_at": _temporal_text(r.get("scheduled_at")),
+                         "hora_fin": None}
+                        for r in cur.fetchall()
+                    ]
+                    conn.commit()
+                except Exception:
+                    logger.error("[FALLBACK ERROR] citas_hoy directo:\n%s", traceback.format_exc())
+                    _safe_rollback(conn)
 
             try:
                 cur.execute("CALL sp_recepcionista_actividad_reciente(%s, %s)", (15, "cur_rec_actividad"))
@@ -4102,54 +4150,82 @@ def medico_dashboard():
     try:
         with conn.cursor() as cur:
             # Q1: Citas del día filtradas por médico
-            cur.execute("CALL sp_get_citas_admin(%s, %s, %s, %s)",
-                        (clinic_id, today_iso, today_iso, "cur_md_citas"))
-            cur.execute('FETCH ALL FROM "cur_md_citas"')
-            all_citas = [dict(r) for r in cur.fetchall()]
-            citas_hoy = [r for r in all_citas if r.get("worker_id") == worker_id]
+            try:
+                cur.execute("CALL sp_get_citas_admin(%s, %s, %s, %s)",
+                            (clinic_id, today_iso, today_iso, "cur_md_citas"))
+                cur.execute('FETCH ALL FROM "cur_md_citas"')
+                all_citas = [dict(r) for r in cur.fetchall()]
+                citas_hoy = [r for r in all_citas if r.get("worker_id") == worker_id]
+                conn.commit()
+            except Exception:
+                import traceback
+                logger.error("[medico_dashboard Q1]:\n%s", traceback.format_exc())
+                _safe_rollback(conn)
 
             # Q2: Alertas pendientes (Atraso + Critico)
-            cur.execute("CALL sp_get_schema_alerts_full(%s)", ("cur_md_alertas",))
-            cur.execute('FETCH ALL FROM "cur_md_alertas"')
-            all_alertas = [dict(r) for r in cur.fetchall()]
-            alertas = [a for a in all_alertas
-                       if a.get("alert_status") == "Pendiente"
-                       and a.get("alert_type") in ("Atraso", "Critico")]
+            try:
+                cur.execute("CALL sp_get_schema_alerts_full(%s)", ("cur_md_alertas",))
+                cur.execute('FETCH ALL FROM "cur_md_alertas"')
+                all_alertas = [dict(r) for r in cur.fetchall()]
+                alertas = [a for a in all_alertas
+                           if a.get("alert_status") == "Pendiente"
+                           and a.get("alert_type") in ("Atraso", "Critico")]
+                conn.commit()
+            except Exception:
+                import traceback
+                logger.error("[medico_dashboard Q2]:\n%s", traceback.format_exc())
+                _safe_rollback(conn)
 
             # Q3: Vacunas aplicadas hoy por este médico
-            cur.execute(
-                "SELECT COUNT(*) AS cnt FROM vaccination_records "
-                "WHERE worker_id=%s AND applied_date=CURRENT_DATE",
-                (worker_id,)
-            )
-            vacunas_hoy = (cur.fetchone() or {}).get("cnt", 0)
+            try:
+                cur.execute(
+                    "SELECT COUNT(*) AS cnt FROM vaccination_records "
+                    "WHERE worker_id=%s AND applied_date=CURRENT_DATE",
+                    (worker_id,)
+                )
+                vacunas_hoy = (cur.fetchone() or {}).get("cnt", 0)
+                conn.commit()
+            except Exception:
+                import traceback
+                logger.error("[medico_dashboard Q3]:\n%s", traceback.format_exc())
+                _safe_rollback(conn)
 
             # Q4: Pacientes atendidos esta semana
-            cur.execute(
-                "SELECT COUNT(DISTINCT patient_id) AS cnt FROM vaccination_records "
-                "WHERE worker_id=%s AND applied_date >= DATE_TRUNC('week', CURRENT_DATE)",
-                (worker_id,)
-            )
-            pacientes_semana = (cur.fetchone() or {}).get("cnt", 0)
+            try:
+                cur.execute(
+                    "SELECT COUNT(DISTINCT patient_id) AS cnt FROM vaccination_records "
+                    "WHERE worker_id=%s AND applied_date >= DATE_TRUNC('week', CURRENT_DATE)",
+                    (worker_id,)
+                )
+                pacientes_semana = (cur.fetchone() or {}).get("cnt", 0)
+                conn.commit()
+            except Exception:
+                import traceback
+                logger.error("[medico_dashboard Q4]:\n%s", traceback.format_exc())
+                _safe_rollback(conn)
 
             # Q5: Citas por día esta semana (gráfica)
-            cur.execute(
-                "SELECT DATE(scheduled_at) AS dia, "
-                "TO_CHAR(DATE(scheduled_at), 'Dy') AS dia_label, "
-                "COUNT(*) AS total "
-                "FROM appointments "
-                "WHERE worker_id=%s "
-                "  AND scheduled_at >= DATE_TRUNC('week', CURRENT_DATE) "
-                "  AND scheduled_at < DATE_TRUNC('week', CURRENT_DATE) + INTERVAL '7 days' "
-                "GROUP BY dia ORDER BY dia",
-                (worker_id,)
-            )
-            chart_data = [dict(r) for r in cur.fetchall()]
-        conn.commit()
+            try:
+                cur.execute(
+                    "SELECT DATE(scheduled_at) AS dia, "
+                    "TO_CHAR(DATE(scheduled_at), 'Dy') AS dia_label, "
+                    "COUNT(*) AS total "
+                    "FROM appointments "
+                    "WHERE worker_id=%s "
+                    "  AND scheduled_at >= DATE_TRUNC('week', CURRENT_DATE) "
+                    "  AND scheduled_at < DATE_TRUNC('week', CURRENT_DATE) + INTERVAL '7 days' "
+                    "GROUP BY dia ORDER BY dia",
+                    (worker_id,)
+                )
+                chart_data = [dict(r) for r in cur.fetchall()]
+                conn.commit()
+            except Exception:
+                import traceback
+                logger.error("[medico_dashboard Q5]:\n%s", traceback.format_exc())
+                _safe_rollback(conn)
     except Exception as e:
         _safe_rollback(conn)
         logger.error("Error en medico_dashboard: %s", e)
-        flash("Error al cargar el dashboard.", "danger")
     finally:
         if should_close and not _conn_is_closed(conn):
             conn.close()
@@ -4902,44 +4978,41 @@ def api_clear_nfc_id():
             card_ids = [r["nfc_card_id"] for r in cur.fetchall()]
 
             if card_ids:
-                # Usar DO block para manejar tablas opcionales (migración clínica puede no haberse corrido)
-                cur.execute("""
-                    DO $$
-                    DECLARE v_ids INT[] := %s;
-                    BEGIN
-                        -- nfc_scan_events.visit_id (columna del flujo clínico, opcional)
-                        IF EXISTS (
-                            SELECT 1 FROM information_schema.columns
-                            WHERE table_name='nfc_scan_events' AND column_name='visit_id'
-                        ) THEN
-                            UPDATE nfc_scan_events SET visit_id = NULL WHERE nfc_card_id = ANY(v_ids);
-                        END IF;
+                cur.execute(
+                    "SELECT 1 FROM information_schema.columns "
+                    "WHERE table_name='nfc_scan_events' AND column_name='visit_id'"
+                )
+                if cur.fetchone():
+                    cur.execute("UPDATE nfc_scan_events SET visit_id = NULL WHERE nfc_card_id = ANY(%s)", (card_ids,))
 
-                        -- patient_clinic_visits (tabla opcional)
-                        IF EXISTS (
-                            SELECT 1 FROM information_schema.tables WHERE table_name='patient_clinic_visits'
-                        ) THEN
-                            UPDATE patient_clinic_visits
-                               SET checkin_nfc_scan_id = NULL
-                             WHERE checkin_nfc_scan_id IN (
-                                   SELECT scan_event_id FROM nfc_scan_events WHERE nfc_card_id = ANY(v_ids));
-                            UPDATE patient_clinic_visits
-                               SET checkout_nfc_scan_id = NULL
-                             WHERE checkout_nfc_scan_id IN (
-                                   SELECT scan_event_id FROM nfc_scan_events WHERE nfc_card_id = ANY(v_ids));
-                        END IF;
+                cur.execute(
+                    "SELECT 1 FROM information_schema.tables WHERE table_name='patient_clinic_visits'"
+                )
+                if cur.fetchone():
+                    cur.execute(
+                        "UPDATE patient_clinic_visits SET checkin_nfc_scan_id = NULL "
+                        "WHERE checkin_nfc_scan_id IN "
+                        "(SELECT scan_event_id FROM nfc_scan_events WHERE nfc_card_id = ANY(%s))",
+                        (card_ids,)
+                    )
+                    cur.execute(
+                        "UPDATE patient_clinic_visits SET checkout_nfc_scan_id = NULL "
+                        "WHERE checkout_nfc_scan_id IN "
+                        "(SELECT scan_event_id FROM nfc_scan_events WHERE nfc_card_id = ANY(%s))",
+                        (card_ids,)
+                    )
 
-                        -- visit_area_movements (tabla opcional)
-                        IF EXISTS (
-                            SELECT 1 FROM information_schema.tables WHERE table_name='visit_area_movements'
-                        ) THEN
-                            UPDATE visit_area_movements
-                               SET nfc_scan_id = NULL
-                             WHERE nfc_scan_id IN (
-                                   SELECT scan_event_id FROM nfc_scan_events WHERE nfc_card_id = ANY(v_ids));
-                        END IF;
-                    END$$;
-                """, (card_ids,))
+                cur.execute(
+                    "SELECT 1 FROM information_schema.tables WHERE table_name='visit_area_movements'"
+                )
+                if cur.fetchone():
+                    cur.execute(
+                        "UPDATE visit_area_movements SET nfc_scan_id = NULL "
+                        "WHERE nfc_scan_id IN "
+                        "(SELECT scan_event_id FROM nfc_scan_events WHERE nfc_card_id = ANY(%s))",
+                        (card_ids,)
+                    )
+
                 cur.execute("DELETE FROM nfc_scan_events WHERE nfc_card_id = ANY(%s)", (card_ids,))
                 cur.execute("DELETE FROM nfc_cards WHERE patient_id = %s", (patient_id,))
 
@@ -4955,6 +5028,83 @@ def api_clear_nfc_id():
             conn.close()
 
     return jsonify({"message": "OK"}), 200
+
+
+@app.route("/api/delete-nfc-card", methods=["POST"])
+def api_delete_nfc_card():
+    if not _check_role("Administrador", "Recepcionista"):
+        return jsonify({"error": "Sin permisos"}), 403
+
+    data = request.get_json(silent=True) or {}
+    nfc_card_id = data.get("nfc_card_id")
+
+    if not nfc_card_id:
+        return jsonify({"error": "nfc_card_id requerido"}), 400
+
+    conn, should_close = _get_conn()
+    _safe_rollback(conn)
+    try:
+        with conn.cursor() as cur:
+            cur.execute("SELECT nfc_card_id, patient_id FROM nfc_cards WHERE nfc_card_id = %s", (nfc_card_id,))
+            card = cur.fetchone()
+            if not card:
+                return jsonify({"error": "Tarjeta no encontrada"}), 404
+
+            # Nullear FKs en tablas dependientes antes de borrar scan events
+            cur.execute(
+                "SELECT 1 FROM information_schema.columns "
+                "WHERE table_name='nfc_scan_events' AND column_name='visit_id'"
+            )
+            if cur.fetchone():
+                cur.execute("UPDATE nfc_scan_events SET visit_id = NULL WHERE nfc_card_id = %s", (nfc_card_id,))
+
+            cur.execute(
+                "SELECT 1 FROM information_schema.tables WHERE table_name='patient_clinic_visits'"
+            )
+            if cur.fetchone():
+                cur.execute(
+                    "UPDATE patient_clinic_visits SET checkin_nfc_scan_id = NULL "
+                    "WHERE checkin_nfc_scan_id IN "
+                    "(SELECT scan_event_id FROM nfc_scan_events WHERE nfc_card_id = %s)",
+                    (nfc_card_id,)
+                )
+                cur.execute(
+                    "UPDATE patient_clinic_visits SET checkout_nfc_scan_id = NULL "
+                    "WHERE checkout_nfc_scan_id IN "
+                    "(SELECT scan_event_id FROM nfc_scan_events WHERE nfc_card_id = %s)",
+                    (nfc_card_id,)
+                )
+
+            cur.execute(
+                "SELECT 1 FROM information_schema.tables WHERE table_name='visit_area_movements'"
+            )
+            if cur.fetchone():
+                cur.execute(
+                    "UPDATE visit_area_movements SET nfc_scan_id = NULL "
+                    "WHERE nfc_scan_id IN "
+                    "(SELECT scan_event_id FROM nfc_scan_events WHERE nfc_card_id = %s)",
+                    (nfc_card_id,)
+                )
+
+            cur.execute("DELETE FROM nfc_scan_events WHERE nfc_card_id = %s", (nfc_card_id,))
+            cur.execute("DELETE FROM nfc_cards WHERE nfc_card_id = %s", (nfc_card_id,))
+
+            # Si el paciente ya no tiene tarjetas, limpiar su nfc_id
+            cur.execute("SELECT COUNT(*) AS cnt FROM nfc_cards WHERE patient_id = %s", (card["patient_id"],))
+            row = cur.fetchone()
+            if row and row["cnt"] == 0:
+                cur.execute("CALL sp_clear_patient_nfc_id(%s)", (card["patient_id"],))
+
+        conn.commit()
+    except Exception as e:
+        _safe_rollback(conn)
+        logger.error("Error en /api/delete-nfc-card: %s", e)
+        return jsonify({"error": str(e)}), 400
+    finally:
+        if should_close and not _conn_is_closed(conn):
+            conn.close()
+
+    return jsonify({"message": "Tarjeta eliminada"}), 200
 
 
 @app.route("/api/reportes-publicos/resumen")
