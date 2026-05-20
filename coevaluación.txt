@@ -1,5 +1,5 @@
 COEVALUACIÓN
 
 - Andrea Escobar: 10/10 - Encargada de backend Flask, coordinación del diseño con templates y jinja. Hacer SPs, vistas y triggers y corregirlos si fallaban en el flask
-- Melissa Figueroa: 10/10 - Encargada de funcionamiento con MongoDB, correción/actualización de SP, triggers, mejora de FrontEnd, actualización de normalización y diagrama Entidad-Relación
+- Melissa Figueroa: 10/10 - Encargada de funcionamiento con MongoDB, corrección/actualización de SP, triggers, mejora de css, actualización de normalización y diagrama Entidad-Relación
 - Eugenio Espeleta: 10/10 - Encargado de la funcionalidad de las IOT, de la funcionalidad de las vistas y funciones del sistemas, y correcion de fallas por diversas causas
